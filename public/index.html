@@ -472,7 +472,6 @@
                 </div>
             </div>
 
-            <!-- 折叠模板区 -->
             <div class="card" style="padding: 12px 16px;">
                 <div class="collapsible-header" id="toggleTemplateHeader"><span class="arrow" id="toggleArrow">▼</span><span>📌 手动自定义话术</span><div style="margin-left:auto; display:flex; gap:8px;"><button id="manageTemplatesBtn" class="secondary">管理模板</button><button id="resetRulesBtn" class="reset-btn">重置默认</button></div></div>
                 <div class="collapsible-content" id="templateContent" style="max-height:500px;">
@@ -482,7 +481,6 @@
                 </div>
             </div>
 
-            <!-- 结果区 -->
             <div class="card" style="margin-top:20px;">
                 <div class="result-header"><label>📄 生成话术 <span id="globalResultCount" class="badge" style="background:#0d6efd; color:white;">0 条/组</span></label><div class="flex-row"><button id="copyGlobalResultBtn">📋 复制全部</button><button id="exportGlobalResultBtn">💾 导出TXT</button></div></div>
                 <textarea id="globalResultArea" rows="20" readonly style="background:#e9ecef;"></textarea>
@@ -508,64 +506,13 @@
     </div>
 
     <!-- 模态框集合 -->
-    <div id="sourceRuleModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header"><h3>📌 文本转换规则管理</h3><span class="close" id="closeSourceRuleModal">&times;</span></div>
-            <p class="hint-text">✨ 按类型管理转换规则：来源、订单奖励、棋子名称。可搜索定位。</p>
-            <div class="flex-row" style="margin-bottom:12px;">
-                <select id="ruleTypeFilter" style="width:140px;">
-                    <option value="all">全部类型</option>
-                    <option value="source">来源</option>
-                    <option value="reward">订单奖励</option>
-                    <option value="chessName">棋子名称</option>
-                </select>
-                <div class="search-box" style="flex:1;">
-                    <input type="text" id="ruleSearchInput" placeholder="搜索关键词或替换内容...">
-                    <span class="clear-search" id="clearRuleSearch" style="display:none;">✕</span>
-                </div>
-            </div>
-            <div id="sourceRuleListContainer" style="max-height:250px; overflow:auto; border:1px solid #dee2e6; border-radius:8px; padding:8px;"></div>
-            <div class="inline-form">
-                <select id="newRuleType" style="width:120px;">
-                    <option value="source">来源</option>
-                    <option value="reward">订单奖励</option>
-                    <option value="chessName">棋子名称</option>
-                </select>
-                <input type="text" id="newRulePattern" placeholder="匹配关键词" style="flex:2;">
-                <span>→</span>
-                <input type="text" id="newRuleReplacement" placeholder="替换为（留空删除）" style="flex:3;">
-                <button id="addOrUpdateRuleBtn" style="background:#28a745;">➕ 添加</button>
-                <button id="cancelEditRuleBtn" class="secondary" style="display:none;">取消</button>
-            </div>
-            <div class="flex-row" style="margin-top:16px; justify-content:space-between;">
-                <button id="resetDefaultSourceRulesBtn" class="secondary">重置推荐规则</button>
-                <button id="clearAllSourceRulesBtn" class="reset-btn">清空所有规则</button>
-            </div>
-        </div>
-    </div>
-    <div id="ignoreRuleModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header"><h3>🚫 忽略关键词管理</h3><span class="close" id="closeIgnoreRuleModal">&times;</span></div>
-            <div id="ignoreRuleListContainer" style="max-height:250px; overflow:auto; border:1px solid #dee2e6; border-radius:8px; padding:8px;"></div>
-            <div class="inline-form"><input type="text" id="newIgnoreKeyword" placeholder="关键词"><button id="addIgnoreKeywordBtn" style="background:#28a745;">➕ 添加</button></div>
-            <div class="flex-row" style="margin-top:16px; justify-content:space-between;"><button id="resetDefaultIgnoreRulesBtn" class="secondary">重置推荐</button><button id="clearAllIgnoreRulesBtn" class="reset-btn">清空</button></div>
-        </div>
-    </div>
-    <div id="templateModal" class="modal">
-        <div class="modal-content"><div class="modal-header"><h3>管理模板</h3><span class="close" id="closeTemplateModal">&times;</span></div><button id="modalAddTemplateBtn">➕ 新增模板</button><div id="templateList"></div></div>
-    </div>
-    <div id="scriptEditModal" class="modal">
-        <div class="modal-content" style="max-width:600px;"><div class="modal-header"><h3 id="scriptEditTitle">编辑话术</h3><span class="close" id="closeScriptModal">&times;</span></div><textarea id="scriptEditText" rows="4" style="width:100%; margin-bottom:12px;"></textarea><label>标签（可多个，用逗号或空格分隔）</label><input type="text" id="scriptEditTags" placeholder="例如：常用,补偿,活动" style="width:100%; margin-bottom:12px;"><div class="flex-row"><button id="saveScriptBtn">💾 保存</button><button id="cancelScriptBtn" class="secondary">取消</button></div></div>
-    </div>
-    <div id="batchTagModal" class="modal">
-        <div class="modal-content" style="max-width:500px;"><div class="modal-header"><h3>批量添加标签</h3><span class="close" id="closeBatchModal">&times;</span></div><input type="text" id="batchTagInput" placeholder="标签名（多个用逗号分隔）" style="width:100%; margin-bottom:12px;"><div class="flex-row"><button id="applyBatchTagBtn">应用</button><button id="cancelBatchBtn" class="secondary">取消</button></div></div>
-    </div>
-    <div id="manageTagsModal" class="modal">
-        <div class="modal-content" style="max-width:500px;"><div class="modal-header"><h3>管理所有标签</h3><span class="close" id="closeManageTags">&times;</span></div><div id="allTagsList" style="margin-bottom:16px;"></div><div class="flex-row"><input type="text" id="newTagInput" placeholder="新标签名" style="flex:1;"><button id="addNewTagBtn">➕ 添加标签</button></div><small>点击标签可重命名，点击删除按钮移除。</small></div>
-    </div>
-    <div id="importScriptModal" class="modal">
-        <div class="modal-content" style="max-width:500px;"><div class="modal-header"><h3>导入话术</h3><span class="close" id="closeImportModal">&times;</span></div><div class="checkbox-label"><input type="checkbox" id="skipDuplicateCheckbox" checked> 跳过重复话术</div><input type="file" id="importFileInput" accept=".txt,.csv" /><div class="flex-row" style="margin-top:12px;"><button id="confirmImportBtn">开始导入</button><button id="cancelImportBtn" class="secondary">取消</button></div><div id="importProgress" style="margin-top:8px; font-size:12px; color:#0d6efd;"></div></div>
-    </div>
+    <div id="sourceRuleModal" class="modal"><div class="modal-content"><div class="modal-header"><h3>📌 文本转换规则管理</h3><span class="close" id="closeSourceRuleModal">&times;</span></div><p class="hint-text">✨ 按类型管理转换规则：来源、订单奖励、棋子名称。可搜索定位。</p><div class="flex-row" style="margin-bottom:12px;"><select id="ruleTypeFilter" style="width:140px;"><option value="all">全部类型</option><option value="source">来源</option><option value="reward">订单奖励</option><option value="chessName">棋子名称</option></select><div class="search-box" style="flex:1;"><input type="text" id="ruleSearchInput" placeholder="搜索关键词或替换内容..."><span class="clear-search" id="clearRuleSearch" style="display:none;">✕</span></div></div><div id="sourceRuleListContainer" style="max-height:250px; overflow:auto; border:1px solid #dee2e6; border-radius:8px; padding:8px;"></div><div class="inline-form"><select id="newRuleType" style="width:120px;"><option value="source">来源</option><option value="reward">订单奖励</option><option value="chessName">棋子名称</option></select><input type="text" id="newRulePattern" placeholder="匹配关键词" style="flex:2;"><span>→</span><input type="text" id="newRuleReplacement" placeholder="替换为（留空删除）" style="flex:3;"><button id="addOrUpdateRuleBtn" style="background:#28a745;">➕ 添加</button><button id="cancelEditRuleBtn" class="secondary" style="display:none;">取消</button></div><div class="flex-row" style="margin-top:16px; justify-content:space-between;"><button id="resetDefaultSourceRulesBtn" class="secondary">重置推荐规则</button><button id="clearAllSourceRulesBtn" class="reset-btn">清空所有规则</button></div></div></div>
+    <div id="ignoreRuleModal" class="modal"><div class="modal-content"><div class="modal-header"><h3>🚫 忽略关键词管理</h3><span class="close" id="closeIgnoreRuleModal">&times;</span></div><div id="ignoreRuleListContainer" style="max-height:250px; overflow:auto; border:1px solid #dee2e6; border-radius:8px; padding:8px;"></div><div class="inline-form"><input type="text" id="newIgnoreKeyword" placeholder="关键词"><button id="addIgnoreKeywordBtn" style="background:#28a745;">➕ 添加</button></div><div class="flex-row" style="margin-top:16px; justify-content:space-between;"><button id="resetDefaultIgnoreRulesBtn" class="secondary">重置推荐</button><button id="clearAllIgnoreRulesBtn" class="reset-btn">清空</button></div></div></div>
+    <div id="templateModal" class="modal"><div class="modal-content"><div class="modal-header"><h3>管理模板</h3><span class="close" id="closeTemplateModal">&times;</span></div><button id="modalAddTemplateBtn">➕ 新增模板</button><div id="templateList"></div></div></div>
+    <div id="scriptEditModal" class="modal"><div class="modal-content" style="max-width:600px;"><div class="modal-header"><h3 id="scriptEditTitle">编辑话术</h3><span class="close" id="closeScriptModal">&times;</span></div><textarea id="scriptEditText" rows="4" style="width:100%; margin-bottom:12px;"></textarea><label>标签（可多个，用逗号或空格分隔）</label><input type="text" id="scriptEditTags" placeholder="例如：常用,补偿,活动" style="width:100%; margin-bottom:12px;"><div class="flex-row"><button id="saveScriptBtn">💾 保存</button><button id="cancelScriptBtn" class="secondary">取消</button></div></div></div>
+    <div id="batchTagModal" class="modal"><div class="modal-content" style="max-width:500px;"><div class="modal-header"><h3>批量添加标签</h3><span class="close" id="closeBatchModal">&times;</span></div><input type="text" id="batchTagInput" placeholder="标签名（多个用逗号分隔）" style="width:100%; margin-bottom:12px;"><div class="flex-row"><button id="applyBatchTagBtn">应用</button><button id="cancelBatchBtn" class="secondary">取消</button></div></div></div>
+    <div id="manageTagsModal" class="modal"><div class="modal-content" style="max-width:500px;"><div class="modal-header"><h3>管理所有标签</h3><span class="close" id="closeManageTags">&times;</span></div><div id="allTagsList" style="margin-bottom:16px;"></div><div class="flex-row"><input type="text" id="newTagInput" placeholder="新标签名" style="flex:1;"><button id="addNewTagBtn">➕ 添加标签</button></div><small>点击标签可重命名，点击删除按钮移除。</small></div></div>
+    <div id="importScriptModal" class="modal"><div class="modal-content" style="max-width:500px;"><div class="modal-header"><h3>导入话术</h3><span class="close" id="closeImportModal">&times;</span></div><div class="checkbox-label"><input type="checkbox" id="skipDuplicateCheckbox" checked> 跳过重复话术</div><input type="file" id="importFileInput" accept=".txt,.csv" /><div class="flex-row" style="margin-top:12px;"><button id="confirmImportBtn">开始导入</button><button id="cancelImportBtn" class="secondary">取消</button></div><div id="importProgress" style="margin-top:8px; font-size:12px; color:#0d6efd;"></div></div></div>
 
     <script>
         (async function () {
@@ -589,7 +536,7 @@
             const DEFAULT_IGNORE_KEYWORDS = ["棋盘上传"];
             const PACK_NAME_MAP = { 151: "1星百戏锦囊", 152: "1星大百戏锦囊", 153: "2星百戏锦囊", 154: "2星大百戏锦囊", 155: "3星百戏锦囊", 156: "3星大百戏锦囊", 157: "4星百戏锦囊", 158: "4星大百戏锦囊", 159: "5星百戏锦囊", 160: "5星大百戏锦囊", 161: "5星超大百戏锦囊" };
 
-            // 云端加载/保存函数
+            // 云端加载/保存
             async function loadData(key, defaultValue) {
                 try {
                     const url = `${SERVER_URL}/api/data/${key}`;
@@ -604,9 +551,7 @@
                     throw new Error('获取失败');
                 } catch (e) {
                     const cached = localStorage.getItem(key);
-                    if (cached) {
-                        try { return JSON.parse(cached); } catch { }
-                    }
+                    if (cached) { try { return JSON.parse(cached); } catch { } }
                     return defaultValue;
                 }
             }
@@ -620,9 +565,7 @@
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ value: data })
                     });
-                } catch (e) {
-                    console.warn('同步到服务器失败:', e);
-                }
+                } catch (e) { console.warn('同步到服务器失败:', e); }
             }
 
             let templates = await loadData('templates', DEFAULT_TEMPLATES);
@@ -704,11 +647,10 @@
             }
             function cleanHeader(s) { return s.trim().replace(/^["'“”]|["'“”]$/g, ''); }
 
-            // ---------- 核心解析函数（增强版） ----------
+            // ---------- 核心解析函数 ----------
             function parseSmartLog(rawText) {
                 const lines = rawText.split(/\r?\n/).filter(l => l.trim());
                 const enableIgnore = document.getElementById('enableIgnoreRulesCheckbox')?.checked ?? true;
-                const resourceTypeSelect = document.getElementById('flowResourceSelect').value;
                 const records = [];
                 for (let line of lines) {
                     if (enableIgnore && ignoreKeywords.some(kw => line.toLowerCase().includes(kw.toLowerCase()))) {
@@ -730,28 +672,17 @@
                         itemName = (parts.length >= 9 && parts[8]?.includes('棋子')) ? parts[8]?.trim() : '';
                     }
                     const changeValue = parseInt(changeRaw, 10); if (isNaN(changeValue)) continue;
-                    let before = parseFloat(beforeRaw); let after = parseFloat(afterRaw);
-                    if (isNaN(before)) before = 0; if (isNaN(after)) after = 0;
+                    let before = parseFloat(beforeRaw) || 0, after = parseFloat(afterRaw) || 0;
                     sourceRaw = (sourceRaw || '').trim().replace(/^["'“”]|["'“”]$/g, '');
                     const source = applySourceConversion(sourceRaw);
-                    let resource = resourceTypeSelect;
-                    if (resource === '道具' || resource === 'all') {
-                        resource = (resourceField && ['体力', '红钻', '金币', '道具'].includes(resourceField)) ? resourceField : detectResourceType(line);
-                    }
-                    records.push({
-                        '时间': time, '数量': changeValue, '来源': source,
-                        '道具名称': itemName, '之前': before, '之后': after
-                    });
-                    debugConsole.innerHTML += `\n📌 提取: 时间=${time}, 资源=${resource}, 变化=${changeValue}, 来源="${sourceRaw}" -> "${source}"`;
+                    records.push({ '时间': time, '数量': changeValue, '来源': source, '道具名称': itemName, '之前': before, '之后': after });
                 }
                 records.sort((a, b) => (b['时间'] || '').localeCompare(a['时间'] || ''));
                 return records;
             }
 
             function getChangeAndAction(rec) {
-                let before = parseFloat(rec['之前']), after = parseFloat(rec['之后']);
-                if (isNaN(before)) before = 0; if (isNaN(after)) after = 0;
-                let change = after - before;
+                let before = parseFloat(rec['之前']) || 0, after = parseFloat(rec['之后']) || 0, change = after - before;
                 if (change === 0) { const qty = parseFloat(rec['数量']); if (!isNaN(qty)) change = qty; }
                 const action = change > 0 ? '获得' : (change < 0 ? '消耗' : '');
                 return { change, action, before, after };
@@ -759,28 +690,25 @@
 
             function isActivityItem(itemName, source, resourceType) {
                 if (resourceType !== '道具') return false;
-                const keywords = ['活动道具', '活动'];
-                const checkStr = (itemName + ' ' + source).toLowerCase();
-                return keywords.some(kw => checkStr.includes(kw.toLowerCase()));
+                return ['活动道具', '活动'].some(kw => (itemName + ' ' + source).toLowerCase().includes(kw.toLowerCase()));
             }
 
             function generateFlowSentence(rec, resourceType, showChange = true) {
-                const time = rec['时间'] || '';
-                const timeFormatted = time.replace(/-/g, '/');
+                const time = (rec['时间'] || '').replace(/-/g, '/');
                 const source = rec['来源'] || '';
                 const itemName = rec['道具名称'] || '';
                 const { change, action, before, after } = getChangeAndAction(rec);
                 if (change === 0 || !action) return null;
                 const absVal = Math.abs(change);
                 if (isActivityItem(itemName, source, resourceType))
-                    return `在${timeFormatted}，${action}了${absVal}个${itemName || '活动道具'}`;
+                    return `在${time}，${action}了${absVal}个${itemName || '活动道具'}`;
                 if (resourceType === '道具' && itemName)
-                    return `在${timeFormatted}，${action}了${absVal}个${itemName}`;
+                    return `在${time}，${action}了${absVal}个${itemName}`;
                 return showChange
-                    ? (source ? `在${timeFormatted}，通过【${source}】${action}${absVal}点${resourceType}，从${before}变为${after}`
-                        : `在${timeFormatted}，${action}${absVal}点${resourceType}，从${before}变为${after}`)
-                    : (source ? `在${timeFormatted}，通过【${source}】${action}${absVal}点${resourceType}`
-                        : `在${timeFormatted}，${action}${absVal}点${resourceType}`);
+                    ? (source ? `在${time}，通过【${source}】${action}${absVal}点${resourceType}，从${before}变为${after}`
+                        : `在${time}，${action}${absVal}点${resourceType}，从${before}变为${after}`)
+                    : (source ? `在${time}，通过【${source}】${action}${absVal}点${resourceType}`
+                        : `在${time}，${action}${absVal}点${resourceType}`);
             }
 
             // 订单日志解析
@@ -891,11 +819,10 @@
                 return [`在${finalTime.replace(/-/g, '/')}提交【${chessStr}】${actionVerb}，获得${rewardStr}`];
             }
 
-            // 棋子流水解析
+            // 棋子流水解析（增强版）
             function parseChessLog(raw) {
-                const lines = raw.split(/\r?\n/);
-                const events = [];
-                let cur = null;
+                const lines = raw.split(/\r?\n/).filter(l => l.trim());
+                const events = []; let cur = null;
                 const tsRgx = /^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}/;
                 for (let l of lines) {
                     if (!l.trim()) continue;
@@ -906,49 +833,47 @@
 
                 return events.map(ev => {
                     try {
-                        const timeMatch = ev.match(/^(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})/);
-                        if (!timeMatch) throw new Error('未找到时间');
-                        const time = formatTimeToStandard(timeMatch[1]);
-
-                        const change = (() => {
-                            const parts = ev.split('\t');
-                            for (let p of parts) if (/^[+-]\d+$/.test(p.trim())) return parseInt(p, 10);
-                            const m = ev.match(/\t([+-]\d+)\t/);
-                            if (m) return parseInt(m[1], 10);
-                            return null;
-                        })();
-                        if (change === null) throw new Error('未找到数字');
-
                         const parts = ev.split('\t');
-                        if (parts.length >= 3 && /^[+-]?\d+$/.test(parts[2].trim()) && (ev.includes('活动') || ev.includes('临时')))
-                            return { finalDesc: `在${time} ${change > 0 ? '获得' : '消耗'}${Math.abs(change)}个活动道具`, time };
+                        if (parts.length < 6) throw new Error('字段不足');
+                        const time = formatTimeToStandard(parts[0].trim());
+                        if (!time) throw new Error('时间错误');
 
-                        const chessMatch = ev.match(/\t([^\t]+?\/[^\t]+?)\t/);
+                        const chessRaw = (parts[2] || '').trim();
                         let name = '棋子', level = 0;
-                        if (chessMatch) {
-                            const raw = chessMatch[1];
-                            const pp = raw.split('/');
-                            name = pp[1] || pp[0];
-                            if (pp[0].length >= 2) {
-                                level = parseInt(pp[0].slice(-2), 10);
-                                if (isNaN(level)) level = 0;
-                            }
+                        if (chessRaw.includes('/')) {
+                            const [id, nm] = chessRaw.split('/');
+                            name = nm || chessRaw;
+                            const lm = id.match(/(\d{2})$/);
+                            if (lm) { level = parseInt(lm[1], 10); if (isNaN(level)) level = 0; }
+                        } else name = chessRaw;
+
+                        const change = parseInt(parts[3] || '0', 10) || 0;
+                        let cmd = '';
+                        for (let i = 6; i < parts.length; i++) {
+                            const p = parts[i].trim();
+                            if (p.includes('棋盘操作-')) { cmd = p; break; }
                         }
-                        const cmd = (ev.match(/棋盘操作-[^\t\n]+/) || [''])[0];
+                        if (!cmd) cmd = (parts[7] || parts[8] || '').trim();
+                        if (!cmd) throw new Error('未找到命令');
+
                         let desc = '';
-                        if (cmd.includes('删除')) desc = `删除了${Math.abs(change)}个${level ? level + '级' : ''}${name}`;
-                        else if (cmd.includes('推入仓库')) desc = `将${level ? level + '级' : ''}${name}推入仓库`;
-                        else if (cmd.includes('推出仓库')) desc = `从仓库取出${level ? level + '级' : ''}${name}`;
+                        if (cmd.includes('钻石解锁泡泡')) desc = `使用红钻解锁泡泡获得${level ? level + '级' : ''}${name}`;
+                        else if (cmd.includes('广告解锁泡泡')) desc = `看广告解锁泡泡获得${level ? level + '级' : ''}${name}`;
+                        else if (cmd.includes('活动棋盘仓库推出')) desc = `从活动棋盘的临时队列中取出${level ? level + '级' : ''}${name}`;
                         else if (cmd.includes('推出栈')) desc = `从临时队列取出${level ? level + '级' : ''}${name}`;
+                        else if (cmd.includes('推入仓库')) desc = `将${level ? level + '级' : ''}${name}放入仓库`;
+                        else if (cmd.includes('推出仓库')) desc = `从仓库取出${level ? level + '级' : ''}${name}`;
+                        else if (cmd.includes('临时队列取出')) desc = `从临时队列取出${level ? level + '级' : ''}${name}`;
                         else if (cmd.includes('商店购买')) desc = `在商店购买了${Math.abs(change)}个${level ? level + '级' : ''}${name}`;
                         else if (cmd.includes('合并')) desc = change > 0 ? `通过合并获得${Math.abs(change)}个${level ? level + '级' : ''}${name}` : `消耗${Math.abs(change)}个${level ? level + '级' : ''}${name}进行合成`;
                         else if (cmd.includes('活动')) desc = `通过活动获得${Math.abs(change)}个${level ? level + '级' : ''}${name}`;
-                        else desc = change > 0 ? `获得${Math.abs(change)}个${level ? level + '级' : ''}${name}` : `消耗${Math.abs(change)}个${level ? level + '级' : ''}${name}`;
+                        else if (cmd.includes('使用消耗棋子')) desc = `消耗${Math.abs(change)}个${level ? level + '级' : ''}${name}`;
+                        else if (cmd.includes('删除')) desc = `删除了${Math.abs(change)}个${level ? level + '级' : ''}${name}`;
+                        else if (change !== 0) desc = change > 0 ? `获得${Math.abs(change)}个${level ? level + '级' : ''}${name}` : `消耗${Math.abs(change)}个${level ? level + '级' : ''}${name}`;
+                        else throw new Error('无法识别命令');
 
                         return { finalDesc: `在${time} ${desc}`, time };
-                    } catch (e) {
-                        return { error: e.message };
-                    }
+                    } catch (e) { return { error: e.message }; }
                 });
             }
 
@@ -1210,7 +1135,7 @@
                 document.getElementById('recordCount').textContent = sentences.length;
             }
 
-            // 话术库、规则管理等（保持与同步版一致）
+            // 话术库、规则管理等
             function refreshScriptList() { const lb = document.getElementById('scriptListbox'); lb.innerHTML = ''; scripts.forEach((s, i) => { const o = document.createElement('option'); o.textContent = s.text.substring(0, 70) + (s.tags.length ? ' [' + s.tags.join(',') + ']' : ''); o.value = i; lb.appendChild(o); }); }
             function getAllTags() { const set = new Set(); scripts.forEach(s => s.tags.forEach(t => set.add(t))); return Array.from(set); }
             function renderTagFilter() { const sel = document.getElementById('tagFilterSelect'); const cur = sel.value; sel.innerHTML = '<option value="all">所有标签</option><option value="no_tag">无标签</option>'; getAllTags().forEach(t => { const o = document.createElement('option'); o.value = t; o.textContent = t; sel.appendChild(o); }); if ([...sel.options].some(o => o.value === cur)) sel.value = cur; }
@@ -1302,12 +1227,8 @@
                 const searchInput = document.getElementById('ruleSearchInput');
                 const clearSearch = document.getElementById('clearRuleSearch');
                 typeFilter.onchange = () => renderSourceRuleList(typeFilter.value, searchInput.value);
-                searchInput.oninput = () => {
-                    clearSearch.style.display = searchInput.value ? 'inline' : 'none';
-                    renderSourceRuleList(typeFilter.value, searchInput.value);
-                };
+                searchInput.oninput = () => { clearSearch.style.display = searchInput.value ? 'inline' : 'none'; renderSourceRuleList(typeFilter.value, searchInput.value); };
                 clearSearch.onclick = () => { searchInput.value = ''; clearSearch.style.display = 'none'; renderSourceRuleList(typeFilter.value, ''); };
-                searchInput.onkeypress = (e) => { if (e.key === 'Enter') scrollToFirstMatch(); };
 
                 refreshVarEntries(); refreshTemplateSelect(); refreshScriptList(); renderTagFilter();
             }
@@ -1329,7 +1250,7 @@
             new Sortable(document.getElementById('tabsContainer'), { animation: 150 });
             bindAll();
             debugConsole.style.display = 'none';
-            debugConsole.innerHTML = '🟢 工作台就绪 · 云端同步 · 增强版流水解析';
+            debugConsole.innerHTML = '🟢 工作台就绪 · 云端同步 · 棋子操作全识别';
         })();
     </script>
 </body>
