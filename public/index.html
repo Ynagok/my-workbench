@@ -939,7 +939,7 @@
                         if (cmd.includes('删除')) desc = `删除了${Math.abs(change)}个${level ? level + '级' : ''}${name}`;
                         else if (cmd.includes('推入仓库')) desc = `将${level ? level + '级' : ''}${name}推入仓库`;
                         else if (cmd.includes('推出仓库')) desc = `从仓库取出${level ? level + '级' : ''}${name}`;
-                        else if (cmd.includes('临时队列取出')) desc = `从临时队列取出${level ? level + '级' : ''}${name}`;
+                        else if (cmd.includes('推出栈')) desc = `从临时队列取出${level ? level + '级' : ''}${name}`;
                         else if (cmd.includes('商店购买')) desc = `在商店购买了${Math.abs(change)}个${level ? level + '级' : ''}${name}`;
                         else if (cmd.includes('合并')) desc = change > 0 ? `通过合并获得${Math.abs(change)}个${level ? level + '级' : ''}${name}` : `消耗${Math.abs(change)}个${level ? level + '级' : ''}${name}进行合成`;
                         else if (cmd.includes('活动')) desc = `通过活动获得${Math.abs(change)}个${level ? level + '级' : ''}${name}`;
