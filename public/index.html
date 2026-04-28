@@ -235,12 +235,6 @@
             border-bottom: 1px solid #dee2e6;
         }
 
-            .rule-item.highlight {
-                background: #fff3cd;
-                border-radius: 8px;
-                padding: 8px;
-            }
-
         .rule-pattern {
             background: #e9ecef;
             padding: 4px 8px;
@@ -253,24 +247,10 @@
             color: #0d6efd;
         }
 
-        .rule-type {
-            font-size: 12px;
-            color: #6c757d;
-            margin-left: 8px;
-        }
-
         .rule-actions {
             margin-left: auto;
             display: flex;
             gap: 8px;
-        }
-
-        .inline-form {
-            display: flex;
-            gap: 8px;
-            margin-top: 16px;
-            align-items: center;
-            flex-wrap: wrap;
         }
 
         .result-header {
@@ -434,17 +414,88 @@
                 cursor: pointer;
                 color: #aaa;
             }
+
+        .guide-grid {
+            display: grid;
+            grid-template-columns: 200px 1fr;
+            gap: 20px;
+            margin-top: 16px;
+        }
+
+        .guide-card {
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 12px;
+            width: 260px;
+            padding: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+            .guide-card img {
+                max-width: 100%;
+                border-radius: 8px;
+                margin: 4px 0;
+            }
+
+        .paste-area {
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            background: #fafafa;
+            margin-bottom: 10px;
+        }
+
+            .paste-area:hover {
+                border-color: #0d6efd;
+            }
+
+        .image-thumb {
+            display: inline-block;
+            position: relative;
+            margin: 5px;
+        }
+
+            .image-thumb img {
+                height: 80px;
+                border-radius: 6px;
+                border: 1px solid #ddd;
+            }
+
+            .image-thumb button {
+                position: absolute;
+                top: -8px;
+                right: -8px;
+                background: #dc3545;
+                color: white;
+                border: none;
+                border-radius: 50%;
+                width: 22px;
+                height: 22px;
+                font-size: 12px;
+                cursor: pointer;
+            }
+
+        .tag-badge {
+            background: #0d6efd20;
+            color: #0b5ed7;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="tabs" id="tabsContainer">
-            <button class="tab-btn active" data-tab="gen">🎤 话术生成 · 流水筛查</button>
-            <button class="tab-btn" data-tab="card">📊 集卡活动分析</button>
+            <button class="tab-btn active" data-tab="gen">🎤 话术生成</button>
+            <button class="tab-btn" data-tab="card">📊 集卡分析</button>
             <button class="tab-btn" data-tab="script">📚 话术库</button>
+            <button class="tab-btn" data-tab="guide">📷 图文攻略</button>
         </div>
 
-        <!-- 主工作区 gen -->
+        <!-- 话术生成 gen -->
         <div id="tab-gen" class="tab-content active">
             <div class="inline-card" style="margin-bottom: 20px;">
                 <label style="font-size: 1.1rem; margin-bottom: 10px;">📋 智能粘贴识别（支持资源/棋子/订单）</label>
@@ -471,7 +522,6 @@
                     <div class="upload-col"><label>道具关键词</label><input type="text" id="itemKeywordInput" placeholder="例如：百戏锦囊"></div>
                 </div>
             </div>
-
             <div class="card" style="padding: 12px 16px;">
                 <div class="collapsible-header" id="toggleTemplateHeader"><span class="arrow" id="toggleArrow">▼</span><span>📌 手动自定义话术</span><div style="margin-left:auto; display:flex; gap:8px;"><button id="manageTemplatesBtn" class="secondary">管理模板</button><button id="resetRulesBtn" class="reset-btn">重置默认</button></div></div>
                 <div class="collapsible-content" id="templateContent" style="max-height:500px;">
@@ -480,7 +530,6 @@
                     <div class="flex-row"><button id="generateFromTemplateBtn" style="background:#28a745;">✨ 模板生成话术</button></div>
                 </div>
             </div>
-
             <div class="card" style="margin-top:20px;">
                 <div class="result-header"><label>📄 生成话术 <span id="globalResultCount" class="badge" style="background:#0d6efd; color:white;">0 条/组</span></label><div class="flex-row"><button id="copyGlobalResultBtn">📋 复制全部</button><button id="exportGlobalResultBtn">💾 导出TXT</button></div></div>
                 <textarea id="globalResultArea" rows="20" readonly style="background:#e9ecef;"></textarea>
@@ -503,9 +552,28 @@
             <select id="scriptListbox" size="20" style="width:100%; height:400px;" multiple></select>
             <small>提示：按住 Ctrl 或 Shift 键可多选话术。</small>
         </div>
+
+        <!-- 图文攻略页 -->
+        <div id="tab-guide" class="tab-content">
+            <div class="flex-row" style="justify-content:space-between;">
+                <div class="flex-row">
+                    <select id="guideTagFilter"><option value="all">所有分类</option></select>
+                    <button id="addGuideBtn">➕ 新建攻略</button>
+                    <button id="manageGuideTagsBtn" class="secondary">🏷️ 管理分类</button>
+                </div>
+                <small class="hint-text">拖动卡片可调整顺序，编辑时可直接粘贴图片，卡片中可点击按钮复制图片。</small>
+            </div>
+            <div class="guide-grid">
+                <div class="card" style="padding:12px;">
+                    <h4>📁 分类筛选</h4>
+                    <div id="guideTagList" style="display:flex; flex-direction:column; gap:6px;"></div>
+                </div>
+                <div id="guideCardList" class="flex-row" style="flex-wrap:wrap; gap:12px; align-items:flex-start;"></div>
+            </div>
+        </div>
     </div>
 
-    <!-- 模态框集合 -->
+    <!-- 模态框部分 -->
     <div id="sourceRuleModal" class="modal"><div class="modal-content"><div class="modal-header"><h3>📌 文本转换规则管理</h3><span class="close" id="closeSourceRuleModal">&times;</span></div><p class="hint-text">✨ 按类型管理转换规则：来源、订单奖励、棋子名称。可搜索定位。</p><div class="flex-row" style="margin-bottom:12px;"><select id="ruleTypeFilter" style="width:140px;"><option value="all">全部类型</option><option value="source">来源</option><option value="reward">订单奖励</option><option value="chessName">棋子名称</option></select><div class="search-box" style="flex:1;"><input type="text" id="ruleSearchInput" placeholder="搜索关键词或替换内容..."><span class="clear-search" id="clearRuleSearch" style="display:none;">✕</span></div></div><div id="sourceRuleListContainer" style="max-height:250px; overflow:auto; border:1px solid #dee2e6; border-radius:8px; padding:8px;"></div><div class="inline-form"><select id="newRuleType" style="width:120px;"><option value="source">来源</option><option value="reward">订单奖励</option><option value="chessName">棋子名称</option></select><input type="text" id="newRulePattern" placeholder="匹配关键词" style="flex:2;"><span>→</span><input type="text" id="newRuleReplacement" placeholder="替换为（留空删除）" style="flex:3;"><button id="addOrUpdateRuleBtn" style="background:#28a745;">➕ 添加</button><button id="cancelEditRuleBtn" class="secondary" style="display:none;">取消</button></div><div class="flex-row" style="margin-top:16px; justify-content:space-between;"><button id="resetDefaultSourceRulesBtn" class="secondary">重置推荐规则</button><button id="clearAllSourceRulesBtn" class="reset-btn">清空所有规则</button></div></div></div>
     <div id="ignoreRuleModal" class="modal"><div class="modal-content"><div class="modal-header"><h3>🚫 忽略关键词管理</h3><span class="close" id="closeIgnoreRuleModal">&times;</span></div><div id="ignoreRuleListContainer" style="max-height:250px; overflow:auto; border:1px solid #dee2e6; border-radius:8px; padding:8px;"></div><div class="inline-form"><input type="text" id="newIgnoreKeyword" placeholder="关键词"><button id="addIgnoreKeywordBtn" style="background:#28a745;">➕ 添加</button></div><div class="flex-row" style="margin-top:16px; justify-content:space-between;"><button id="resetDefaultIgnoreRulesBtn" class="secondary">重置推荐</button><button id="clearAllIgnoreRulesBtn" class="reset-btn">清空</button></div></div></div>
     <div id="templateModal" class="modal"><div class="modal-content"><div class="modal-header"><h3>管理模板</h3><span class="close" id="closeTemplateModal">&times;</span></div><button id="modalAddTemplateBtn">➕ 新增模板</button><div id="templateList"></div></div></div>
@@ -513,15 +581,14 @@
     <div id="batchTagModal" class="modal"><div class="modal-content" style="max-width:500px;"><div class="modal-header"><h3>批量添加标签</h3><span class="close" id="closeBatchModal">&times;</span></div><input type="text" id="batchTagInput" placeholder="标签名（多个用逗号分隔）" style="width:100%; margin-bottom:12px;"><div class="flex-row"><button id="applyBatchTagBtn">应用</button><button id="cancelBatchBtn" class="secondary">取消</button></div></div></div>
     <div id="manageTagsModal" class="modal"><div class="modal-content" style="max-width:500px;"><div class="modal-header"><h3>管理所有标签</h3><span class="close" id="closeManageTags">&times;</span></div><div id="allTagsList" style="margin-bottom:16px;"></div><div class="flex-row"><input type="text" id="newTagInput" placeholder="新标签名" style="flex:1;"><button id="addNewTagBtn">➕ 添加标签</button></div><small>点击标签可重命名，点击删除按钮移除。</small></div></div>
     <div id="importScriptModal" class="modal"><div class="modal-content" style="max-width:500px;"><div class="modal-header"><h3>导入话术</h3><span class="close" id="closeImportModal">&times;</span></div><div class="checkbox-label"><input type="checkbox" id="skipDuplicateCheckbox" checked> 跳过重复话术</div><input type="file" id="importFileInput" accept=".txt,.csv" /><div class="flex-row" style="margin-top:12px;"><button id="confirmImportBtn">开始导入</button><button id="cancelImportBtn" class="secondary">取消</button></div><div id="importProgress" style="margin-top:8px; font-size:12px; color:#0d6efd;"></div></div></div>
+    <div id="guideEditModal" class="modal"><div class="modal-content"><h3 id="guideEditTitle">编辑攻略</h3><div class="form-group"><label>标题</label><input type="text" id="guideTitle" style="width:100%"></div><div class="form-group"><label>描述</label><textarea id="guideDesc" rows="3" style="width:100%"></textarea></div><div class="form-group"><label>图片（可直接粘贴或拖放）</label><div class="paste-area" id="pasteArea" tabindex="0">点击此处，然后按 Ctrl+V 粘贴图片</div><div id="imagePreview" style="margin-top:10px;"></div></div><div class="form-group"><label>备注</label><textarea id="guideNotes" rows="2" placeholder="内部备注，不对外显示" style="width:100%"></textarea></div><div class="form-group"><label>分类标签</label><select id="guideTagsSelect" multiple style="width:100%; height:100px;"></select><small>按住 Ctrl 可多选</small></div><div class="flex-row"><button id="saveGuideBtn">💾 保存</button><button id="deleteGuideBtn" class="secondary" style="background:#dc3545;">🗑️ 删除</button><button id="cancelGuideBtn" class="secondary">取消</button></div></div></div>
+    <div id="guideTagModal" class="modal"><div class="modal-content" style="max-width:450px;"><h3>管理分类标签</h3><div id="guideTagManageList" style="margin-bottom:12px;"></div><div class="flex-row"><input type="text" id="newGuideTagInput" placeholder="新分类名" style="flex:1;"><button id="addGuideTagBtn">➕ 添加</button></div><div class="flex-row" style="margin-top:12px; justify-content:flex-end;"><button id="closeGuideTagModal" class="secondary">关闭</button></div></div></div>
 
     <script>
         (async function () {
             "use strict";
-
             // ========== 云端同步配置 ==========
             const SERVER_URL = window.location.origin;
-
-            // ---------- 全局数据 ----------
             const CORE_FIELDS = ['时间', '体力', '红钻', '金币'];
             const DEFAULT_TEMPLATES = ["查询到您在{时间}{action}{体力}点体力", "查询到您在{时间}{action}{红钻}红钻", "查询到您在{时间}{action}{金币}金币"];
             const DEFAULT_SOURCE_RULES = [
@@ -536,11 +603,9 @@
             const DEFAULT_IGNORE_KEYWORDS = ["棋盘上传"];
             const PACK_NAME_MAP = { 151: "1星百戏锦囊", 152: "1星大百戏锦囊", 153: "2星百戏锦囊", 154: "2星大百戏锦囊", 155: "3星百戏锦囊", 156: "3星大百戏锦囊", 157: "4星百戏锦囊", 158: "4星大百戏锦囊", 159: "5星百戏锦囊", 160: "5星大百戏锦囊", 161: "5星超大百戏锦囊" };
 
-            // 云端加载/保存
             async function loadData(key, defaultValue) {
                 try {
-                    const url = `${SERVER_URL}/api/data/${key}`;
-                    const resp = await fetch(url);
+                    const resp = await fetch(`${SERVER_URL}/api/data/${key}`);
                     if (resp.ok) {
                         const { value } = await resp.json();
                         if (value !== undefined) {
@@ -549,9 +614,9 @@
                         }
                     }
                     throw new Error('获取失败');
-                } catch (e) {
+                } catch {
                     const cached = localStorage.getItem(key);
-                    if (cached) { try { return JSON.parse(cached); } catch { } }
+                    if (cached) try { return JSON.parse(cached); } catch { }
                     return defaultValue;
                 }
             }
@@ -559,8 +624,7 @@
             async function saveData(key, data) {
                 localStorage.setItem(key, JSON.stringify(data));
                 try {
-                    const url = `${SERVER_URL}/api/data/${key}`;
-                    await fetch(url, {
+                    await fetch(`${SERVER_URL}/api/data/${key}`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ value: data })
@@ -572,7 +636,9 @@
             let scripts = await loadData('scripts', []);
             let sourceRules = await loadData('sourceRules', DEFAULT_SOURCE_RULES);
             let ignoreKeywords = await loadData('ignoreKeywords', DEFAULT_IGNORE_KEYWORDS);
-            (function migrate() { for (let i = 0; i < scripts.length; i++) { if (typeof scripts[i] === 'string') scripts[i] = { text: scripts[i], tags: [] }; } saveData('scripts', scripts); })();
+            let guides = await loadData('guides', []);
+            let guideTags = await loadData('guideTags', ['新手攻略', '活动攻略', '进阶技巧']);
+            (function migrate() { for (let i = 0; i < scripts.length; i++) if (typeof scripts[i] === 'string') scripts[i] = { text: scripts[i], tags: [] }; saveData('scripts', scripts); })();
 
             function getRulePattern(r) { return r.pattern || r.pat || ''; }
             function getRuleReplacement(r) { return r.replacement || r.rep || ''; }
@@ -606,11 +672,7 @@
                 let match = str.match(/(\d{4})-(\d{1,2})-(\d{1,2})\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?/);
                 if (!match) return str;
                 let [_, y, m, d, h, min, sec] = match;
-                m = m.padStart(2, '0');
-                d = d.padStart(2, '0');
-                h = h.padStart(2, '0');
-                min = min.padStart(2, '0');
-                sec = sec ? sec.padStart(2, '0') : '00';
+                m = m.padStart(2, '0'); d = d.padStart(2, '0'); h = h.padStart(2, '0'); min = min.padStart(2, '0'); sec = sec ? sec.padStart(2, '0') : '00';
                 return `${y}-${m}-${d} ${h}:${min}:${sec}`;
             }
             function detectResourceType(line) { if (line.includes('体力')) return '体力'; if (line.includes('红钻')) return '红钻'; if (line.includes('金币')) return '金币'; return '道具'; }
@@ -618,8 +680,7 @@
                 if (!src) return src;
                 if (!(document.getElementById('enableSourceConversionCheckbox')?.checked ?? true)) return src;
                 const lower = src.toLowerCase();
-                const rules = sourceRules.filter(r => r.type === type);
-                for (let r of rules) {
+                for (let r of sourceRules.filter(r => r.type === type)) {
                     const pat = getRulePattern(r);
                     if (pat && lower.includes(pat.toLowerCase())) return getRuleReplacement(r) || src;
                 }
@@ -630,8 +691,7 @@
                 if (!rewardStr) return rewardStr;
                 if (!(document.getElementById('enableSourceConversionCheckbox')?.checked ?? true)) return rewardStr;
                 let result = rewardStr;
-                const rules = sourceRules.filter(r => r.type === 'reward');
-                for (let r of rules) {
+                for (let r of sourceRules.filter(r => r.type === 'reward')) {
                     const pat = getRulePattern(r);
                     if (!pat) continue;
                     result = result.replace(new RegExp(pat.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), getRuleReplacement(r) || '');
@@ -640,22 +700,17 @@
             }
             function applyChessNameConversion(name) { return applyConversionByType(name, 'chessName'); }
             function shouldIgnoreLine(line) {
-                const enableIgnore = document.getElementById('enableIgnoreRulesCheckbox')?.checked ?? true;
-                if (!enableIgnore || !ignoreKeywords.length) return false;
-                const lowerLine = line.toLowerCase();
-                return ignoreKeywords.some(kw => lowerLine.includes(kw.toLowerCase()));
+                if (!(document.getElementById('enableIgnoreRulesCheckbox')?.checked ?? true) || !ignoreKeywords.length) return false;
+                return ignoreKeywords.some(kw => line.toLowerCase().includes(kw.toLowerCase()));
             }
             function cleanHeader(s) { return s.trim().replace(/^["'“”]|["'“”]$/g, ''); }
 
-            // ---------- 核心解析函数 ----------
+            // ========== 资源流水解析 ==========
             function parseSmartLog(rawText) {
                 const lines = rawText.split(/\r?\n/).filter(l => l.trim());
-                const enableIgnore = document.getElementById('enableIgnoreRulesCheckbox')?.checked ?? true;
                 const records = [];
                 for (let line of lines) {
-                    if (enableIgnore && ignoreKeywords.some(kw => line.toLowerCase().includes(kw.toLowerCase()))) {
-                        debugConsole.innerHTML += `\n⏭️ 忽略行：${line.substring(0, 50)}...`; continue;
-                    }
+                    if (shouldIgnoreLine(line)) { debugConsole.innerHTML += `\n⏭️ 忽略行：${line.substring(0, 50)}...`; continue; }
                     const rawTime = extractTime(line); if (!rawTime) continue;
                     const time = formatTimeToStandard(rawTime);
                     const parts = line.split('\t'); if (parts.length < 6) continue;
@@ -683,7 +738,7 @@
 
             function getChangeAndAction(rec) {
                 let before = parseFloat(rec['之前']) || 0, after = parseFloat(rec['之后']) || 0, change = after - before;
-                if (change === 0) { const qty = parseFloat(rec['数量']); if (!isNaN(qty)) change = qty; }
+                if (change === 0) change = parseFloat(rec['数量']) || 0;
                 const action = change > 0 ? '获得' : (change < 0 ? '消耗' : '');
                 return { change, action, before, after };
             }
@@ -698,7 +753,7 @@
                 const source = rec['来源'] || '';
                 const itemName = rec['道具名称'] || '';
                 const { change, action, before, after } = getChangeAndAction(rec);
-                if (change === 0 || !action) return null;
+                if (!change || !action) return null;
                 const absVal = Math.abs(change);
                 if (isActivityItem(itemName, source, resourceType))
                     return `在${time}，${action}了${absVal}个${itemName || '活动道具'}`;
@@ -711,7 +766,7 @@
                         : `在${time}，${action}${absVal}点${resourceType}`);
             }
 
-            // 订单日志解析
+            // ========== 订单日志解析 ==========
             function parseOrderLog(rawText) {
                 let text = rawText.replace(/\r\n/g, '\n').replace(/\n/g, ' ');
                 const parts = text.split('\t').map(p => p.trim());
@@ -722,9 +777,8 @@
                 if (fullText.includes('过期')) return [`${orderType}已在${firstTime}过期`];
 
                 let statusIdx = -1, statusText = '', finalTime = '';
-                const statusKeywords = ['完成', '删除', '创建'];
                 for (let i = 0; i < parts.length; i++) {
-                    if (statusKeywords.includes(parts[i])) {
+                    if (['完成', '删除', '创建'].includes(parts[i])) {
                         statusIdx = i; statusText = parts[i];
                         if (i + 1 < parts.length) finalTime = parts[i + 1];
                         break;
@@ -819,7 +873,7 @@
                 return [`在${finalTime.replace(/-/g, '/')}提交【${chessStr}】${actionVerb}，获得${rewardStr}`];
             }
 
-            // 棋子流水解析（增强版）
+            // ========== 棋子流水解析（增强版） ==========
             function parseChessLog(raw) {
                 const lines = raw.split(/\r?\n/).filter(l => l.trim());
                 const events = []; let cur = null;
@@ -830,7 +884,6 @@
                     else if (cur) cur += '\n' + l;
                 }
                 if (cur) events.push(cur);
-
                 return events.map(ev => {
                     try {
                         const parts = ev.split('\t');
@@ -939,7 +992,7 @@
                 debugConsole.innerHTML += `\n✨ 生成 ${sentences.length} 条`;
             }
 
-            // CSV相关增强
+            // ========== CSV 解析与合并 ==========
             function parseFlowCSV(csvText) {
                 const lines = csvText.split(/\r?\n/).filter(l => l.trim());
                 if (lines.length < 2) return [];
@@ -1097,7 +1150,7 @@
                 } catch (e) { alert('解析失败: ' + e.message); }
             }
 
-            // 集卡功能
+            // ========== 集卡功能 ==========
             let currentCardRecords = [];
             function parseCSVEnhanced(csvText) {
                 const lines = csvText.split(/\r?\n/).filter(l => l.trim());
@@ -1105,7 +1158,8 @@
                 let delim = lines[0].includes('\t') ? '\t' : (lines[0].includes(';') ? ';' : ',');
                 let headers = lines[0].split(delim).map(h => h.trim().replace(/^"|"$/g, ''));
                 const colMap = { '卡包ID': ['卡包ID', 'pack_id'], '卡包星级': ['卡包星级', 'stars'], 'after': ['after'], '创建时间': ['创建时间', 'time'] };
-                const idx = {}; for (let [k, arr] of Object.entries(colMap)) for (let n of arr) { let i = headers.findIndex(h => h === n); if (i !== -1) { idx[k] = i; break; } }
+                const idx = {};
+                for (let [k, arr] of Object.entries(colMap)) for (let n of arr) { let i = headers.findIndex(h => h === n); if (i !== -1) { idx[k] = i; break; } }
                 const records = [];
                 for (let i = 1; i < lines.length; i++) {
                     let line = lines[i]; const vals = [];
@@ -1135,7 +1189,7 @@
                 document.getElementById('recordCount').textContent = sentences.length;
             }
 
-            // 话术库、规则管理等
+            // ========== 话术库 ==========
             function refreshScriptList() { const lb = document.getElementById('scriptListbox'); lb.innerHTML = ''; scripts.forEach((s, i) => { const o = document.createElement('option'); o.textContent = s.text.substring(0, 70) + (s.tags.length ? ' [' + s.tags.join(',') + ']' : ''); o.value = i; lb.appendChild(o); }); }
             function getAllTags() { const set = new Set(); scripts.forEach(s => s.tags.forEach(t => set.add(t))); return Array.from(set); }
             function renderTagFilter() { const sel = document.getElementById('tagFilterSelect'); const cur = sel.value; sel.innerHTML = '<option value="all">所有标签</option><option value="no_tag">无标签</option>'; getAllTags().forEach(t => { const o = document.createElement('option'); o.value = t; o.textContent = t; sel.appendChild(o); }); if ([...sel.options].some(o => o.value === cur)) sel.value = cur; }
@@ -1143,6 +1197,7 @@
             function renderAllTagsList() { const c = document.getElementById('allTagsList'); const tags = getAllTags(); c.innerHTML = tags.map(t => `<div class="rule-item"><span class="rule-pattern">${t}</span><div class="rule-actions"><button data-tag="${t}" class="rename-tag-btn">✏️</button><button data-tag="${t}" class="delete-tag-btn" style="background:#dc3545;">🗑️</button></div></div>`).join('') || '<div>暂无标签</div>'; c.querySelectorAll('.delete-tag-btn').forEach(b => b.onclick = e => { const tag = e.target.dataset.tag; scripts.forEach(s => s.tags = s.tags.filter(t => t !== tag)); saveData('scripts', scripts); renderAllTagsList(); renderTagFilter(); refreshScriptList(); }); }
             function renderTemplateList() { const c = document.getElementById('templateList'); c.innerHTML = templates.map((t, i) => `<div class="rule-item"><span>${t.substring(0, 50)}</span><div class="rule-actions"><button data-i="${i}" class="edit-template-btn">✏️</button><button data-i="${i}" class="delete-template-btn" style="background:#dc3545;">🗑️</button></div></div>`).join(''); c.querySelectorAll('.delete-template-btn').forEach(b => b.onclick = e => { templates.splice(e.target.dataset.i, 1); saveData('templates', templates); renderTemplateList(); refreshTemplateSelect(); }); }
 
+            // ========== 规则管理 ==========
             let editingSourceIndex = -1;
             function renderSourceRuleList(filterType = 'all', searchTerm = '') {
                 const c = document.getElementById('sourceRuleListContainer');
@@ -1170,10 +1225,24 @@
             }
             function resetSourceEditState() { document.getElementById('newRulePattern').value = ''; document.getElementById('newRuleReplacement').value = ''; document.getElementById('newRuleType').value = 'source'; document.getElementById('addOrUpdateRuleBtn').textContent = '➕ 添加'; document.getElementById('cancelEditRuleBtn').style.display = 'none'; editingSourceIndex = -1; }
             function renderIgnoreRuleList() { const c = document.getElementById('ignoreRuleListContainer'); c.innerHTML = ignoreKeywords.map((k, i) => `<div class="rule-item"><span class="rule-pattern">${k}</span><div class="rule-actions"><button data-i="${i}" class="delete-ignore-btn" style="background:#dc3545;">🗑️</button></div></div>`).join('') || '<div>暂无忽略关键词</div>'; c.querySelectorAll('.delete-ignore-btn').forEach(b => b.onclick = e => { ignoreKeywords.splice(e.target.dataset.i, 1); saveData('ignoreKeywords', ignoreKeywords); renderIgnoreRuleList(); }); }
+            function scrollToFirstMatch() {
+                const searchTerm = document.getElementById('ruleSearchInput').value.trim();
+                if (!searchTerm) return;
+                const items = document.querySelectorAll('#sourceRuleListContainer .rule-item');
+                for (let item of items) {
+                    if (item.textContent.toLowerCase().includes(searchTerm.toLowerCase())) {
+                        item.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        item.classList.add('highlight');
+                        setTimeout(() => item.classList.remove('highlight'), 2000);
+                        break;
+                    }
+                }
+            }
 
             function refreshVarEntries() { varContainer.innerHTML = ''; varInputs = {}; CORE_FIELDS.forEach(f => { const lab = document.createElement('label'); lab.textContent = f + '：'; const inp = document.createElement('input'); inp.value = ''; const btn = document.createElement('button'); btn.textContent = '📋'; btn.className = 'paste-btn'; btn.onclick = () => navigator.clipboard.readText().then(t => { const cl = cleanText(t); const tm = extractTime(cl); if (tm && varInputs['时间']) varInputs['时间'].value = tm; const val = parseInt(cl.match(/-?\d+/)?.[0]); if (!isNaN(val)) inp.value = val; }); varContainer.appendChild(lab); varContainer.appendChild(inp); varContainer.appendChild(btn); varInputs[f] = inp; }); }
             function refreshTemplateSelect() { templateSelect.innerHTML = ''; templates.forEach(t => { const o = document.createElement('option'); o.value = t; o.textContent = t.substring(0, 60); templateSelect.appendChild(o); }); }
 
+            // ========== 事件绑定 ==========
             function bindAll() {
                 document.getElementById('smartParseBtn').onclick = smartParseAndFill;
                 document.getElementById('clearSmartBtn').onclick = () => { smartPasteInput.value = ''; globalResultArea.value = ''; debugConsole.innerHTML = ''; };
@@ -1233,24 +1302,240 @@
                 refreshVarEntries(); refreshTemplateSelect(); refreshScriptList(); renderTagFilter();
             }
 
-            function scrollToFirstMatch() {
-                const searchTerm = document.getElementById('ruleSearchInput').value.trim();
-                if (!searchTerm) return;
-                const items = document.querySelectorAll('#sourceRuleListContainer .rule-item');
-                for (let item of items) {
-                    if (item.textContent.toLowerCase().includes(searchTerm.toLowerCase())) {
-                        item.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        item.classList.add('highlight');
-                        setTimeout(() => item.classList.remove('highlight'), 2000);
-                        break;
-                    }
-                }
+            // ========== 图文攻略 ==========
+            const guideCardList = document.getElementById('guideCardList');
+            const guideTagFilter = document.getElementById('guideTagFilter');
+            const guideTagsSelect = document.getElementById('guideTagsSelect');
+            let currentEditingGuideId = null;
+            let tempImages = [];
+
+            function refreshGuideTagUI() {
+                guideTagFilter.innerHTML = '<option value="all">所有分类</option>';
+                guideTags.forEach(tag => {
+                    const opt = document.createElement('option');
+                    opt.value = tag; opt.textContent = tag;
+                    guideTagFilter.appendChild(opt);
+                });
+                guideTagsSelect.innerHTML = '';
+                guideTags.forEach(tag => {
+                    const opt = document.createElement('option');
+                    opt.value = tag; opt.textContent = tag;
+                    guideTagsSelect.appendChild(opt);
+                });
+                const tagListDiv = document.getElementById('guideTagList');
+                tagListDiv.innerHTML = '<div class="tag-badge" style="cursor:pointer;" data-tag="all">全部</div>';
+                guideTags.forEach(tag => {
+                    const badge = document.createElement('div');
+                    badge.className = 'tag-badge';
+                    badge.style.cursor = 'pointer';
+                    badge.textContent = tag;
+                    badge.dataset.tag = tag;
+                    badge.onclick = () => { guideTagFilter.value = tag; filterAndRenderGuides(); };
+                    tagListDiv.appendChild(badge);
+                });
             }
 
-            new Sortable(document.getElementById('tabsContainer'), { animation: 150 });
+            function filterAndRenderGuides() {
+                const selectedTag = guideTagFilter.value;
+                let filtered = selectedTag === 'all' ? guides : guides.filter(g => g.tags.includes(selectedTag));
+                guideCardList.innerHTML = '';
+                filtered.forEach(guide => {
+                    const card = document.createElement('div');
+                    card.className = 'guide-card';
+                    card.setAttribute('data-id', guide.id);
+                    const imgsHtml = (guide.images || []).map((img, idx) => `
+                    <div style="position:relative; margin-bottom:6px;">
+                        <img src="${img}" style="max-width:100%; border-radius:6px;">
+                        <button class="copy-img-btn" data-img="${img}" style="position:absolute; bottom:4px; right:4px; background:#0d6efd; color:white; border:none; border-radius:4px; padding:2px 6px; font-size:11px;">📋复制图片</button>
+                    </div>
+                `).join('');
+                    card.innerHTML = `
+                    <strong>${guide.title || '未命名攻略'}</strong>
+                    <div style="font-size:12px; color:#666; margin:6px 0;">${guide.desc || ''}</div>
+                    ${imgsHtml}
+                    <div style="margin-top:6px;">${guide.tags.map(t => `<span class="tag-badge">${t}</span>`).join(' ')}</div>
+                    <div class="flex-row" style="justify-content:flex-end; margin-top:8px;">
+                        <button class="secondary" style="padding:4px 10px; font-size:12px;" onclick="editGuide('${guide.id}')">✏️</button>
+                    </div>
+                `;
+                    guideCardList.appendChild(card);
+                });
+                // 绑定复制图片按钮
+                document.querySelectorAll('.copy-img-btn').forEach(btn => {
+                    btn.onclick = async (e) => {
+                        e.stopPropagation();
+                        const base64 = btn.dataset.img;
+                        try {
+                            const resp = await fetch(base64);
+                            const blob = await resp.blob();
+                            await navigator.clipboard.write([
+                                new ClipboardItem({ [blob.type]: blob })
+                            ]);
+                            alert('图片已复制到剪贴板，可直接粘贴使用');
+                        } catch (err) {
+                            alert('复制失败，请尝试右键复制图片');
+                        }
+                    };
+                });
+                // 拖拽排序
+                new Sortable(guideCardList, {
+                    animation: 150,
+                    onEnd: function () {
+                        const newOrder = [...guideCardList.children].map(card => card.dataset.id);
+                        guides = newOrder.map(id => guides.find(g => g.id === id)).filter(g => g);
+                        saveData('guides', guides);
+                    }
+                });
+            }
+
+            window.editGuide = function (id) {
+                const guide = guides.find(g => g.id === id);
+                if (!guide) return;
+                currentEditingGuideId = id;
+                document.getElementById('guideEditTitle').textContent = '编辑攻略';
+                document.getElementById('guideTitle').value = guide.title || '';
+                document.getElementById('guideDesc').value = guide.desc || '';
+                document.getElementById('guideNotes').value = guide.notes || '';
+                tempImages = [...(guide.images || [])];
+                renderImagePreview();
+                [...guideTagsSelect.options].forEach(opt => opt.selected = guide.tags.includes(opt.value));
+                document.getElementById('deleteGuideBtn').style.display = 'inline-block';
+                document.getElementById('guideEditModal').style.display = 'block';
+            };
+
+            // 图片粘贴功能
+            const pasteArea = document.getElementById('pasteArea');
+            pasteArea.addEventListener('paste', async (e) => {
+                const items = e.clipboardData?.items;
+                if (!items) return;
+                for (let item of items) {
+                    if (item.type.startsWith('image/')) {
+                        const blob = item.getAsFile();
+                        const base64 = await blobToBase64(blob);
+                        tempImages.push(base64);
+                        renderImagePreview();
+                    }
+                }
+            });
+            pasteArea.addEventListener('click', () => pasteArea.focus());
+            document.getElementById('imagePreview').addEventListener('click', (e) => {
+                if (e.target.tagName === 'BUTTON' && e.target.dataset.index) {
+                    const index = parseInt(e.target.dataset.index);
+                    tempImages.splice(index, 1);
+                    renderImagePreview();
+                }
+            });
+
+            function renderImagePreview() {
+                const preview = document.getElementById('imagePreview');
+                preview.innerHTML = tempImages.map((img, i) => `
+                <div class="image-thumb">
+                    <img src="${img}">
+                    <button data-index="${i}">×</button>
+                </div>
+            `).join('');
+            }
+
+            function blobToBase64(blob) {
+                return new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onload = () => resolve(reader.result);
+                    reader.readAsDataURL(blob);
+                });
+            }
+
+            document.getElementById('addGuideBtn').onclick = () => {
+                currentEditingGuideId = null;
+                document.getElementById('guideEditTitle').textContent = '新建攻略';
+                document.getElementById('guideTitle').value = '';
+                document.getElementById('guideDesc').value = '';
+                document.getElementById('guideNotes').value = '';
+                tempImages = [];
+                renderImagePreview();
+                [...guideTagsSelect.options].forEach(o => o.selected = false);
+                document.getElementById('deleteGuideBtn').style.display = 'none';
+                document.getElementById('guideEditModal').style.display = 'block';
+            };
+
+            document.getElementById('saveGuideBtn').onclick = () => {
+                const title = document.getElementById('guideTitle').value.trim();
+                if (!title) { alert('请输入攻略标题'); return; }
+                const guideData = {
+                    id: currentEditingGuideId || Date.now().toString(36) + Math.random().toString(36).slice(2),
+                    title,
+                    desc: document.getElementById('guideDesc').value.trim(),
+                    images: [...tempImages],
+                    notes: document.getElementById('guideNotes').value.trim(),
+                    tags: [...guideTagsSelect.selectedOptions].map(o => o.value)
+                };
+                if (currentEditingGuideId) {
+                    const idx = guides.findIndex(g => g.id === currentEditingGuideId);
+                    if (idx !== -1) guides[idx] = guideData;
+                } else {
+                    guides.push(guideData);
+                }
+                saveData('guides', guides);
+                document.getElementById('guideEditModal').style.display = 'none';
+                filterAndRenderGuides();
+            };
+
+            document.getElementById('deleteGuideBtn').onclick = () => {
+                if (confirm('确认删除此攻略？')) {
+                    guides = guides.filter(g => g.id !== currentEditingGuideId);
+                    saveData('guides', guides);
+                    document.getElementById('guideEditModal').style.display = 'none';
+                    filterAndRenderGuides();
+                }
+            };
+
+            document.getElementById('cancelGuideBtn').onclick = () => {
+                document.getElementById('guideEditModal').style.display = 'none';
+            };
+
+            // 标签分类管理
+            document.getElementById('manageGuideTagsBtn').onclick = () => {
+                renderGuideTagManageList();
+                document.getElementById('guideTagModal').style.display = 'block';
+            };
+            document.getElementById('closeGuideTagModal').onclick = () => document.getElementById('guideTagModal').style.display = 'none';
+            function renderGuideTagManageList() {
+                const list = document.getElementById('guideTagManageList');
+                list.innerHTML = guideTags.map(tag => `
+                <div class="flex-row" style="justify-content:space-between; margin-bottom:8px;">
+                    <span>${tag}</span>
+                    <button class="secondary" style="padding:4px 10px; font-size:12px;" onclick="deleteGuideTag('${tag}')">删除</button>
+                </div>
+            `).join('') || '<div>暂无标签</div>';
+            }
+            window.deleteGuideTag = function (tag) {
+                guideTags = guideTags.filter(t => t !== tag);
+                guides.forEach(g => { g.tags = g.tags.filter(t => t !== tag); });
+                saveData('guideTags', guideTags);
+                saveData('guides', guides);
+                refreshGuideTagUI();
+                filterAndRenderGuides();
+                renderGuideTagManageList();
+            };
+            document.getElementById('addGuideTagBtn').onclick = () => {
+                const input = document.getElementById('newGuideTagInput');
+                const name = input.value.trim();
+                if (!name || guideTags.includes(name)) return;
+                guideTags.push(name);
+                saveData('guideTags', guideTags);
+                input.value = '';
+                refreshGuideTagUI();
+                renderGuideTagManageList();
+            };
+
+            guideTagFilter.onchange = filterAndRenderGuides;
+
+            // ========== 初始化 ==========
+            refreshGuideTagUI();
+            filterAndRenderGuides();
             bindAll();
+            new Sortable(document.getElementById('tabsContainer'), { animation: 150 });
             debugConsole.style.display = 'none';
-            debugConsole.innerHTML = '🟢 工作台就绪 · 云端同步 · 棋子操作全识别';
+            debugConsole.innerHTML = '🟢 工作台就绪 · 云端同步 · 全功能整合';
         })();
     </script>
 </body>
