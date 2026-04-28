@@ -637,7 +637,7 @@
             let sourceRules = await loadData('sourceRules', DEFAULT_SOURCE_RULES);
             let ignoreKeywords = await loadData('ignoreKeywords', DEFAULT_IGNORE_KEYWORDS);
             let guides = await loadData('guides', []);
-            let guideTags = await loadData('guideTags', ['新手攻略', '活动攻略', '进阶技巧']);
+            let guideTags = await loadData('guideTags', ['设备设置', '活动攻略']);
             (function migrate() { for (let i = 0; i < scripts.length; i++) if (typeof scripts[i] === 'string') scripts[i] = { text: scripts[i], tags: [] }; saveData('scripts', scripts); })();
 
             function getRulePattern(r) { return r.pattern || r.pat || ''; }
@@ -1497,36 +1497,43 @@
                 renderGuideTagManageList();
                 document.getElementById('guideTagModal').style.display = 'block';
             };
-            document.getElementById('closeGuideTagModal').onclick = () => document.getElementById('guideTagModal').style.display = 'none';
+
+            document.getElementById('closeGuideTagModal').onclick = () => {
+                document.getElementById('guideTagModal').style.display = 'none';
+            };
+
             function renderGuideTagManageList() {
                 const list = document.getElementById('guideTagManageList');
                 list.innerHTML = guideTags.map(tag => `
-                <div class="flex-row" style="justify-content:space-between; margin-bottom:8px;">
-                    <span>${tag}</span>
-                    <button class="secondary" style="padding:4px 10px; font-size:12px;" onclick="deleteGuideTag('${tag}')">删除</button>
-                </div>
-            `).join('') || '<div>暂无标签</div>';
+        <div class="flex-row" style="justify-content:space-between; margin-bottom:8px;">
+            <span>${tag}</span>
+            <button class="secondary" style="padding:4px 10px; font-size:12px;" onclick="deleteGuideTag('${tag}')">删除</button>
+        </div>
+    `).join('') || '<div>暂无标签</div>';
             }
+
+            // 删除分类（需同时更新攻略中的标签和服务器数据）
             window.deleteGuideTag = function (tag) {
                 guideTags = guideTags.filter(t => t !== tag);
                 guides.forEach(g => { g.tags = g.tags.filter(t => t !== tag); });
-                saveData('guideTags', guideTags);
-                saveData('guides', guides);
+                saveData('guideTags', guideTags);   // ← 关键：保存分类
+                saveData('guides', guides);         // ← 关键：保存攻略
                 refreshGuideTagUI();
                 filterAndRenderGuides();
                 renderGuideTagManageList();
             };
+
+            // 添加分类
             document.getElementById('addGuideTagBtn').onclick = () => {
                 const input = document.getElementById('newGuideTagInput');
                 const name = input.value.trim();
                 if (!name || guideTags.includes(name)) return;
                 guideTags.push(name);
-                saveData('guideTags', guideTags);
+                saveData('guideTags', guideTags);   // ← 关键：保存分类
                 input.value = '';
                 refreshGuideTagUI();
                 renderGuideTagManageList();
             };
-
             guideTagFilter.onchange = filterAndRenderGuides;
 
             // ========== 初始化 ==========
