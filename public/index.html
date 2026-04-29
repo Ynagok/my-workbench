@@ -626,6 +626,7 @@
                     <button id="exportGuidesBtn" class="secondary">📤 导出攻略</button>
                     <button id="importGuidesBtn" class="secondary">📥 导入攻略</button>
                     <input type="file" id="importGuidesFile" accept=".json" style="display:none;">
+                    <button id="forceSyncBtn" class="secondary" style="margin-left:8px;">🔄 强制同步</button>
                 </div>
                 <small>拖动卡片可排序，编辑时 Ctrl+V 粘贴图片，或点击上传按钮从相册选择。</small>
             </div>
@@ -688,6 +689,20 @@
             const DEFAULT_IGNORE_KEYWORDS = ["棋盘上传"];
             const PACK_NAME_MAP = { 151: "1星百戏锦囊", 152: "1星大百戏锦囊", 153: "2星百戏锦囊", 154: "2星大百戏锦囊", 155: "3星百戏锦囊", 156: "3星大百戏锦囊", 157: "4星百戏锦囊", 158: "4星大百戏锦囊", 159: "5星百戏锦囊", 160: "5星大百戏锦囊", 161: "5星超大百戏锦囊" };
 
+            // 自动备份与恢复
+            function autoBackup(key, data) {
+                const backupKey = `${key}_backup`;
+                const backups = JSON.parse(localStorage.getItem(backupKey) || '[]');
+                backups.push({ time: new Date().toISOString(), data });
+                if (backups.length > 5) backups.shift();
+                localStorage.setItem(backupKey, JSON.stringify(backups));
+            }
+            function restoreFromBackup(key) {
+                const backupKey = `${key}_backup`;
+                const backups = JSON.parse(localStorage.getItem(backupKey) || '[]');
+                return backups.length > 0 ? backups[backups.length - 1].data : null;
+            }
+
             // 增强同步
             async function loadData(key, defaultValue) {
                 try {
@@ -696,25 +711,32 @@
                         const { value } = await resp.json();
                         if (value !== undefined) {
                             localStorage.setItem(key, JSON.stringify(value));
+                            autoBackup(key, value);
                             return value;
                         }
                     }
-                    throw new Error('获取失败');
+                    localStorage.removeItem(key);
+                    throw new Error('服务器无数据');
                 } catch {
                     const cached = localStorage.getItem(key);
                     if (cached) try { return JSON.parse(cached); } catch { }
+                    const backup = restoreFromBackup(key);
+                    if (backup !== null) {
+                        localStorage.setItem(key, JSON.stringify(backup));
+                        return backup;
+                    }
                     return defaultValue;
                 }
             }
             async function saveData(key, data) {
                 localStorage.setItem(key, JSON.stringify(data));
+                autoBackup(key, data);
                 try {
-                    const resp = await fetch(`${SERVER_URL}/api/data/${key}`, {
+                    await fetch(`${SERVER_URL}/api/data/${key}`, {
                         method: 'POST', headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ value: data })
                     });
-                    if (!resp.ok) throw new Error(`服务器响应 ${resp.status}`);
-                } catch (e) { console.warn('同步失败', e); alert('保存云端失败'); throw e; }
+                } catch (e) { console.warn('同步云端失败', e); }
             }
 
             // 数据初始化
@@ -1668,6 +1690,24 @@
                     } catch (err) { alert('导入失败，请检查文件是否为正确的话术库 JSON 文件。'); }
                 };
 
+                // 强制同步
+                document.getElementById('forceSyncBtn').onclick = async () => {
+                    if (!confirm('强制同步将从服务器重新下载所有数据，确定继续？')) return;
+                    const keys = ['guides', 'guideCategories', 'scripts', 'sourceRules', 'ignoreKeywords', 'templates'];
+                    for (const k of keys) {
+                        try {
+                            const resp = await fetch(`${SERVER_URL}/api/data/${k}`);
+                            if (resp.ok) {
+                                const { value } = await resp.json();
+                                if (value !== undefined) localStorage.setItem(k, JSON.stringify(value));
+                                else localStorage.removeItem(k);
+                            }
+                        } catch { }
+                    }
+                    alert('同步完成，即将刷新');
+                    location.reload();
+                };
+
                 document.getElementById('uploadCsvBtn').onclick = processCardCsv;
                 document.getElementById('applyFilterBtn').onclick = processCardCsv;
                 document.getElementById('copyAllCardBtn').onclick = () => navigator.clipboard.writeText(document.getElementById('cardResultArea').value);
@@ -1699,7 +1739,7 @@
             bindAll();
             new Sortable(document.getElementById('tabsContainer'), { animation: 150 });
             debugConsole.style.display = 'none';
-            debugConsole.innerHTML = '🟢 工作台就绪 · 完整功能 · 支持备份恢复';
+            debugConsole.innerHTML = '🟢 工作台就绪 · 完整功能 · 自动备份恢复';
         })();
     </script>
 </body>
