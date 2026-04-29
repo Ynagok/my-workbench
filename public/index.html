@@ -3,23 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>客服冷静演绎工作台 · 同步增强版</title>
+    <title>客服冷静演绎工作台 · 经典版</title>
     <link rel="icon" type="image/gif" href="/my-icon.gif">
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
     <style>
         :root {
-            --primary: #2563eb;
-            --primary-hover: #1d4ed8;
-            --bg: #f8fafc;
+            --primary: #0d6efd;
+            --primary-hover: #0b5ed7;
+            --bg: #f0f2f5;
             --surface: #ffffff;
-            --border: #e2e8f0;
-            --text: #1e293b;
-            --text-secondary: #64748b;
+            --border: #dee2e6;
+            --text: #495057;
+            --text-secondary: #6c757d;
             --radius: 12px;
             --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
-            --shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
-            --shadow-md: 0 8px 15px -3px rgba(0,0,0,0.1);
-            --category-font-size: 16px;
+            --shadow: 0 8px 20px rgba(0,0,0,0.1);
         }
 
         * {
@@ -29,115 +27,117 @@
         }
 
         body {
-            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+            font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
             background: var(--bg);
-            color: var(--text);
             padding: 20px;
+            color: var(--text);
         }
 
         .container {
-            max-width: 1500px;
+            max-width: 1400px;
             margin: 0 auto;
             background: var(--surface);
-            border-radius: 20px;
-            box-shadow: var(--shadow-md);
+            border-radius: 16px;
+            box-shadow: var(--shadow);
             overflow: hidden;
         }
 
         .tabs {
             display: flex;
-            background: var(--surface);
-            border-bottom: 1px solid var(--border);
-            padding: 0 24px;
-            gap: 4px;
+            background: #ffffff;
+            border-bottom: 2px solid var(--border);
+            padding: 0 16px;
+            flex-wrap: wrap;
+            cursor: grab;
         }
+
+            .tabs:active {
+                cursor: grabbing;
+            }
 
         .tab-btn {
             background: none;
             border: none;
-            padding: 16px 24px;
-            font-size: 15px;
-            font-weight: 500;
-            color: var(--text-secondary);
+            padding: 12px 24px;
+            font-size: 16px;
             cursor: pointer;
-            border-bottom: 2px solid transparent;
             transition: 0.2s;
-            white-space: nowrap;
+            border-bottom: 3px solid transparent;
+            margin-bottom: -2px;
+            color: var(--text);
+            font-weight: 500;
+            user-select: none;
         }
 
             .tab-btn:hover {
-                color: var(--text);
-                background: rgba(37,99,235,0.04);
+                background: #e9ecef;
+                border-bottom-color: #adb5bd;
+                color: var(--primary);
             }
 
             .tab-btn.active {
                 color: var(--primary);
                 border-bottom-color: var(--primary);
+                background: #f8f9fa;
                 font-weight: 600;
             }
 
         .tab-content {
             display: none;
             padding: 24px;
-            animation: fadeIn 0.2s;
+            animation: fade 0.2s;
         }
 
             .tab-content.active {
                 display: block;
             }
 
-        @keyframes fadeIn {
+        @keyframes fade {
             from {
                 opacity: 0;
-                transform: translateY(4px);
             }
 
             to {
                 opacity: 1;
-                transform: translateY(0);
             }
+        }
+
+        .form-group {
+            margin-bottom: 20px;
         }
 
         label {
             font-weight: 500;
-            font-size: 13px;
-            color: var(--text-secondary);
-            margin-bottom: 6px;
             display: block;
+            margin-bottom: 6px;
         }
 
         select, input, textarea, button {
-            font-family: inherit;
+            padding: 8px 12px;
+            border: 1px solid #ced4da;
+            border-radius: 8px;
+            font-size: 14px;
         }
 
         button {
             background: var(--primary);
             color: white;
             border: none;
-            padding: 10px 18px;
-            border-radius: 10px;
-            font-weight: 500;
-            font-size: 14px;
             cursor: pointer;
             transition: 0.2s;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
         }
 
             button:hover {
                 background: var(--primary-hover);
-                transform: translateY(-1px);
-                box-shadow: var(--shadow);
             }
 
-            button.secondary {
-                background: #64748b;
-            }
+        .secondary {
+            background: #6c757d;
+        }
 
-                button.secondary:hover {
-                    background: #475569;
-                }
+            .secondary:hover {
+                background: #5a6268;
+            }
 
         .flex-row {
             display: flex;
@@ -146,174 +146,395 @@
             align-items: center;
         }
 
+        .var-grid {
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            gap: 12px 16px;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
         textarea {
             width: 100%;
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            padding: 12px;
-            font-size: 14px;
-            background: #f8fafc;
-            resize: vertical;
+            font-family: monospace;
         }
-
-            textarea:focus, input:focus, select:focus {
-                outline: none;
-                border-color: var(--primary);
-                box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
-            }
 
         .card {
-            background: var(--surface);
-            border: 1px solid var(--border);
+            background: #f8f9fa;
             border-radius: var(--radius);
-            padding: 20px;
-            margin-bottom: 16px;
-            box-shadow: var(--shadow-sm);
+            padding: 16px;
+            margin-top: 16px;
         }
 
-        .badge {
-            background: rgba(37,99,235,0.1);
-            color: var(--primary);
-            padding: 4px 10px;
-            border-radius: 20px;
+        .paste-btn {
+            background: #28a745;
+            padding: 6px 10px;
             font-size: 12px;
-            font-weight: 600;
         }
+
+            .paste-btn:hover {
+                background: #218838;
+            }
+
+        .debug-console {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 8px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow: auto;
+            white-space: pre-wrap;
+            display: none;
+        }
+
+        .reset-btn {
+            background: #dc3545;
+            margin-left: 8px;
+        }
+
+            .reset-btn:hover {
+                background: #c82333;
+            }
 
         .modal {
             display: none;
             position: fixed;
-            top: 0;
+            z-index: 1000;
             left: 0;
+            top: 0;
             width: 100%;
             height: 100%;
-            background: rgba(15,23,42,0.5);
-            backdrop-filter: blur(4px);
-            z-index: 1000;
+            background-color: rgba(0,0,0,0.5);
         }
 
         .modal-content {
-            background: var(--surface);
-            margin: 40px auto;
-            padding: 24px;
-            border-radius: 20px;
-            width: 90%;
-            max-width: 700px;
-            max-height: 85vh;
-            overflow-y: auto;
-            animation: slideUp 0.2s;
+            background-color: white;
+            margin: 5% auto;
+            padding: 20px;
+            border-radius: 16px;
+            width: 80%;
+            max-width: 800px;
+            max-height: 80%;
+            overflow: auto;
         }
 
-        @keyframes slideUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
         }
 
-        .guide-container {
-            display: grid;
-            grid-template-columns: 220px 1fr;
-            gap: 24px;
-            margin-top: 20px;
-        }
-
-        .category-sidebar {
-            background: #f8fafc;
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            padding: 12px 0;
-            height: fit-content;
-            max-height: 70vh;
-            overflow-y: auto;
-        }
-
-        .category-item {
-            padding: 14px 20px;
-            font-size: var(--category-font-size);
-            font-weight: 500;
-            color: var(--text-secondary);
+        .close {
+            font-size: 28px;
             cursor: pointer;
-            border-left: 3px solid transparent;
-            margin: 0 8px;
-            border-radius: 8px;
-            transition: 0.15s;
+        }
+
+        .badge {
+            background: #0d6efd20;
+            color: #0b5ed7;
+            padding: 2px 6px;
+            border-radius: 12px;
+            font-size: 12px;
+            margin-left: 6px;
+        }
+
+        .rule-item {
             display: flex;
             align-items: center;
+            gap: 12px;
+            padding: 8px 0;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+            .rule-item.highlight {
+                background: #fff3cd;
+                border-radius: 8px;
+                padding: 8px;
+            }
+
+        .rule-pattern {
+            background: #e9ecef;
+            padding: 4px 8px;
+            border-radius: 20px;
+            font-family: monospace;
+        }
+
+        .rule-replacement {
+            font-weight: 600;
+            color: #0d6efd;
+        }
+
+        .rule-type {
+            font-size: 12px;
+            color: #6c757d;
+            margin-left: 8px;
+        }
+
+        .rule-actions {
+            margin-left: auto;
+            display: flex;
             gap: 8px;
         }
 
+        .inline-form {
+            display: flex;
+            gap: 8px;
+            margin-top: 16px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .inline-card {
+            background: #ffffff;
+            border: 1px solid #dee2e6;
+            border-radius: 12px;
+            padding: 16px;
+        }
+
+        .collapsible-header {
+            cursor: pointer;
+            user-select: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+            .collapsible-header .arrow {
+                transition: transform 0.2s;
+                font-size: 18px;
+            }
+
+        .collapsible-content {
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+            .collapsible-content.collapsed {
+                max-height: 0 !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+
+        .rule-bar {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 16px;
+            align-items: stretch;
+            margin-bottom: 16px;
+        }
+
+            .rule-bar > div {
+                background: #f8f9fa;
+                padding: 8px 12px;
+                border-radius: 8px;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                flex-wrap: wrap;
+                min-height: 54px;
+            }
+
+        .compact-select {
+            width: 100px;
+        }
+
+        .upload-row {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            align-items: stretch;
+        }
+
+        .upload-col {
+            flex: 1;
+            min-width: 200px;
+            display: flex;
+            flex-direction: column;
+        }
+
+            .upload-col label {
+                margin-bottom: 4px;
+                font-weight: 500;
+                font-size: 14px;
+            }
+
+        .file-upload-wrapper {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+            .file-upload-wrapper input[type="file"] {
+                flex: 1;
+                min-width: 0;
+                height: 38px;
+                padding: 6px 10px;
+            }
+
+            .file-upload-wrapper button {
+                height: 38px;
+                white-space: nowrap;
+                padding: 0 16px;
+            }
+
+        input[type="text"], select {
+            height: 38px;
+        }
+
+        .checkbox-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-weight: normal;
+            margin: 0;
+        }
+
+        .debug-toggle {
+            cursor: pointer;
+            user-select: none;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 0;
+            color: #495057;
+        }
+
+        .parse-mode-group {
+            display: flex;
+            gap: 24px;
+            flex-wrap: wrap;
+            margin-left: auto;
+            align-items: center;
+        }
+
+        .hint-text {
+            font-size: 12px;
+            color: #6c757d;
+            margin-top: 4px;
+        }
+
+        .search-box {
+            position: relative;
+        }
+
+            .search-box input {
+                padding-right: 30px;
+            }
+
+            .search-box .clear-search {
+                position: absolute;
+                right: 8px;
+                top: 50%;
+                transform: translateY(-50%);
+                cursor: pointer;
+                color: #aaa;
+            }
+        /* 图文攻略样式 */
+        .guide-container {
+            display: grid;
+            grid-template-columns: 200px 1fr;
+            gap: 20px;
+            margin-top: 16px;
+        }
+
+        .category-sidebar {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 12px;
+            height: fit-content;
+        }
+
+        .category-item {
+            padding: 10px 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            color: var(--text);
+            transition: 0.2s;
+            margin-bottom: 4px;
+        }
+
             .category-item:hover {
-                background: #f1f5f9;
-                color: var(--text);
+                background: #e9ecef;
             }
 
             .category-item.active {
-                background: #eff6ff;
+                background: #dbe4ff;
                 color: var(--primary);
-                border-left-color: var(--primary);
                 font-weight: 600;
             }
 
         .guide-card {
             background: white;
             border: 1px solid var(--border);
-            border-radius: var(--radius);
-            padding: 16px;
-            width: 280px;
-            box-shadow: var(--shadow-sm);
-            transition: 0.2s;
+            border-radius: 12px;
+            padding: 12px;
+            width: 260px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
-
-            .guide-card:hover {
-                box-shadow: var(--shadow);
-                transform: translateY(-2px);
-            }
 
             .guide-card img {
                 max-width: 100%;
-                border-radius: 10px;
+                border-radius: 8px;
                 margin: 8px 0;
             }
 
         .paste-area {
-            border: 2px dashed #cbd5e1;
-            border-radius: 12px;
-            padding: 24px;
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            padding: 20px;
             text-align: center;
             cursor: pointer;
-            background: #f8fafc;
-            transition: 0.2s;
+            background: #fafafa;
+            margin-bottom: 10px;
         }
 
             .paste-area:hover {
                 border-color: var(--primary);
-                background: #f1f5f9;
             }
 
-        .search-input {
-            background: white;
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            padding: 10px 16px;
-            width: 100%;
+        .image-thumb {
+            display: inline-block;
+            position: relative;
+            margin: 5px;
         }
 
-        .debug-console {
-            background: #1e293b;
-            color: #cbd5e1;
-            padding: 12px;
-            border-radius: 10px;
-            margin-top: 12px;
-            font-size: 12px;
-            max-height: 200px;
-            overflow: auto;
-            display: none;
+            .image-thumb img {
+                height: 80px;
+                border-radius: 6px;
+                border: 1px solid #ddd;
+            }
+
+            .image-thumb button {
+                position: absolute;
+                top: -8px;
+                right: -8px;
+                background: #dc3545;
+                color: white;
+                border: none;
+                border-radius: 50%;
+                width: 22px;
+                height: 22px;
+                font-size: 12px;
+                cursor: pointer;
+            }
+
+        .guide-search {
+            margin-bottom: 16px;
         }
     </style>
 </head>
@@ -326,107 +547,96 @@
             <button class="tab-btn" data-tab="guide">📷 图文攻略</button>
         </div>
 
-        <!-- 话术生成 -->
+        <!-- 话术生成 gen -->
         <div id="tab-gen" class="tab-content active">
-            <div class="card">
-                <label style="font-size:1.1rem; margin-bottom:12px;">📋 智能粘贴识别（支持资源/棋子/订单）</label>
-                <textarea id="smartPasteInput" rows="5" placeholder="粘贴流水/订单日志..."></textarea>
-                <div class="flex-row" style="margin-top:12px;">
+            <div class="inline-card" style="margin-bottom: 20px;">
+                <label style="font-size: 1.1rem; margin-bottom: 10px;">📋 智能粘贴识别（支持资源/棋子/订单）</label>
+                <textarea id="smartPasteInput" rows="5" placeholder="粘贴流水/订单日志，例如：&#10;2026-04-20 16:04:00	51b2bb98971c8d2323c225edd44a5512	体力	-1	326	325	棋盘操作-临时母棋生产	0-货币"></textarea>
+                <div class="flex-row" style="margin-top:8px;">
                     <button id="smartParseBtn">✨ 智能解析</button>
                     <button id="clearSmartBtn" class="secondary">清空</button>
-                    <div class="flex-row" style="margin-left:auto;">
-                        <span>模式：</span>
-                        <label><input type="radio" name="parseMode" value="resource" checked> 资源</label>
-                        <label><input type="radio" name="parseMode" value="chess"> 棋子</label>
-                        <label><input type="radio" name="parseMode" value="order"> 订单</label>
+                    <div class="parse-mode-group">
+                        <span>解析模式：</span>
+                        <label class="checkbox-label"><input type="radio" name="parseMode" value="resource" checked> 资源流水</label>
+                        <label class="checkbox-label"><input type="radio" name="parseMode" value="chess"> 棋子流水</label>
+                        <label class="checkbox-label"><input type="radio" name="parseMode" value="order"> 订单日志</label>
                     </div>
                 </div>
-                <div style="margin-top:16px; display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px;">
-                    <div><label>资源类型</label><select id="flowResourceSelect"><option value="体力">体力</option><option value="红钻">红钻</option><option value="金币">金币</option><option value="道具" selected>道具</option></select></div>
-                    <div><label>忽略规则</label><div class="flex-row"><input type="checkbox" id="enableIgnoreRulesCheckbox" checked> 启用 <button id="manageIgnoreRulesBtn" class="secondary">管理</button></div></div>
-                    <div><label>转换规则</label><div class="flex-row"><input type="checkbox" id="enableSourceConversionCheckbox" checked> 启用 <button id="manageSourceRulesBtn" class="secondary">管理</button></div></div>
+                <div style="border-top: 1px solid #e0e0e0; margin: 16px 0;"></div>
+                <div class="rule-bar">
+                    <div><label style="margin:0; font-weight:600;">资源类型</label><select id="flowResourceSelect" class="compact-select"><option value="体力">体力</option><option value="红钻">红钻</option><option value="金币">金币</option><option value="道具" selected>道具</option></select></div>
+                    <div><strong>🚫 忽略</strong><label class="checkbox-label"><input type="checkbox" id="enableIgnoreRulesCheckbox" checked> 启用</label><button id="manageIgnoreRulesBtn" class="secondary">管理</button></div>
+                    <div><strong>📌 转换</strong><label class="checkbox-label"><input type="checkbox" id="enableSourceConversionCheckbox" checked> 启用</label><button id="manageSourceRulesBtn" class="secondary">管理</button></div>
                 </div>
-                <div class="flex-row" style="margin-top:12px;">
-                    <input type="file" id="flowFileInput" accept=".csv,.txt" style="flex:1;">
-                    <button id="uploadFlowBtn">上传CSV</button>
-                    <input type="text" id="includeSourcesInput" placeholder="来源关键词" style="width:140px;">
-                    <input type="text" id="itemKeywordInput" placeholder="道具关键词" style="width:140px;">
+                <div class="upload-row">
+                    <div class="upload-col"><label>📁 上传流水CSV</label><div class="file-upload-wrapper"><input type="file" id="flowFileInput" accept=".csv,.txt" /><button id="uploadFlowBtn">上传解析</button><button id="debugFlowBtn" class="secondary">调试</button></div></div>
+                    <div class="upload-col"><label>来源关键词</label><input type="text" id="includeSourcesInput" placeholder="例如：棋盘,体力购买"></div>
+                    <div class="upload-col"><label>道具关键词</label><input type="text" id="itemKeywordInput" placeholder="例如：百戏锦囊"></div>
                 </div>
             </div>
-            <div class="card">
-                <div class="flex-row" style="justify-content:space-between;"><span style="font-weight:600;">📌 自定义模板</span><button id="manageTemplatesBtn" class="secondary">管理模板</button></div>
-                <select id="templateSelect" style="width:100%; margin-top:8px;"></select>
-                <div id="varContainer" class="flex-row" style="margin-top:12px;"></div>
-                <button id="generateFromTemplateBtn" style="background:#16a34a;">✨ 生成话术</button>
+
+            <div class="card" style="padding: 12px 16px;">
+                <div class="collapsible-header" id="toggleTemplateHeader"><span class="arrow" id="toggleArrow">▼</span><span>📌 手动自定义话术</span><div style="margin-left:auto; display:flex; gap:8px;"><button id="manageTemplatesBtn" class="secondary">管理模板</button><button id="resetRulesBtn" class="reset-btn">重置默认</button></div></div>
+                <div class="collapsible-content" id="templateContent" style="max-height:500px;">
+                    <div class="form-group" style="margin-top:12px;"><label>选择模板：</label><select id="templateSelect" style="width:100%;"></select></div>
+                    <label>📝 变量值</label><div id="varContainer" class="var-grid"></div>
+                    <div class="flex-row"><button id="generateFromTemplateBtn" style="background:#28a745;">✨ 模板生成话术</button></div>
+                </div>
             </div>
-            <div class="card">
-                <div class="flex-row" style="justify-content:space-between;"><span>📄 生成话术 <span id="globalResultCount" class="badge">0</span></span><div><button id="copyGlobalResultBtn">复制</button><button id="exportGlobalResultBtn" class="secondary">导出</button></div></div>
-                <textarea id="globalResultArea" rows="18" readonly style="background:#f1f5f9; margin-top:12px;"></textarea>
+
+            <div class="card" style="margin-top:20px;">
+                <div class="result-header"><label>📄 生成话术 <span id="globalResultCount" class="badge">0 条/组</span></label><div class="flex-row"><button id="copyGlobalResultBtn">📋 复制全部</button><button id="exportGlobalResultBtn">💾 导出TXT</button></div></div>
+                <textarea id="globalResultArea" rows="20" readonly style="background:#e9ecef;"></textarea>
                 <small>结果来源：<span id="resultSourceHint">等待操作</span></small>
             </div>
-            <div class="debug-console" id="flowDebugConsole"></div>
+            <div style="margin-top:12px;"><div id="debugToggleHeader" class="debug-toggle"><span id="debugArrow">▶</span><span>🔍 调试日志</span></div><div id="flowDebugConsole" class="debug-console"></div></div>
         </div>
 
-        <!-- 集卡页 -->
+        <!-- 集卡页 card -->
         <div id="tab-card" class="tab-content">
-            <div class="card">
-                <label>上传集卡CSV</label>
-                <input type="file" id="csvFileInput" accept=".csv,.txt"><button id="uploadCsvBtn">解析</button>
-                <div class="flex-row" style="margin-top:12px;">
-                    <select id="starFilterSelect"><option value="all">全部</option><option value="1">1星</option><option value="2">2星</option><option value="3">3星</option><option value="4">4星</option><option value="5">5星</option></select>
-                    <button id="applyFilterBtn">筛选</button>
-                </div>
-                <label style="margin-top:12px;">结果（<span id="recordCount">0</span>条）</label>
-                <textarea id="cardResultArea" rows="15" readonly></textarea>
-                <button id="copyAllCardBtn">复制</button><button id="exportCardBtn" class="secondary">导出</button>
-            </div>
+            <div class="form-group"><label>上传集卡CSV文件</label><input type="file" id="csvFileInput" accept=".csv,.txt" /><button id="uploadCsvBtn" style="margin-top:8px;">📂 上传并解析</button><button id="debugCardBtn" class="secondary">🔍 调试</button></div>
+            <div class="form-group"><label>按卡包星级筛选：</label><select id="starFilterSelect"><option value="all">全部</option><option value="1">1星</option><option value="2">2星</option><option value="3">3星</option><option value="4">4星</option><option value="5">5星</option></select><button id="applyFilterBtn" style="margin-left:8px;">应用筛选</button></div>
+            <div class="card"><label>生成结果（共 <span id="recordCount">0</span> 条）</label><textarea id="cardResultArea" rows="20" readonly></textarea><div class="flex-row"><button id="copyAllCardBtn">📋 复制全部</button><button id="exportCardBtn">💾 导出TXT</button></div></div>
         </div>
 
-        <!-- 话术库 -->
+        <!-- 话术库 script -->
         <div id="tab-script" class="tab-content">
-            <div class="flex-row">
-                <input type="text" id="searchScript" placeholder="搜索话术..." style="flex:2;">
-                <select id="tagFilterSelect"><option value="all">所有标签</option><option value="no_tag">无标签</option></select>
-                <button id="manageTagsBtn" class="secondary">管理标签</button>
-            </div>
-            <div class="flex-row" style="margin:12px 0;">
-                <button id="addScriptBtn">新增</button>
-                <button id="copyScriptBtn">复制选中</button>
-                <button id="deleteScriptBtn" class="secondary" style="background:#dc2626;">删除</button>
-                <button id="batchTagBtn" class="secondary">批量标签</button>
-                <button id="importScriptBtn" class="secondary">导入</button>
-            </div>
-            <select id="scriptListbox" multiple style="width:100%; height:350px; border-radius:10px;"></select>
+            <div class="flex-row"><input type="text" id="searchScript" placeholder="搜索话术内容..." style="flex:2;"><select id="tagFilterSelect" style="flex:1;"><option value="all">所有标签</option><option value="no_tag">无标签</option></select><button id="manageTagsBtn" class="secondary">🏷️ 管理标签</button></div>
+            <div class="flex-row" style="margin:12px 0;"><button id="addScriptBtn">➕ 新增话术</button><button id="copyScriptBtn">📋 复制选中</button><button id="batchTagBtn" class="secondary">🏷️ 批量打标签</button><button id="deleteScriptBtn" class="reset-btn">🗑️ 批量删除</button><button id="importScriptBtn" class="secondary">📂 导入话术</button></div>
+            <select id="scriptListbox" size="15" style="width:100%; height:350px;" multiple></select>
+            <small>按住 Ctrl 或 Shift 可多选</small>
         </div>
 
-        <!-- 图文攻略 -->
+        <!-- 图文攻略 guide -->
         <div id="tab-guide" class="tab-content">
-            <div class="flex-row" style="justify-content:space-between; margin-bottom:20px;">
+            <div class="flex-row" style="justify-content:space-between; margin-bottom:16px;">
                 <div class="flex-row">
-                    <input type="text" id="guideSearch" placeholder="搜索攻略标题或描述..." class="search-input" style="width:260px;">
+                    <input type="text" id="guideSearch" placeholder="搜索攻略标题或描述..." style="width:240px;">
                     <button id="addGuideBtn">✨ 新建攻略</button>
                     <button id="manageCategoriesBtn" class="secondary">🏷️ 管理分类</button>
                 </div>
+                <small>拖动卡片可排序，编辑时 Ctrl+V 粘贴图片，卡片内按钮可复制图片。</small>
             </div>
             <div class="guide-container">
                 <div class="category-sidebar">
-                    <div id="categoryList" style="display:flex; flex-direction:column;"></div>
+                    <h4 style="margin-bottom:12px;">📁 分类</h4>
+                    <div id="categoryList"></div>
                 </div>
-                <div id="guideCardList" style="display:flex; flex-wrap:wrap; gap:16px; align-items:flex-start;"></div>
+                <div id="guideCardList" style="display:flex; flex-wrap:wrap; gap:12px; align-items:flex-start;"></div>
             </div>
         </div>
     </div>
 
     <!-- 模态框集合 -->
-    <div id="sourceRuleModal" class="modal"><div class="modal-content"><h3>📌 文本转换规则管理</h3><p class="hint-text">✨ 按类型管理转换规则：来源、订单奖励、棋子名称。可搜索定位。</p><div class="flex-row" style="margin-bottom:12px;"><select id="ruleTypeFilter" style="width:140px;"><option value="all">全部类型</option><option value="source">来源</option><option value="reward">订单奖励</option><option value="chessName">棋子名称</option></select><div class="search-box" style="flex:1;"><input type="text" id="ruleSearchInput" placeholder="搜索关键词或替换内容..."><span class="clear-search" id="clearRuleSearch" style="display:none;">✕</span></div></div><div id="sourceRuleListContainer" style="max-height:250px; overflow:auto; border:1px solid #dee2e6; border-radius:8px; padding:8px;"></div><div class="inline-form"><select id="newRuleType" style="width:120px;"><option value="source">来源</option><option value="reward">订单奖励</option><option value="chessName">棋子名称</option></select><input type="text" id="newRulePattern" placeholder="匹配关键词" style="flex:2;"><span>→</span><input type="text" id="newRuleReplacement" placeholder="替换为（留空删除）" style="flex:3;"><button id="addOrUpdateRuleBtn" style="background:#28a745;">➕ 添加</button><button id="cancelEditRuleBtn" class="secondary" style="display:none;">取消</button></div><div class="flex-row" style="margin-top:16px; justify-content:space-between;"><button id="resetDefaultSourceRulesBtn" class="secondary">重置推荐规则</button><button id="clearAllSourceRulesBtn" class="reset-btn">清空所有规则</button></div></div></div>
+    <div id="sourceRuleModal" class="modal"><div class="modal-content"><div class="modal-header"><h3>📌 文本转换规则管理</h3><span class="close" id="closeSourceRuleModal">&times;</span></div><p class="hint-text">✨ 按类型管理转换规则：来源、订单奖励、棋子名称。可搜索定位。</p><div class="flex-row" style="margin-bottom:12px;"><select id="ruleTypeFilter" style="width:140px;"><option value="all">全部类型</option><option value="source">来源</option><option value="reward">订单奖励</option><option value="chessName">棋子名称</option></select><div class="search-box" style="flex:1;"><input type="text" id="ruleSearchInput" placeholder="搜索关键词或替换内容..."><span class="clear-search" id="clearRuleSearch" style="display:none;">✕</span></div></div><div id="sourceRuleListContainer" style="max-height:250px; overflow:auto; border:1px solid #dee2e6; border-radius:8px; padding:8px;"></div><div class="inline-form"><select id="newRuleType" style="width:120px;"><option value="source">来源</option><option value="reward">订单奖励</option><option value="chessName">棋子名称</option></select><input type="text" id="newRulePattern" placeholder="匹配关键词" style="flex:2;"><span>→</span><input type="text" id="newRuleReplacement" placeholder="替换为（留空删除）" style="flex:3;"><button id="addOrUpdateRuleBtn" style="background:#28a745;">➕ 添加</button><button id="cancelEditRuleBtn" class="secondary" style="display:none;">取消</button></div><div class="flex-row" style="margin-top:16px; justify-content:space-between;"><button id="resetDefaultSourceRulesBtn" class="secondary">重置推荐规则</button><button id="clearAllSourceRulesBtn" class="reset-btn">清空所有规则</button></div></div></div>
     <div id="ignoreRuleModal" class="modal"><div class="modal-content"><div class="modal-header"><h3>🚫 忽略关键词管理</h3><span class="close" id="closeIgnoreRuleModal">&times;</span></div><div id="ignoreRuleListContainer" style="max-height:250px; overflow:auto; border:1px solid #dee2e6; border-radius:8px; padding:8px;"></div><div class="inline-form"><input type="text" id="newIgnoreKeyword" placeholder="关键词"><button id="addIgnoreKeywordBtn" style="background:#28a745;">➕ 添加</button></div><div class="flex-row" style="margin-top:16px; justify-content:space-between;"><button id="resetDefaultIgnoreRulesBtn" class="secondary">重置推荐</button><button id="clearAllIgnoreRulesBtn" class="reset-btn">清空</button></div></div></div>
     <div id="templateModal" class="modal"><div class="modal-content"><div class="modal-header"><h3>管理模板</h3><span class="close" id="closeTemplateModal">&times;</span></div><button id="modalAddTemplateBtn">➕ 新增模板</button><div id="templateList"></div></div></div>
     <div id="scriptEditModal" class="modal"><div class="modal-content" style="max-width:600px;"><div class="modal-header"><h3 id="scriptEditTitle">编辑话术</h3><span class="close" id="closeScriptModal">&times;</span></div><textarea id="scriptEditText" rows="4" style="width:100%; margin-bottom:12px;"></textarea><label>标签（可多个，用逗号或空格分隔）</label><input type="text" id="scriptEditTags" placeholder="例如：常用,补偿,活动" style="width:100%; margin-bottom:12px;"><div class="flex-row"><button id="saveScriptBtn">💾 保存</button><button id="cancelScriptBtn" class="secondary">取消</button></div></div></div>
-    <div id="batchTagModal" class="modal"><div class="modal-content" style="max-width:500px;"><div class="modal-header"><h3>批量添加标签</h3><span class="close" id="closeBatchModal">&times;</span></div><input type="text" id="batchTagInput" placeholder="标签名（多个用逗号分隔）" style="width:100%; margin-bottom:12px;"><div class="flex-row"><button id="applyBatchTagBtn">应用</button><button id="cancelBatchBtn" class="secondary">取消</button></div></div></div>
-    <div id="manageTagsModal" class="modal"><div class="modal-content" style="max-width:500px;"><div class="modal-header"><h3>管理所有标签</h3><span class="close" id="closeManageTags">&times;</span></div><div id="allTagsList" style="margin-bottom:16px;"></div><div class="flex-row"><input type="text" id="newTagInput" placeholder="新标签名" style="flex:1;"><button id="addNewTagBtn">➕ 添加标签</button></div><small>点击标签可重命名，点击删除按钮移除。</small></div></div>
-    <div id="importScriptModal" class="modal"><div class="modal-content" style="max-width:500px;"><div class="modal-header"><h3>导入话术</h3><span class="close" id="closeImportModal">&times;</span></div><div class="checkbox-label"><input type="checkbox" id="skipDuplicateCheckbox" checked> 跳过重复话术</div><input type="file" id="importFileInput" accept=".txt,.csv" /><div class="flex-row" style="margin-top:12px;"><button id="confirmImportBtn">开始导入</button><button id="cancelImportBtn" class="secondary">取消</button></div><div id="importProgress" style="margin-top:8px; font-size:12px; color:#0d6efd;"></div></div></div>
-    <div id="guideEditModal" class="modal"><div class="modal-content"><h3 id="guideEditTitle">编辑攻略</h3><div><label>标题</label><input type="text" id="guideTitle" style="width:100%;"></div><div><label>描述</label><textarea id="guideDesc" rows="3"></textarea></div><div><label>图片（可直接粘贴或拖放）</label><div class="paste-area" id="pasteArea" tabindex="0">点击此处，然后按 Ctrl+V 粘贴图片</div><div id="imagePreview" class="flex-row"></div></div><div><label>备注</label><textarea id="guideNotes" rows="2"></textarea></div><div><label>分类（可多选）</label><select id="guideCategorySelect" multiple style="width:100%; height:100px;"></select></div><div class="flex-row"><button id="saveGuideBtn">💾 保存</button><button id="deleteGuideBtn" class="secondary" style="background:#dc2626;">🗑️ 删除</button><button id="cancelGuideBtn" class="secondary">取消</button></div></div></div>
-    <div id="categoryManageModal" class="modal"><div class="modal-content" style="max-width:500px;"><h3>🏷️ 管理分类</h3><div id="categoryManageList"></div><div class="flex-row"><input type="text" id="newCategoryInput" placeholder="新分类名称"><button id="addCategoryBtn">添加</button></div><button id="closeCategoryModal" class="secondary">关闭</button></div></div>
+    <div id="batchTagModal" class="modal"><div class="modal-content" style="max-width:500px;"><div class="modal-header"><h3>批量添加标签</h3><span class="close" id="closeBatchModal">&times;</span></div><input type="text" id="batchTagInput" placeholder="标签名（逗号分隔）" style="width:100%; margin-bottom:12px;"><div class="flex-row"><button id="applyBatchTagBtn">应用</button><button id="cancelBatchBtn" class="secondary">取消</button></div></div></div>
+    <div id="manageTagsModal" class="modal"><div class="modal-content" style="max-width:500px;"><div class="modal-header"><h3>管理所有标签</h3><span class="close" id="closeManageTags">&times;</span></div><div id="allTagsList" style="margin-bottom:16px;"></div><div class="flex-row"><input type="text" id="newTagInput" placeholder="新标签名" style="flex:1;"><button id="addNewTagBtn">➕ 添加</button></div></div></div>
+    <div id="importScriptModal" class="modal"><div class="modal-content" style="max-width:500px;"><div class="modal-header"><h3>导入话术</h3><span class="close" id="closeImportModal">&times;</span></div><div class="checkbox-label"><input type="checkbox" id="skipDuplicateCheckbox" checked> 跳过重复</div><input type="file" id="importFileInput" accept=".txt,.csv" /><div class="flex-row" style="margin-top:12px;"><button id="confirmImportBtn">开始导入</button><button id="cancelImportBtn" class="secondary">取消</button></div><div id="importProgress" style="margin-top:8px; font-size:12px; color:#0d6efd;"></div></div></div>
+    <div id="guideEditModal" class="modal"><div class="modal-content"><h3 id="guideEditTitle">编辑攻略</h3><div class="form-group"><label>标题</label><input type="text" id="guideTitle" style="width:100%;"></div><div class="form-group"><label>描述</label><textarea id="guideDesc" rows="3"></textarea></div><div class="form-group"><label>图片</label><div class="paste-area" id="pasteArea" tabindex="0">点击此处，然后按 Ctrl+V 粘贴图片</div><div id="imagePreview" class="flex-row"></div></div><div class="form-group"><label>备注</label><textarea id="guideNotes" rows="2"></textarea></div><div class="form-group"><label>分类</label><select id="guideCategorySelect" multiple style="width:100%; height:100px;"></select></div><div class="flex-row"><button id="saveGuideBtn">💾 保存</button><button id="deleteGuideBtn" class="secondary" style="background:#dc3545;">🗑️ 删除</button><button id="cancelGuideBtn" class="secondary">取消</button></div></div></div>
+    <div id="categoryManageModal" class="modal"><div class="modal-content" style="max-width:500px;"><h3>🏷️ 管理分类</h3><div id="categoryManageList"></div><div class="flex-row" style="margin-top:12px;"><input type="text" id="newCategoryInput" placeholder="新分类名称"><button id="addCategoryBtn">添加</button></div><button id="closeCategoryModal" class="secondary">关闭</button></div></div>
 
     <script>
         (async function () {
@@ -446,7 +656,7 @@
             const DEFAULT_IGNORE_KEYWORDS = ["棋盘上传"];
             const PACK_NAME_MAP = { 151: "1星百戏锦囊", 152: "1星大百戏锦囊", 153: "2星百戏锦囊", 154: "2星大百戏锦囊", 155: "3星百戏锦囊", 156: "3星大百戏锦囊", 157: "4星百戏锦囊", 158: "4星大百戏锦囊", 159: "5星百戏锦囊", 160: "5星大百戏锦囊", 161: "5星超大百戏锦囊" };
 
-            // ========== 增强版云端同步 ==========
+            // 增强同步
             async function loadData(key, defaultValue) {
                 try {
                     const resp = await fetch(`${SERVER_URL}/api/data/${key}`);
@@ -457,33 +667,25 @@
                             return value;
                         }
                     }
-                    throw new Error('服务器返回空');
-                } catch (e) {
-                    console.warn(`⚠️ 从服务器加载 ${key} 失败，使用本地缓存`);
+                    throw new Error('获取失败');
+                } catch {
                     const cached = localStorage.getItem(key);
                     if (cached) try { return JSON.parse(cached); } catch { }
                     return defaultValue;
                 }
             }
-
             async function saveData(key, data) {
                 localStorage.setItem(key, JSON.stringify(data));
                 try {
                     const resp = await fetch(`${SERVER_URL}/api/data/${key}`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ value: data })
                     });
                     if (!resp.ok) throw new Error(`服务器响应 ${resp.status}`);
-                    console.log(`✅ 同步成功：${key}`);
-                } catch (e) {
-                    console.error(`❌ 同步失败：${key}`, e.message);
-                    alert('⚠️ 保存到云端失败，请检查网络后重试！');
-                    throw e;
-                }
+                } catch (e) { console.warn('同步失败', e); alert('保存云端失败'); throw e; }
             }
 
-            // 初始化全局数据
+            // 数据初始化
             let templates = await loadData('templates', DEFAULT_TEMPLATES);
             let scripts = await loadData('scripts', []);
             let sourceRules = await loadData('sourceRules', DEFAULT_SOURCE_RULES);
@@ -491,7 +693,7 @@
             let guides = await loadData('guides', []);
             let guideCategories = await loadData('guideCategories', ['新手攻略', '活动攻略', '进阶技巧']);
 
-            // 迁移旧版 guideTags
+            // 旧版标签迁移
             const oldTags = await loadData('guideTags', null);
             if (oldTags !== null) {
                 guideCategories = [...new Set([...guideCategories, ...oldTags])];
@@ -500,14 +702,11 @@
                 localStorage.removeItem('guideTags');
             }
 
-            (function migrate() {
-                for (let i = 0; i < scripts.length; i++) if (typeof scripts[i] === 'string') scripts[i] = { text: scripts[i], tags: [] };
-                saveData('scripts', scripts);
-            })();
+            (function migrate() { for (let i = 0; i < scripts.length; i++) if (typeof scripts[i] === 'string') scripts[i] = { text: scripts[i], tags: [] }; saveData('scripts', scripts); })();
 
             // 工具函数
-            function getRulePattern(r) { return r.pattern || r.pat || ''; }
-            function getRuleReplacement(r) { return r.replacement || r.rep || ''; }
+            function getRulePattern(r) { return r.pattern || ''; }
+            function getRuleReplacement(r) { return r.replacement || ''; }
             const templateSelect = document.getElementById('templateSelect');
             const varContainer = document.getElementById('varContainer');
             const globalResultArea = document.getElementById('globalResultArea');
@@ -526,12 +725,10 @@
             }
             function formatTimeToStandard(timeStr) {
                 if (!timeStr) return '';
-                let str = timeStr.replace(/\//g, '-');
-                let match = str.match(/(\d{4})-(\d{1,2})-(\d{1,2})\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?/);
-                if (!match) return str;
-                let [_, y, m, d, h, min, sec] = match;
-                m = m.padStart(2, '0'); d = d.padStart(2, '0'); h = h.padStart(2, '0'); min = min.padStart(2, '0'); sec = sec ? sec.padStart(2, '0') : '00';
-                return `${y}-${m}-${d} ${h}:${min}:${sec}`;
+                let s = timeStr.replace(/\//g, '-');
+                let m = s.match(/(\d{4})-(\d{1,2})-(\d{1,2})\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?/);
+                if (!m) return s;
+                return `${m[1]}-${m[2].padStart(2, '0')}-${m[3].padStart(2, '0')} ${m[4].padStart(2, '0')}:${m[5].padStart(2, '0')}:${(m[6] || '00').padStart(2, '0')}`;
             }
             function detectResourceType(line) { if (line.includes('体力')) return '体力'; if (line.includes('红钻')) return '红钻'; if (line.includes('金币')) return '金币'; return '道具'; }
             function applyConversionByType(src, type) {
@@ -559,7 +756,8 @@
             }
             function cleanHeader(s) { return s.trim().replace(/^["'“”]|["'“”]$/g, ''); }
 
-            // ========== 资源流水解析 ==========
+            // 核心解析函数（与之前完整版相同）
+            // 资源流水解析
             function parseSmartLog(rawText) {
                 const lines = rawText.split(/\r?\n/).filter(l => l.trim());
                 const records = [];
@@ -613,7 +811,7 @@
                         : `在${time}，${action}${abs}点${type}`);
             }
 
-            // ========== 订单日志解析 ==========
+            // 订单日志解析
             function parseOrderLog(rawText) {
                 let text = rawText.replace(/\r\n/g, '\n').replace(/\n/g, ' ');
                 const parts = text.split('\t').map(p => p.trim());
@@ -720,7 +918,7 @@
                 return [`在${finalTime.replace(/-/g, '/')}提交【${chessStr}】${actionVerb}，获得${rewardStr}`];
             }
 
-            // ========== 棋子流水解析（增强版） ==========
+            // 棋子流水解析（增强版）
             function parseChessLog(raw) {
                 const lines = raw.split(/\r?\n/).filter(l => l.trim());
                 const events = []; let cur = null;
@@ -837,7 +1035,8 @@
                 navigator.clipboard.writeText(globalResultArea.value);
                 debugConsole.innerHTML += `\n✨ 生成 ${sentences.length} 条`;
             }
-            // ========== CSV 解析与合并 ==========
+
+            // CSV 解析与合并
             function parseFlowCSV(csvText) {
                 const lines = csvText.split(/\r?\n/).filter(l => l.trim());
                 if (lines.length < 2) return [];
@@ -995,7 +1194,7 @@
                 } catch (e) { alert('解析失败: ' + e.message); }
             }
 
-            // ========== 集卡功能 ==========
+            // 集卡功能
             let currentCardRecords = [];
             function parseCSVEnhanced(csvText) {
                 const lines = csvText.split(/\r?\n/).filter(l => l.trim());
@@ -1034,7 +1233,7 @@
                 document.getElementById('recordCount').textContent = sentences.length;
             }
 
-            // ========== 话术库 ==========
+            // 话术库
             function refreshScriptList() { const lb = document.getElementById('scriptListbox'); lb.innerHTML = ''; scripts.forEach((s, i) => { const o = document.createElement('option'); o.textContent = s.text.substring(0, 70) + (s.tags.length ? ' [' + s.tags.join(',') + ']' : ''); o.value = i; lb.appendChild(o); }); }
             function getAllTags() { const set = new Set(); scripts.forEach(s => s.tags.forEach(t => set.add(t))); return Array.from(set); }
             function renderTagFilter() {
@@ -1070,7 +1269,7 @@
                 c.querySelectorAll('.delete-template-btn').forEach(b => b.onclick = e => { templates.splice(e.target.dataset.i, 1); saveData('templates', templates); renderTemplateList(); refreshTemplateSelect(); });
             }
 
-            // ========== 规则管理 ==========
+            // 规则管理
             let editingSourceIndex = -1;
             function renderSourceRuleList(filterType = 'all', searchTerm = '') {
                 const c = document.getElementById('sourceRuleListContainer');
@@ -1124,7 +1323,7 @@
             function refreshVarEntries() { varContainer.innerHTML = ''; varInputs = {}; CORE_FIELDS.forEach(f => { const lab = document.createElement('label'); lab.textContent = f + '：'; const inp = document.createElement('input'); inp.value = ''; const btn = document.createElement('button'); btn.textContent = '📋'; btn.className = 'paste-btn'; btn.onclick = () => navigator.clipboard.readText().then(t => { const cl = cleanText(t); const tm = extractTime(cl); if (tm && varInputs['时间']) varInputs['时间'].value = tm; const val = parseInt(cl.match(/-?\d+/)?.[0]); if (!isNaN(val)) inp.value = val; }); varContainer.appendChild(lab); varContainer.appendChild(inp); varContainer.appendChild(btn); varInputs[f] = inp; }); }
             function refreshTemplateSelect() { templateSelect.innerHTML = ''; templates.forEach(t => { const o = document.createElement('option'); o.value = t; o.textContent = t.substring(0, 60); templateSelect.appendChild(o); }); }
 
-            // ========== 图文攻略完整交互 ==========
+            // 图文攻略
             const guideCardList = document.getElementById('guideCardList');
             const guideSearch = document.getElementById('guideSearch');
             const categoryList = document.getElementById('categoryList');
@@ -1151,7 +1350,7 @@
                 guideCardList.innerHTML = filtered.map(guide => `
                 <div class="guide-card" data-id="${guide.id}">
                     <strong>${guide.title || '未命名'}</strong>
-                    <div style="font-size:12px; color:#64748b; margin:6px 0;">${guide.desc || ''}</div>
+                    <div style="font-size:12px; color:#666; margin:6px 0;">${guide.desc || ''}</div>
                     ${(guide.images || []).map(img => `<div style="position:relative; margin-bottom:6px;"><img src="${img}" style="max-width:100%; border-radius:6px;"><button class="copy-img-btn" data-img="${img}" style="position:absolute; bottom:4px; right:4px; background:var(--primary); color:white; border:none; border-radius:4px; padding:2px 6px; font-size:11px;">📋复制</button></div>`).join('')}
                     <div style="margin-top:6px;">${(guide.categories || []).map(c => `<span class="badge">${c}</span>`).join(' ')}</div>
                     <div class="flex-row" style="justify-content:flex-end; margin-top:8px;">
@@ -1196,7 +1395,7 @@
                 document.getElementById('guideEditModal').style.display = 'block';
             };
 
-            // 图片粘贴（增强）
+            // 图片粘贴
             const pasteArea = document.getElementById('pasteArea');
             pasteArea.addEventListener('paste', async (e) => {
                 const items = e.clipboardData?.items;
@@ -1204,11 +1403,7 @@
                 for (let item of items) {
                     if (item.type.startsWith('image/')) {
                         const blob = item.getAsFile();
-                        const base64 = await new Promise(r => {
-                            const reader = new FileReader();
-                            reader.onload = () => r(reader.result);
-                            reader.readAsDataURL(blob);
-                        });
+                        const base64 = await new Promise(r => { const reader = new FileReader(); reader.onload = () => r(reader.result); reader.readAsDataURL(blob); });
                         tempImages.push(base64);
                         renderImagePreview();
                     }
@@ -1219,9 +1414,9 @@
             function renderImagePreview() {
                 const preview = document.getElementById('imagePreview');
                 preview.innerHTML = tempImages.map((img, i) => `
-                <div style="position:relative; display:inline-block; margin:5px;">
-                    <img src="${img}" style="height:80px; border-radius:6px; border:1px solid #ddd;">
-                    <button onclick="event.stopPropagation(); tempImages.splice(${i},1); renderImagePreview();" style="position:absolute; top:-8px; right:-8px; background:#dc2626; color:white; border:none; border-radius:50%; width:22px; height:22px; font-size:12px; cursor:pointer;">×</button>
+                <div class="image-thumb">
+                    <img src="${img}">
+                    <button onclick="event.stopPropagation(); tempImages.splice(${i},1); renderImagePreview();">×</button>
                 </div>
             `).join('');
             }
@@ -1269,10 +1464,7 @@
             document.getElementById('cancelGuideBtn').onclick = () => document.getElementById('guideEditModal').style.display = 'none';
 
             // 分类管理
-            document.getElementById('manageCategoriesBtn').onclick = () => {
-                renderCategoryManageList();
-                document.getElementById('categoryManageModal').style.display = 'block';
-            };
+            document.getElementById('manageCategoriesBtn').onclick = () => { renderCategoryManageList(); document.getElementById('categoryManageModal').style.display = 'block'; };
             document.getElementById('closeCategoryModal').onclick = () => document.getElementById('categoryManageModal').style.display = 'none';
 
             function renderCategoryManageList() {
@@ -1286,9 +1478,7 @@
                 try {
                     await saveData('guideCategories', guideCategories);
                     await saveData('guides', guides);
-                    refreshCategoryUI();
-                    renderGuideCards();
-                    renderCategoryManageList();
+                    refreshCategoryUI(); renderGuideCards(); renderCategoryManageList();
                 } catch (e) { }
             };
 
@@ -1299,14 +1489,13 @@
                 try {
                     await saveData('guideCategories', guideCategories);
                     document.getElementById('newCategoryInput').value = '';
-                    refreshCategoryUI();
-                    renderCategoryManageList();
+                    refreshCategoryUI(); renderCategoryManageList();
                 } catch (e) { }
             };
 
             guideSearch.addEventListener('input', renderGuideCards);
 
-            // ========== 事件绑定 ==========
+            // 事件绑定
             function bindAll() {
                 document.getElementById('smartParseBtn').onclick = smartParseAndFill;
                 document.getElementById('clearSmartBtn').onclick = () => { smartPasteInput.value = ''; globalResultArea.value = ''; debugConsole.innerHTML = ''; };
@@ -1410,15 +1599,14 @@
                 searchInput.onkeypress = (e) => { if (e.key === 'Enter') scrollToFirstMatch(); };
 
                 refreshVarEntries(); refreshTemplateSelect(); refreshScriptList(); renderTagFilter();
-                refreshCategoryUI();
-                renderGuideCards();
+                refreshCategoryUI(); renderGuideCards();
             }
 
-            // 初始化
+            // 启动
             bindAll();
             new Sortable(document.getElementById('tabsContainer'), { animation: 150 });
             debugConsole.style.display = 'none';
-            debugConsole.innerHTML = '🟢 工作台就绪 · 云端同步增强 · 分页攻略';
+            debugConsole.innerHTML = '🟢 工作台就绪 · 经典UI · 全功能同步';
         })();
     </script>
 </body>
