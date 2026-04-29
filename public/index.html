@@ -514,9 +514,6 @@
                 <button id="batchTagBtn" class="secondary">🏷️ 批量打标签</button>
                 <button id="deleteScriptBtn" class="reset-btn">🗑️ 批量删除</button>
                 <button id="importScriptBtn" class="secondary">📂 导入文本</button>
-                <button id="exportScriptsBtn" class="secondary">📤 导出话术库</button>
-                <button id="importScriptsBtn" class="secondary">📥 导入话术库</button>
-                <input type="file" id="importScriptsFile" accept=".json" style="display:none;">
             </div>
             <select id="scriptListbox" size="15" style="width:100%; height:350px;" multiple></select>
             <small>按住 Ctrl 或 Shift 可多选</small>
@@ -550,20 +547,7 @@
             const DEFAULT_IGNORE_KEYWORDS = ["棋盘上传"];
             const PACK_NAME_MAP = { 151: "1星百戏锦囊", 152: "1星大百戏锦囊", 153: "2星百戏锦囊", 154: "2星大百戏锦囊", 155: "3星百戏锦囊", 156: "3星大百戏锦囊", 157: "4星百戏锦囊", 158: "4星大百戏锦囊", 159: "5星百戏锦囊", 160: "5星大百戏锦囊", 161: "5星超大百戏锦囊" };
 
-            // 自动备份与恢复
-            function autoBackup(key, data) {
-                const backupKey = `${key}_backup`;
-                const backups = JSON.parse(localStorage.getItem(backupKey) || '[]');
-                backups.push({ time: new Date().toISOString(), data });
-                if (backups.length > 5) backups.shift();
-                localStorage.setItem(backupKey, JSON.stringify(backups));
-            }
-            function restoreFromBackup(key) {
-                const backupKey = `${key}_backup`;
-                const backups = JSON.parse(localStorage.getItem(backupKey) || '[]');
-                return backups.length > 0 ? backups[backups.length - 1].data : null;
-            }
-
+            // 云端同步（无备份）
             async function loadData(key, defaultValue) {
                 try {
                     const resp = await fetch(`${SERVER_URL}/api/data/${key}`);
@@ -571,7 +555,6 @@
                         const { value } = await resp.json();
                         if (value !== undefined) {
                             localStorage.setItem(key, JSON.stringify(value));
-                            autoBackup(key, value);
                             return value;
                         }
                     }
@@ -579,18 +562,11 @@
                     throw new Error('服务器无数据');
                 } catch {
                     const cached = localStorage.getItem(key);
-                    if (cached) try { return JSON.parse(cached); } catch { }
-                    const backup = restoreFromBackup(key);
-                    if (backup !== null) {
-                        localStorage.setItem(key, JSON.stringify(backup));
-                        return backup;
-                    }
-                    return defaultValue;
+                    return cached ? JSON.parse(cached) : defaultValue;
                 }
             }
             async function saveData(key, data) {
                 localStorage.setItem(key, JSON.stringify(data));
-                autoBackup(key, data);
                 try {
                     await fetch(`${SERVER_URL}/api/data/${key}`, {
                         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -605,6 +581,7 @@
             let ignoreKeywords = await loadData('ignoreKeywords', DEFAULT_IGNORE_KEYWORDS);
             (function migrate() { for (let i = 0; i < scripts.length; i++) if (typeof scripts[i] === 'string') scripts[i] = { text: scripts[i], tags: [] }; saveData('scripts', scripts); })();
 
+            // 工具函数
             function getRulePattern(r) { return r.pattern || ''; }
             function getRuleReplacement(r) { return r.replacement || ''; }
             const templateSelect = document.getElementById('templateSelect');
@@ -716,36 +693,220 @@
                         : `在${time}，${action}${abs}点${type}，从${before}变为${after}`)
                     : (source ? `在${time}，通过【${source}】${action}${abs}点${type}`
                         : `在${time}，${action}${abs}点${type}`);
-                // 应用资源点击替换
                 return applyResourceClickReplace(sentence, type);
             }
 
-            // 订单和棋子解析（保留原有简单实现，确保无报错）
-            function parseOrderLog(raw) { return []; }
-            function parseChessLog(raw) { return []; }
+            // 订单日志解析（完整版）
+            function parseOrderLog(rawText) {
+                let text = rawText.replace(/\r\n/g, '\n').replace(/\n/g, ' ');
+                const parts = text.split('\t').map(p => p.trim());
+                if (parts.length < 8) { debugConsole.innerHTML += '\n❌ 订单日志字段不足'; return []; }
+                const fullText = rawText.toLowerCase();
+                const orderType = parts[3] || '未知订单';
+                const firstTime = extractTime(rawText) || '';
+                if (fullText.includes('过期')) return [`${orderType}已在${firstTime}过期`];
+
+                let statusIdx = -1, statusText = '', finalTime = '';
+                const statusKeywords = ['完成', '删除', '创建'];
+                for (let i = 0; i < parts.length; i++) {
+                    if (statusKeywords.includes(parts[i])) {
+                        statusIdx = i; statusText = parts[i];
+                        if (i + 1 < parts.length) finalTime = parts[i + 1];
+                        break;
+                    }
+                }
+                if (statusIdx === -1 || !finalTime) {
+                    const timeMatches = rawText.match(/(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})/g);
+                    if (timeMatches) finalTime = timeMatches[timeMatches.length - 1];
+                    statusText = '操作';
+                }
+
+                let chessStartIdx = 5;
+                if (parts[chessStartIdx] === '是') chessStartIdx = 6;
+                let chessNames = [], fiveDigitFound = false;
+                for (let i = chessStartIdx; i < parts.length; i++) {
+                    const segment = parts[i];
+                    const fiveDigitMatch = segment.match(/\b\d{5}\b/);
+                    if (fiveDigitMatch) {
+                        const beforeFive = segment.substring(0, segment.indexOf(fiveDigitMatch[0]));
+                        const chineseMatches = beforeFive.match(/[\u4e00-\u9fa5]+/g);
+                        if (chineseMatches) chessNames.push(...chineseMatches);
+                        fiveDigitFound = true; break;
+                    } else {
+                        const chinese = segment.match(/[\u4e00-\u9fa5]+/g);
+                        if (chinese) chessNames.push(...chinese);
+                    }
+                }
+                const chessStr = chessNames.length ? chessNames.join('、') : '棋子';
+
+                let rewardRaw = '';
+                if (fiveDigitFound) {
+                    let fiveIdxInRaw = -1;
+                    for (let i = chessStartIdx; i < parts.length; i++) if (/\b\d{5}\b/.test(parts[i])) { fiveIdxInRaw = i; break; }
+                    if (fiveIdxInRaw !== -1) {
+                        const beforeReward = parts.slice(0, fiveIdxInRaw + 3).join('\t');
+                        const rewardStartPos = beforeReward.length + (fiveIdxInRaw > 0 ? 1 : 0);
+                        const statusPos = rawText.indexOf(statusText);
+                        const rewardEndPos = (statusIdx !== -1) ? statusPos : rawText.lastIndexOf(finalTime);
+                        if (rewardEndPos > rewardStartPos) rewardRaw = rawText.substring(rewardStartPos, rewardEndPos);
+                    }
+                } else {
+                    const endPos = statusIdx !== -1 ? parts.slice(0, statusIdx).join('\t').length : rawText.lastIndexOf(finalTime);
+                    rewardRaw = rawText.substring(0, endPos);
+                }
+
+                rewardRaw = rewardRaw.replace(/\t/g, ' ').replace(/\s+/g, ' ').trim();
+                rewardRaw = rewardRaw.replace(/\s*\d{4}-\d{2}-\d{2}\s+\d{1,2}:\d{2}(:\d{2})?\s*$/, '').trim();
+                rewardRaw = applyRewardConversion(rewardRaw);
+
+                const lines = rewardRaw.split(/\n/).map(l => l.trim()).filter(l => l.length > 0);
+                const rewardItems = [];
+                let pendingItem = null;
+                for (let line of lines) {
+                    if (/^\d+$/.test(line)) continue;
+                    const numMatch = line.match(/(?:[:：]\s*)?(\d+)\s*$/);
+                    let itemDesc = line;
+                    let count = null;
+                    if (numMatch) {
+                        count = numMatch[1];
+                        itemDesc = line.substring(0, numMatch.index).trim();
+                        itemDesc = itemDesc.replace(/[:：]\s*$/, '').trim();
+                    }
+                    if (itemDesc) {
+                        if (pendingItem) {
+                            if (count !== null) {
+                                rewardItems.push(`${pendingItem} ${itemDesc}:${count}`.replace(/\s+/g, ' ').trim());
+                                pendingItem = null;
+                            } else {
+                                rewardItems.push(pendingItem);
+                                pendingItem = itemDesc;
+                            }
+                        } else {
+                            if (count !== null) rewardItems.push(`${itemDesc}:${count}`);
+                            else pendingItem = itemDesc;
+                        }
+                    } else if (count !== null && pendingItem) {
+                        rewardItems.push(`${pendingItem}:${count}`);
+                        pendingItem = null;
+                    }
+                }
+                if (pendingItem) rewardItems.push(pendingItem);
+
+                let finalRewardItems = rewardItems.map(item => {
+                    item = item.replace(/\s+/g, ' ').trim();
+                    item = item.replace(/\s*:\s*/g, ':');
+                    return item;
+                }).filter(item => item.length > 0);
+                finalRewardItems = [...new Set(finalRewardItems)];
+
+                const rewardStr = finalRewardItems.length ? finalRewardItems.join('，') : '奖励';
+                const actionVerb = statusText === '完成' ? '完成订单' : (statusText === '删除' ? '删除订单' : '操作订单');
+                return [`在${finalTime.replace(/-/g, '/')}提交【${chessStr}】${actionVerb}，获得${rewardStr}`];
+            }
+
+            // 棋子流水解析（增强版，识别全部操作）
+            function parseChessLog(raw) {
+                const lines = raw.split(/\r?\n/).filter(l => l.trim());
+                const events = []; let cur = null;
+                const tsRgx = /^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}/;
+                for (let l of lines) {
+                    if (!l.trim()) continue;
+                    if (tsRgx.test(l)) { if (cur) events.push(cur); cur = l; }
+                    else if (cur) cur += '\n' + l;
+                }
+                if (cur) events.push(cur);
+
+                return events.map(ev => {
+                    try {
+                        const parts = ev.split('\t');
+                        if (parts.length < 6) throw new Error('字段不足');
+                        const time = formatTimeToStandard(parts[0].trim());
+                        if (!time) throw new Error('时间错误');
+
+                        const chessRaw = (parts[2] || '').trim();
+                        let name = '棋子', level = 0;
+                        if (chessRaw.includes('/')) {
+                            const [id, nm] = chessRaw.split('/');
+                            name = nm || chessRaw;
+                            const lm = id.match(/(\d{2})$/);
+                            if (lm) { level = parseInt(lm[1], 10); if (isNaN(level)) level = 0; }
+                        } else name = chessRaw;
+
+                        const change = parseInt(parts[3] || '0', 10) || 0;
+                        let cmd = '';
+                        for (let i = 6; i < parts.length; i++) {
+                            const p = parts[i].trim();
+                            if (p.includes('棋盘操作-')) { cmd = p; break; }
+                        }
+                        if (!cmd) cmd = (parts[7] || parts[8] || '').trim();
+                        if (!cmd) throw new Error('未找到命令');
+
+                        let desc = '';
+                        if (cmd.includes('钻石解锁泡泡')) desc = `使用红钻解锁泡泡获得${level ? level + '级' : ''}${name}`;
+                        else if (cmd.includes('广告解锁泡泡')) desc = `看广告解锁泡泡获得${level ? level + '级' : ''}${name}`;
+                        else if (cmd.includes('活动棋盘仓库推出')) desc = `从活动棋盘的临时队列中取出${level ? level + '级' : ''}${name}`;
+                        else if (cmd.includes('推出栈')) desc = `从临时队列取出${level ? level + '级' : ''}${name}`;
+                        else if (cmd.includes('推入仓库')) desc = `将${level ? level + '级' : ''}${name}放入仓库`;
+                        else if (cmd.includes('推出仓库')) desc = `从仓库取出${level ? level + '级' : ''}${name}`;
+                        else if (cmd.includes('临时队列取出')) desc = `从临时队列取出${level ? level + '级' : ''}${name}`;
+                        else if (cmd.includes('商店购买')) desc = `在商店购买了${Math.abs(change)}个${level ? level + '级' : ''}${name}`;
+                        else if (cmd.includes('合并')) desc = change > 0 ? `通过合并获得${Math.abs(change)}个${level ? level + '级' : ''}${name}` : `消耗${Math.abs(change)}个${level ? level + '级' : ''}${name}进行合成`;
+                        else if (cmd.includes('活动')) desc = `通过活动获得${Math.abs(change)}个${level ? level + '级' : ''}${name}`;
+                        else if (cmd.includes('使用消耗棋子')) desc = `消耗${Math.abs(change)}个${level ? level + '级' : ''}${name}`;
+                        else if (cmd.includes('删除')) desc = `删除了${Math.abs(change)}个${level ? level + '级' : ''}${name}`;
+                        else if (change !== 0) desc = change > 0 ? `获得${Math.abs(change)}个${level ? level + '级' : ''}${name}` : `消耗${Math.abs(change)}个${level ? level + '级' : ''}${name}`;
+                        else throw new Error('无法识别命令');
+
+                        return { finalDesc: `在${time} ${desc}`, time };
+                    } catch (e) { return { error: e.message }; }
+                });
+            }
 
             function smartParseAndFill() {
                 expandDebugConsole();
                 const mode = document.querySelector('input[name="parseMode"]:checked').value;
                 const raw = smartPasteInput.value.trim();
                 if (!raw) { debugConsole.innerHTML = '❌ 请输入文本'; return; }
+
                 if (mode === 'order') {
-                    // 订单解析可自行扩展
-                    return;
+                    if (raw.includes('创建')) {
+                        alert('抱歉呢宝宝，俺只认得“完成”和“过期”的订单咧，看看是不是复制了“创建”的捏⩌⤚⩌)');
+                        globalResultArea.value = '';
+                        globalResultCount.textContent = '0 条';
+                        resultSourceHint.textContent = '订单日志（包含“创建”，未解析）';
+                        return;
+                    }
+                    debugConsole.innerHTML = '📦 订单日志解析...';
+                    const s = parseOrderLog(raw);
+                    globalResultArea.value = s.join('\n\n');
+                    globalResultCount.textContent = `${s.length} 条`;
+                    resultSourceHint.textContent = '订单日志解析';
+                    navigator.clipboard.writeText(globalResultArea.value);
+                    debugConsole.innerHTML += `\n✅ 完成`; return;
                 }
+
                 if (mode === 'chess') {
-                    // 棋子解析可自行扩展
-                    return;
+                    debugConsole.innerHTML = '🔍 棋子流水解析...';
+                    const r = parseChessLog(raw).filter(r => !r.error);
+                    if (!r.length) { debugConsole.innerHTML += '\n❌ 没有解析到有效棋子记录'; return; }
+                    r.sort((a, b) => (b.time || '').localeCompare(a.time || ''));
+                    const out = r.map(r => r.finalDesc).join('\n\n');
+                    globalResultArea.value = out;
+                    globalResultCount.textContent = `${r.length} 条`;
+                    resultSourceHint.textContent = '棋子流水解析';
+                    navigator.clipboard.writeText(out);
+                    debugConsole.innerHTML += `\n✅ 完成`; return;
                 }
-                const type = document.getElementById('flowResourceSelect').value;
+
+                debugConsole.innerHTML = '🔍 资源流水解析...';
+                const resourceType = document.getElementById('flowResourceSelect').value;
                 const includeSources = document.getElementById('includeSourcesInput').value;
                 const itemKeyword = document.getElementById('itemKeywordInput').value;
                 let records = parseSmartLog(raw);
                 if (!records.length) { debugConsole.innerHTML += '\n❌ 无记录'; return; }
-                if (type === '道具' && itemKeyword) records = records.filter(r => itemKeyword.split(',').some(k => (r['道具名称'] || '').toLowerCase().includes(k.trim().toLowerCase())));
+                if (resourceType === '道具' && itemKeyword) records = records.filter(r => itemKeyword.split(',').some(k => (r['道具名称'] || '').toLowerCase().includes(k.trim().toLowerCase())));
                 if (includeSources) records = records.filter(r => includeSources.split(',').some(k => (r['来源'] || '').toLowerCase().includes(k.trim().toLowerCase())));
-                let sentences = records.map(r => generateFlowSentence(r, type, false)).filter(s => s);
-                // 资源点击替换已在 generateFlowSentence 中应用
+                let sentences = records.map(r => generateFlowSentence(r, resourceType, false)).filter(s => s);
                 if (sentences.length === 0) { debugConsole.innerHTML += '\n⚠️ 筛选后无话术'; return; }
                 globalResultArea.value = sentences.join('\n\n');
                 globalResultCount.textContent = `${sentences.length} 条`;
@@ -754,7 +915,7 @@
                 debugConsole.innerHTML += `\n✨ 生成 ${sentences.length} 条`;
             }
 
-            // CSV 解析与合并（保留基础功能）
+            // CSV 解析与合并
             function parseFlowCSV(csvText) {
                 const lines = csvText.split(/\r?\n/).filter(l => l.trim());
                 if (lines.length < 2) return [];
@@ -771,7 +932,12 @@
                     '道具名称': ['道具名称', '道具名', '名称', 'itemName']
                 };
                 const colIdx = {};
-                for (let [k, arr] of Object.entries(colMap)) for (let a of arr) { const i = rawHeaders.findIndex(h => h === a); if (i !== -1) { colIdx[k] = i; break; } }
+                for (let [k, arr] of Object.entries(colMap)) {
+                    for (let a of arr) {
+                        const idx = rawHeaders.findIndex(h => h === a);
+                        if (idx !== -1) { colIdx[k] = idx; break; }
+                    }
+                }
                 if (colIdx['时间'] === undefined) colIdx['时间'] = 0;
                 if (colIdx['增减'] === undefined) colIdx['增减'] = 2;
                 if (colIdx['数量'] === undefined) colIdx['数量'] = 3;
@@ -779,6 +945,7 @@
                 if (colIdx['之后'] === undefined) colIdx['之后'] = 5;
                 if (colIdx['来源'] === undefined) colIdx['来源'] = 6;
                 if (colIdx['道具名称'] === undefined) colIdx['道具名称'] = -1;
+
                 const records = [];
                 const enableIgnore = document.getElementById('enableIgnoreRulesCheckbox')?.checked ?? true;
                 for (let i = 1; i < lines.length; i++) {
@@ -892,10 +1059,54 @@
 
             // 规则管理
             let editingSourceIndex = -1;
-            function renderSourceRuleList(filterType = 'all', searchTerm = '') { /* 省略，保持原样 */ }
-            function resetSourceEditState() { /* 省略 */ }
-            function renderIgnoreRuleList() { /* 省略 */ }
-            function scrollToFirstMatch() { /* 省略 */ }
+            function renderSourceRuleList(filterType = 'all', searchTerm = '') {
+                const c = document.getElementById('sourceRuleListContainer');
+                let filtered = sourceRules;
+                if (filterType !== 'all') filtered = filtered.filter(r => r.type === filterType);
+                if (searchTerm) {
+                    const lower = searchTerm.toLowerCase();
+                    filtered = filtered.filter(r => (getRulePattern(r) + getRuleReplacement(r)).toLowerCase().includes(lower));
+                }
+                c.innerHTML = filtered.map((r, i) => {
+                    const idx = sourceRules.indexOf(r);
+                    const pattern = getRulePattern(r);
+                    const replacement = getRuleReplacement(r) || '(删除)';
+                    const typeLabel = r.type === 'source' ? '来源' : (r.type === 'reward' ? '奖励' : '棋子');
+                    return `<div class="rule-item" data-idx="${idx}">
+                    <span class="rule-pattern">${pattern}</span><span class="rule-type">[${typeLabel}]</span>
+                    <span>→</span><span class="rule-replacement">${replacement}</span>
+                    <div class="rule-actions">
+                        <button class="edit-source-btn" data-idx="${idx}">✏️</button>
+                        <button class="delete-source-btn" data-idx="${idx}" style="background:#dc3545;">🗑️</button>
+                    </div> </div>`;
+                }).join('') || '<div>暂无规则</div>';
+                c.querySelectorAll('.delete-source-btn').forEach(b => b.onclick = e => { const idx = parseInt(b.dataset.idx); sourceRules.splice(idx, 1); saveData('sourceRules', sourceRules); renderSourceRuleList(filterType, searchTerm); });
+                c.querySelectorAll('.edit-source-btn').forEach(b => b.onclick = e => {
+                    const idx = parseInt(b.dataset.idx);
+                    const r = sourceRules[idx];
+                    document.getElementById('newRulePattern').value = getRulePattern(r);
+                    document.getElementById('newRuleReplacement').value = getRuleReplacement(r) || '';
+                    document.getElementById('newRuleType').value = r.type || 'source';
+                    document.getElementById('addOrUpdateRuleBtn').textContent = '✏️ 更新';
+                    document.getElementById('cancelEditRuleBtn').style.display = 'inline-block';
+                    editingSourceIndex = idx;
+                });
+            }
+            function resetSourceEditState() { document.getElementById('newRulePattern').value = ''; document.getElementById('newRuleReplacement').value = ''; document.getElementById('newRuleType').value = 'source'; document.getElementById('addOrUpdateRuleBtn').textContent = '➕ 添加'; document.getElementById('cancelEditRuleBtn').style.display = 'none'; editingSourceIndex = -1; }
+            function renderIgnoreRuleList() { const c = document.getElementById('ignoreRuleListContainer'); c.innerHTML = ignoreKeywords.map((k, i) => `<div class="rule-item"><span class="rule-pattern">${k}</span><div class="rule-actions"><button data-i="${i}" class="delete-ignore-btn" style="background:#dc3545;">🗑️</button></div></div>`).join('') || '<div>暂无忽略关键词</div>'; c.querySelectorAll('.delete-ignore-btn').forEach(b => b.onclick = e => { ignoreKeywords.splice(e.target.dataset.i, 1); saveData('ignoreKeywords', ignoreKeywords); renderIgnoreRuleList(); }); }
+            function scrollToFirstMatch() {
+                const searchTerm = document.getElementById('ruleSearchInput').value.trim();
+                if (!searchTerm) return;
+                const items = document.querySelectorAll('#sourceRuleListContainer .rule-item');
+                for (let item of items) {
+                    if (item.textContent.toLowerCase().includes(searchTerm.toLowerCase())) {
+                        item.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        item.classList.add('highlight');
+                        setTimeout(() => item.classList.remove('highlight'), 2000);
+                        break;
+                    }
+                }
+            }
 
             function refreshVarEntries() { varContainer.innerHTML = ''; varInputs = {}; CORE_FIELDS.forEach(f => { const lab = document.createElement('label'); lab.textContent = f + '：'; const inp = document.createElement('input'); inp.value = ''; const btn = document.createElement('button'); btn.textContent = '📋'; btn.className = 'paste-btn'; btn.onclick = () => navigator.clipboard.readText().then(t => { const cl = cleanText(t); const tm = extractTime(cl); if (tm && varInputs['时间']) varInputs['时间'].value = tm; const val = parseInt(cl.match(/-?\d+/)?.[0]); if (!isNaN(val)) inp.value = val; }); varContainer.appendChild(lab); varContainer.appendChild(inp); varContainer.appendChild(btn); varInputs[f] = inp; }); }
             function refreshTemplateSelect() { templateSelect.innerHTML = ''; templates.forEach(t => { const o = document.createElement('option'); o.value = t; o.textContent = t.substring(0, 60); templateSelect.appendChild(o); }); }
@@ -907,14 +1118,80 @@
                 document.getElementById('debugFlowBtn').onclick = async () => { const f = document.getElementById('flowFileInput').files[0]; if (!f) return; const text = await f.text(); expandDebugConsole(); debugConsole.innerHTML = `CSV前200字符:\n${text.substring(0, 200)}`; };
                 document.getElementById('copyGlobalResultBtn').onclick = () => navigator.clipboard.writeText(globalResultArea.value);
                 document.getElementById('exportGlobalResultBtn').onclick = () => { const blob = new Blob([globalResultArea.value], { type: 'text/plain' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'script.txt'; a.click(); };
-                document.getElementById('generateFromTemplateBtn').onclick = () => { let tpl = templateSelect.value; for (let [k, v] of Object.entries(varInputs)) tpl = tpl.replace(`{${k}}`, v.value); globalResultArea.value = tpl.replace(/\{[^}]+\}/g, ''); globalResultCount.textContent = '1 条'; resultSourceHint.textContent = '模板生成'; navigator.clipboard.writeText(globalResultArea.value); };
+                document.getElementById('generateFromTemplateBtn').onclick = () => { let tpl = templateSelect.value; for (let [k, v] of Object.entries(varInputs)) tpl = tpl.replace(new RegExp(`\\{${k}\\}`, 'g'), v.value); tpl = tpl.replace(/\{[^}]+\}/g, ''); globalResultArea.value = tpl; globalResultCount.textContent = '1 条'; resultSourceHint.textContent = '模板生成'; navigator.clipboard.writeText(tpl); };
 
-                // 模态框、话术库、规则管理等事件绑定（保持原样）
-                // 此处省略具体绑定代码，您可从原完整版复制 bindAll 函数体，只删除图文攻略相关部分即可
+                const modals = {
+                    source: document.getElementById('sourceRuleModal'), ignore: document.getElementById('ignoreRuleModal'),
+                    template: document.getElementById('templateModal'), script: document.getElementById('scriptEditModal'),
+                    batch: document.getElementById('batchTagModal'), tags: document.getElementById('manageTagsModal'),
+                    import: document.getElementById('importScriptModal')
+                };
+                document.getElementById('manageSourceRulesBtn').onclick = () => {
+                    renderSourceRuleList(document.getElementById('ruleTypeFilter').value, document.getElementById('ruleSearchInput').value);
+                    modals.source.style.display = 'block';
+                };
+                document.getElementById('manageIgnoreRulesBtn').onclick = () => { renderIgnoreRuleList(); modals.ignore.style.display = 'block'; };
+                document.getElementById('manageTemplatesBtn').onclick = () => { renderTemplateList(); modals.template.style.display = 'block'; };
+                document.getElementById('closeSourceRuleModal').onclick = () => modals.source.style.display = 'none';
+                document.getElementById('closeIgnoreRuleModal').onclick = () => modals.ignore.style.display = 'none';
+                document.getElementById('closeTemplateModal').onclick = () => modals.template.style.display = 'none';
+                document.getElementById('modalAddTemplateBtn').onclick = () => { const t = prompt('输入新模板内容，可使用 {时间} {体力} 等变量'); if (t) { templates.push(t); saveData('templates', templates); renderTemplateList(); refreshTemplateSelect(); } };
+                document.getElementById('addOrUpdateRuleBtn').onclick = () => {
+                    const p = document.getElementById('newRulePattern').value.trim(), r = document.getElementById('newRuleReplacement').value.trim(), t = document.getElementById('newRuleType').value;
+                    if (!p) return;
+                    if (editingSourceIndex >= 0) sourceRules[editingSourceIndex] = { pattern: p, replacement: r, type: t };
+                    else sourceRules.push({ pattern: p, replacement: r, type: t });
+                    saveData('sourceRules', sourceRules);
+                    renderSourceRuleList(document.getElementById('ruleTypeFilter').value, document.getElementById('ruleSearchInput').value);
+                    resetSourceEditState();
+                };
+                document.getElementById('cancelEditRuleBtn').onclick = resetSourceEditState;
+                document.getElementById('resetDefaultSourceRulesBtn').onclick = () => { sourceRules = DEFAULT_SOURCE_RULES.map(r => ({ ...r })); saveData('sourceRules', sourceRules); renderSourceRuleList(); };
+                document.getElementById('clearAllSourceRulesBtn').onclick = () => { if (confirm('清空所有转换规则？')) { sourceRules = []; saveData('sourceRules', sourceRules); renderSourceRuleList(); } };
+                document.getElementById('addIgnoreKeywordBtn').onclick = () => { const kw = document.getElementById('newIgnoreKeyword').value.trim(); if (!kw) return; if (!ignoreKeywords.includes(kw)) { ignoreKeywords.push(kw); saveData('ignoreKeywords', ignoreKeywords); renderIgnoreRuleList(); document.getElementById('newIgnoreKeyword').value = ''; } };
+                document.getElementById('resetDefaultIgnoreRulesBtn').onclick = () => { ignoreKeywords = [...DEFAULT_IGNORE_KEYWORDS]; saveData('ignoreKeywords', ignoreKeywords); renderIgnoreRuleList(); };
+                document.getElementById('clearAllIgnoreRulesBtn').onclick = () => { if (confirm('清空所有忽略关键词？')) { ignoreKeywords = []; saveData('ignoreKeywords', ignoreKeywords); renderIgnoreRuleList(); } };
+
+                // 话术库事件
+                document.getElementById('addScriptBtn').onclick = () => { document.getElementById('scriptEditTitle').textContent = '新增话术'; document.getElementById('scriptEditText').value = ''; document.getElementById('scriptEditTags').value = ''; modals.script.style.display = 'block'; };
+                document.getElementById('copyScriptBtn').onclick = () => { const lb = document.getElementById('scriptListbox'); if (lb.selectedOptions.length) { const texts = Array.from(lb.selectedOptions).map(o => scripts[o.value].text); navigator.clipboard.writeText(texts.join('\n')); } };
+                document.getElementById('deleteScriptBtn').onclick = () => { const lb = document.getElementById('scriptListbox'); const idxs = Array.from(lb.selectedOptions).map(o => parseInt(o.value)); scripts = scripts.filter((_, i) => !idxs.includes(i)); saveData('scripts', scripts); refreshScriptList(); renderTagFilter(); };
+                document.getElementById('batchTagBtn').onclick = () => { if (document.getElementById('scriptListbox').selectedOptions.length) modals.batch.style.display = 'block'; };
+                document.getElementById('manageTagsBtn').onclick = () => { renderAllTagsList(); modals.tags.style.display = 'block'; };
+                document.getElementById('importScriptBtn').onclick = () => modals.import.style.display = 'block';
+                document.getElementById('applyBatchTagBtn').onclick = () => {
+                    const tags = document.getElementById('batchTagInput').value.split(/[,，\s]+/).filter(t => t);
+                    const lb = document.getElementById('scriptListbox');
+                    Array.from(lb.selectedOptions).forEach(o => { const s = scripts[o.value]; tags.forEach(t => { if (!s.tags.includes(t)) s.tags.push(t); }); });
+                    saveData('scripts', scripts); refreshScriptList(); renderTagFilter(); modals.batch.style.display = 'none';
+                };
+                document.getElementById('saveScriptBtn').onclick = () => {
+                    const text = document.getElementById('scriptEditText').value.trim(); if (!text) return;
+                    const tags = document.getElementById('scriptEditTags').value.split(/[,，\s]+/).filter(t => t);
+                    const isEdit = document.getElementById('scriptEditTitle').textContent.includes('编辑');
+                    if (isEdit) { const idx = parseInt(document.getElementById('scriptEditText').dataset.index); scripts[idx] = { text, tags }; }
+                    else { scripts.push({ text, tags }); }
+                    saveData('scripts', scripts); refreshScriptList(); renderTagFilter(); modals.script.style.display = 'none';
+                };
+                document.getElementById('confirmImportBtn').onclick = async () => {
+                    const f = document.getElementById('importFileInput').files[0]; if (!f) return;
+                    const text = await f.text(); const lines = text.split(/\r?\n/).filter(l => l.trim());
+                    const skip = document.getElementById('skipDuplicateCheckbox').checked; let added = 0;
+                    lines.forEach(l => { if (skip && scripts.some(s => s.text === l)) return; scripts.push({ text: l, tags: [] }); added++; });
+                    saveData('scripts', scripts); refreshScriptList(); renderTagFilter();
+                    document.getElementById('importProgress').textContent = `成功导入 ${added} 条话术`;
+                };
+                document.getElementById('addNewTagBtn').onclick = () => {
+                    const tag = document.getElementById('newTagInput').value.trim(); if (!tag || getAllTags().includes(tag)) return;
+                    document.getElementById('newTagInput').value = ''; renderAllTagsList(); renderTagFilter();
+                };
+                document.querySelectorAll('.close, .modal .secondary, .modal .reset-btn').forEach(b => { if (b.id.includes('close') || b.id.includes('cancel')) b.onclick = () => { Object.values(modals).forEach(m => m.style.display = 'none'); }; });
+                window.onclick = (e) => { if (e.target.classList.contains('modal')) e.target.style.display = 'none'; };
 
                 document.getElementById('searchScript').oninput = filterScripts;
                 document.getElementById('tagFilterSelect').onchange = filterScripts;
 
+                // 集卡事件
                 document.getElementById('uploadCsvBtn').onclick = processCardCsv;
                 document.getElementById('applyFilterBtn').onclick = processCardCsv;
                 document.getElementById('copyAllCardBtn').onclick = () => navigator.clipboard.writeText(document.getElementById('cardResultArea').value);
@@ -927,6 +1204,14 @@
                     this.classList.add('active');
                     document.getElementById(`tab-${this.dataset.tab}`).classList.add('active');
                 });
+
+                const typeFilter = document.getElementById('ruleTypeFilter');
+                const searchInput = document.getElementById('ruleSearchInput');
+                const clearSearch = document.getElementById('clearRuleSearch');
+                typeFilter.onchange = () => renderSourceRuleList(typeFilter.value, searchInput.value);
+                searchInput.oninput = () => { clearSearch.style.display = searchInput.value ? 'inline' : 'none'; renderSourceRuleList(typeFilter.value, searchInput.value); };
+                clearSearch.onclick = () => { searchInput.value = ''; clearSearch.style.display = 'none'; renderSourceRuleList(typeFilter.value, ''); };
+                searchInput.onkeypress = (e) => { if (e.key === 'Enter') scrollToFirstMatch(); };
 
                 refreshVarEntries(); refreshTemplateSelect(); refreshScriptList(); renderTagFilter();
             }
