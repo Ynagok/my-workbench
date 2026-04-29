@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>客服冷静演绎工作台 · 经典版</title>
+    <title>客服冷静演绎工作台</title>
     <link rel="icon" type="image/gif" href="/my-icon.gif">
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
     <style>
@@ -443,7 +443,7 @@
                 cursor: pointer;
                 color: #aaa;
             }
-        /* 图文攻略样式 */
+
         .guide-container {
             display: grid;
             grid-template-columns: 200px 1fr;
@@ -602,7 +602,16 @@
         <!-- 话术库 script -->
         <div id="tab-script" class="tab-content">
             <div class="flex-row"><input type="text" id="searchScript" placeholder="搜索话术内容..." style="flex:2;"><select id="tagFilterSelect" style="flex:1;"><option value="all">所有标签</option><option value="no_tag">无标签</option></select><button id="manageTagsBtn" class="secondary">🏷️ 管理标签</button></div>
-            <div class="flex-row" style="margin:12px 0;"><button id="addScriptBtn">➕ 新增话术</button><button id="copyScriptBtn">📋 复制选中</button><button id="batchTagBtn" class="secondary">🏷️ 批量打标签</button><button id="deleteScriptBtn" class="reset-btn">🗑️ 批量删除</button><button id="importScriptBtn" class="secondary">📂 导入话术</button></div>
+            <div class="flex-row" style="margin:12px 0;">
+                <button id="addScriptBtn">➕ 新增话术</button>
+                <button id="copyScriptBtn">📋 复制选中</button>
+                <button id="batchTagBtn" class="secondary">🏷️ 批量打标签</button>
+                <button id="deleteScriptBtn" class="reset-btn">🗑️ 批量删除</button>
+                <button id="importScriptBtn" class="secondary">📂 导入文本</button>
+                <button id="exportScriptsBtn" class="secondary">📤 导出话术库</button>
+                <button id="importScriptsBtn" class="secondary">📥 导入话术库</button>
+                <input type="file" id="importScriptsFile" accept=".json" style="display:none;">
+            </div>
             <select id="scriptListbox" size="15" style="width:100%; height:350px;" multiple></select>
             <small>按住 Ctrl 或 Shift 可多选</small>
         </div>
@@ -614,6 +623,9 @@
                     <input type="text" id="guideSearch" placeholder="搜索攻略标题或描述..." style="width:240px;">
                     <button id="addGuideBtn">✨ 新建攻略</button>
                     <button id="manageCategoriesBtn" class="secondary">🏷️ 管理分类</button>
+                    <button id="exportGuidesBtn" class="secondary">📤 导出攻略</button>
+                    <button id="importGuidesBtn" class="secondary">📥 导入攻略</button>
+                    <input type="file" id="importGuidesFile" accept=".json" style="display:none;">
                 </div>
                 <small>拖动卡片可排序，编辑时 Ctrl+V 粘贴图片，或点击上传按钮从相册选择。</small>
             </div>
@@ -634,9 +646,9 @@
     <div id="scriptEditModal" class="modal"><div class="modal-content" style="max-width:600px;"><div class="modal-header"><h3 id="scriptEditTitle">编辑话术</h3><span class="close" id="closeScriptModal">&times;</span></div><textarea id="scriptEditText" rows="4" style="width:100%; margin-bottom:12px;"></textarea><label>标签（可多个，用逗号或空格分隔）</label><input type="text" id="scriptEditTags" placeholder="例如：常用,补偿,活动" style="width:100%; margin-bottom:12px;"><div class="flex-row"><button id="saveScriptBtn">💾 保存</button><button id="cancelScriptBtn" class="secondary">取消</button></div></div></div>
     <div id="batchTagModal" class="modal"><div class="modal-content" style="max-width:500px;"><div class="modal-header"><h3>批量添加标签</h3><span class="close" id="closeBatchModal">&times;</span></div><input type="text" id="batchTagInput" placeholder="标签名（逗号分隔）" style="width:100%; margin-bottom:12px;"><div class="flex-row"><button id="applyBatchTagBtn">应用</button><button id="cancelBatchBtn" class="secondary">取消</button></div></div></div>
     <div id="manageTagsModal" class="modal"><div class="modal-content" style="max-width:500px;"><div class="modal-header"><h3>管理所有标签</h3><span class="close" id="closeManageTags">&times;</span></div><div id="allTagsList" style="margin-bottom:16px;"></div><div class="flex-row"><input type="text" id="newTagInput" placeholder="新标签名" style="flex:1;"><button id="addNewTagBtn">➕ 添加</button></div></div></div>
-    <div id="importScriptModal" class="modal"><div class="modal-content" style="max-width:500px;"><div class="modal-header"><h3>导入话术</h3><span class="close" id="closeImportModal">&times;</span></div><div class="checkbox-label"><input type="checkbox" id="skipDuplicateCheckbox" checked> 跳过重复</div><input type="file" id="importFileInput" accept=".txt,.csv" /><div class="flex-row" style="margin-top:12px;"><button id="confirmImportBtn">开始导入</button><button id="cancelImportBtn" class="secondary">取消</button></div><div id="importProgress" style="margin-top:8px; font-size:12px; color:#0d6efd;"></div></div></div>
+    <div id="importScriptModal" class="modal"><div class="modal-content" style="max-width:500px;"><div class="modal-header"><h3>导入话术文本</h3><span class="close" id="closeImportModal">&times;</span></div><div class="checkbox-label"><input type="checkbox" id="skipDuplicateCheckbox" checked> 跳过重复</div><input type="file" id="importFileInput" accept=".txt,.csv" /><div class="flex-row" style="margin-top:12px;"><button id="confirmImportBtn">开始导入</button><button id="cancelImportBtn" class="secondary">取消</button></div><div id="importProgress" style="margin-top:8px; font-size:12px; color:#0d6efd;"></div></div></div>
 
-    <!-- 图文攻略编辑模态框（增加上传按钮） -->
+    <!-- 图文攻略编辑模态框 -->
     <div id="guideEditModal" class="modal">
         <div class="modal-content">
             <h3 id="guideEditTitle">编辑攻略</h3>
@@ -829,6 +841,7 @@
                     : (source ? `在${time}，通过【${source}】${action}${abs}点${type}`
                         : `在${time}，${action}${abs}点${type}`);
             }
+
             // 订单日志解析
             function parseOrderLog(rawText) {
                 let text = rawText.replace(/\r\n/g, '\n').replace(/\n/g, ' ');
@@ -1104,7 +1117,7 @@
                         '时间': formatTimeToStandard(cleanVals[colIdx['时间']] || ''),
                         '增减': cleanVals[colIdx['增减']] || '',
                         '数量': cleanVals[colIdx['数量']] || '0',
-                        '之前': cleanVals[colIdx['之后']] || '0',
+                        '之前': cleanVals[colIdx['之前']] || '0',
                         '之后': cleanVals[colIdx['之后']] || '0',
                         '来源': cleanVals[colIdx['来源']] || '',
                         '道具名称': colIdx['道具名称'] >= 0 ? cleanVals[colIdx['道具名称']] : ''
@@ -1483,11 +1496,7 @@
                     const idx = guides.findIndex(g => g.id === currentEditingGuideId);
                     if (idx !== -1) guides[idx] = data;
                 } else guides.push(data);
-                try {
-                    await saveData('guides', guides);
-                    document.getElementById('guideEditModal').style.display = 'none';
-                    renderGuideCards();
-                } catch (e) { }
+                try { await saveData('guides', guides); document.getElementById('guideEditModal').style.display = 'none'; renderGuideCards(); } catch (e) { }
             };
 
             document.getElementById('deleteGuideBtn').onclick = async () => {
@@ -1499,6 +1508,34 @@
             };
 
             document.getElementById('cancelGuideBtn').onclick = () => document.getElementById('guideEditModal').style.display = 'none';
+
+            // 攻略备份恢复
+            document.getElementById('exportGuidesBtn').onclick = () => {
+                const data = JSON.stringify({ guides, guideCategories }, null, 2);
+                const blob = new Blob([data], { type: 'application/json' });
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = `图文攻略备份_${new Date().toISOString().slice(0, 10)}.json`;
+                a.click();
+            };
+            document.getElementById('importGuidesBtn').onclick = () => document.getElementById('importGuidesFile').click();
+            document.getElementById('importGuidesFile').onchange = async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                try {
+                    const text = await file.text();
+                    const imported = JSON.parse(text);
+                    if (!imported.guides || !imported.guideCategories) throw new Error('格式错误');
+                    if (!confirm(`确定用导入的数据覆盖当前攻略（${guides.length}条）和分类（${guideCategories.length}个）吗？`)) return;
+                    guides = imported.guides;
+                    guideCategories = imported.guideCategories;
+                    await saveData('guides', guides);
+                    await saveData('guideCategories', guideCategories);
+                    refreshCategoryUI();
+                    renderGuideCards();
+                    alert(`成功导入 ${guides.length} 条攻略`);
+                } catch (err) { alert('导入失败，请检查文件格式'); }
+            };
 
             // 分类管理
             document.getElementById('manageCategoriesBtn').onclick = () => { renderCategoryManageList(); document.getElementById('categoryManageModal').style.display = 'block'; };
@@ -1512,22 +1549,14 @@
             window.deleteCategory = async (cat) => {
                 guideCategories = guideCategories.filter(c => c !== cat);
                 guides.forEach(g => { if (g.categories) g.categories = g.categories.filter(c => c !== cat); });
-                try {
-                    await saveData('guideCategories', guideCategories);
-                    await saveData('guides', guides);
-                    refreshCategoryUI(); renderGuideCards(); renderCategoryManageList();
-                } catch (e) { }
+                try { await saveData('guideCategories', guideCategories); await saveData('guides', guides); refreshCategoryUI(); renderGuideCards(); renderCategoryManageList(); } catch (e) { }
             };
 
             document.getElementById('addCategoryBtn').onclick = async () => {
                 const name = document.getElementById('newCategoryInput').value.trim();
                 if (!name || guideCategories.includes(name)) return;
                 guideCategories.push(name);
-                try {
-                    await saveData('guideCategories', guideCategories);
-                    document.getElementById('newCategoryInput').value = '';
-                    refreshCategoryUI(); renderCategoryManageList();
-                } catch (e) { }
+                try { await saveData('guideCategories', guideCategories); document.getElementById('newCategoryInput').value = ''; refreshCategoryUI(); renderCategoryManageList(); } catch (e) { }
             };
 
             guideSearch.addEventListener('input', renderGuideCards);
@@ -1612,6 +1641,33 @@
                 document.getElementById('searchScript').oninput = filterScripts;
                 document.getElementById('tagFilterSelect').onchange = filterScripts;
 
+                // 话术库备份恢复
+                document.getElementById('exportScriptsBtn').onclick = () => {
+                    const data = JSON.stringify(scripts, null, 2);
+                    const blob = new Blob([data], { type: 'application/json' });
+                    const a = document.createElement('a');
+                    a.href = URL.createObjectURL(blob);
+                    a.download = `话术库备份_${new Date().toISOString().slice(0, 10)}.json`;
+                    a.click();
+                };
+                document.getElementById('importScriptsBtn').onclick = () => document.getElementById('importScriptsFile').click();
+                document.getElementById('importScriptsFile').onchange = async (e) => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    try {
+                        const text = await file.text();
+                        const imported = JSON.parse(text);
+                        if (!Array.isArray(imported)) throw new Error('格式错误');
+                        if (!confirm(`确定用导入的话术库覆盖当前 ${scripts.length} 条话术吗？`)) return;
+                        scripts = imported;
+                        scripts.forEach((s, i) => { if (typeof s === 'string') scripts[i] = { text: s, tags: [] }; });
+                        await saveData('scripts', scripts);
+                        refreshScriptList();
+                        renderTagFilter();
+                        alert(`成功导入 ${scripts.length} 条话术`);
+                    } catch (err) { alert('导入失败，请检查文件是否为正确的话术库 JSON 文件。'); }
+                };
+
                 document.getElementById('uploadCsvBtn').onclick = processCardCsv;
                 document.getElementById('applyFilterBtn').onclick = processCardCsv;
                 document.getElementById('copyAllCardBtn').onclick = () => navigator.clipboard.writeText(document.getElementById('cardResultArea').value);
@@ -1643,7 +1699,7 @@
             bindAll();
             new Sortable(document.getElementById('tabsContainer'), { animation: 150 });
             debugConsole.style.display = 'none';
-            debugConsole.innerHTML = '🟢 工作台就绪 · 支持移动端图片上传';
+            debugConsole.innerHTML = '🟢 工作台就绪 · 完整功能 · 支持备份恢复';
         })();
     </script>
 </body>
