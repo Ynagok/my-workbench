@@ -980,30 +980,33 @@
                 records.sort((a, b) => (b['时间'] || '').localeCompare(a['时间'] || ''));
                 return records;
             }
-            function buildMergedRewardText(records) { return null; }
-            function inferTypeFromFileName(name) { const l = name.toLowerCase(); if (l.includes('红钻')) return '红钻'; if (l.includes('金币')) return '金币'; if (l.includes('体力')) return '体力'; if (l.includes('背包') || l.includes('道具')) return '道具'; return null; }
-            async function processFlowCsv() {
-                expandDebugConsole();
-                const f = document.getElementById('flowFileInput').files[0]; if (!f) return;
-                const selectedType = document.getElementById('flowResourceSelect').value;
-                const fileName = f.name;
-                const inferred = inferTypeFromFileName(fileName);
-                if (inferred && inferred !== selectedType) { alert('文件类型与所选资源类型不一致'); return; }
-                const text = await f.text();
-                let records = parseFlowCSV(text);
-                if (!records.length) return;
-                const includeSources = document.getElementById('includeSourcesInput').value;
-                const itemKeyword = document.getElementById('itemKeywordInput').value;
-                let filtered = records;
-                if (selectedType === '道具' && itemKeyword) filtered = filtered.filter(r => itemKeyword.split(',').some(k => r['道具名称'].toLowerCase().includes(k.trim().toLowerCase())));
-                if (includeSources) filtered = filtered.filter(r => includeSources.split(',').some(k => r['来源'].toLowerCase().includes(k.trim().toLowerCase())));
-                const sentences = filtered.map(r => generateFlowSentence(r, selectedType, true)).filter(s => s);
-                if (sentences.length === 0) return;
-                globalResultArea.value = sentences.join('\n\n');
-                globalResultCount.textContent = `${sentences.length} 条`;
-                resultSourceHint.textContent = 'CSV解析（已应用资源替换）';
-                navigator.clipboard.writeText(globalResultArea.value);
-                debugConsole.innerHTML += `\n✨ CSV生成 ${sentences.length} 条`;
+            function buildMergedRewardText(records) {
+                const groupMap = new Map();
+                for (let rec of records) {
+                    const action = rec['行为']; if (!action) continue;
+                    const itemName = (rec['道具名称'] || '').trim(); if (!itemName) continue;
+                    const rawTime = rec['时间'];
+                    const source = rec['来源'] || '未知来源';
+                    const timeKey = formatTimeToStandard(rawTime);
+                    const groupKey = `${timeKey}|||${source}|||${action}`;
+                    if (!groupMap.has(groupKey)) groupMap.set(groupKey, { time: timeKey, source: source, action: action, items: new Map() });
+                    const group = groupMap.get(groupKey);
+                    const qty = Math.abs(rec['变化量'] || 0); if (qty <= 0) continue;
+                    const current = group.items.get(itemName) || 0;
+                    group.items.set(itemName, current + qty);
+                }
+                if (groupMap.size === 0) return null;
+                const sortedGroups = Array.from(groupMap.values()).sort(
+                    (a, b) => b.time.localeCompare(a.time) || a.source.localeCompare(b.source) || a.action.localeCompare(b.action)
+                );
+                const blocks = [];
+                for (let g of sortedGroups) {
+                    if (g.items.size === 0) continue;
+                    const sortedItems = Array.from(g.items.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+                    const rewardPart = sortedItems.map(([name, qty]) => `${name}*${qty}`).join('，');
+                    blocks.push(`${g.time}，通过【${g.source}】正常${g.action}以下物品：${rewardPart}`);
+                }
+                return blocks.join('\n\n');
             }
 
             // 集卡功能
