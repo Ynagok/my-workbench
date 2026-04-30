@@ -547,7 +547,7 @@
             const DEFAULT_IGNORE_KEYWORDS = ["棋盘上传"];
             const PACK_NAME_MAP = { 151: "1星百戏锦囊", 152: "1星大百戏锦囊", 153: "2星百戏锦囊", 154: "2星大百戏锦囊", 155: "3星百戏锦囊", 156: "3星大百戏锦囊", 157: "4星百戏锦囊", 158: "4星大百戏锦囊", 159: "5星百戏锦囊", 160: "5星大百戏锦囊", 161: "5星超大百戏锦囊" };
 
-            // 云端同步（无备份）
+            // 云端同步
             async function loadData(key, defaultValue) {
                 try {
                     const resp = await fetch(`${SERVER_URL}/api/data/${key}`);
@@ -696,7 +696,7 @@
                 return applyResourceClickReplace(sentence, type);
             }
 
-            // 订单日志解析（完整版）
+            // 订单日志解析
             function parseOrderLog(rawText) {
                 let text = rawText.replace(/\r\n/g, '\n').replace(/\n/g, ' ');
                 const parts = text.split('\t').map(p => p.trim());
@@ -707,9 +707,8 @@
                 if (fullText.includes('过期')) return [`${orderType}已在${firstTime}过期`];
 
                 let statusIdx = -1, statusText = '', finalTime = '';
-                const statusKeywords = ['完成', '删除', '创建'];
                 for (let i = 0; i < parts.length; i++) {
-                    if (statusKeywords.includes(parts[i])) {
+                    if (['完成', '删除', '创建'].includes(parts[i])) {
                         statusIdx = i; statusText = parts[i];
                         if (i + 1 < parts.length) finalTime = parts[i + 1];
                         break;
@@ -804,7 +803,7 @@
                 return [`在${finalTime.replace(/-/g, '/')}提交【${chessStr}】${actionVerb}，获得${rewardStr}`];
             }
 
-            // 棋子流水解析（增强版，识别全部操作）
+            // 棋子流水解析（增强版）
             function parseChessLog(raw) {
                 const lines = raw.split(/\r?\n/).filter(l => l.trim());
                 const events = []; let cur = null;
@@ -915,7 +914,7 @@
                 debugConsole.innerHTML += `\n✨ 生成 ${sentences.length} 条`;
             }
 
-            // CSV 解析与合并
+            // CSV 解析与合并（道具合并话术已恢复）
             function parseFlowCSV(csvText) {
                 const lines = csvText.split(/\r?\n/).filter(l => l.trim());
                 if (lines.length < 2) return [];
@@ -1007,6 +1006,39 @@
                     blocks.push(`${g.time}，通过【${g.source}】正常${g.action}以下物品：${rewardPart}`);
                 }
                 return blocks.join('\n\n');
+            }
+            function inferTypeFromFileName(name) { const l = name.toLowerCase(); if (l.includes('红钻')) return '红钻'; if (l.includes('金币')) return '金币'; if (l.includes('体力')) return '体力'; if (l.includes('背包') || l.includes('道具')) return '道具'; return null; }
+            async function processFlowCsv() {
+                expandDebugConsole();
+                const f = document.getElementById('flowFileInput').files[0]; if (!f) return;
+                const selectedType = document.getElementById('flowResourceSelect').value;
+                const fileName = f.name;
+                const inferred = inferTypeFromFileName(fileName);
+                if (inferred && inferred !== selectedType) { alert('文件类型与所选资源类型不一致'); return; }
+                const text = await f.text();
+                let records = parseFlowCSV(text);
+                if (!records.length) return;
+                const includeSources = document.getElementById('includeSourcesInput').value;
+                const itemKeyword = document.getElementById('itemKeywordInput').value;
+                let filtered = records;
+                if (selectedType === '道具' && itemKeyword) filtered = filtered.filter(r => itemKeyword.split(',').some(k => r['道具名称'].toLowerCase().includes(k.trim().toLowerCase())));
+                if (includeSources) filtered = filtered.filter(r => includeSources.split(',').some(k => r['来源'].toLowerCase().includes(k.trim().toLowerCase())));
+                const mergedText = buildMergedRewardText(filtered);
+                if (mergedText) {
+                    globalResultArea.value = mergedText;
+                    const groupCount = mergedText.split('\n\n').filter(b => b.trim()).length;
+                    globalResultCount.textContent = `${groupCount} 组`;
+                    resultSourceHint.textContent = `CSV合并 (区分获得/消耗) · 原始${records.length}条 → ${groupCount}组`;
+                    navigator.clipboard.writeText(mergedText);
+                    debugConsole.innerHTML += `\n✨ CSV合并成功，生成 ${groupCount} 组话术并已复制`;
+                } else {
+                    const sentences = filtered.map(r => generateFlowSentence(r, selectedType, true)).filter(s => s);
+                    if (sentences.length === 0) return;
+                    globalResultArea.value = sentences.join('\n\n');
+                    globalResultCount.textContent = `${sentences.length} 条`;
+                    resultSourceHint.textContent = 'CSV详细 (单条回退)';
+                    debugConsole.innerHTML += '\n⚠️ 无可合并奖励，回退单条话术';
+                }
             }
 
             // 集卡功能
@@ -1123,6 +1155,7 @@
                 document.getElementById('exportGlobalResultBtn').onclick = () => { const blob = new Blob([globalResultArea.value], { type: 'text/plain' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'script.txt'; a.click(); };
                 document.getElementById('generateFromTemplateBtn').onclick = () => { let tpl = templateSelect.value; for (let [k, v] of Object.entries(varInputs)) tpl = tpl.replace(new RegExp(`\\{${k}\\}`, 'g'), v.value); tpl = tpl.replace(/\{[^}]+\}/g, ''); globalResultArea.value = tpl; globalResultCount.textContent = '1 条'; resultSourceHint.textContent = '模板生成'; navigator.clipboard.writeText(tpl); };
 
+                // 模态框
                 const modals = {
                     source: document.getElementById('sourceRuleModal'), ignore: document.getElementById('ignoreRuleModal'),
                     template: document.getElementById('templateModal'), script: document.getElementById('scriptEditModal'),
@@ -1155,7 +1188,7 @@
                 document.getElementById('resetDefaultIgnoreRulesBtn').onclick = () => { ignoreKeywords = [...DEFAULT_IGNORE_KEYWORDS]; saveData('ignoreKeywords', ignoreKeywords); renderIgnoreRuleList(); };
                 document.getElementById('clearAllIgnoreRulesBtn').onclick = () => { if (confirm('清空所有忽略关键词？')) { ignoreKeywords = []; saveData('ignoreKeywords', ignoreKeywords); renderIgnoreRuleList(); } };
 
-                // 话术库事件
+                // 话术库
                 document.getElementById('addScriptBtn').onclick = () => { document.getElementById('scriptEditTitle').textContent = '新增话术'; document.getElementById('scriptEditText').value = ''; document.getElementById('scriptEditTags').value = ''; modals.script.style.display = 'block'; };
                 document.getElementById('copyScriptBtn').onclick = () => { const lb = document.getElementById('scriptListbox'); if (lb.selectedOptions.length) { const texts = Array.from(lb.selectedOptions).map(o => scripts[o.value].text); navigator.clipboard.writeText(texts.join('\n')); } };
                 document.getElementById('deleteScriptBtn').onclick = () => { const lb = document.getElementById('scriptListbox'); const idxs = Array.from(lb.selectedOptions).map(o => parseInt(o.value)); scripts = scripts.filter((_, i) => !idxs.includes(i)); saveData('scripts', scripts); refreshScriptList(); renderTagFilter(); };
@@ -1194,7 +1227,7 @@
                 document.getElementById('searchScript').oninput = filterScripts;
                 document.getElementById('tagFilterSelect').onchange = filterScripts;
 
-                // 集卡事件
+                // 集卡
                 document.getElementById('uploadCsvBtn').onclick = processCardCsv;
                 document.getElementById('applyFilterBtn').onclick = processCardCsv;
                 document.getElementById('copyAllCardBtn').onclick = () => navigator.clipboard.writeText(document.getElementById('cardResultArea').value);
@@ -1223,7 +1256,7 @@
             bindAll();
             new Sortable(document.getElementById('tabsContainer'), { animation: 150 });
             debugConsole.style.display = 'none';
-            debugConsole.innerHTML = '🟢 工作台就绪 · 资源替换规则已启用';
+            debugConsole.innerHTML = '🟢 工作台就绪 · 完整功能正常';
         })();
     </script>
 </body>
