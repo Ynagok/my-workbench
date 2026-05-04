@@ -1085,6 +1085,22 @@
                         return keywords.some(k => source.includes(k));
                     });
                 }
+            }
+
+                const mergedText = buildMergedRewardText(filtered);
+                if (mergedText) {
+                    globalResultArea.value = mergedText;
+                    globalResultCount.textContent = `${mergedText.split('\n\n').filter(b => b.trim()).length} 组`;
+                    resultSourceHint.textContent = `CSV合并 · 原始${records.length}条`;
+                    navigator.clipboard.writeText(mergedText);
+                } else {
+                    const sentences = filtered.map(r => generateFlowSentence(r, selectedType, true)).filter(s => s);
+                    if (sentences.length) {
+                        globalResultArea.value = sentences.join('\n\n');
+                        globalResultCount.textContent = `${sentences.length} 条`;
+                    }
+                }
+            }
 
             // 集卡功能
             let currentCardRecords = [];
@@ -1186,6 +1202,7 @@
                         break;
                     }
                 }
+            }
 
             function refreshVarEntries() { varContainer.innerHTML = ''; varInputs = {}; CORE_FIELDS.forEach(f => { const lab = document.createElement('label'); lab.textContent = f + '：'; const inp = document.createElement('input'); inp.value = ''; const btn = document.createElement('button'); btn.textContent = '📋'; btn.className = 'paste-btn'; btn.onclick = () => navigator.clipboard.readText().then(t => { const cl = cleanText(t); const tm = extractTime(cl); if (tm && varInputs['时间']) varInputs['时间'].value = tm; const val = parseInt(cl.match(/-?\d+/)?.[0]); if (!isNaN(val)) inp.value = val; }); varContainer.appendChild(lab); varContainer.appendChild(inp); varContainer.appendChild(btn); varInputs[f] = inp; }); }
             function refreshTemplateSelect() { templateSelect.innerHTML = ''; templates.forEach(t => { const o = document.createElement('option'); o.value = t; o.textContent = t.substring(0, 60); templateSelect.appendChild(o); }); }
