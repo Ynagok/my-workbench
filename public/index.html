@@ -755,12 +755,11 @@
                     rewardRaw = rawText.substring(0, endPos);
                 }
 
-                // 彻底清理 rewardRaw 中的所有时间戳
-                rewardRaw = rewardRaw.replace(/\t/g, ' ').replace(/\s+/g, ' ').trim();
-                // 移除所有形如 2026-05-04 13:03:19 的时间戳
-                rewardRaw = rewardRaw.replace(/\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}/g, '').trim();
+                // 关键修复：移除所有时间戳，但保留换行以便分行解析
+                rewardRaw = rewardRaw.replace(/\t/g, ' ').replace(/\d{4}-\d{2}-\d{2}\s+\d{1,2}:\d{2}:\d{2}/g, '').trim();
                 rewardRaw = applyRewardConversion(rewardRaw);
 
+                // 现在按换行拆分行（因为日志中奖励物品每行一个）
                 const lines = rewardRaw.split(/\n/).map(l => l.trim()).filter(l => l.length > 0);
                 const rewardItems = [];
                 let pendingItem = null;
@@ -801,7 +800,7 @@
                 }).filter(item => item.length > 0);
                 finalRewardItems = [...new Set(finalRewardItems)];
 
-                // 用逗号分隔奖励项
+                // 最终用中文逗号连接
                 const rewardStr = finalRewardItems.length ? finalRewardItems.join('，') : '奖励';
                 const actionVerb = statusText === '完成' ? '完成订单' : (statusText === '删除' ? '删除订单' : '操作订单');
                 return [`在${finalTime.replace(/-/g, '/')}提交【${chessStr}】${actionVerb}，获得${rewardStr}`];
