@@ -755,8 +755,10 @@
                     rewardRaw = rawText.substring(0, endPos);
                 }
 
+                // 彻底清理 rewardRaw 中的所有时间戳
                 rewardRaw = rewardRaw.replace(/\t/g, ' ').replace(/\s+/g, ' ').trim();
-                rewardRaw = rewardRaw.replace(/\s*\d{4}-\d{2}-\d{2}\s+\d{1,2}:\d{2}(:\d{2})?\s*$/, '').trim();
+                // 移除所有形如 2026-05-04 13:03:19 的时间戳
+                rewardRaw = rewardRaw.replace(/\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}/g, '').trim();
                 rewardRaw = applyRewardConversion(rewardRaw);
 
                 const lines = rewardRaw.split(/\n/).map(l => l.trim()).filter(l => l.length > 0);
@@ -799,6 +801,7 @@
                 }).filter(item => item.length > 0);
                 finalRewardItems = [...new Set(finalRewardItems)];
 
+                // 用逗号分隔奖励项
                 const rewardStr = finalRewardItems.length ? finalRewardItems.join('，') : '奖励';
                 const actionVerb = statusText === '完成' ? '完成订单' : (statusText === '删除' ? '删除订单' : '操作订单');
                 return [`在${finalTime.replace(/-/g, '/')}提交【${chessStr}】${actionVerb}，获得${rewardStr}`];
