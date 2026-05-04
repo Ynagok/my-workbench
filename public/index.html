@@ -938,8 +938,7 @@
             }
 
             // CSV 解析与合并
-            // CSV 解析与合并
-            function parseFlowCSV(csvText) {
+                function parseFlowCSV(csvText) {
                 const lines = csvText.split(/\r?\n/).filter(l => l.trim());
                 if (lines.length < 2) return [];
                 let delim = lines[0].includes('\t') ? '\t' : (lines[0].includes(';') ? ';' : ',');
