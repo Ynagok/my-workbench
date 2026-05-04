@@ -937,7 +937,8 @@
                 debugConsole.innerHTML += `\n✨ 生成 ${sentences.length} 条`;
             }
 
-            // CSV 解析与合并（道具合并话术已恢复）
+            // CSV 解析与合并
+            // CSV 解析与合并
             function parseFlowCSV(csvText) {
                 const lines = csvText.split(/\r?\n/).filter(l => l.trim());
                 if (lines.length < 2) return [];
@@ -973,10 +974,15 @@
                 for (let i = 1; i < lines.length; i++) {
                     let line = lines[i];
                     const vals = []; let cur = '', inq = false;
-                    for (let ch of line) { if (ch === '"') inq = !inq; else if (ch === delim && !inq) { vals.push(cur.trim()); cur = ''; } else cur += ch; }
+                    for (let ch of line) {
+                        if (ch === '"') inq = !inq;
+                        else if (ch === delim && !inq) { vals.push(cur.trim()); cur = ''; }
+                        else cur += ch;
+                    }
                     vals.push(cur.trim());
                     const cleanVals = vals.map(v => v.replace(/^["']|["']$/g, ''));
                     if (cleanVals.length <= Math.max(...Object.values(colIdx))) continue;
+
                     const rec = {
                         '时间': formatTimeToStandard(cleanVals[colIdx['时间']] || ''),
                         '增减': cleanVals[colIdx['增减']] || '',
@@ -986,6 +992,7 @@
                         '来源': cleanVals[colIdx['来源']] || '',
                         '道具名称': colIdx['道具名称'] >= 0 ? cleanVals[colIdx['道具名称']] : ''
                     };
+                    rec['资源类型'] = detectResourceType(line);
                     if (enableIgnore && ignoreKeywords.length) {
                         const src = rec['来源'].toLowerCase(), item = rec['道具名称'].toLowerCase();
                         if (ignoreKeywords.some(k => src.includes(k.toLowerCase()) || item.includes(k.toLowerCase()))) {
@@ -998,10 +1005,12 @@
                     rec['行为'] = action;
                     rec['变化量'] = change;
                     records.push(rec);
+                    debugConsole.innerHTML += `\n📌 行${i + 1}: 道具=${rec['道具名称']}, 变化=${change}, 行为=${action}`;
                 }
                 records.sort((a, b) => (b['时间'] || '').localeCompare(a['时间'] || ''));
                 return records;
             }
+
             function buildMergedRewardText(records) {
                 const groupMap = new Map();
                 for (let rec of records) {
@@ -1030,8 +1039,74 @@
                 }
                 return blocks.join('\n\n');
             }
-            function inferTypeFromFileName(name) { const l = name.toLowerCase(); if (l.includes('红钻')) return '红钻'; if (l.includes('金币')) return '金币'; if (l.includes('体力')) return '体力'; if (l.includes('背包') || l.includes('道具')) return '道具'; return null; }
+
+            function inferTypeFromFileName(name) {
+                const l = name.toLowerCase();
+                if (l.includes('红钻')) return '红钻';
+                if (l.includes('金币')) return '金币';
+                if (l.includes('体力')) return '体力';
+                if (l.includes('背包') || l.includes('道具')) return '道具';
+                return null;
+            }
+
             async function processFlowCsv() {
+                expandDebugConsole();
+                const f = document.getElementById('flowFileInput').files[0];
+                if (!f) return;
+                const selectedType = document.getElementById('flowResourceSelect').value;
+                const fileName = f.name;
+                const inferred = inferTypeFromFileName(fileName);
+                if (inferred && inferred !== selectedType) {
+                    alert('文件类型与所选资源类型不一致，请检查');
+                    return;
+                }
+                const text = await f.text();
+                let records = parseFlowCSV(text);
+                if (!records.length) {
+                    debugConsole.innerHTML += '\n❌ 无有效记录';
+                    return;
+                }
+                const itemKeywordRaw = document.getElementById('itemKeywordInput').value.trim();
+                const includeSourcesRaw = document.getElementById('includeSourcesInput').value.trim();
+                let filtered = records;
+
+                // 道具关键词筛选
+                if (selectedType === '道具' && itemKeywordRaw) {
+                    const keywords = itemKeywordRaw.split(',').map(k => k.trim().toLowerCase()).filter(k => k);
+                    filtered = filtered.filter(r => {
+                        const itemName = (r['道具名称'] || '').toLowerCase();
+                        return keywords.some(k => itemName.includes(k));
+                    });
+                }
+                // 来源关键词筛选
+                if (includeSourcesRaw) {
+                    const keywords = includeSourcesRaw.split(',').map(k => k.trim().toLowerCase()).filter(k => k);
+                    filtered = filtered.filter(r => {
+                        const source = (r['来源'] || '').toLowerCase();
+                        return keywords.some(k => source.includes(k));
+                    });
+                }
+
+                const mergedText = buildMergedRewardText(filtered);
+                if (mergedText) {
+                    globalResultArea.value = mergedText;
+                    const groupCount = mergedText.split('\n\n').filter(b => b.trim()).length;
+                    globalResultCount.textContent = `${groupCount} 组`;
+                    resultSourceHint.textContent = `CSV合并 (区分获得/消耗) · 原始${records.length}条 → ${groupCount}组`;
+                    navigator.clipboard.writeText(mergedText);
+                    debugConsole.innerHTML += `\n✨ CSV合并成功，生成 ${groupCount} 组话术并已复制`;
+                } else {
+                    const sentences = filtered.map(r => generateFlowSentence(r, selectedType, true)).filter(s => s);
+                    if (sentences.length === 0) {
+                        debugConsole.innerHTML += '\n⚠️ 筛选后无有效话术';
+                        return;
+                    }
+                    globalResultArea.value = sentences.join('\n\n');
+                    globalResultCount.textContent = `${sentences.length} 条`;
+                    resultSourceHint.textContent = 'CSV详细 (单条回退)';
+                    debugConsole.innerHTML += '\n⚠️ 无可合并奖励，回退单条话术';
+                }
+            }
                 expandDebugConsole();
                 const f = document.getElementById('flowFileInput').files[0]; if (!f) return;
                 const selectedType = document.getElementById('flowResourceSelect').value;
