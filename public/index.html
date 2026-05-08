@@ -685,10 +685,22 @@
                 const { change, action, before, after } = getChangeAndAction(rec);
                 if (!change || !action) return null;
                 const abs = Math.abs(change);
+
+                // 活动道具的特殊话术
                 if (isActivityItem(itemName, source, type))
                     return `在${time}，${action}了${abs}个${itemName || '活动道具'}`;
-                if (type === '道具' && itemName)
+
+                // 道具类话术（当道具名包含“积分”或“券”时，显示前后变化）
+                if (type === '道具' && itemName) {
+                    if (itemName.includes('积分') || itemName.includes('券')) {
+                        return source
+                            ? `在${time}，通过【${source}】${action}${abs}个${itemName}，从${before}变为${after}`
+                            : `在${time}，${action}${abs}个${itemName}，从${before}变为${after}`;
+                    }
                     return `在${time}，${action}了${abs}个${itemName}`;
+                }
+
+                // 资源类话术（体力/红钻/金币等）
                 let sentence = showChange
                     ? (source ? `在${time}，通过【${source}】${action}${abs}点${type}，从${before}变为${after}`
                         : `在${time}，${action}${abs}点${type}，从${before}变为${after}`)
