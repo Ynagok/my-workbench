@@ -749,7 +749,8 @@
                         if (chinese) chessNames.push(...chinese);
                     }
                 }
-                const chessStr = chessNames.length ? chessNames.join('、') : '棋子';
+                const convertedNames = chessNames.map(name => applyChessNameConversion(name));
+                const chessStr = convertedNames.length ? convertedNames.join('、') : '棋子';
 
                 let rewardRaw = '';
                 if (fiveDigitFound) {
