@@ -691,7 +691,8 @@
 
             // 订单解析
             function parseOrderLog(rawText) {
-                let text = rawText.replace(/\r\n/g, '\n').replace(/\n/g, ' ');
+                // ★ 关键修复：只转换换行格式，不合并为一行
+                let text = rawText.replace(/\r\n/g, '\n');
                 const parts = text.split('\t').map(p => p.trim());
                 if (parts.length < 8) { debugConsole.innerHTML += '\n❌ 订单日志字段不足'; return []; }
                 const fullText = rawText.toLowerCase();
@@ -729,8 +730,7 @@
                         if (chinese) chessNames.push(...chinese);
                     }
                 }
-
-                // 应用棋子名称转换并连接
+                // 棋子名称转换
                 const convertedNames = chessNames.map(name => applyChessNameConversion(name));
                 const chessStr = convertedNames.length ? [...new Set(convertedNames)].join('、') : '棋子';
 
@@ -750,11 +750,11 @@
                     rewardRaw = rawText.substring(0, endPos);
                 }
 
-                // 清理奖励文本：移除时间戳，保留换行
+                // 清理奖励文本：移除时间戳，但保留换行符
                 rewardRaw = rewardRaw.replace(/\t/g, ' ').replace(/\d{4}-\d{2}-\d{2}\s+\d{1,2}:\d{2}:\d{2}/g, '').trim();
                 rewardRaw = applyRewardConversion(rewardRaw);
 
-                // 按换行拆分奖励物品
+                // ★ 现在按换行拆分行（每行一个奖励物品）
                 const lines = rewardRaw.split(/\n/).map(l => l.trim()).filter(l => l.length > 0);
                 const rewardItems = [];
                 let pendingItem = null;
@@ -788,10 +788,8 @@
                 }
                 if (pendingItem) rewardItems.push(pendingItem);
 
-                // 去重后用中文逗号连接
+                // 用中文逗号连接，并去重
                 const rewardStr = rewardItems.length ? [...new Set(rewardItems)].join('，') : '奖励';
-
-                debugConsole.innerHTML += `\n棋子: ${chessStr}, 奖励: ${rewardStr}`;
                 const actionVerb = statusText === '完成' ? '完成订单' : (statusText === '删除' ? '删除订单' : '操作订单');
                 return [`在${finalTime.replace(/-/g, '/')}提交【${chessStr}】${actionVerb}，获得${rewardStr}`];
             }
