@@ -711,18 +711,27 @@
 
             // 订单日志解析
             function parseOrderLog(rawText) {
-                let text = rawText.replace(/\r\n/g, '\n').replace(/\n/g, ' ');
-                const parts = text.split('\t').map(p => p.trim());
-                if (parts.length < 8) { debugConsole.innerHTML += '\n❌ 订单日志字段不足'; return []; }
-                const fullText = rawText.toLowerCase();
-                const orderType = parts[3] || '未知订单';
-                const firstTime = extractTime(rawText) || '';
-                if (fullText.includes('过期')) return [`${orderType}已在${firstTime}过期`];
+                // 先将文本中的制表符保留，但移除内部的换行，使每条订单保持在一行
+                const cleanText = rawText.replace(/\r\n/g, '\n').replace(/\n/g, ' ').replace(/\t/g, '\t');
+                const parts = cleanText.split('\t').map(p => p.trim());
+                if (parts.length < 8) {
+                    debugConsole.innerHTML += '\n❌ 订单日志字段不足';
+                    return [];
+                }
 
+                const firstTime = extractTime(rawText) || '';
+                const orderType = parts[3] || '未知订单';
+                if (rawText.toLowerCase().includes('过期')) {
+                    return [`${orderType}已在${firstTime}过期`];
+                }
+
+                // 查找状态（完成/删除/创建）及其时间
                 let statusIdx = -1, statusText = '', finalTime = '';
+                const statusKeywords = ['完成', '删除', '创建'];
                 for (let i = 0; i < parts.length; i++) {
-                    if (['完成', '删除', '创建'].includes(parts[i])) {
-                        statusIdx = i; statusText = parts[i];
+                    if (statusKeywords.includes(parts[i])) {
+                        statusIdx = i;
+                        statusText = parts[i];
                         if (i + 1 < parts.length) finalTime = parts[i + 1];
                         break;
                     }
@@ -733,6 +742,7 @@
                     statusText = '操作';
                 }
 
+                // 提取棋子名称（从第五/六列开始，直到遇到一个5位数字）
                 let chessStartIdx = 5;
                 if (parts[chessStartIdx] === '是') chessStartIdx = 6;
                 let chessNames = [], fiveDigitFound = false;
@@ -743,7 +753,8 @@
                         const beforeFive = segment.substring(0, segment.indexOf(fiveDigitMatch[0]));
                         const chineseMatches = beforeFive.match(/[\u4e00-\u9fa5]+/g);
                         if (chineseMatches) chessNames.push(...chineseMatches);
-                        fiveDigitFound = true; break;
+                        fiveDigitFound = true;
+                        break;
                     } else {
                         const chinese = segment.match(/[\u4e00-\u9fa5]+/g);
                         if (chinese) chessNames.push(...chinese);
@@ -752,30 +763,32 @@
                 const convertedNames = chessNames.map(name => applyChessNameConversion(name));
                 const chessStr = convertedNames.length ? convertedNames.join('、') : '棋子';
 
+                // 提取奖励文本（5位数字之后到状态字段之前）
                 let rewardRaw = '';
                 if (fiveDigitFound) {
                     let fiveIdxInRaw = -1;
                     for (let i = chessStartIdx; i < parts.length; i++) if (/\b\d{5}\b/.test(parts[i])) { fiveIdxInRaw = i; break; }
                     if (fiveIdxInRaw !== -1) {
-                        const beforeReward = parts.slice(0, fiveIdxInRaw + 3).join('\t');
-                        const rewardStartPos = beforeReward.length + (fiveIdxInRaw > 0 ? 1 : 0);
                         const statusPos = rawText.indexOf(statusText);
-                        const rewardEndPos = (statusIdx !== -1) ? statusPos : rawText.lastIndexOf(finalTime);
+                        const rewardEndPos = statusIdx !== -1 ? statusPos : rawText.lastIndexOf(finalTime);
+                        const rewardStartPos = rawText.indexOf(parts[fiveIdxInRaw]) + parts[fiveIdxInRaw].length + 1;
                         if (rewardEndPos > rewardStartPos) rewardRaw = rawText.substring(rewardStartPos, rewardEndPos);
                     }
                 } else {
-                    const endPos = statusIdx !== -1 ? parts.slice(0, statusIdx).join('\t').length : rawText.lastIndexOf(finalTime);
+                    const endPos = statusIdx !== -1 ? rawText.indexOf(statusText) : rawText.lastIndexOf(finalTime);
                     rewardRaw = rawText.substring(0, endPos);
                 }
 
-                // 关键修复：移除所有时间戳，但保留换行以便分行解析
-                rewardRaw = rewardRaw.replace(/\t/g, ' ').replace(/\d{4}-\d{2}-\d{2}\s+\d{1,2}:\d{2}:\d{2}/g, '').trim();
+                // 清理奖励文本：移除所有时间戳，规范化空格
+                rewardRaw = rewardRaw.replace(/\t/g, ' ').replace(/\s+/g, ' ').trim();
+                rewardRaw = rewardRaw.replace(/\d{4}-\d{2}-\d{2}\s+\d{1,2}:\d{2}(:\d{2})?/g, '').trim();
                 rewardRaw = applyRewardConversion(rewardRaw);
 
-                // 现在按换行拆分行（因为日志中奖励物品每行一个）
+                // 解析奖励物品（按换行或按数字分隔）
                 const lines = rewardRaw.split(/\n/).map(l => l.trim()).filter(l => l.length > 0);
                 const rewardItems = [];
                 let pendingItem = null;
+
                 for (let line of lines) {
                     if (/^\d+$/.test(line)) continue;
                     const numMatch = line.match(/(?:[:：]\s*)?(\d+)\s*$/);
@@ -806,6 +819,7 @@
                 }
                 if (pendingItem) rewardItems.push(pendingItem);
 
+                // 最终格式化
                 let finalRewardItems = rewardItems.map(item => {
                     item = item.replace(/\s+/g, ' ').trim();
                     item = item.replace(/\s*:\s*/g, ':');
@@ -813,7 +827,6 @@
                 }).filter(item => item.length > 0);
                 finalRewardItems = [...new Set(finalRewardItems)];
 
-                // 最终用中文逗号连接
                 const rewardStr = finalRewardItems.length ? finalRewardItems.join('，') : '奖励';
                 const actionVerb = statusText === '完成' ? '完成订单' : (statusText === '删除' ? '删除订单' : '操作订单');
                 return [`在${finalTime.replace(/-/g, '/')}提交【${chessStr}】${actionVerb}，获得${rewardStr}`];
