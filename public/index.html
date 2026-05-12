@@ -642,7 +642,7 @@
                 return text.replace(/点击棋子/g, replacement);
             }
 
-            // 资源流水解析
+            // 资源流水解析（道具名称全部提取）
             function parseSmartLog(rawText) {
                 const lines = rawText.split(/\r?\n/).filter(l => l.trim());
                 const records = [];
@@ -654,8 +654,14 @@
                     const thirdCol = parts[2]?.trim();
                     const isFormatB = /^[+-]?\d+$/.test(thirdCol);
                     let changeRaw, beforeRaw, afterRaw, sourceRaw, itemName = '';
-                    if (isFormatB) { changeRaw = parts[2]; beforeRaw = parts[3]; afterRaw = parts[4]; sourceRaw = parts[5]; itemName = (parts.length >= 8 && parts[7]?.includes('棋子')) ? parts[7]?.trim() : ''; }
-                    else { changeRaw = parts[3]; beforeRaw = parts[4]; afterRaw = parts[5]; sourceRaw = parts[6]; itemName = (parts.length >= 9 && parts[8]?.includes('棋子')) ? parts[8]?.trim() : ''; }
+                    if (isFormatB) {
+                        changeRaw = parts[2]; beforeRaw = parts[3]; afterRaw = parts[4]; sourceRaw = parts[5];
+                        itemName = (parts.length >= 9 && parts[8]?.trim()) ? parts[8]?.trim() :
+                            (parts.length >= 8 && parts[7]?.trim()) ? parts[7]?.trim() : '';
+                    } else {
+                        itemName = parts[2]?.trim();
+                        changeRaw = parts[3]; beforeRaw = parts[4]; afterRaw = parts[5]; sourceRaw = parts[6];
+                    }
                     const change = parseInt(changeRaw, 10); if (isNaN(change)) continue;
                     let before = parseFloat(beforeRaw) || 0, after = parseFloat(afterRaw) || 0;
                     sourceRaw = (sourceRaw || '').trim().replace(/^["']|["']$/g, '');
@@ -686,11 +692,9 @@
                 if (!change || !action) return null;
                 const abs = Math.abs(change);
 
-                // 活动道具的特殊话术
                 if (isActivityItem(itemName, source, type))
                     return `在${time}，${action}了${abs}个${itemName || '活动道具'}`;
 
-                // 道具类话术（当道具名包含“积分”或“券”时，显示前后变化）
                 if (type === '道具' && itemName) {
                     if (itemName.includes('积分') || itemName.includes('券')) {
                         return source
@@ -700,7 +704,6 @@
                     return `在${time}，${action}了${abs}个${itemName}`;
                 }
 
-                // 资源类话术（体力/红钻/金币等）
                 let sentence = showChange
                     ? (source ? `在${time}，通过【${source}】${action}${abs}点${type}，从${before}变为${after}`
                         : `在${time}，${action}${abs}点${type}，从${before}变为${after}`)
@@ -709,29 +712,21 @@
                 return applyResourceClickReplace(sentence, type);
             }
 
-            // 订单日志解析
+            // 订单日志解析（修复版：奖励逗号分隔、棋子名称转换）
             function parseOrderLog(rawText) {
-                // 先将文本中的制表符保留，但移除内部的换行，使每条订单保持在一行
                 const cleanText = rawText.replace(/\r\n/g, '\n').replace(/\n/g, ' ').replace(/\t/g, '\t');
                 const parts = cleanText.split('\t').map(p => p.trim());
-                if (parts.length < 8) {
-                    debugConsole.innerHTML += '\n❌ 订单日志字段不足';
-                    return [];
-                }
+                if (parts.length < 8) { debugConsole.innerHTML += '\n❌ 订单日志字段不足'; return []; }
 
                 const firstTime = extractTime(rawText) || '';
                 const orderType = parts[3] || '未知订单';
-                if (rawText.toLowerCase().includes('过期')) {
-                    return [`${orderType}已在${firstTime}过期`];
-                }
+                if (rawText.toLowerCase().includes('过期')) return [`${orderType}已在${firstTime}过期`];
 
-                // 查找状态（完成/删除/创建）及其时间
                 let statusIdx = -1, statusText = '', finalTime = '';
                 const statusKeywords = ['完成', '删除', '创建'];
                 for (let i = 0; i < parts.length; i++) {
                     if (statusKeywords.includes(parts[i])) {
-                        statusIdx = i;
-                        statusText = parts[i];
+                        statusIdx = i; statusText = parts[i];
                         if (i + 1 < parts.length) finalTime = parts[i + 1];
                         break;
                     }
@@ -742,7 +737,6 @@
                     statusText = '操作';
                 }
 
-                // 提取棋子名称（从第五/六列开始，直到遇到一个5位数字）
                 let chessStartIdx = 5;
                 if (parts[chessStartIdx] === '是') chessStartIdx = 6;
                 let chessNames = [], fiveDigitFound = false;
@@ -763,7 +757,6 @@
                 const convertedNames = chessNames.map(name => applyChessNameConversion(name));
                 const chessStr = convertedNames.length ? convertedNames.join('、') : '棋子';
 
-                // 提取奖励文本（5位数字之后到状态字段之前）
                 let rewardRaw = '';
                 if (fiveDigitFound) {
                     let fiveIdxInRaw = -1;
@@ -779,16 +772,13 @@
                     rewardRaw = rawText.substring(0, endPos);
                 }
 
-                // 清理奖励文本：移除所有时间戳，规范化空格
                 rewardRaw = rewardRaw.replace(/\t/g, ' ').replace(/\s+/g, ' ').trim();
                 rewardRaw = rewardRaw.replace(/\d{4}-\d{2}-\d{2}\s+\d{1,2}:\d{2}(:\d{2})?/g, '').trim();
                 rewardRaw = applyRewardConversion(rewardRaw);
 
-                // 解析奖励物品（按换行或按数字分隔）
                 const lines = rewardRaw.split(/\n/).map(l => l.trim()).filter(l => l.length > 0);
                 const rewardItems = [];
                 let pendingItem = null;
-
                 for (let line of lines) {
                     if (/^\d+$/.test(line)) continue;
                     const numMatch = line.match(/(?:[:：]\s*)?(\d+)\s*$/);
@@ -819,7 +809,6 @@
                 }
                 if (pendingItem) rewardItems.push(pendingItem);
 
-                // 最终格式化
                 let finalRewardItems = rewardItems.map(item => {
                     item = item.replace(/\s+/g, ' ').trim();
                     item = item.replace(/\s*:\s*/g, ':');
@@ -829,17 +818,17 @@
 
                 const rewardStr = finalRewardItems.length ? finalRewardItems.join('，') : '奖励';
                 const actionVerb = statusText === '完成' ? '完成订单' : (statusText === '删除' ? '删除订单' : '操作订单');
-                return [`在${finalTime.replace(/-/g, '/')}提交【${chessStr}】${actionVerb}，获得${rewardStr}，`];
+                return [`在${finalTime.replace(/-/g, '/')}提交【${chessStr}】${actionVerb}，获得${rewardStr}`];
             }
 
-            // 棋子流水解析（增强版）
+            // 棋子流水解析（增强版，修复多行数据）
             function parseChessLog(raw) {
-                const lines = raw.split(/\r?\n/).filter(l => l.trim());
+                const lines = raw.split(/\r?\n/);
                 const events = []; let cur = null;
                 const tsRgx = /^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}/;
                 for (let l of lines) {
                     if (!l.trim()) continue;
-                    if (tsRgx.test(l)) { if (cur) events.push(cur); cur = l; }
+                    if (tsRgx.test(l) && l.includes('\t')) { if (cur) events.push(cur); cur = l; }
                     else if (cur) cur += '\n' + l;
                 }
                 if (cur) events.push(cur);
@@ -860,7 +849,8 @@
                             if (lm) { level = parseInt(lm[1], 10); if (isNaN(level)) level = 0; }
                         } else name = chessRaw;
 
-                        const change = parseInt(parts[3] || '0', 10) || 0;
+                        const changeRaw = (parts[3] || '').split('\n')[0].trim();
+                        const change = parseInt(changeRaw, 10) || 0;
                         let cmd = '';
                         for (let i = 6; i < parts.length; i++) {
                             const p = parts[i].trim();
@@ -883,8 +873,7 @@
                         else if (cmd.includes('使用消耗棋子')) desc = `消耗${Math.abs(change)}个${level ? level + '级' : ''}${name}`;
                         else if (cmd.includes('删除')) desc = `删除了${Math.abs(change)}个${level ? level + '级' : ''}${name}`;
                         else if (change !== 0) desc = change > 0 ? `获得${Math.abs(change)}个${level ? level + '级' : ''}${name}` : `消耗${Math.abs(change)}个${level ? level + '级' : ''}${name}`;
-                        else throw new Error('无法识别命令');
-
+                        else desc = `操作了${level ? level + '级' : ''}${name}`;
                         return { finalDesc: `在${time} ${desc}`, time };
                     } catch (e) { return { error: e.message }; }
                 });
@@ -934,7 +923,6 @@
                 if (!records.length) { debugConsole.innerHTML += '\n❌ 无记录'; return; }
                 debugConsole.innerHTML += `\n📌 原始记录数: ${records.length}`;
 
-                // 道具关键词筛选
                 if (resourceType === '道具' && itemKeywordRaw) {
                     const keywords = itemKeywordRaw.split(',').map(k => k.trim().toLowerCase()).filter(k => k);
                     debugConsole.innerHTML += `\n🔍 应用道具关键词: ${keywords.join(', ')}`;
@@ -944,7 +932,6 @@
                     });
                     debugConsole.innerHTML += `\n📌 道具筛选后: ${records.length} 条`;
                 }
-                // 来源关键词筛选
                 if (includeSourcesRaw) {
                     const keywords = includeSourcesRaw.split(',').map(k => k.trim().toLowerCase()).filter(k => k);
                     debugConsole.innerHTML += `\n🔍 应用来源关键词: ${keywords.join(', ')}`;
@@ -1097,7 +1084,6 @@
                 const includeSourcesRaw = document.getElementById('includeSourcesInput').value.trim();
                 let filtered = records;
 
-                // 道具关键词筛选
                 if (selectedType === '道具' && itemKeywordRaw) {
                     const keywords = itemKeywordRaw.split(',').map(k => k.trim().toLowerCase()).filter(k => k);
                     filtered = filtered.filter(r => {
@@ -1105,7 +1091,6 @@
                         return keywords.some(k => itemName.includes(k));
                     });
                 }
-                // 来源关键词筛选
                 if (includeSourcesRaw) {
                     const keywords = includeSourcesRaw.split(',').map(k => k.trim().toLowerCase()).filter(k => k);
                     filtered = filtered.filter(r => {
@@ -1129,7 +1114,7 @@
                 }
             }
 
-            // 集卡功能
+            // ==================== 集卡功能 ====================
             let currentCardRecords = [];
             function parseCSVEnhanced(csvText) {
                 const lines = csvText.split(/\r?\n/).filter(l => l.trim());
@@ -1137,7 +1122,8 @@
                 let delim = lines[0].includes('\t') ? '\t' : (lines[0].includes(';') ? ';' : ',');
                 let headers = lines[0].split(delim).map(h => h.trim().replace(/^"|"$/g, ''));
                 const colMap = { '卡包ID': ['卡包ID', 'pack_id'], '卡包星级': ['卡包星级', 'stars'], 'after': ['after'], '创建时间': ['创建时间', 'time'] };
-                const idx = {}; for (let [k, arr] of Object.entries(colMap)) for (let n of arr) { let i = headers.findIndex(h => h === n); if (i !== -1) { idx[k] = i; break; } }
+                const idx = {};
+                for (let [k, arr] of Object.entries(colMap)) for (let n of arr) { let i = headers.findIndex(h => h === n); if (i !== -1) { idx[k] = i; break; } }
                 const records = [];
                 for (let i = 1; i < lines.length; i++) {
                     let line = lines[i]; const vals = [];
@@ -1167,7 +1153,7 @@
                 document.getElementById('recordCount').textContent = sentences.length;
             }
 
-            // 话术库
+            // ==================== 话术库 ====================
             function refreshScriptList() { const lb = document.getElementById('scriptListbox'); lb.innerHTML = ''; scripts.forEach((s, i) => { const o = document.createElement('option'); o.textContent = s.text.substring(0, 70) + (s.tags.length ? ' [' + s.tags.join(',') + ']' : ''); o.value = i; lb.appendChild(o); }); }
             function getAllTags() { const set = new Set(); scripts.forEach(s => s.tags.forEach(t => set.add(t))); return Array.from(set); }
             function renderTagFilter() { const sel = document.getElementById('tagFilterSelect'); const cur = sel.value; sel.innerHTML = '<option value="all">所有标签</option><option value="no_tag">无标签</option>'; getAllTags().forEach(t => { const o = document.createElement('option'); o.value = t; o.textContent = t; sel.appendChild(o); }); if ([...sel.options].some(o => o.value === cur)) sel.value = cur; }
@@ -1180,7 +1166,7 @@
             function renderAllTagsList() { const c = document.getElementById('allTagsList'); const tags = getAllTags(); c.innerHTML = tags.map(t => `<div class="rule-item"><span class="rule-pattern">${t}</span><div class="rule-actions"><button data-tag="${t}" class="rename-tag-btn">✏️</button><button data-tag="${t}" class="delete-tag-btn" style="background:#dc3545;">🗑️</button></div></div>`).join('') || '<div>暂无标签</div>'; c.querySelectorAll('.delete-tag-btn').forEach(b => b.onclick = e => { const tag = e.target.dataset.tag; scripts.forEach(s => s.tags = s.tags.filter(t => t !== tag)); saveData('scripts', scripts); renderAllTagsList(); renderTagFilter(); refreshScriptList(); }); }
             function renderTemplateList() { const c = document.getElementById('templateList'); c.innerHTML = templates.map((t, i) => `<div class="rule-item"><span>${t.substring(0, 50)}</span><div class="rule-actions"><button data-i="${i}" class="edit-template-btn">✏️</button><button data-i="${i}" class="delete-template-btn" style="background:#dc3545;">🗑️</button></div></div>`).join(''); c.querySelectorAll('.delete-template-btn').forEach(b => b.onclick = e => { templates.splice(e.target.dataset.i, 1); saveData('templates', templates); renderTemplateList(); refreshTemplateSelect(); }); }
 
-            // 规则管理
+            // ==================== 规则管理 ====================
             let editingSourceIndex = -1;
             function renderSourceRuleList(filterType = 'all', searchTerm = '') {
                 const c = document.getElementById('sourceRuleListContainer');
@@ -1196,12 +1182,12 @@
                     const replacement = getRuleReplacement(r) || '(删除)';
                     const typeLabel = r.type === 'source' ? '来源' : (r.type === 'reward' ? '奖励' : '棋子');
                     return `<div class="rule-item" data-idx="${idx}">
-                    <span class="rule-pattern">${pattern}</span><span class="rule-type">[${typeLabel}]</span>
-                    <span>→</span><span class="rule-replacement">${replacement}</span>
-                    <div class="rule-actions">
-                        <button class="edit-source-btn" data-idx="${idx}">✏️</button>
-                        <button class="delete-source-btn" data-idx="${idx}" style="background:#dc3545;">🗑️</button>
-                    </div> </div>`;
+                        <span class="rule-pattern">${pattern}</span><span class="rule-type">[${typeLabel}]</span>
+                        <span>→</span><span class="rule-replacement">${replacement}</span>
+                        <div class="rule-actions">
+                            <button class="edit-source-btn" data-idx="${idx}">✏️</button>
+                            <button class="delete-source-btn" data-idx="${idx}" style="background:#dc3545;">🗑️</button>
+                        </div> </div>`;
                 }).join('') || '<div>暂无规则</div>';
                 c.querySelectorAll('.delete-source-btn').forEach(b => b.onclick = e => { const idx = parseInt(b.dataset.idx); sourceRules.splice(idx, 1); saveData('sourceRules', sourceRules); renderSourceRuleList(filterType, searchTerm); });
                 c.querySelectorAll('.edit-source-btn').forEach(b => b.onclick = e => {
@@ -1347,3 +1333,5 @@
             debugConsole.innerHTML = '🟢 工作台就绪 · 完整功能正常';
         })();
     </script>
+</body>
+</html>
