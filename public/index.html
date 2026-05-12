@@ -688,8 +688,7 @@
 
             // 订单解析
             function parseOrderLog(rawText) {
-                // 保留原始换行（不在此处合并为一行）
-                let text = rawText.replace(/\r\n/g, '\n');
+                let text = rawText.replace(/\r\n/g, '\n').replace(/\n/g, ' ');
                 const parts = text.split('\t').map(p => p.trim());
                 if (parts.length < 8) { debugConsole.innerHTML += '\n❌ 订单日志字段不足'; return []; }
                 const fullText = rawText.toLowerCase();
@@ -727,9 +726,7 @@
                         if (chinese) chessNames.push(...chinese);
                     }
                 }
-                // 应用棋子名称转换并连接
-                const convertedNames = chessNames.map(name => applyChessNameConversion(name));
-                const chessStr = convertedNames.length ? [...new Set(convertedNames)].join('、') : '棋子';
+                const chessStr = chessNames.length ? chessNames.join('、') : '棋子';
 
                 let rewardRaw = '';
                 if (fiveDigitFound) {
@@ -747,11 +744,11 @@
                     rewardRaw = rawText.substring(0, endPos);
                 }
 
-                // 关键修复：移除时间戳和多余空格，但保留换行符
+                // 关键修复：移除所有时间戳，但保留换行以便分行解析
                 rewardRaw = rewardRaw.replace(/\t/g, ' ').replace(/\d{4}-\d{2}-\d{2}\s+\d{1,2}:\d{2}:\d{2}/g, '').trim();
                 rewardRaw = applyRewardConversion(rewardRaw);
 
-                // 按原始换行拆分成物品行
+                // 现在按换行拆分行（因为日志中奖励物品每行一个）
                 const lines = rewardRaw.split(/\n/).map(l => l.trim()).filter(l => l.length > 0);
                 const rewardItems = [];
                 let pendingItem = null;
@@ -785,9 +782,17 @@
                 }
                 if (pendingItem) rewardItems.push(pendingItem);
 
-                // 去重并用中文逗号分隔
+                let finalRewardItems = rewardItems.map(item => {
+                    item = item.replace(/\s+/g, ' ').trim();
+                    item = item.replace(/\s*:\s*/g, ':');
+                    return item;
+                }).filter(item => item.length > 0);
+                finalRewardItems = [...new Set(finalRewardItems)];
+
+                // 最终用中文逗号连接
                 const rewardStr = rewardItems.length ? [...new Set(rewardItems)].join('，') : '奖励';
 
+                debugConsole.innerHTML += `\n棋子: ${chessStr}, 奖励: ${rewardStr}`;
                 const actionVerb = statusText === '完成' ? '完成订单' : (statusText === '删除' ? '删除订单' : '操作订单');
                 return [`在${finalTime.replace(/-/g, '/')}提交【${chessStr}】${actionVerb}，获得${rewardStr}`];
             }
