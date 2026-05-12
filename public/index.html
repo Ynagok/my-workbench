@@ -652,43 +652,6 @@
                 return records;
             }
 
-            function getChangeAndAction(rec) {
-                let before = parseFloat(rec['之前']) || 0, after = parseFloat(rec['之后']) || 0, change = after - before;
-                if (change === 0) change = parseFloat(rec['数量']) || 0;
-                const action = change > 0 ? '获得' : (change < 0 ? '消耗' : '');
-                return { change, action, before, after };
-            }
-
-            function isActivityItem(itemName, source, resourceType) {
-                if (resourceType !== '道具') return false;
-                return ['活动道具', '活动'].some(kw => (itemName + ' ' + source).toLowerCase().includes(kw.toLowerCase()));
-            }
-
-            function generateFlowSentence(rec, type, showChange = true) {
-                const time = (rec['时间'] || '').replace(/-/g, '/');
-                const source = rec['来源'] || '';
-                const itemName = rec['道具名称'] || '';
-                const { change, action, before, after } = getChangeAndAction(rec);
-                if (!change || !action) return null;
-                const abs = Math.abs(change);
-                if (isActivityItem(itemName, source, type))
-                    return `在${time}，${action}了${abs}个${itemName || '活动道具'}`;
-                if (type === '道具' && itemName) {
-                    if (itemName.includes('积分') || itemName.includes('券')) {
-                        return source
-                            ? `在${time}，通过【${source}】${action}${abs}个${itemName}，从${before}变为${after}`
-                            : `在${time}，${action}${abs}个${itemName}，从${before}变为${after}`;
-                    }
-                    return `在${time}，${action}了${abs}个${itemName}`;
-                }
-                let sentence = showChange
-                    ? (source ? `在${time}，通过【${source}】${action}${abs}点${type}，从${before}变为${after}`
-                        : `在${time}，${action}${abs}点${type}，从${before}变为${after}`)
-                    : (source ? `在${time}，通过【${source}】${action}${abs}点${type}`
-                        : `在${time}，${action}${abs}点${type}`);
-                return applyResourceClickReplace(sentence, type);
-            }
-
             // 订单解析
             function parseOrderLog(rawText) {
                 // ★ 关键修复：只转换换行格式，不合并为一行
@@ -906,7 +869,7 @@
                 }
 
                 if (records.length === 0) { debugConsole.innerHTML += '\n⚠️ 筛选后无话术'; return; }
-                let sentences = records.map(r => generateFlowSentence(r, resourceType, false)).filter(s => s);
+                let sentences = records.map(r => generateFlowSentence(r, resourceType, true)).filter(s => s);
                 if (sentences.length === 0) { debugConsole.innerHTML += '\n⚠️ 无有效话术'; return; }
                 globalResultArea.value = sentences.join('\n\n');
                 globalResultCount.textContent = `${sentences.length} 条`;
