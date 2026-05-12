@@ -696,7 +696,7 @@
                 let rewardItems = [];
                 let statusFound = false;
 
-                // 1. 从第一行提取棋子名称（制表符分隔，跳过用户类型）
+                // 1. 从第一行提取棋子名称
                 if (lines.length > 0) {
                     const firstLineParts = lines[0].split('\t');
                     for (let i = 4; i < firstLineParts.length; i++) {
