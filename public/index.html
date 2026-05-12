@@ -829,7 +829,7 @@
 
                 const rewardStr = finalRewardItems.length ? finalRewardItems.join('，') : '奖励';
                 const actionVerb = statusText === '完成' ? '完成订单' : (statusText === '删除' ? '删除订单' : '操作订单');
-                return [`在${finalTime.replace(/-/g, '/')}提交【${chessStr}】${actionVerb}，获得${rewardStr}`];
+                return [`在${finalTime.replace(/-/g, '/')}提交【${chessStr}】${actionVerb}，获得${rewardStr}，`];
             }
 
             // 棋子流水解析（增强版）
