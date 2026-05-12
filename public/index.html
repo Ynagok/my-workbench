@@ -694,55 +694,52 @@
                 let finalTime = '', statusText = '操作';
                 let chessNames = [];
                 let rewardItems = [];
-                let isAfterNum = false; // 是否已越过数字编号行
+                let isAfterNum = false;
                 let statusFound = false;
 
-                for (let i = 0; i < lines.length; i++) {
+                // 从第一行提取棋子名称（制表符分隔）
+                if (lines.length > 0) {
+                    const firstLineParts = lines[0].split('\t');
+                    for (let i = 4; i < firstLineParts.length; i++) {
+                        const word = firstLineParts[i].trim();
+                        // 纯中文且不是用户类型（书生、文士等）
+                        if (word && /^[\u4e00-\u9fa5]+$/.test(word) && !['书生', '文士', '招财'].includes(word)) {
+                            chessNames.push(word);
+                            break; // 只取第一个实际棋子名
+                        }
+                    }
+                }
+
+                // 遍历剩余行，提取奖励和时间
+                for (let i = 1; i < lines.length; i++) {
                     const line = lines[i].trim();
 
-                    // 检查是否为状态行（完成/删除）
                     if (line.includes('完成') || line.includes('删除')) {
                         statusText = line.includes('完成') ? '完成' : '删除';
                         const timeMatches = line.match(/(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})/g);
                         if (timeMatches) finalTime = timeMatches[timeMatches.length - 1];
                         statusFound = true;
-                        continue; // 状态行之后不再有奖励
+                        continue;
                     }
 
-                    // 如果没有找到状态，则最后提取的时间作为完成时间
                     if (!statusFound) {
                         const t = line.match(/(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})/);
                         if (t) finalTime = t[0];
                     }
 
-                    // 跳过空行
-                    if (!line) continue;
-
-                    // 识别数字编号行（如 20103），它标志着奖励部分开始
-                    if (/^\d{5,}/.test(line)) {
+                    // 5位数字编号行之后开始记录奖励
+                    if (/^\d{4,}/.test(line)) {
                         isAfterNum = true;
                         continue;
                     }
 
-                    // 在数字行之前，提取棋子名称（中文词）
-                    if (!isAfterNum && !statusFound) {
-                        const chineseMatches = line.match(/[\u4e00-\u9fa5]+/g);
-                        if (chineseMatches) {
-                            // 过滤掉一些常见非棋子词
-                            chessNames.push(...chineseMatches.filter(w => !['书生', '文士', '招财', '完成', '删除'].includes(w)));
-                        }
-                    }
-
-                    // 在数字行之后，状态行之前，提取奖励物品
                     if (isAfterNum && !statusFound) {
-                        // 匹配“名称:数量”或“名称 (备注) :数量”
                         const rewardMatch = line.match(/^(.+?)\s*[:：]\s*(\d+)$/);
                         if (rewardMatch) {
                             const item = rewardMatch[1].trim();
                             const count = rewardMatch[2];
                             rewardItems.push(`${item}:${count}`);
                         } else {
-                            // 如果没有数量，尝试整行作为物品名（可能跨行）
                             const maybeItem = line.trim();
                             if (maybeItem && !/^\d+$/.test(maybeItem)) {
                                 rewardItems.push(maybeItem);
@@ -751,13 +748,12 @@
                     }
                 }
 
-                // 如果没有找到任何完成时间，使用整个文本中最后出现的时间
                 if (!finalTime) {
                     const allTimes = rawText.match(/\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}/g);
                     if (allTimes) finalTime = allTimes[allTimes.length - 1];
                 }
 
-                // 应用棋子名称转换
+                // 应用棋子名称转换规则
                 const convertedNames = chessNames.map(name => applyChessNameConversion(name));
                 const chessStr = convertedNames.length ? [...new Set(convertedNames)].join('、') : '棋子';
                 const rewardStr = rewardItems.length ? [...new Set(rewardItems)].join('，') : '奖励';
