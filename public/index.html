@@ -688,71 +688,108 @@
 
             // 订单解析
             function parseOrderLog(rawText) {
-                const lines = rawText.split(/\r?\n/).filter(l => l.trim());
-                debugConsole.innerHTML = `📦 订单总行数: ${lines.length}`;
+                let text = rawText.replace(/\r\n/g, '\n').replace(/\n/g, ' ');
+                const parts = text.split('\t').map(p => p.trim());
+                if (parts.length < 8) { debugConsole.innerHTML += '\n❌ 订单日志字段不足'; return []; }
+                const fullText = rawText.toLowerCase();
+                const orderType = parts[3] || '未知订单';
+                const firstTime = extractTime(rawText) || '';
+                if (fullText.includes('过期')) return [`${orderType}已在${firstTime}过期`];
 
-                let finalTime = '', statusText = '操作';
-                let chessNames = [];
-                let rewardItems = [];
-                let statusFound = false;
-
-                // 1. 从第一行提取棋子名称（制表符分隔，跳过用户类型）
-                if (lines.length > 0) {
-                    const firstLineParts = lines[0].split('\t');
-                    for (let col = 4; col < firstLineParts.length; col++) {
-                        const word = firstLineParts[col].trim();
-                        if (word && /^[\u4e00-\u9fa5]+$/.test(word) && !['书生', '文士', '招财'].includes(word)) {
-                            chessNames.push(word);
-                            break;
-                        }
+                let statusIdx = -1, statusText = '', finalTime = '';
+                for (let i = 0; i < parts.length; i++) {
+                    if (['完成', '删除', '创建'].includes(parts[i])) {
+                        statusIdx = i; statusText = parts[i];
+                        if (i + 1 < parts.length) finalTime = parts[i + 1];
+                        break;
                     }
                 }
+                if (statusIdx === -1 || !finalTime) {
+                    const timeMatches = rawText.match(/(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})/g);
+                    if (timeMatches) finalTime = timeMatches[timeMatches.length - 1];
+                    statusText = '操作';
+                }
 
-                // 2. 遍历剩余行，提取时间和奖励
-                for (let i = 1; i < lines.length; i++) {
-                    const line = lines[i].trim();
-
-                    // 状态行判断（完成/删除）
-                    if (line.includes('完成') || line.includes('删除')) {
-                        statusText = line.includes('完成') ? '完成' : '删除';
-                        const timeMatches = line.match(/(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})/g);
-                        if (timeMatches) finalTime = timeMatches[timeMatches.length - 1];
-                        statusFound = true;
-                        continue;
+                let chessStartIdx = 5;
+                if (parts[chessStartIdx] === '是') chessStartIdx = 6;
+                let chessNames = [], fiveDigitFound = false;
+                for (let i = chessStartIdx; i < parts.length; i++) {
+                    const segment = parts[i];
+                    const fiveDigitMatch = segment.match(/\b\d{5}\b/);
+                    if (fiveDigitMatch) {
+                        const beforeFive = segment.substring(0, segment.indexOf(fiveDigitMatch[0]));
+                        const chineseMatches = beforeFive.match(/[\u4e00-\u9fa5]+/g);
+                        if (chineseMatches) chessNames.push(...chineseMatches);
+                        fiveDigitFound = true; break;
+                    } else {
+                        const chinese = segment.match(/[\u4e00-\u9fa5]+/g);
+                        if (chinese) chessNames.push(...chinese);
                     }
+                }
+                const chessStr = chessNames.length ? chessNames.join('、') : '棋子';
 
-                    // 持续更新最近的时间
-                    if (!statusFound) {
-                        const t = line.match(/(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})/);
-                        if (t) finalTime = t[0];
+                let rewardRaw = '';
+                if (fiveDigitFound) {
+                    let fiveIdxInRaw = -1;
+                    for (let i = chessStartIdx; i < parts.length; i++) if (/\b\d{5}\b/.test(parts[i])) { fiveIdxInRaw = i; break; }
+                    if (fiveIdxInRaw !== -1) {
+                        const beforeReward = parts.slice(0, fiveIdxInRaw + 3).join('\t');
+                        const rewardStartPos = beforeReward.length + (fiveIdxInRaw > 0 ? 1 : 0);
+                        const statusPos = rawText.indexOf(statusText);
+                        const rewardEndPos = (statusIdx !== -1) ? statusPos : rawText.lastIndexOf(finalTime);
+                        if (rewardEndPos > rewardStartPos) rewardRaw = rawText.substring(rewardStartPos, rewardEndPos);
                     }
+                } else {
+                    const endPos = statusIdx !== -1 ? parts.slice(0, statusIdx).join('\t').length : rawText.lastIndexOf(finalTime);
+                    rewardRaw = rawText.substring(0, endPos);
+                }
 
-                    // 奖励行：在状态行之前，只要不是纯时间行或纯数字编号，均视为奖励
-                    if (!statusFound && line && !/^\d{4}-\d{2}-\d{2}/.test(line) && !/^\d{4,}$/.test(line)) {
-                        const rewardMatch = line.match(/^(.+?)\s*[:：]\s*(\d+)$/);
-                        if (rewardMatch) {
-                            const item = rewardMatch[1].trim();
-                            const count = rewardMatch[2];
-                            rewardItems.push(`${item}:${count}`);
-                        } else {
-                            if (!/^\d+$/.test(line)) {
-                                rewardItems.push(line);
+                // 关键修复：移除所有时间戳，但保留换行以便分行解析
+                rewardRaw = rewardRaw.replace(/\t/g, ' ').replace(/\d{4}-\d{2}-\d{2}\s+\d{1,2}:\d{2}:\d{2}/g, '').trim();
+                rewardRaw = applyRewardConversion(rewardRaw);
+
+                // 现在按换行拆分行（因为日志中奖励物品每行一个）
+                const lines = rewardRaw.split(/\n/).map(l => l.trim()).filter(l => l.length > 0);
+                const rewardItems = [];
+                let pendingItem = null;
+                for (let line of lines) {
+                    if (/^\d+$/.test(line)) continue;
+                    const numMatch = line.match(/(?:[:：]\s*)?(\d+)\s*$/);
+                    let itemDesc = line;
+                    let count = null;
+                    if (numMatch) {
+                        count = numMatch[1];
+                        itemDesc = line.substring(0, numMatch.index).trim();
+                        itemDesc = itemDesc.replace(/[:：]\s*$/, '').trim();
+                    }
+                    if (itemDesc) {
+                        if (pendingItem) {
+                            if (count !== null) {
+                                rewardItems.push(`${pendingItem} ${itemDesc}:${count}`.replace(/\s+/g, ' ').trim());
+                                pendingItem = null;
+                            } else {
+                                rewardItems.push(pendingItem);
+                                pendingItem = itemDesc;
                             }
+                        } else {
+                            if (count !== null) rewardItems.push(`${itemDesc}:${count}`);
+                            else pendingItem = itemDesc;
                         }
+                    } else if (count !== null && pendingItem) {
+                        rewardItems.push(`${pendingItem}:${count}`);
+                        pendingItem = null;
                     }
                 }
+                if (pendingItem) rewardItems.push(pendingItem);
 
-                // 3. 最终时间兜底
-                if (!finalTime) {
-                    const allTimes = rawText.match(/\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}/g);
-                    if (allTimes) finalTime = allTimes[allTimes.length - 1];
-                }
+                let finalRewardItems = rewardItems.map(item => {
+                    item = item.replace(/\s+/g, ' ').trim();
+                    item = item.replace(/\s*:\s*/g, ':');
+                    return item;
+                }).filter(item => item.length > 0);
+                finalRewardItems = [...new Set(finalRewardItems)];
 
-                // 4. 棋子名称转换并去重
-                const convertedNames = chessNames.map(name => applyChessNameConversion(name));
-                const chessStr = convertedNames.length ? [...new Set(convertedNames)].join('、') : '棋子';
-
-                // 5. 奖励去重后用逗号连接
+                // 最终用中文逗号连接
                 const rewardStr = rewardItems.length ? [...new Set(rewardItems)].join('，') : '奖励';
 
                 debugConsole.innerHTML += `\n棋子: ${chessStr}, 奖励: ${rewardStr}`;
