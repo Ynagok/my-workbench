@@ -688,101 +688,91 @@
 
             // ★★★ 重写的订单解析，专门适配多行日志 ★★★
             function parseOrderLog(rawText) {
-                // 保留制表符，移除内部的换行，使每条订单合并为一行
-                const singleLine = rawText.replace(/\r\n/g, ' ').replace(/\n/g, ' ');
-                const parts = singleLine.split('\t').map(p => p.trim());
-                debugConsole.innerHTML = `📦 订单字段数量: ${parts.length}`;
-                if (parts.length < 8) {
-                    debugConsole.innerHTML += '\n❌ 订单日志字段不足';
-                    return [];
-                }
+                const lines = rawText.split(/\r?\n/).filter(l => l.trim());
+                debugConsole.innerHTML = `📦 订单总行数: ${lines.length}`;
 
-                const firstTime = extractTime(rawText) || '';
-                const orderType = parts[3] || '未知订单';
-                if (rawText.toLowerCase().includes('过期')) {
-                    return [`${orderType}已在${firstTime}过期`];
-                }
-
-                let statusIdx = -1, statusText = '', finalTime = '';
-                for (let i = 0; i < parts.length; i++) {
-                    if (['完成', '删除', '创建'].includes(parts[i])) {
-                        statusIdx = i; statusText = parts[i];
-                        if (i + 1 < parts.length) finalTime = parts[i + 1];
+                // 查找状态行（“完成”或“删除”所在的行）
+                let statusLineIdx = -1, statusText = '', finalTime = '';
+                for (let i = 0; i < lines.length; i++) {
+                    const line = lines[i];
+                    if (line.includes('完成') || line.includes('删除')) {
+                        statusLineIdx = i;
+                        // 提取状态和时间：例如 "2026-05-12 02:01:22	完成	2026-05-12 13:53:21"
+                        const parts = line.split('\t');
+                        statusText = parts.find(p => p === '完成' || p === '删除') || '';
+                        // 最终时间取该行最后一个时间戳
+                        const timeMatches = line.match(/(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})/g);
+                        if (timeMatches) finalTime = timeMatches[timeMatches.length - 1];
                         break;
                     }
                 }
-                if (statusIdx === -1 || !finalTime) {
-                    const timeMatches = rawText.match(/(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})/g);
-                    if (timeMatches) finalTime = timeMatches[timeMatches.length - 1];
+
+                if (!finalTime) {
+                    // 没找到最终时间，尝试从整个文本中提取最后出现的时间
+                    const allTimes = rawText.match(/\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}/g);
+                    if (allTimes) finalTime = allTimes[allTimes.length - 1];
                     statusText = '操作';
                 }
 
-                let chessStartIdx = 5;
-                if (parts[chessStartIdx] === '是') chessStartIdx = 6;
-                let chessNames = [], fiveDigitFound = false;
-                for (let i = chessStartIdx; i < parts.length; i++) {
-                    const segment = parts[i];
-                    const fiveDigitMatch = segment.match(/\b\d{5}\b/);
-                    if (fiveDigitMatch) {
-                        const beforeFive = segment.substring(0, segment.indexOf(fiveDigitMatch[0]));
-                        const chineseMatches = beforeFive.match(/[\u4e00-\u9fa5]+/g);
-                        if (chineseMatches) chessNames.push(...chineseMatches);
-                        fiveDigitFound = true;
-                        break;
-                    } else {
-                        const chinese = segment.match(/[\u4e00-\u9fa5]+/g);
-                        if (chinese) chessNames.push(...chinese);
+                // 提取棋子名称：从包含订单名称的那一行之后，到第一个5位数字之前的中文字段
+                let chessNames = [];
+                let foundFiveDigit = false;
+                for (let i = 0; i < lines.length; i++) {
+                    const line = lines[i];
+                    if (foundFiveDigit) break;
+                    // 跳过开头的时间等信息，寻找棋子名称（通常在订单号之后）
+                    if (line.includes('订单') || i > 0) {
+                        const chineseMatches = line.match(/[\u4e00-\u9fa5]+/g);
+                        if (chineseMatches) {
+                            // 排除一些非棋子名称的中文（如“书生”、“完成”等），但无需特别处理
+                            chessNames.push(...chineseMatches.filter(w => !['完成', '删除', '书生', '文士', '招财'].includes(w)));
+                        }
+                    }
+                    // 检测是否出现5位数字（如 20103），表示奖励部分开始
+                    if (/\b\d{5}\b/.test(line)) {
+                        foundFiveDigit = true;
                     }
                 }
-                const convertedNames = chessNames.map(name => applyChessNameConversion(name));
+                // 去重并应用转换
+                const convertedNames = [...new Set(chessNames)].map(name => applyChessNameConversion(name));
                 const chessStr = convertedNames.length ? convertedNames.join('、') : '棋子';
 
-                let rewardRaw = '';
-                if (fiveDigitFound) {
-                    let fiveIdxInRaw = -1;
-                    for (let i = chessStartIdx; i < parts.length; i++) if (/\b\d{5}\b/.test(parts[i])) { fiveIdxInRaw = i; break; }
-                    if (fiveIdxInRaw !== -1) {
-                        const statusPos = rawText.indexOf(statusText);
-                        const rewardEndPos = statusIdx !== -1 ? statusPos : rawText.lastIndexOf(finalTime);
-                        const rewardStartPos = rawText.indexOf(parts[fiveIdxInRaw]) + parts[fiveIdxInRaw].length + 1;
-                        if (rewardEndPos > rewardStartPos) rewardRaw = rawText.substring(rewardStartPos, rewardEndPos);
+                // 提取奖励物品：从5位数字出现之后到状态行之前的所有行中，解析“名称:数量”模式
+                let rewardLines = [];
+                let recording = false;
+                for (let i = 0; i < lines.length; i++) {
+                    const line = lines[i];
+                    // 如果遇到5位数字的行，开始记录奖励
+                    if (/\b\d{5}\b/.test(line)) {
+                        recording = true;
+                        continue; // 跳过这一行，它本身不是奖励
                     }
-                } else {
-                    const endPos = statusIdx !== -1 ? rawText.indexOf(statusText) : rawText.lastIndexOf(finalTime);
-                    rewardRaw = rawText.substring(0, endPos);
+                    if (recording && i < statusLineIdx) {
+                        // 奖励行可能包含多个物品，每行一个
+                        rewardLines.push(line);
+                    }
+                    if (i === statusLineIdx) break;
                 }
 
-                // 清理奖励文本并应用奖励转换
-                rewardRaw = rewardRaw.replace(/\t/g, ' ').replace(/\s+/g, ' ').trim();
-                rewardRaw = rewardRaw.replace(/\d{4}-\d{2}-\d{2}\s+\d{1,2}:\d{2}(:\d{2})?/g, '').trim();
-                rewardRaw = applyRewardConversion(rewardRaw);
-
-                // 按空格拆分奖励项（原始日志中物品和数量用空格分隔）
-                const segments = rewardRaw.split(/\s+/).filter(s => s.trim());
+                // 解析每个奖励行：匹配“名称:数量”或“名称 (备注) :数量”
                 const rewardItems = [];
-                let tempItem = '', tempCount = null;
-                for (let seg of segments) {
-                    if (/^\d+$/.test(seg)) {
-                        // 数字可能是数量，如果前面有物品描述则配对
-                        if (tempItem) {
-                            tempCount = seg;
-                        }
+                for (let line of rewardLines) {
+                    // 移除多余空格
+                    line = line.trim();
+                    if (!line) continue;
+                    // 匹配模式：物品名（可能包含括号）: 数字
+                    const match = line.match(/^(.+?)\s*[:：]\s*(\d+)$/);
+                    if (match) {
+                        const itemName = match[1].trim();
+                        const count = match[2];
+                        rewardItems.push(`${itemName}:${count}`);
                     } else {
-                        if (tempItem) {
-                            // 保存之前的物品
-                            rewardItems.push(tempCount ? `${tempItem}:${tempCount}` : tempItem);
-                            tempItem = seg;
-                            tempCount = null;
-                        } else {
-                            tempItem = seg;
-                        }
+                        // 没有数量的物品直接加入
+                        rewardItems.push(line);
                     }
                 }
-                if (tempItem) rewardItems.push(tempCount ? `${tempItem}:${tempCount}` : tempItem);
 
-                // 去重并用逗号分隔
-                const finalRewardItems = [...new Set(rewardItems.map(item => item.replace(/\s*:\s*/g, ':')))];
-                const rewardStr = finalRewardItems.length ? finalRewardItems.join('，') : '奖励';
+                const rewardStr = rewardItems.length ? rewardItems.join('，') : '奖励';
                 const actionVerb = statusText === '完成' ? '完成订单' : (statusText === '删除' ? '删除订单' : '操作订单');
                 return [`在${finalTime.replace(/-/g, '/')}提交【${chessStr}】${actionVerb}，获得${rewardStr}`];
             }
