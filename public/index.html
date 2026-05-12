@@ -605,6 +605,9 @@
                 }
                 return result.replace(/\s+/g, ' ').trim();
             }
+            function applyChessNameConversion(name) {
+                return applyConversionByType(name, 'chessName');
+            }
             function shouldIgnoreLine(line) {
                 if (!(document.getElementById('enableIgnoreRulesCheckbox')?.checked ?? true) || !ignoreKeywords.length) return false;
                 return ignoreKeywords.some(kw => line.toLowerCase().includes(kw.toLowerCase()));
@@ -727,7 +730,7 @@
                     }
                 }
 
-                // ★ 棋子名称应用转换并连接
+                // 应用棋子名称转换并连接
                 const convertedNames = chessNames.map(name => applyChessNameConversion(name));
                 const chessStr = convertedNames.length ? [...new Set(convertedNames)].join('、') : '棋子';
 
