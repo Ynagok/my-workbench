@@ -726,7 +726,10 @@
                         if (chinese) chessNames.push(...chinese);
                     }
                 }
-                const chessStr = chessNames.length ? chessNames.join('、') : '棋子';
+
+                // ★ 棋子名称应用转换并连接
+                const convertedNames = chessNames.map(name => applyChessNameConversion(name));
+                const chessStr = convertedNames.length ? [...new Set(convertedNames)].join('、') : '棋子';
 
                 let rewardRaw = '';
                 if (fiveDigitFound) {
@@ -744,11 +747,11 @@
                     rewardRaw = rawText.substring(0, endPos);
                 }
 
-                // 移除所有时间戳，但保留换行以便分行解析
+                // 清理奖励文本：移除时间戳，保留换行
                 rewardRaw = rewardRaw.replace(/\t/g, ' ').replace(/\d{4}-\d{2}-\d{2}\s+\d{1,2}:\d{2}:\d{2}/g, '').trim();
                 rewardRaw = applyRewardConversion(rewardRaw);
 
-                // 现在按换行拆分行（因为日志中奖励物品每行一个）
+                // 按换行拆分奖励物品
                 const lines = rewardRaw.split(/\n/).map(l => l.trim()).filter(l => l.length > 0);
                 const rewardItems = [];
                 let pendingItem = null;
@@ -782,16 +785,7 @@
                 }
                 if (pendingItem) rewardItems.push(pendingItem);
 
-                let finalRewardItems = rewardItems.map(item => {
-                    item = item.replace(/\s+/g, ' ').trim();
-                    item = item.replace(/\s*:\s*/g, ':');
-                    return item;
-                }).filter(item => item.length > 0);
-                finalRewardItems = [...new Set(finalRewardItems)];
-
-                // 最终用中文逗号连接
-                const convertedNames = chessNames.map(name => applyChessNameConversion(name));
-                const chessStr = convertedNames.length ? [...new Set(convertedNames)].join('、') : '棋子';
+                // 去重后用中文逗号连接
                 const rewardStr = rewardItems.length ? [...new Set(rewardItems)].join('，') : '奖励';
 
                 debugConsole.innerHTML += `\n棋子: ${chessStr}, 奖励: ${rewardStr}`;
