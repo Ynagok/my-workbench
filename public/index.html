@@ -694,27 +694,25 @@
                 let finalTime = '', statusText = '操作';
                 let chessNames = [];
                 let rewardItems = [];
-                let isAfterNum = false;
                 let statusFound = false;
 
-                // ★ 提取棋子名称（只从第一行提取，移到循环外）
+                // 1. 从第一行提取棋子名称（制表符分隔，跳过用户类型）
                 if (lines.length > 0) {
                     const firstLineParts = lines[0].split('\t');
                     for (let col = 4; col < firstLineParts.length; col++) {
                         const word = firstLineParts[col].trim();
-                        // 纯中文且不是用户类型
                         if (word && /^[\u4e00-\u9fa5]+$/.test(word) && !['书生', '文士', '招财'].includes(word)) {
                             chessNames.push(word);
-                            break; // 只取第一个实际棋子名
+                            break;
                         }
                     }
                 }
 
-                // 遍历剩余行，提取时间、数字编号行、奖励
+                // 2. 遍历剩余行，提取时间和奖励
                 for (let i = 1; i < lines.length; i++) {
                     const line = lines[i].trim();
 
-                    // 状态行判断
+                    // 状态行判断（完成/删除）
                     if (line.includes('完成') || line.includes('删除')) {
                         statusText = line.includes('完成') ? '完成' : '删除';
                         const timeMatches = line.match(/(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})/g);
@@ -723,45 +721,38 @@
                         continue;
                     }
 
-                    // 更新最近的时间
+                    // 持续更新最近的时间
                     if (!statusFound) {
                         const t = line.match(/(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})/);
                         if (t) finalTime = t[0];
                     }
 
-                    if (!line) continue;
-
-                    // 数字编号行（如果有的话）
-                    if (/^\d{5,}/.test(line)) {
-                        isAfterNum = true;
-                        continue;
-                    }
-
-                    // 在没有数字编号行且没有遇到状态行之前，提取奖励（不在此处提取棋子名）
-                    if (isAfterNum && !statusFound) {
+                    // 奖励行：在状态行之前，只要不是纯时间行或纯数字编号，均视为奖励
+                    if (!statusFound && line && !/^\d{4}-\d{2}-\d{2}/.test(line) && !/^\d{4,}$/.test(line)) {
                         const rewardMatch = line.match(/^(.+?)\s*[:：]\s*(\d+)$/);
                         if (rewardMatch) {
                             const item = rewardMatch[1].trim();
                             const count = rewardMatch[2];
                             rewardItems.push(`${item}:${count}`);
                         } else {
-                            const maybeItem = line.trim();
-                            if (maybeItem && !/^\d+$/.test(maybeItem)) {
-                                rewardItems.push(maybeItem);
+                            if (!/^\d+$/.test(line)) {
+                                rewardItems.push(line);
                             }
                         }
                     }
                 }
 
-                // 最终时间兜底
+                // 3. 最终时间兜底
                 if (!finalTime) {
                     const allTimes = rawText.match(/\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}/g);
                     if (allTimes) finalTime = allTimes[allTimes.length - 1];
                 }
 
-                // 应用棋子名称转换
+                // 4. 棋子名称转换并去重
                 const convertedNames = chessNames.map(name => applyChessNameConversion(name));
                 const chessStr = convertedNames.length ? [...new Set(convertedNames)].join('、') : '棋子';
+
+                // 5. 奖励去重后用逗号连接
                 const rewardStr = rewardItems.length ? [...new Set(rewardItems)].join('，') : '奖励';
 
                 debugConsole.innerHTML += `\n棋子: ${chessStr}, 奖励: ${rewardStr}`;
@@ -828,8 +819,7 @@
 
                 if (mode === 'order') {
                     if (raw.includes('创建')) {
-                        alert('抱歉呢宝宝，俺只认得“完成”和“过期”的订单咧，看看是不是复制了“创建”的捏⩌⤚⩌)');
-                        return;
+                        debugConsole.innerHTML += '\n⚠️ 检测到“创建”订单，可能无法提取完整奖励';
                     }
                     debugConsole.innerHTML = '📦 订单日志解析...';
                     const s = parseOrderLog(raw);
@@ -837,7 +827,6 @@
                     globalResultCount.textContent = `${s.length} 条`;
                     resultSourceHint.textContent = '订单日志解析';
                     navigator.clipboard.writeText(globalResultArea.value);
-                    debugConsole.innerHTML += '\n✅ 订单解析完成';
                     return;
                 }
 
