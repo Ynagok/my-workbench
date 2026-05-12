@@ -708,7 +708,7 @@
                     }
                 }
 
-                // 2. 遍历后续行，提取时间和奖励
+                // 2. 遍历剩余行，提取时间和奖励
                 for (let i = 1; i < lines.length; i++) {
                     const line = lines[i].trim();
 
@@ -727,7 +727,7 @@
                         if (t) finalTime = t[0];
                     }
 
-                    // 奖励行：在遇到状态行之前，只要不是时间行或纯数字编号，均视为奖励
+                    // 奖励行：在状态行之前，只要不是纯时间行或纯数字编号，均当作奖励
                     if (!statusFound && line && !/^\d{4}-\d{2}-\d{2}/.test(line) && !/^\d{4,}$/.test(line)) {
                         const rewardMatch = line.match(/^(.+?)\s*[:：]\s*(\d+)$/);
                         if (rewardMatch) {
@@ -735,6 +735,7 @@
                             const count = rewardMatch[2];
                             rewardItems.push(`${item}:${count}`);
                         } else {
+                            // 没有数量的纯文字物品名
                             if (!/^\d+$/.test(line)) {
                                 rewardItems.push(line);
                             }
@@ -748,9 +749,10 @@
                     if (allTimes) finalTime = allTimes[allTimes.length - 1];
                 }
 
-                // 4. 应用棋子名称转换，去重后用顿号连接
+                // 4. 应用棋子名称转换并去重，用顿号连接
                 const convertedNames = chessNames.map(name => applyChessNameConversion(name));
                 const chessStr = convertedNames.length ? [...new Set(convertedNames)].join('、') : '棋子';
+
                 // 5. 奖励物品去重后用逗号连接
                 const rewardStr = rewardItems.length ? [...new Set(rewardItems)].join('，') : '奖励';
 
