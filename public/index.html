@@ -790,6 +790,8 @@
                 finalRewardItems = [...new Set(finalRewardItems)];
 
                 // 最终用中文逗号连接
+                const convertedNames = chessNames.map(name => applyChessNameConversion(name));
+                const chessStr = convertedNames.length ? [...new Set(convertedNames)].join('、') : '棋子';
                 const rewardStr = rewardItems.length ? [...new Set(rewardItems)].join('，') : '奖励';
 
                 debugConsole.innerHTML += `\n棋子: ${chessStr}, 奖励: ${rewardStr}`;
