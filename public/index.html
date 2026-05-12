@@ -694,22 +694,21 @@
                 let finalTime = '', statusText = '操作';
                 let chessNames = [];
                 let rewardItems = [];
-                let isAfterNum = false;
                 let statusFound = false;
 
-                // 1. 从第一行提取棋子名称（制表符分隔，跳过用户类型）
+                // 从第一行提取棋子名称（制表符分隔，跳过用户类型）
                 if (lines.length > 0) {
                     const firstLineParts = lines[0].split('\t');
                     for (let i = 4; i < firstLineParts.length; i++) {
                         const word = firstLineParts[i].trim();
                         if (word && /^[\u4e00-\u9fa5]+$/.test(word) && !['书生', '文士', '招财'].includes(word)) {
                             chessNames.push(word);
-                            break; // 只取第一个实际棋子名
+                            break;
                         }
                     }
                 }
 
-                // 2. 遍历后续行，提取时间和奖励
+                // 遍历后续行，提取时间和奖励
                 for (let i = 1; i < lines.length; i++) {
                     const line = lines[i].trim();
 
@@ -719,7 +718,7 @@
                         const timeMatches = line.match(/(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})/g);
                         if (timeMatches) finalTime = timeMatches[timeMatches.length - 1];
                         statusFound = true;
-                        continue;
+                        continue; // 状态行不参与奖励
                     }
 
                     // 尚未找到状态行时，持续更新最后见到的时间
@@ -728,37 +727,28 @@
                         if (t) finalTime = t[0];
                     }
 
-                    // 数字编号行（5位以上数字）之后，开始收集奖励
-                    if (/^\d{5,}/.test(line)) {
-                        isAfterNum = true;
-                        continue;
-                    }
-
-                    // 奖励行：数字编号之后、状态行之前
-                    if (isAfterNum && !statusFound) {
-                        // 匹配“物品名:数量”或“物品名：数量”
+                    // 奖励行：在遇到状态行之前，所有非时间行（且不是纯数字）均视为奖励
+                    if (!statusFound && line && !/^\d{4}-\d{2}-\d{2}/.test(line)) {
+                        // 尝试匹配“物品名:数量”
                         const rewardMatch = line.match(/^(.+?)\s*[:：]\s*(\d+)$/);
                         if (rewardMatch) {
                             const item = rewardMatch[1].trim();
                             const count = rewardMatch[2];
                             rewardItems.push(`${item}:${count}`);
                         } else {
-                            // 没有数量描述的项直接当作物品名
-                            const maybeItem = line.trim();
-                            if (maybeItem && !/^\d+$/.test(maybeItem)) {
-                                rewardItems.push(maybeItem);
+                            // 没有数字的纯文字行
+                            if (!/^\d+$/.test(line)) {
+                                rewardItems.push(line);
                             }
                         }
                     }
                 }
 
-                // 如果没有找到最终时间，取整个文本中最后出现的时间
                 if (!finalTime) {
                     const allTimes = rawText.match(/\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}/g);
                     if (allTimes) finalTime = allTimes[allTimes.length - 1];
                 }
 
-                // 应用棋子名称转换规则（如果有的话）
                 const convertedNames = chessNames.map(name => applyChessNameConversion(name));
                 const chessStr = convertedNames.length ? [...new Set(convertedNames)].join('、') : '棋子';
                 const rewardStr = rewardItems.length ? [...new Set(rewardItems)].join('，') : '奖励';
