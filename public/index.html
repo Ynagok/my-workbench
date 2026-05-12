@@ -744,7 +744,7 @@
                     rewardRaw = rawText.substring(0, endPos);
                 }
 
-                // 关键修复：移除所有时间戳，但保留换行以便分行解析
+                // 移除所有时间戳，但保留换行以便分行解析
                 rewardRaw = rewardRaw.replace(/\t/g, ' ').replace(/\d{4}-\d{2}-\d{2}\s+\d{1,2}:\d{2}:\d{2}/g, '').trim();
                 rewardRaw = applyRewardConversion(rewardRaw);
 
