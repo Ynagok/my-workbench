@@ -251,12 +251,6 @@
             border-bottom: 1px solid #dee2e6;
         }
 
-            .rule-item.highlight {
-                background: #fff3cd;
-                border-radius: 8px;
-                padding: 8px;
-            }
-
         .rule-pattern {
             background: #e9ecef;
             padding: 4px 8px;
@@ -269,24 +263,10 @@
             color: #0d6efd;
         }
 
-        .rule-type {
-            font-size: 12px;
-            color: #6c757d;
-            margin-left: 8px;
-        }
-
         .rule-actions {
             margin-left: auto;
             display: flex;
             gap: 8px;
-        }
-
-        .inline-form {
-            display: flex;
-            gap: 8px;
-            margin-top: 16px;
-            align-items: center;
-            flex-wrap: wrap;
         }
 
         .result-header {
@@ -548,7 +528,6 @@
             const DEFAULT_IGNORE_KEYWORDS = ["棋盘上传"];
             const PACK_NAME_MAP = { 151: "1星百戏锦囊", 152: "1星大百戏锦囊", 153: "2星百戏锦囊", 154: "2星大百戏锦囊", 155: "3星百戏锦囊", 156: "3星大百戏锦囊", 157: "4星百戏锦囊", 158: "4星大百戏锦囊", 159: "5星百戏锦囊", 160: "5星大百戏锦囊", 161: "5星超大百戏锦囊" };
 
-            // 云端同步
             async function loadData(key, defaultValue) {
                 try {
                     const resp = await fetch(`${SERVER_URL}/api/data/${key}`);
@@ -582,7 +561,6 @@
             let ignoreKeywords = await loadData('ignoreKeywords', DEFAULT_IGNORE_KEYWORDS);
             (function migrate() { for (let i = 0; i < scripts.length; i++) if (typeof scripts[i] === 'string') scripts[i] = { text: scripts[i], tags: [] }; saveData('scripts', scripts); })();
 
-            // 工具函数
             function getRulePattern(r) { return r.pattern || ''; }
             function getRuleReplacement(r) { return r.replacement || ''; }
             const templateSelect = document.getElementById('templateSelect');
@@ -633,7 +611,6 @@
             }
             function cleanHeader(s) { return s.trim().replace(/^["'“”]|["'“”]$/g, ''); }
 
-            // 资源点击替换规则
             function applyResourceClickReplace(text, resourceType) {
                 if (!text) return text;
                 const map = { '体力': '点击葫芦', '红钻': '点击红钻堆', '金币': '点击金币堆' };
@@ -642,7 +619,7 @@
                 return text.replace(/点击棋子/g, replacement);
             }
 
-            // 资源流水解析（道具名称全部提取）
+            // 资源流水解析
             function parseSmartLog(rawText) {
                 const lines = rawText.split(/\r?\n/).filter(l => l.trim());
                 const records = [];
@@ -691,10 +668,8 @@
                 const { change, action, before, after } = getChangeAndAction(rec);
                 if (!change || !action) return null;
                 const abs = Math.abs(change);
-
                 if (isActivityItem(itemName, source, type))
                     return `在${time}，${action}了${abs}个${itemName || '活动道具'}`;
-
                 if (type === '道具' && itemName) {
                     if (itemName.includes('积分') || itemName.includes('券')) {
                         return source
@@ -703,7 +678,6 @@
                     }
                     return `在${time}，${action}了${abs}个${itemName}`;
                 }
-
                 let sentence = showChange
                     ? (source ? `在${time}，通过【${source}】${action}${abs}点${type}，从${before}变为${after}`
                         : `在${time}，${action}${abs}点${type}，从${before}变为${after}`)
@@ -712,20 +686,26 @@
                 return applyResourceClickReplace(sentence, type);
             }
 
-            // 订单日志解析（修复版：奖励逗号分隔、棋子名称转换）
+            // ★★★ 重写的订单解析，专门适配多行日志 ★★★
             function parseOrderLog(rawText) {
-                const cleanText = rawText.replace(/\r\n/g, '\n').replace(/\n/g, ' ').replace(/\t/g, '\t');
-                const parts = cleanText.split('\t').map(p => p.trim());
-                if (parts.length < 8) { debugConsole.innerHTML += '\n❌ 订单日志字段不足'; return []; }
+                // 保留制表符，移除内部的换行，使每条订单合并为一行
+                const singleLine = rawText.replace(/\r\n/g, ' ').replace(/\n/g, ' ');
+                const parts = singleLine.split('\t').map(p => p.trim());
+                debugConsole.innerHTML = `📦 订单字段数量: ${parts.length}`;
+                if (parts.length < 8) {
+                    debugConsole.innerHTML += '\n❌ 订单日志字段不足';
+                    return [];
+                }
 
                 const firstTime = extractTime(rawText) || '';
                 const orderType = parts[3] || '未知订单';
-                if (rawText.toLowerCase().includes('过期')) return [`${orderType}已在${firstTime}过期`];
+                if (rawText.toLowerCase().includes('过期')) {
+                    return [`${orderType}已在${firstTime}过期`];
+                }
 
                 let statusIdx = -1, statusText = '', finalTime = '';
-                const statusKeywords = ['完成', '删除', '创建'];
                 for (let i = 0; i < parts.length; i++) {
-                    if (statusKeywords.includes(parts[i])) {
+                    if (['完成', '删除', '创建'].includes(parts[i])) {
                         statusIdx = i; statusText = parts[i];
                         if (i + 1 < parts.length) finalTime = parts[i + 1];
                         break;
@@ -772,56 +752,42 @@
                     rewardRaw = rawText.substring(0, endPos);
                 }
 
+                // 清理奖励文本并应用奖励转换
                 rewardRaw = rewardRaw.replace(/\t/g, ' ').replace(/\s+/g, ' ').trim();
                 rewardRaw = rewardRaw.replace(/\d{4}-\d{2}-\d{2}\s+\d{1,2}:\d{2}(:\d{2})?/g, '').trim();
                 rewardRaw = applyRewardConversion(rewardRaw);
 
-                const lines = rewardRaw.split(/\n/).map(l => l.trim()).filter(l => l.length > 0);
+                // 按空格拆分奖励项（原始日志中物品和数量用空格分隔）
+                const segments = rewardRaw.split(/\s+/).filter(s => s.trim());
                 const rewardItems = [];
-                let pendingItem = null;
-                for (let line of lines) {
-                    if (/^\d+$/.test(line)) continue;
-                    const numMatch = line.match(/(?:[:：]\s*)?(\d+)\s*$/);
-                    let itemDesc = line;
-                    let count = null;
-                    if (numMatch) {
-                        count = numMatch[1];
-                        itemDesc = line.substring(0, numMatch.index).trim();
-                        itemDesc = itemDesc.replace(/[:：]\s*$/, '').trim();
-                    }
-                    if (itemDesc) {
-                        if (pendingItem) {
-                            if (count !== null) {
-                                rewardItems.push(`${pendingItem} ${itemDesc}:${count}`.replace(/\s+/g, ' ').trim());
-                                pendingItem = null;
-                            } else {
-                                rewardItems.push(pendingItem);
-                                pendingItem = itemDesc;
-                            }
-                        } else {
-                            if (count !== null) rewardItems.push(`${itemDesc}:${count}`);
-                            else pendingItem = itemDesc;
+                let tempItem = '', tempCount = null;
+                for (let seg of segments) {
+                    if (/^\d+$/.test(seg)) {
+                        // 数字可能是数量，如果前面有物品描述则配对
+                        if (tempItem) {
+                            tempCount = seg;
                         }
-                    } else if (count !== null && pendingItem) {
-                        rewardItems.push(`${pendingItem}:${count}`);
-                        pendingItem = null;
+                    } else {
+                        if (tempItem) {
+                            // 保存之前的物品
+                            rewardItems.push(tempCount ? `${tempItem}:${tempCount}` : tempItem);
+                            tempItem = seg;
+                            tempCount = null;
+                        } else {
+                            tempItem = seg;
+                        }
                     }
                 }
-                if (pendingItem) rewardItems.push(pendingItem);
+                if (tempItem) rewardItems.push(tempCount ? `${tempItem}:${tempCount}` : tempItem);
 
-                let finalRewardItems = rewardItems.map(item => {
-                    item = item.replace(/\s+/g, ' ').trim();
-                    item = item.replace(/\s*:\s*/g, ':');
-                    return item;
-                }).filter(item => item.length > 0);
-                finalRewardItems = [...new Set(finalRewardItems)];
-
+                // 去重并用逗号分隔
+                const finalRewardItems = [...new Set(rewardItems.map(item => item.replace(/\s*:\s*/g, ':')))];
                 const rewardStr = finalRewardItems.length ? finalRewardItems.join('，') : '奖励';
                 const actionVerb = statusText === '完成' ? '完成订单' : (statusText === '删除' ? '删除订单' : '操作订单');
                 return [`在${finalTime.replace(/-/g, '/')}提交【${chessStr}】${actionVerb}，获得${rewardStr}`];
             }
 
-            // 棋子流水解析（增强版，修复多行数据）
+            // 棋子流水解析（增强版）
             function parseChessLog(raw) {
                 const lines = raw.split(/\r?\n/);
                 const events = []; let cur = null;
@@ -832,14 +798,12 @@
                     else if (cur) cur += '\n' + l;
                 }
                 if (cur) events.push(cur);
-
                 return events.map(ev => {
                     try {
                         const parts = ev.split('\t');
                         if (parts.length < 6) throw new Error('字段不足');
                         const time = formatTimeToStandard(parts[0].trim());
                         if (!time) throw new Error('时间错误');
-
                         const chessRaw = (parts[2] || '').trim();
                         let name = '棋子', level = 0;
                         if (chessRaw.includes('/')) {
@@ -848,17 +812,12 @@
                             const lm = id.match(/(\d{2})$/);
                             if (lm) { level = parseInt(lm[1], 10); if (isNaN(level)) level = 0; }
                         } else name = chessRaw;
-
                         const changeRaw = (parts[3] || '').split('\n')[0].trim();
                         const change = parseInt(changeRaw, 10) || 0;
                         let cmd = '';
-                        for (let i = 6; i < parts.length; i++) {
-                            const p = parts[i].trim();
-                            if (p.includes('棋盘操作-')) { cmd = p; break; }
-                        }
+                        for (let i = 6; i < parts.length; i++) { const p = parts[i].trim(); if (p.includes('棋盘操作-')) { cmd = p; break; } }
                         if (!cmd) cmd = (parts[7] || parts[8] || '').trim();
                         if (!cmd) throw new Error('未找到命令');
-
                         let desc = '';
                         if (cmd.includes('钻石解锁泡泡')) desc = `使用红钻解锁泡泡获得${level ? level + '级' : ''}${name}`;
                         else if (cmd.includes('广告解锁泡泡')) desc = `看广告解锁泡泡获得${level ? level + '级' : ''}${name}`;
@@ -888,9 +847,6 @@
                 if (mode === 'order') {
                     if (raw.includes('创建')) {
                         alert('抱歉呢宝宝，俺只认得“完成”和“过期”的订单咧，看看是不是复制了“创建”的捏⩌⤚⩌)');
-                        globalResultArea.value = '';
-                        globalResultCount.textContent = '0 条';
-                        resultSourceHint.textContent = '订单日志（包含“创建”，未解析）';
                         return;
                     }
                     debugConsole.innerHTML = '📦 订单日志解析...';
@@ -899,7 +855,8 @@
                     globalResultCount.textContent = `${s.length} 条`;
                     resultSourceHint.textContent = '订单日志解析';
                     navigator.clipboard.writeText(globalResultArea.value);
-                    debugConsole.innerHTML += `\n✅ 完成`; return;
+                    debugConsole.innerHTML += '\n✅ 订单解析完成';
+                    return;
                 }
 
                 if (mode === 'chess') {
@@ -912,7 +869,8 @@
                     globalResultCount.textContent = `${r.length} 条`;
                     resultSourceHint.textContent = '棋子流水解析';
                     navigator.clipboard.writeText(out);
-                    debugConsole.innerHTML += `\n✅ 完成`; return;
+                    debugConsole.innerHTML += `\n✅ 完成`;
+                    return;
                 }
 
                 debugConsole.innerHTML = '🔍 资源流水解析...';
@@ -1182,12 +1140,12 @@
                     const replacement = getRuleReplacement(r) || '(删除)';
                     const typeLabel = r.type === 'source' ? '来源' : (r.type === 'reward' ? '奖励' : '棋子');
                     return `<div class="rule-item" data-idx="${idx}">
-                        <span class="rule-pattern">${pattern}</span><span class="rule-type">[${typeLabel}]</span>
-                        <span>→</span><span class="rule-replacement">${replacement}</span>
-                        <div class="rule-actions">
-                            <button class="edit-source-btn" data-idx="${idx}">✏️</button>
-                            <button class="delete-source-btn" data-idx="${idx}" style="background:#dc3545;">🗑️</button>
-                        </div> </div>`;
+                            <span class="rule-pattern">${pattern}</span><span class="rule-type">[${typeLabel}]</span>
+                            <span>→</span><span class="rule-replacement">${replacement}</span>
+                            <div class="rule-actions">
+                                <button class="edit-source-btn" data-idx="${idx}">✏️</button>
+                                <button class="delete-source-btn" data-idx="${idx}" style="background:#dc3545;">🗑️</button>
+                            </div> </div>`;
                 }).join('') || '<div>暂无规则</div>';
                 c.querySelectorAll('.delete-source-btn').forEach(b => b.onclick = e => { const idx = parseInt(b.dataset.idx); sourceRules.splice(idx, 1); saveData('sourceRules', sourceRules); renderSourceRuleList(filterType, searchTerm); });
                 c.querySelectorAll('.edit-source-btn').forEach(b => b.onclick = e => {
