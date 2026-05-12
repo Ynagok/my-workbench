@@ -696,7 +696,7 @@
                 let rewardItems = [];
                 let statusFound = false;
 
-                // 1. 从第一行提取棋子名称（制表符分隔）
+                // 1. 从第一行提取棋子名称
                 if (lines.length > 0) {
                     const firstLineParts = lines[0].split('\t');
                     for (let col = 4; col < firstLineParts.length; col++) {
@@ -708,11 +708,10 @@
                     }
                 }
 
-                // 2. 遍历剩余行，提取时间和奖励
+                // 2. 遍历后续行
                 for (let i = 1; i < lines.length; i++) {
                     const line = lines[i].trim();
 
-                    // 状态行判断（完成/删除）
                     if (line.includes('完成') || line.includes('删除')) {
                         statusText = line.includes('完成') ? '完成' : '删除';
                         const timeMatches = line.match(/(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})/g);
@@ -721,39 +720,31 @@
                         continue;
                     }
 
-                    // 更新最近的时间（用于最终兜底）
                     if (!statusFound) {
                         const t = line.match(/(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})/);
                         if (t) finalTime = t[0];
                     }
 
-                    // 奖励行：在遇到状态行之前，所有非时间行、非纯数字行均视为奖励
-                    if (!statusFound && line && !/^\d{4}-\d{2}-\d{2}/.test(line) && !/^\d{4,}$/.test(line)) {
+                    // 奖励行（非时间行、非纯数字）
+                    if (!statusFound && line && !/^\d{4}-\d{2}-\d{2}/.test(line) && !/^\d+$/.test(line)) {
                         const rewardMatch = line.match(/^(.+?)\s*[:：]\s*(\d+)$/);
                         if (rewardMatch) {
                             const item = rewardMatch[1].trim();
                             const count = rewardMatch[2];
                             rewardItems.push(`${item}:${count}`);
                         } else {
-                            // 没有数量的纯文字物品名
-                            if (!/^\d+$/.test(line)) {
-                                rewardItems.push(line);
-                            }
+                            rewardItems.push(line);
                         }
                     }
                 }
 
-                // 3. 最终时间兜底
                 if (!finalTime) {
                     const allTimes = rawText.match(/\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}/g);
                     if (allTimes) finalTime = allTimes[allTimes.length - 1];
                 }
 
-                // 4. 应用棋子名称转换并去重
                 const convertedNames = chessNames.map(name => applyChessNameConversion(name));
                 const chessStr = convertedNames.length ? [...new Set(convertedNames)].join('、') : '棋子';
-
-                // 5. 奖励去重后用逗号连接
                 const rewardStr = rewardItems.length ? [...new Set(rewardItems)].join('，') : '奖励';
 
                 debugConsole.innerHTML += `\n棋子: ${chessStr}, 奖励: ${rewardStr}`;
