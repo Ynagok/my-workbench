@@ -460,6 +460,7 @@
                     <div class="upload-col"><label>道具关键词</label><input type="text" id="itemKeywordInput" placeholder="例如：百戏锦囊"></div>
                 </div>
             </div>
+
             <div class="card" style="padding: 12px 16px;">
                 <div class="collapsible-header" id="toggleTemplateHeader"><span class="arrow" id="toggleArrow">▼</span><span>📌 手动自定义话术</span><div style="margin-left:auto; display:flex; gap:8px;"><button id="manageTemplatesBtn" class="secondary">管理模板</button><button id="resetRulesBtn" class="reset-btn">重置默认</button></div></div>
                 <div class="collapsible-content" id="templateContent" style="max-height:500px;">
@@ -468,6 +469,7 @@
                     <div class="flex-row"><button id="generateFromTemplateBtn" style="background:#28a745;">✨ 模板生成话术</button></div>
                 </div>
             </div>
+
             <div class="card" style="margin-top:20px;">
                 <div class="result-header"><label>📄 生成话术 <span id="globalResultCount" class="badge">0 条/组</span></label><div class="flex-row"><button id="copyGlobalResultBtn">📋 复制全部</button><button id="exportGlobalResultBtn">💾 导出TXT</button></div></div>
                 <textarea id="globalResultArea" rows="20" readonly style="background:#e9ecef;"></textarea>
@@ -498,7 +500,7 @@
         </div>
     </div>
 
-    <!-- 模态框集合（样式保持一致） -->
+    <!-- 模态框集合 -->
     <div id="sourceRuleModal" class="modal"><div class="modal-content"><div class="modal-header"><h3>📌 文本转换规则管理</h3><span class="close" id="closeSourceRuleModal">&times;</span></div><p class="hint-text">✨ 按类型管理转换规则：来源、订单奖励、棋子名称。可搜索定位。</p><div class="flex-row" style="margin-bottom:12px;"><select id="ruleTypeFilter" style="width:140px;"><option value="all">全部类型</option><option value="source">来源</option><option value="reward">订单奖励</option><option value="chessName">棋子名称</option></select><div class="search-box" style="flex:1;"><input type="text" id="ruleSearchInput" placeholder="搜索关键词或替换内容..."><span class="clear-search" id="clearRuleSearch" style="display:none;">✕</span></div></div><div id="sourceRuleListContainer" style="max-height:250px; overflow:auto; border:1px solid #dee2e6; border-radius:8px; padding:8px;"></div><div class="inline-form"><select id="newRuleType" style="width:120px;"><option value="source">来源</option><option value="reward">订单奖励</option><option value="chessName">棋子名称</option></select><input type="text" id="newRulePattern" placeholder="匹配关键词" style="flex:2;"><span>→</span><input type="text" id="newRuleReplacement" placeholder="替换为（留空删除）" style="flex:3;"><button id="addOrUpdateRuleBtn" style="background:#28a745;">➕ 添加</button><button id="cancelEditRuleBtn" class="secondary" style="display:none;">取消</button></div><div class="flex-row" style="margin-top:16px; justify-content:space-between;"><button id="resetDefaultSourceRulesBtn" class="secondary">重置推荐规则</button><button id="clearAllSourceRulesBtn" class="reset-btn">清空所有规则</button></div></div></div>
     <div id="ignoreRuleModal" class="modal"><div class="modal-content"><div class="modal-header"><h3>🚫 忽略关键词管理</h3><span class="close" id="closeIgnoreRuleModal">&times;</span></div><div id="ignoreRuleListContainer" style="max-height:250px; overflow:auto; border:1px solid #dee2e6; border-radius:8px; padding:8px;"></div><div class="inline-form"><input type="text" id="newIgnoreKeyword" placeholder="关键词"><button id="addIgnoreKeywordBtn" style="background:#28a745;">➕ 添加</button></div><div class="flex-row" style="margin-top:16px; justify-content:space-between;"><button id="resetDefaultIgnoreRulesBtn" class="secondary">重置推荐</button><button id="clearAllIgnoreRulesBtn" class="reset-btn">清空</button></div></div></div>
     <div id="templateModal" class="modal"><div class="modal-content"><div class="modal-header"><h3>管理模板</h3><span class="close" id="closeTemplateModal">&times;</span></div><button id="modalAddTemplateBtn">➕ 新增模板</button><div id="templateList"></div></div></div>
@@ -687,8 +689,9 @@
                 return applyResourceClickReplace(sentence, type);
             }
 
-            // 订单解析（奖励逗号分隔 + 棋子转换）
+            // ★★★ 最终版订单解析（逗号分隔奖励） ★★★
             function parseOrderLog(rawText) {
+                // 保留原始换行，不合并为一行
                 let text = rawText.replace(/\r\n/g, '\n');
                 const parts = text.split('\t').map(p => p.trim());
                 if (parts.length < 8) { debugConsole.innerHTML += '\n❌ 订单日志字段不足'; return []; }
@@ -747,28 +750,27 @@
                     rewardRaw = rawText.substring(0, endPos);
                 }
 
-                // 清理：移除制表符、时间戳，但保留换行
+                // 清理奖励文本：移除制表符和时间戳，保留换行
                 rewardRaw = rewardRaw.replace(/\t/g, ' ').replace(/\d{4}-\d{2}-\d{2}\s+\d{1,2}:\d{2}:\d{2}/g, '').trim();
                 rewardRaw = applyRewardConversion(rewardRaw);
 
-                // 按换行拆分奖励，每行独立处理
+                // 按换行拆分奖励行
                 const lines = rewardRaw.split(/\n/).map(l => l.trim()).filter(l => l.length > 0);
                 const rewardItems = [];
                 for (let line of lines) {
                     if (/^\d+$/.test(line)) continue; // 跳过纯数字行
-                    // 匹配行末的“中文冒号或英文冒号 + 数字”
+                    // 匹配行末的“冒号+数字”（中文或英文冒号均可）
                     const match = line.match(/^(.*?)\s*[:：]\s*(\d+)\s*$/);
                     if (match) {
                         const itemName = match[1].trim();
                         const count = match[2];
                         rewardItems.push(`${itemName}:${count}`);
                     } else {
-                        // 没有数量的独立物品名（如“方山露芽茶 (灶神显灵)”）
+                        // 没有数量的独立物品名
                         if (line) rewardItems.push(line);
                     }
                 }
 
-                // 去重后用中文逗号连接
                 const rewardStr = rewardItems.length ? [...new Set(rewardItems)].join('，') : '奖励';
                 const actionVerb = statusText === '完成' ? '完成订单' : (statusText === '删除' ? '删除订单' : '操作订单');
                 return [`在${finalTime.replace(/-/g, '/')}提交【${chessStr}】${actionVerb}，获得${rewardStr}`];
@@ -1057,7 +1059,7 @@
                 }
             }
 
-            // ==================== 集卡功能 ====================
+            // 集卡功能
             let currentCardRecords = [];
             function parseCSVEnhanced(csvText) {
                 const lines = csvText.split(/\r?\n/).filter(l => l.trim());
@@ -1096,7 +1098,7 @@
                 document.getElementById('recordCount').textContent = sentences.length;
             }
 
-            // ==================== 话术库 ====================
+            // 话术库
             function refreshScriptList() { const lb = document.getElementById('scriptListbox'); lb.innerHTML = ''; scripts.forEach((s, i) => { const o = document.createElement('option'); o.textContent = s.text.substring(0, 70) + (s.tags.length ? ' [' + s.tags.join(',') + ']' : ''); o.value = i; lb.appendChild(o); }); }
             function getAllTags() { const set = new Set(); scripts.forEach(s => s.tags.forEach(t => set.add(t))); return Array.from(set); }
             function renderTagFilter() { const sel = document.getElementById('tagFilterSelect'); const cur = sel.value; sel.innerHTML = '<option value="all">所有标签</option><option value="no_tag">无标签</option>'; getAllTags().forEach(t => { const o = document.createElement('option'); o.value = t; o.textContent = t; sel.appendChild(o); }); if ([...sel.options].some(o => o.value === cur)) sel.value = cur; }
@@ -1109,7 +1111,7 @@
             function renderAllTagsList() { const c = document.getElementById('allTagsList'); const tags = getAllTags(); c.innerHTML = tags.map(t => `<div class="rule-item"><span class="rule-pattern">${t}</span><div class="rule-actions"><button data-tag="${t}" class="rename-tag-btn">✏️</button><button data-tag="${t}" class="delete-tag-btn" style="background:#dc3545;">🗑️</button></div></div>`).join('') || '<div>暂无标签</div>'; c.querySelectorAll('.delete-tag-btn').forEach(b => b.onclick = e => { const tag = e.target.dataset.tag; scripts.forEach(s => s.tags = s.tags.filter(t => t !== tag)); saveData('scripts', scripts); renderAllTagsList(); renderTagFilter(); refreshScriptList(); }); }
             function renderTemplateList() { const c = document.getElementById('templateList'); c.innerHTML = templates.map((t, i) => `<div class="rule-item"><span>${t.substring(0, 50)}</span><div class="rule-actions"><button data-i="${i}" class="edit-template-btn">✏️</button><button data-i="${i}" class="delete-template-btn" style="background:#dc3545;">🗑️</button></div></div>`).join(''); c.querySelectorAll('.delete-template-btn').forEach(b => b.onclick = e => { templates.splice(e.target.dataset.i, 1); saveData('templates', templates); renderTemplateList(); refreshTemplateSelect(); }); }
 
-            // ==================== 规则管理 ====================
+            // 规则管理
             let editingSourceIndex = -1;
             function renderSourceRuleList(filterType = 'all', searchTerm = '') {
                 const c = document.getElementById('sourceRuleListContainer');
@@ -1125,12 +1127,12 @@
                     const replacement = getRuleReplacement(r) || '(删除)';
                     const typeLabel = r.type === 'source' ? '来源' : (r.type === 'reward' ? '奖励' : '棋子');
                     return `<div class="rule-item" data-idx="${idx}">
-                                <span class="rule-pattern">${pattern}</span><span class="rule-type">[${typeLabel}]</span>
-                                <span>→</span><span class="rule-replacement">${replacement}</span>
-                                <div class="rule-actions">
-                                    <button class="edit-source-btn" data-idx="${idx}">✏️</button>
-                                    <button class="delete-source-btn" data-idx="${idx}" style="background:#dc3545;">🗑️</button>
-                                </div> </div>`;
+                    <span class="rule-pattern">${pattern}</span><span class="rule-type">[${typeLabel}]</span>
+                    <span>→</span><span class="rule-replacement">${replacement}</span>
+                    <div class="rule-actions">
+                        <button class="edit-source-btn" data-idx="${idx}">✏️</button>
+                        <button class="delete-source-btn" data-idx="${idx}" style="background:#dc3545;">🗑️</button>
+                    </div> </div>`;
                 }).join('') || '<div>暂无规则</div>';
                 c.querySelectorAll('.delete-source-btn').forEach(b => b.onclick = e => { const idx = parseInt(b.dataset.idx); sourceRules.splice(idx, 1); saveData('sourceRules', sourceRules); renderSourceRuleList(filterType, searchTerm); });
                 c.querySelectorAll('.edit-source-btn').forEach(b => b.onclick = e => {
@@ -1172,17 +1174,13 @@
                 document.getElementById('exportGlobalResultBtn').onclick = () => { const blob = new Blob([globalResultArea.value], { type: 'text/plain' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'script.txt'; a.click(); };
                 document.getElementById('generateFromTemplateBtn').onclick = () => { let tpl = templateSelect.value; for (let [k, v] of Object.entries(varInputs)) tpl = tpl.replace(new RegExp(`\\{${k}\\}`, 'g'), v.value); tpl = tpl.replace(/\{[^}]+\}/g, ''); globalResultArea.value = tpl; globalResultCount.textContent = '1 条'; resultSourceHint.textContent = '模板生成'; navigator.clipboard.writeText(tpl); };
 
-                // 模态框
                 const modals = {
                     source: document.getElementById('sourceRuleModal'), ignore: document.getElementById('ignoreRuleModal'),
                     template: document.getElementById('templateModal'), script: document.getElementById('scriptEditModal'),
                     batch: document.getElementById('batchTagModal'), tags: document.getElementById('manageTagsModal'),
                     import: document.getElementById('importScriptModal')
                 };
-                document.getElementById('manageSourceRulesBtn').onclick = () => {
-                    renderSourceRuleList(document.getElementById('ruleTypeFilter').value, document.getElementById('ruleSearchInput').value);
-                    modals.source.style.display = 'block';
-                };
+                document.getElementById('manageSourceRulesBtn').onclick = () => { renderSourceRuleList(document.getElementById('ruleTypeFilter').value, document.getElementById('ruleSearchInput').value); modals.source.style.display = 'block'; };
                 document.getElementById('manageIgnoreRulesBtn').onclick = () => { renderIgnoreRuleList(); modals.ignore.style.display = 'block'; };
                 document.getElementById('manageTemplatesBtn').onclick = () => { renderTemplateList(); modals.template.style.display = 'block'; };
                 document.getElementById('closeSourceRuleModal').onclick = () => modals.source.style.display = 'none';
@@ -1205,7 +1203,6 @@
                 document.getElementById('resetDefaultIgnoreRulesBtn').onclick = () => { ignoreKeywords = [...DEFAULT_IGNORE_KEYWORDS]; saveData('ignoreKeywords', ignoreKeywords); renderIgnoreRuleList(); };
                 document.getElementById('clearAllIgnoreRulesBtn').onclick = () => { if (confirm('清空所有忽略关键词？')) { ignoreKeywords = []; saveData('ignoreKeywords', ignoreKeywords); renderIgnoreRuleList(); } };
 
-                // 话术库
                 document.getElementById('addScriptBtn').onclick = () => { document.getElementById('scriptEditTitle').textContent = '新增话术'; document.getElementById('scriptEditText').value = ''; document.getElementById('scriptEditTags').value = ''; modals.script.style.display = 'block'; };
                 document.getElementById('copyScriptBtn').onclick = () => { const lb = document.getElementById('scriptListbox'); if (lb.selectedOptions.length) { const texts = Array.from(lb.selectedOptions).map(o => scripts[o.value].text); navigator.clipboard.writeText(texts.join('\n')); } };
                 document.getElementById('deleteScriptBtn').onclick = () => { const lb = document.getElementById('scriptListbox'); const idxs = Array.from(lb.selectedOptions).map(o => parseInt(o.value)); scripts = scripts.filter((_, i) => !idxs.includes(i)); saveData('scripts', scripts); refreshScriptList(); renderTagFilter(); };
@@ -1244,7 +1241,6 @@
                 document.getElementById('searchScript').oninput = filterScripts;
                 document.getElementById('tagFilterSelect').onchange = filterScripts;
 
-                // 集卡
                 document.getElementById('uploadCsvBtn').onclick = processCardCsv;
                 document.getElementById('applyFilterBtn').onclick = processCardCsv;
                 document.getElementById('copyAllCardBtn').onclick = () => navigator.clipboard.writeText(document.getElementById('cardResultArea').value);
@@ -1269,11 +1265,10 @@
                 refreshVarEntries(); refreshTemplateSelect(); refreshScriptList(); renderTagFilter();
             }
 
-            // 启动
             bindAll();
             new Sortable(document.getElementById('tabsContainer'), { animation: 150 });
             debugConsole.style.display = 'none';
-            debugConsole.innerHTML = '🟢 工作台就绪 · 完整功能正常';
+            debugConsole.innerHTML = '🟢 工作台就绪 · 订单奖励已用逗号分隔';
         })();
     </script>
 </body>
