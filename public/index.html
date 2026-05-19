@@ -774,7 +774,7 @@
                 }
 
                 // 去重后用中文逗号连接
-                const rewardStr = rewardItems.length ? [...new Set(rewardItems)].join('，') : '奖励';
+                const rewardStr = rewardItems.length ? [...new Set(rewardItems)].join(',') : '奖励';
                 const actionVerb = statusText === '完成' ? '完成订单' : (statusText === '删除' ? '删除订单' : '操作订单');
                 return [`在${finalTime.replace(/-/g, '/')}提交【${chessStr}】${actionVerb}，获得${rewardStr}`];
             }
