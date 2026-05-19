@@ -523,10 +523,10 @@
                 { pattern: "任务", replacement: "任务奖励", type: "source" },
                 { pattern: ":", replacement: "：", type: "reward" },
                 { pattern: "猪肉", replacement: "副棋盘活动道具", type: "chessName" },
-                { pattern: "棋盘操作-使用消耗棋子", replacement: "点击棋子", type: "source" }
-                { pattern: "棋盘操作-钻石解锁泡泡", replacement: "钻石解锁泡泡", type: "source" }
-                { pattern: "体力链式活动", replacement: "无尽体力活动", type: "source" }
-                { pattern: "链式礼包购买", replacement: "礼物堆购买", type: "source" }
+                { pattern: "棋盘操作-使用消耗棋子", replacement: "点击棋子", type: "source" },
+                { pattern: "棋盘操作-钻石解锁泡泡", replacement: "钻石解锁泡泡", type: "source" },
+                { pattern: "体力链式活动", replacement: "无尽体力活动", type: "source" },
+                { pattern: "链式礼包购买", replacement: "无尽体力活动", type: "source" }
             ];
             const DEFAULT_IGNORE_KEYWORDS = ["棋盘上传"];
             const PACK_NAME_MAP = { 151: "1星百戏锦囊", 152: "1星大百戏锦囊", 153: "2星百戏锦囊", 154: "2星大百戏锦囊", 155: "3星百戏锦囊", 156: "3星大百戏锦囊", 157: "4星百戏锦囊", 158: "4星大百戏锦囊", 159: "5星百戏锦囊", 160: "5星大百戏锦囊", 161: "5星超大百戏锦囊" };
@@ -694,7 +694,6 @@
 
             // ★★★ 最终版订单解析（逗号分隔奖励） ★★★
             function parseOrderLog(rawText) {
-                // 保留原始换行，不合并为一行
                 let text = rawText.replace(/\r\n/g, '\n');
                 const parts = text.split('\t').map(p => p.trim());
                 if (parts.length < 8) { debugConsole.innerHTML += '\n❌ 订单日志字段不足'; return []; }
@@ -753,23 +752,19 @@
                     rewardRaw = rawText.substring(0, endPos);
                 }
 
-                // 清理奖励文本：移除制表符和时间戳，保留换行
                 rewardRaw = rewardRaw.replace(/\t/g, ' ').replace(/\d{4}-\d{2}-\d{2}\s+\d{1,2}:\d{2}:\d{2}/g, '').trim();
                 rewardRaw = applyRewardConversion(rewardRaw);
 
-                // 按换行拆分奖励行
                 const lines = rewardRaw.split(/\n/).map(l => l.trim()).filter(l => l.length > 0);
                 const rewardItems = [];
                 for (let line of lines) {
-                    if (/^\d+$/.test(line)) continue; // 跳过纯数字行
-                    // 匹配行末的“冒号+数字”（中文或英文冒号均可）
+                    if (/^\d+$/.test(line)) continue;
                     const match = line.match(/^(.*?)\s*[:：]\s*(\d+)\s*$/);
                     if (match) {
                         const itemName = match[1].trim();
                         const count = match[2];
                         rewardItems.push(`${itemName}:${count}`);
                     } else {
-                        // 没有数量的独立物品名
                         if (line) rewardItems.push(line);
                     }
                 }
