@@ -689,7 +689,6 @@
 
             // 订单解析（奖励逗号分隔 + 棋子转换）
             function parseOrderLog(rawText) {
-                // 保留原始换行，不合并为一行
                 let text = rawText.replace(/\r\n/g, '\n');
                 const parts = text.split('\t').map(p => p.trim());
                 if (parts.length < 8) { debugConsole.innerHTML += '\n❌ 订单日志字段不足'; return []; }
@@ -729,7 +728,6 @@
                     }
                 }
 
-                // 棋子名称应用转换规则，并用顿号连接
                 const convertedNames = chessNames.map(name => applyChessNameConversion(name));
                 const chessStr = convertedNames.length ? [...new Set(convertedNames)].join('、') : '棋子';
 
@@ -749,32 +747,27 @@
                     rewardRaw = rawText.substring(0, endPos);
                 }
 
-                // 清理奖励文本：移除制表符和时间戳，保留换行
                 rewardRaw = rewardRaw.replace(/\t/g, ' ').replace(/\d{4}-\d{2}-\d{2}\s+\d{1,2}:\d{2}:\d{2}/g, '').trim();
                 rewardRaw = applyRewardConversion(rewardRaw);
 
-                // 按换行拆分成多个奖励行
+                // ★ 按换行拆分，每一行独立处理
                 const lines = rewardRaw.split(/\n/).map(l => l.trim()).filter(l => l.length > 0);
                 const rewardItems = [];
                 for (let line of lines) {
                     if (/^\d+$/.test(line)) continue; // 跳过纯数字行
-                    // 匹配“名称:数量”或“名称：数量”，数量在行末
-                    const numMatch = line.match(/(?:[:：]\s*)?(\d+)\s*$/);
-                    let itemDesc = line;
-                    let count = null;
-                    if (numMatch) {
-                        count = numMatch[1];
-                        itemDesc = line.substring(0, numMatch.index).trim();
-                        itemDesc = itemDesc.replace(/[:：]\s*$/, '').trim();
-                    }
-                    if (itemDesc) {
-                        // 如果有数量，组成“物品:数量”，否则直接放入物品名
-                        rewardItems.push(count ? `${itemDesc}:${count}` : itemDesc);
+                    // 匹配行末的数量（可带中文冒号）
+                    const match = line.match(/^(.*?)\s*[:：]\s*(\d+)\s*$/);
+                    if (match) {
+                        const itemName = match[1].trim();
+                        const count = match[2];
+                        rewardItems.push(`${itemName}:${count}`);
+                    } else {
+                        // 没有数量的物品名直接加入
+                        if (line) rewardItems.push(line);
                     }
                 }
 
-                // 去重后用中文逗号连接
-                const rewardStr = rewardItems.length ? [...new Set(rewardItems)].join(',') : '奖励';
+                const rewardStr = rewardItems.length ? [...new Set(rewardItems)].join('，') : '奖励';
                 const actionVerb = statusText === '完成' ? '完成订单' : (statusText === '删除' ? '删除订单' : '操作订单');
                 return [`在${finalTime.replace(/-/g, '/')}提交【${chessStr}】${actionVerb}，获得${rewardStr}`];
             }
