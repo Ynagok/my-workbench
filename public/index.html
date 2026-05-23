@@ -520,7 +520,7 @@
                 { pattern: "商店购买", replacement: "在商店购买", type: "source" },
                 { pattern: "任务", replacement: "任务奖励", type: "source" },
                 { pattern: ":", replacement: "：", type: "reward" },
-                { pattern: "猪肉", replacement: "副棋盘活动道具", type: "chessName" },
+                { pattern: "猪肉", replacement: "副棋盘活动道具", type: "reward" },
                 { pattern: "棋盘操作-使用消耗棋子", replacement: "点击棋子", type: "source" }
             ];
             const DEFAULT_IGNORE_KEYWORDS = ["棋盘上传"];
@@ -711,26 +711,49 @@
                     statusText = '操作';
                 }
 
+                // ---- 棋子名称提取优化 ----
                 let chessStartIdx = 5;
                 if (parts[chessStartIdx] === '是') chessStartIdx = 6;
                 let chessNames = [], fiveDigitFound = false;
-                for (let i = chessStartIdx; i < parts.length; i++) {
-                    const segment = parts[i];
-                    const fiveDigitMatch = segment.match(/\b\d{5}\b/);
-                    if (fiveDigitMatch) {
-                        const beforeFive = segment.substring(0, segment.indexOf(fiveDigitMatch[0]));
-                        const chineseMatches = beforeFive.match(/[\u4e00-\u9fa5]+/g);
-                        if (chineseMatches) chessNames.push(...chineseMatches);
-                        fiveDigitFound = true; break;
-                    } else {
-                        const chinese = segment.match(/[\u4e00-\u9fa5]+/g);
-                        if (chinese) chessNames.push(...chinese);
+
+                // 先尝试从第一行获取最后一个全中文且不含空格的字段作为棋子名（通常就是最后的“桃渡糕”之类）
+                if (lines.length > 0) {
+                    const firstLine = lines[0];
+                    const firstParts = firstLine.split('\t');
+                    // 从后往前找第一个纯中文字段
+                    for (let i = firstParts.length - 1; i >= 4; i--) {
+                        const w = firstParts[i].trim();
+                        if (w && /^[\u4e00-\u9fa5]+$/.test(w) && !['书生', '文士', '招财', '阿禾', '阿牛'].includes(w)) {
+                            chessNames = [w];
+                            break;
+                        }
                     }
                 }
 
+                // 如果上一步未获取到，回退到原逻辑
+                if (chessNames.length === 0) {
+                    for (let i = chessStartIdx; i < parts.length; i++) {
+                        const segment = parts[i];
+                        const fiveDigitMatch = segment.match(/\b\d{5}\b/);
+                        if (fiveDigitMatch) {
+                            const beforeFive = segment.substring(0, segment.indexOf(fiveDigitMatch[0]));
+                            const chineseMatches = beforeFive.match(/[\u4e00-\u9fa5]+/g);
+                            if (chineseMatches) chessNames.push(...chineseMatches);
+                            fiveDigitFound = true; break;
+                        } else {
+                            const chinese = segment.match(/[\u4e00-\u9fa5]+/g);
+                            if (chinese) chessNames.push(...chinese);
+                        }
+                    }
+                }
+
+                // 应用棋子名称转换，并输出调试信息
+                const originalNames = [...chessNames];
                 const convertedNames = chessNames.map(name => applyChessNameConversion(name));
                 const chessStr = convertedNames.length ? [...new Set(convertedNames)].join('、') : '棋子';
+                debugConsole.innerHTML += `\n棋子转换前: ${originalNames.join(', ')}, 转换后: ${chessStr}`;
 
+                // ---- 奖励提取（保持逗号分隔） ----
                 let rewardRaw = '';
                 if (fiveDigitFound) {
                     let fiveIdxInRaw = -1;
@@ -752,36 +775,17 @@
 
                 const lines = rewardRaw.split(/\n/).map(l => l.trim()).filter(l => l.length > 0);
                 const rewardItems = [];
-                let pendingItem = null;
                 for (let line of lines) {
                     if (/^\d+$/.test(line)) continue;
-                    const numMatch = line.match(/(?:[:：]\s*)?(\d+)\s*$/);
-                    let itemDesc = line;
-                    let count = null;
-                    if (numMatch) {
-                        count = numMatch[1];
-                        itemDesc = line.substring(0, numMatch.index).trim();
-                        itemDesc = itemDesc.replace(/[:：]\s*$/, '').trim();
-                    }
-                    if (itemDesc) {
-                        if (pendingItem) {
-                            if (count !== null) {
-                                rewardItems.push(`${pendingItem} ${itemDesc}:${count}`.replace(/\s+/g, ' ').trim());
-                                pendingItem = null;
-                            } else {
-                                rewardItems.push(pendingItem);
-                                pendingItem = itemDesc;
-                            }
-                        } else {
-                            if (count !== null) rewardItems.push(`${itemDesc}:${count}`);
-                            else pendingItem = itemDesc;
-                        }
-                    } else if (count !== null && pendingItem) {
-                        rewardItems.push(`${pendingItem}:${count}`);
-                        pendingItem = null;
+                    const match = line.match(/^(.*?)\s*[:：]\s*(\d+)\s*$/);
+                    if (match) {
+                        const itemName = match[1].trim();
+                        const count = match[2];
+                        rewardItems.push(`${itemName}:${count}`);
+                    } else {
+                        if (line) rewardItems.push(line);
                     }
                 }
-                if (pendingItem) rewardItems.push(pendingItem);
 
                 const rewardStr = rewardItems.length ? [...new Set(rewardItems)].join('，') : '奖励';
                 const actionVerb = statusText === '完成' ? '完成订单' : (statusText === '删除' ? '删除订单' : '操作订单');
