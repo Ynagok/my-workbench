@@ -450,7 +450,7 @@
                 </div>
                 <div style="border-top: 1px solid #e0e0e0; margin: 16px 0;"></div>
                 <div class="rule-bar">
-                    <div><label style="margin:0; font-weight:600;">资源类型</label><select id="flowResourceSelect" class="compact-select"><option value="体力">体力</option><option value="红钻">红钻</option><option value="金币">金币</option><option value="道具" selected>道具</option></select></div>
+                    <div><label style="margin:0; font-weight:600;">资源类型</label><select id="flowResourceSelect" class="compact-select"><option value="体力">体力</option><option value="红钻">红钻</option><option value="金币">金币</option><option value="好评点" selected>好评点</option><option value="道具" selected>道具</option></select></div>
                     <div><strong>🚫 忽略</strong><label class="checkbox-label"><input type="checkbox" id="enableIgnoreRulesCheckbox" checked> 启用</label><button id="manageIgnoreRulesBtn" class="secondary">管理</button></div>
                     <div><strong>📌 转换</strong><label class="checkbox-label"><input type="checkbox" id="enableSourceConversionCheckbox" checked> 启用</label><button id="manageSourceRulesBtn" class="secondary">管理</button></div>
                 </div>
@@ -584,7 +584,13 @@
                 if (!m) return s;
                 return `${m[1]}-${m[2].padStart(2, '0')}-${m[3].padStart(2, '0')} ${m[4].padStart(2, '0')}:${m[5].padStart(2, '0')}:${(m[6] || '00').padStart(2, '0')}`;
             }
-            function detectResourceType(line) { if (line.includes('体力')) return '体力'; if (line.includes('红钻')) return '红钻'; if (line.includes('金币')) return '金币'; return '道具'; }
+            function detectResourceType(line) {
+                if (line.includes('好评点')) return '好评点';
+                if (line.includes('体力')) return '体力';
+                if (line.includes('红钻')) return '红钻';
+                if (line.includes('金币')) return '金币';
+                if (line.includes('道具')) return '道具';
+            }
             function applyConversionByType(src, type) {
                 if (!src) return src;
                 if (!(document.getElementById('enableSourceConversionCheckbox')?.checked ?? true)) return src;
@@ -669,8 +675,19 @@
                 const { change, action, before, after } = getChangeAndAction(rec);
                 if (!change || !action) return null;
                 const abs = Math.abs(change);
+
+                // 活动道具的特殊话术
                 if (isActivityItem(itemName, source, type))
                     return `在${time}，${action}了${abs}个${itemName || '活动道具'}`;
+
+                // 对于“好评点”，强制显示变化量（与体力/红钻/金币一致）
+                if (type === '好评点') {
+                    return source
+                        ? `在${time}，通过【${source}】${action}${abs}点好评点，从${before}变为${after}`
+                        : `在${time}，${action}${abs}点好评点，从${before}变为${after}`;
+                }
+
+                // 道具类话术（当道具名包含“积分”或“券”时，显示前后变化）
                 if (type === '道具' && itemName) {
                     if (itemName.includes('积分') || itemName.includes('券')) {
                         return source
@@ -679,6 +696,8 @@
                     }
                     return `在${time}，${action}了${abs}个${itemName}`;
                 }
+
+                // 资源类话术（体力/红钻/金币等）
                 let sentence = showChange
                     ? (source ? `在${time}，通过【${source}】${action}${abs}点${type}，从${before}变为${after}`
                         : `在${time}，${action}${abs}点${type}，从${before}变为${after}`)
