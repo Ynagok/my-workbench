@@ -447,6 +447,7 @@
                         <label class="checkbox-label"><input type="radio" name="parseMode" value="chess"> 棋子流水</label>
                         <label class="checkbox-label"><input type="radio" name="parseMode" value="order"> 订单日志</label>
                         <label class="checkbox-label"><input type="radio" name="parseMode" value="review"> 好评奖励</label>
+                        <label class="checkbox-label"><input type="radio" name="parseMode" value="itemFlow"> 道具流水</label>
                     </div>
                 </div>
                 <div style="border-top: 1px solid #e0e0e0; margin: 16px 0;"></div>
@@ -843,6 +844,63 @@
                 return [`在${finalTime.replace(/-/g, '/')}提交【${chessStr}】${actionVerb}，获得${rewardStr}`];
             }
 
+            // 道具流水解析
+            function parseItemFlowLog(rawText) {
+                const lines = rawText.split(/\r?\n/).filter(l => l.trim());
+                const records = [];
+
+                for (let line of lines) {
+                    if (shouldIgnoreLine(line)) continue; // 忽略规则生效
+
+                    const parts = line.split('\t');
+                    if (parts.length < 10) continue; // 至少需要前10列
+
+                    const rawTime = parts[0]?.trim();
+                    if (!rawTime) continue;
+                    const time = formatTimeToStandard(rawTime);
+
+                    const itemId = parts[3]?.trim() || '';
+                    const itemName = parts[4]?.trim() || ''; // 可能为空
+                    const type = parts[5]?.trim() || '';
+                    const changeStr = parts[6]?.trim() || '0';
+                    const change = parseInt(changeStr, 10) || 0;
+                    const before = parseInt(parts[7]?.trim() || '0', 10) || 0;
+                    const after = parseInt(parts[8]?.trim() || '0', 10) || 0;
+                    let source = parts[9]?.trim() || '';
+
+                    // 应用来源转换规则
+                    source = applySourceConversion(source);
+
+                    // 道具名称处理：如果为空，使用道具ID
+                    let displayName = itemName;
+                    if (!displayName) {
+                        displayName = itemId; // 如“82602”
+                    }
+                    // 可选：对棋子名称也可应用转换（如需可启用）：
+                    // displayName = applyChessNameConversion(displayName);
+
+                    records.push({ time, itemId, itemName: displayName, type, change, before, after, source });
+                }
+
+                // 按时间倒序排列
+                records.sort((a, b) => b.time.localeCompare(a.time));
+
+                // 生成话术
+                const sentences = records.map(rec => {
+                    const action = rec.change > 0 ? '获得' : (rec.change < 0 ? '消耗' : '操作');
+                    const abs = Math.abs(rec.change);
+                    if (abs === 0) return null;
+
+                    if (rec.source) {
+                        return `在${rec.time}，通过【${rec.source}】${action}${abs}个${rec.itemName}`;
+                    } else {
+                        return `在${rec.time}，${action}${abs}个${rec.itemName}`;
+                    }
+                }).filter(s => s);
+
+                return sentences;
+            }
+
             // 棋子流水解析（增强版）
             function parseChessLog(raw) {
                 const lines = raw.split(/\r?\n/);
@@ -910,6 +968,21 @@
                     globalResultCount.textContent = `${s.length} 条`;
                     resultSourceHint.textContent = '订单日志解析';
                     navigator.clipboard.writeText(globalResultArea.value);
+                    return;
+                }
+
+                if (mode === 'itemFlow') {
+                    debugConsole.innerHTML = '🔍 道具流水解析...';
+                    const sentences = parseItemFlowLog(raw);
+                    if (!sentences.length) {
+                        debugConsole.innerHTML += '\n❌ 无有效记录';
+                        return;
+                    }
+                    globalResultArea.value = sentences.join('\n\n');
+                    globalResultCount.textContent = `${sentences.length} 条`;
+                    resultSourceHint.textContent = '道具流水解析';
+                    navigator.clipboard.writeText(globalResultArea.value);
+                    debugConsole.innerHTML += `\n✅ 完成`;
                     return;
                 }
 
@@ -1246,7 +1319,32 @@
             function bindAll() {
                 document.getElementById('smartParseBtn').onclick = smartParseAndFill;
                 document.getElementById('clearSmartBtn').onclick = () => { smartPasteInput.value = ''; globalResultArea.value = ''; debugConsole.innerHTML = ''; };
-                document.getElementById('uploadFlowBtn').onclick = processFlowCsv;
+                document.getElementById('uploadFlowBtn').onclick = async () => {
+                    const mode = document.querySelector('input[name="parseMode"]:checked').value;
+                    const file = document.getElementById('flowFileInput').files[0];
+                    if (!file) return;
+
+                    expandDebugConsole();
+                    const text = await file.text();
+
+                    if (mode === 'itemFlow') {
+                        // 道具流水模式：直接用新解析函数
+                        debugConsole.innerHTML = '🔍 道具流水（文件）解析...';
+                        const sentences = parseItemFlowLog(text);
+                        if (sentences.length) {
+                            globalResultArea.value = sentences.join('\n\n');
+                            globalResultCount.textContent = `${sentences.length} 条`;
+                            resultSourceHint.textContent = '道具流水（上传）';
+                            navigator.clipboard.writeText(globalResultArea.value);
+                            debugConsole.innerHTML += `\n✅ 完成`;
+                        } else {
+                            debugConsole.innerHTML += '\n❌ 无有效记录';
+                        }
+                    } else {
+                        // 原有资源/棋子等模式的处理（保留原逻辑）
+                        processFlowCsv();
+                    }
+                };
                 document.getElementById('debugFlowBtn').onclick = async () => { const f = document.getElementById('flowFileInput').files[0]; if (!f) return; const text = await f.text(); expandDebugConsole(); debugConsole.innerHTML = `CSV前200字符:\n${text.substring(0, 200)}`; };
                 document.getElementById('copyGlobalResultBtn').onclick = () => navigator.clipboard.writeText(globalResultArea.value);
                 document.getElementById('exportGlobalResultBtn').onclick = () => { const blob = new Blob([globalResultArea.value], { type: 'text/plain' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'script.txt'; a.click(); };
