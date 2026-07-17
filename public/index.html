@@ -590,6 +590,7 @@
                 if (line.includes('红钻')) return '红钻';
                 if (line.includes('金币')) return '金币';
                 if (line.includes('道具')) return '道具';
+                return '道具'; // 默认返回道具，确保始终有值
             }
             function applyConversionByType(src, type) {
                 if (!src) return src;
