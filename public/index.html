@@ -446,6 +446,7 @@
                         <label class="checkbox-label"><input type="radio" name="parseMode" value="resource" checked> 资源流水</label>
                         <label class="checkbox-label"><input type="radio" name="parseMode" value="chess"> 棋子流水</label>
                         <label class="checkbox-label"><input type="radio" name="parseMode" value="order"> 订单日志</label>
+                        <label class="checkbox-label"><input type="radio" name="parseMode" value="review"> 好评奖励</label>
                     </div>
                 </div>
                 <div style="border-top: 1px solid #e0e0e0; margin: 16px 0;"></div>
@@ -707,6 +708,48 @@
                 return applyResourceClickReplace(sentence, type);
             }
 
+            function parseReviewLog(rawText) {
+                const lines = rawText.split(/\r?\n/).filter(l => l.trim());
+                if (lines.length < 3) return ['❌ 数据格式不正确，请检查'];
+
+                const firstLineParts = lines[0].split('\t');
+
+                const rewardItems = [];
+                for (let i = 2; i < firstLineParts.length; i++) {
+                    const item = firstLineParts[i].trim();
+                    if (item && /^[\u4e00-\u9fa5]+$/.test(item)) {
+                        rewardItems.push(item);
+                    } else if (/^\d+$/.test(item)) {
+                        break;
+                    }
+                }
+
+                const rewardCount = new Map();
+                for (let item of rewardItems) {
+                    rewardCount.set(item, (rewardCount.get(item) || 0) + 1);
+                }
+
+                const statsList = [];
+                for (let [name, count] of rewardCount) {
+                    if (count > 1) {
+                        statsList.push(`${name}*${count}`);
+                    } else {
+                        statsList.push(name);
+                    }
+                }
+
+                const formattedTime = (firstLineParts[1] || '未知时间').replace(/-/g, '/');
+
+                let result = '';
+                if (statsList.length > 0) {
+                    result = `在${formattedTime}，获得好评点奖励：${statsList.join('，')}`;
+                } else {
+                    result = '未解析到有效奖励数据';
+                }
+
+                return [result];
+            }
+
             // 订单解析（奖励逗号分隔 + 棋子转换）
             function parseOrderLog(rawText) {
                 let text = rawText.replace(/\r\n/g, '\n');
@@ -875,6 +918,17 @@
                     globalResultCount.textContent = `${s.length} 条`;
                     resultSourceHint.textContent = '订单日志解析';
                     navigator.clipboard.writeText(globalResultArea.value);
+                    return;
+                }
+
+                if (mode === 'review') {
+                    debugConsole.innerHTML = '🌟 好评奖励解析...';
+                    const s = parseReviewLog(raw);
+                    globalResultArea.value = s.join('\n\n');
+                    globalResultCount.textContent = '1 条';
+                    resultSourceHint.textContent = '好评奖励解析';
+                    navigator.clipboard.writeText(globalResultArea.value);
+                    debugConsole.innerHTML += '\n✅ 完成';
                     return;
                 }
 
