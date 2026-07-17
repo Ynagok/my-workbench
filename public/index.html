@@ -1102,6 +1102,19 @@
                         '来源': cleanVals[colIdx['来源']] || '',
                         '道具名称': colIdx['道具名称'] >= 0 ? cleanVals[colIdx['道具名称']] : ''
                     };
+
+                    // ★ 如果道具名称为空，使用第4列的数字ID作为名称
+                    if (!rec['道具名称']) {
+                        const possibleId = cleanVals[3]?.trim();
+                        if (possibleId && /^\d+$/.test(possibleId)) {
+                            rec['道具名称'] = possibleId;
+                        }
+                    }
+
+                    // ★ 应用棋子名称转换规则（让ID能被替换为自定义名字）
+                    if (rec['道具名称']) {
+                        rec['道具名称'] = applyChessNameConversion(rec['道具名称']);
+                    }
                     rec['资源类型'] = detectResourceType(line);
                     if (enableIgnore && ignoreKeywords.length) {
                         const src = rec['来源'].toLowerCase(), item = rec['道具名称'].toLowerCase();
