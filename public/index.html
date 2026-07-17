@@ -709,54 +709,36 @@
             }
 
             function parseReviewLog(rawText) {
-                const lines = rawText.split(/\r?\n/).filter(l => l.trim());
-                if (lines.length < 3) return ['❌ 数据格式不正确，请检查'];
+                const lines = rawText.split(/\r?\n/).map(l => l.trim()).filter(l => l);
+                if (lines.length < 2) return ['❌ 数据格式不正确，请检查'];
 
-                // 提取第一行数据
-                const firstLineParts = lines[0].split('\t');
+                // 提取时间
+                let timeStr = '';
+                const timeMatch = rawText.match(/(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})/);
+                if (timeMatch) {
+                    timeStr = timeMatch[1].replace(/-/g, '/');
+                }
+                if (!timeStr) return ['❌ 未找到有效时间'];
 
-                // 收集汉字奖励物品名称（跳过数字编号）
-                const rewardItems = [];
-                for (let i = 2; i < firstLineParts.length; i++) {
-                    const item = firstLineParts[i].trim();
-                    // 只收集纯汉字的物品名称，跳过数字编号
-                    if (item && /^[\u4e00-\u9fa5]+$/.test(item)) {
-                        rewardItems.push(item);
-                    } else if (/^\d+$/.test(item)) {
-                        // 遇到数字时停止收集物品名称
-                        break;
+                // 统计纯汉字物品（忽略数字行和状态行）
+                const itemCount = new Map();
+                const chineseRegex = /^[\u4e00-\u9fa5]+$/;
+                for (let line of lines) {
+                    if (chineseRegex.test(line)) {
+                        itemCount.set(line, (itemCount.get(line) || 0) + 1);
                     }
                 }
 
-                // 使用 Map 统计每种物品的数量
-                const rewardCount = new Map();
-                for (let item of rewardItems) {
-                    rewardCount.set(item, (rewardCount.get(item) || 0) + 1);
-                }
+                if (itemCount.size === 0) return ['未解析到有效奖励数据'];
 
-                // 生成统计结果
+                // 生成汇总（如 霍山黄芽茶*5，玉叶子*2）
                 const statsList = [];
-                let totalItems = 0;
-                for (let [name, count] of rewardCount) {
-                    if (count > 1) {
-                        statsList.push(`${name}*${count}`);
-                    } else {
-                        statsList.push(name);
-                    }
-                    totalItems += count;
+                for (let [name, count] of itemCount) {
+                    statsList.push(count > 1 ? `${name}*${count}` : name);
                 }
 
-                // 格式化时间
-                const formattedTime = (firstLineParts[1] || '未知时间').replace(/-/g, '/');
-
-                // 生成话术（保留时间，仅包含奖励统计）
-                let result = '';
-                if (statsList.length > 0) {
-                    result = `在${formattedTime}，共获得${totalItems}件道具，其中：${statsList.join('，')}`;
-                } else {
-                    result = '未解析到有效奖励数据';
-                }
-
+                // 最终话术
+                const result = `在${timeStr}，获得好评奖励：${statsList.join('，')}`;
                 return [result];
             }
 
