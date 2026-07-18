@@ -632,15 +632,17 @@
 
             function sortSentencesByTime(sentences, order = 'desc') {
                 if (!sentences || sentences.length < 2) return sentences;
-                const timeRegex = /\d{4}\/\d{2}\/\d{2}\s+\d{2}:\d{2}:\d{2}/;
+                // 匹配 yyyy-MM-dd HH:mm:ss 或 yyyy/MM/dd HH:mm:ss
+                const timeRegex = /\d{4}[-\/]\d{2}[-\/]\d{2}\s+\d{2}:\d{2}:\d{2}/;
                 return sentences.slice().sort((a, b) => {
                     const timeA = (a.match(timeRegex) || [])[0];
                     const timeB = (b.match(timeRegex) || [])[0];
                     if (!timeA && !timeB) return 0;
                     if (!timeA) return 1;
                     if (!timeB) return -1;
-                    const dateA = new Date(timeA.replace(/\//g, '-'));
-                    const dateB = new Date(timeB.replace(/\//g, '-'));
+                    // 将 - 替换为 /，确保 Date 解析一致
+                    const dateA = new Date(timeA.replace(/-/g, '/'));
+                    const dateB = new Date(timeB.replace(/-/g, '/'));
                     return order === 'asc' ? dateA - dateB : dateB - dateA;
                 });
             }
@@ -840,30 +842,44 @@
                 return [`在${finalTime.replace(/-/g, '/')}提交【${chessStr}】${actionVerb}，获得${rewardStr}`];
             }
 
+            // 道具流水解析（修复来源列和转换规则）
             function parseItemFlowLog(rawText) {
                 const lines = rawText.split(/\r?\n/).filter(l => l.trim());
                 const records = [];
+
                 for (let line of lines) {
                     if (shouldIgnoreLine(line)) continue;
+
                     const parts = line.split('\t');
-                    if (parts.length < 10) continue;
+                    if (parts.length < 9) continue; // 至少需要9列（索引0~8）
+
                     const rawTime = parts[0]?.trim();
                     if (!rawTime) continue;
                     const time = formatTimeToStandard(rawTime);
-                    const itemId = parts[3]?.trim() || '';
-                    const itemName = parts[4]?.trim() || '';
-                    const type = parts[5]?.trim() || '';
-                    const changeStr = parts[6]?.trim() || '0';
+
+                    const itemId = parts[3]?.trim() || '';      // 第4列：道具ID
+                    const itemName = parts[4]?.trim() || '';    // 第5列：道具名称（可能为空）
+                    const changeStr = parts[6]?.trim() || '0';  // 第7列：变化量（+5）
                     const change = parseInt(changeStr, 10) || 0;
                     const before = parseInt(parts[7]?.trim() || '0', 10) || 0;
                     const after = parseInt(parts[8]?.trim() || '0', 10) || 0;
-                    let source = parts[9]?.trim() || '';
+                    let source = parts[9]?.trim() || '';        // 第10列：来源（若只有9列则取不到）
+                    // 兼容列数不足的情况（来源可能在索引8）
+                    if (!source && parts.length >= 9) {
+                        source = parts[8]?.trim() || '';
+                    }
+                    // 应用来源转换规则
                     source = applySourceConversion(source);
-                    let displayName = itemName;
-                    if (!displayName) displayName = itemId;
-                    records.push({ time, itemId, itemName: displayName, type, change, before, after, source });
+
+                    // 确定显示名称：优先用实际名称，为空时用道具ID，最后应用棋子名称转换
+                    let displayName = itemName || itemId;
+                    displayName = applyChessNameConversion(displayName);  // 让转换规则生效
+
+                    records.push({ time, itemId, itemName: displayName, change, before, after, source });
                 }
+
                 records.sort((a, b) => b.time.localeCompare(a.time));
+
                 const sentences = records.map(rec => {
                     const action = rec.change > 0 ? '获得' : (rec.change < 0 ? '消耗' : '操作');
                     const abs = Math.abs(rec.change);
@@ -874,6 +890,7 @@
                         return `在${rec.time}，${action}${abs}个${rec.itemName}`;
                     }
                 }).filter(s => s);
+
                 return sentences;
             }
 
@@ -946,16 +963,20 @@
                     return;
                 }
                 if (mode === 'itemFlow') {
-                    debugConsole.innerHTML = '🔍 道具流水解析...';
-                    let sentences = parseItemFlowLog(raw);
-                    if (!sentences.length) { debugConsole.innerHTML += '\n❌ 无有效记录'; return; }
-                    sentences = sortSentencesByTime(sentences, sortOrder);
-                    globalResultArea.value = sentences.join('\n\n');
-                    globalResultCount.textContent = `${sentences.length} 条`;
-                    resultSourceHint.textContent = '道具流水解析';
-                    navigator.clipboard.writeText(globalResultArea.value);
-                    debugConsole.innerHTML += '\n✅ 完成';
-                    return;
+                    debugConsole.innerHTML = '🔍 道具流水（文件）解析...';
+                    let sentences = parseItemFlowLog(text);  // 改为 let
+                    if (sentences.length) {
+                        // 根据当前排序选择排序
+                        const sortOrder = document.getElementById('sortOrderSelect').value;
+                        sentences = sortSentencesByTime(sentences, sortOrder);
+                        globalResultArea.value = sentences.join('\n\n');
+                        globalResultCount.textContent = `${sentences.length} 条`;
+                        resultSourceHint.textContent = '道具流水（上传）';
+                        navigator.clipboard.writeText(globalResultArea.value);
+                        debugConsole.innerHTML += '\n✅ 完成';
+                    } else {
+                        debugConsole.innerHTML += '\n❌ 无有效记录';
+                    }
                 }
                 if (mode === 'review') {
                     debugConsole.innerHTML = '🌟 好评奖励解析...';
@@ -1098,7 +1119,7 @@
                     if (g.items.size === 0) continue;
                     const sortedItems = Array.from(g.items.entries()).sort((a, b) => a[0].localeCompare(b[0]));
                     const rewardPart = sortedItems.map(([name, qty]) => `${name}*${qty}`).join('，');
-                    blocks.push(`${g.time}，通过【${g.source}】正常${g.action}以下物品：${rewardPart}`);
+                    blocks.push(`${g.time.replace(/-/g, '/')}，通过【${g.source}】正常${g.action}以下物品：${rewardPart}`);
                 }
                 return blocks.join('\n\n');
             }
