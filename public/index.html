@@ -449,14 +449,6 @@
                         <label class="checkbox-label"><input type="radio" name="parseMode" value="review"> 好评奖励</label>
                         <label class="checkbox-label"><input type="radio" name="parseMode" value="itemFlow"> 道具流水</label>
                     </div>
-                    <!-- 🕒 时间排序切换 -->
-                    <div style="display:flex; align-items:center; gap:8px; margin-left:16px;">
-                        <label style="margin:0;">🕒 排序：</label>
-                        <select id="sortOrderSelect" style="width:100px;">
-                            <option value="desc" selected>时间倒序</option>
-                            <option value="asc">时间正序</option>
-                        </select>
-                    </div>
                 </div>
                 <div style="border-top: 1px solid #e0e0e0; margin: 16px 0;"></div>
                 <div class="rule-bar">
@@ -479,8 +471,20 @@
                 </div>
             </div>
             <div class="card" style="margin-top:20px;">
-                <div class="result-header"><label>📄 生成话术 <span id="globalResultCount" class="badge">0 条/组</span></label><div class="flex-row"><button id="copyGlobalResultBtn">📋 复制全部</button><button id="exportGlobalResultBtn">💾 导出TXT</button></div></div>
-                <textarea id="globalResultArea" rows="20" readonly style="background:#e9ecef;"></textarea>
+                <div class="result-header">
+                    <label>📄 生成话术 <span id="globalResultCount" class="badge">0 条/组</span></label>
+                    <div class="flex-row">
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <label style="margin:0;">🕒 排序：</label>
+                            <select id="sortOrderSelect" style="width:100px;">
+                                <option value="desc" selected>时间倒序</option>
+                                <option value="asc">时间正序</option>
+                            </select>
+                        </div>
+                        <button id="copyGlobalResultBtn">📋 复制全部</button>
+                        <button id="exportGlobalResultBtn">💾 导出TXT</button>
+                    </div>
+                </div>                <textarea id="globalResultArea" rows="20" readonly style="background:#e9ecef;"></textarea>
                 <small>结果来源：<span id="resultSourceHint">等待操作</span></small>
             </div>
             <div style="margin-top:12px;"><div id="debugToggleHeader" class="debug-toggle"><span id="debugArrow">▶</span><span>🔍 调试日志</span></div><div id="flowDebugConsole" class="debug-console"></div></div>
