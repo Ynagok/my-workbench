@@ -875,29 +875,24 @@
                     if (shouldIgnoreLine(line)) continue;
 
                     const parts = line.split('\t');
-                    if (parts.length < 9) continue; // 至少需要9列（索引0~8）
+                    if (parts.length < 9) continue; // 至少9列
 
                     const rawTime = parts[0]?.trim();
                     if (!rawTime) continue;
                     const time = formatTimeToStandard(rawTime);
 
-                    const itemId = parts[3]?.trim() || '';      // 第4列：道具ID
-                    const itemName = parts[4]?.trim() || '';    // 第5列：道具名称（可能为空）
-                    const changeStr = parts[6]?.trim() || '0';  // 第7列：变化量（+5）
+                    const itemId = parts[2]?.trim() || '';        // 第3列：道具ID
+                    const itemName = parts[4]?.trim() || '';      // 第5列：道具名称（可能为空）
+                    const changeStr = parts[5]?.trim() || '0';    // 第6列：变化量 (+5)
                     const change = parseInt(changeStr, 10) || 0;
-                    const before = parseInt(parts[7]?.trim() || '0', 10) || 0;
-                    const after = parseInt(parts[8]?.trim() || '0', 10) || 0;
-                    let source = parts[9]?.trim() || '';        // 第10列：来源（若只有9列则取不到）
-                    // 兼容列数不足的情况（来源可能在索引8）
-                    if (!source && parts.length >= 9) {
-                        source = parts[8]?.trim() || '';
-                    }
-                    // 应用来源转换规则
+                    const before = parseInt(parts[6]?.trim() || '0', 10) || 0;
+                    const after = parseInt(parts[7]?.trim() || '0', 10) || 0;
+                    let source = parts[8]?.trim() || '';          // 第9列：来源
                     source = applySourceConversion(source);
 
-                    // 确定显示名称：优先用实际名称，为空时用道具ID，最后应用棋子名称转换
+                    // 道具名称为空时使用ID，并应用棋子名称转换
                     let displayName = itemName || itemId;
-                    displayName = applyChessNameConversion(displayName);  // 让转换规则生效
+                    displayName = applyChessNameConversion(displayName);
 
                     records.push({ time, itemId, itemName: displayName, change, before, after, source });
                 }
@@ -987,20 +982,20 @@
                     return;
                 }
                 if (mode === 'itemFlow') {
-                    debugConsole.innerHTML = '🔍 道具流水（文件）解析...';
-                    let sentences = parseItemFlowLog(text);  // 改为 let
+                    debugConsole.innerHTML = '🔍 道具流水解析...';
+                    let sentences = parseItemFlowLog(raw);               // 用 raw 而不是 text
                     if (sentences.length) {
-                        // 根据当前排序选择排序
                         const sortOrder = document.getElementById('sortOrderSelect').value;
                         sentences = sortSentencesByTime(sentences, sortOrder);
                         globalResultArea.value = sentences.join('\n\n');
                         globalResultCount.textContent = `${sentences.length} 条`;
-                        resultSourceHint.textContent = '道具流水（上传）';
+                        resultSourceHint.textContent = '道具流水解析';
                         navigator.clipboard.writeText(globalResultArea.value);
                         debugConsole.innerHTML += '\n✅ 完成';
                     } else {
                         debugConsole.innerHTML += '\n❌ 无有效记录';
                     }
+                    return;   // 必须加 return，否则会继续执行后面的资源流水代码
                 }
                 if (mode === 'review') {
                     debugConsole.innerHTML = '🌟 好评奖励解析...';
