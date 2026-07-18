@@ -434,70 +434,74 @@
         </div>
 
         <!-- 话术生成 gen -->
-        <div id="tab-gen" class="tab-content active">
-            <div class="inline-card" style="margin-bottom: 20px;">
-                <label style="font-size: 1.1rem; margin-bottom: 10px;">📋 智能粘贴识别（支持资源/棋子/订单）</label>
-                <textarea id="smartPasteInput" rows="5" placeholder="粘贴流水/订单日志，例如：&#10;2026-04-20 16:04:00	51b2bb98971c8d2323c225edd44a5512	体力	-1	326	325	棋盘操作-临时母棋生产	0-货币"></textarea>
-                <div class="flex-row" style="margin-top:8px;">
-                    <button id="smartParseBtn">✨ 智能解析</button>
-                    <button id="clearSmartBtn" class="secondary">清空</button>
-                    <div class="parse-mode-group">
-                        <span>解析模式：</span>
-                        <label class="checkbox-label"><input type="radio" name="parseMode" value="resource" checked> 资源流水</label>
-                        <label class="checkbox-label"><input type="radio" name="parseMode" value="chess"> 棋子流水</label>
-                        <label class="checkbox-label"><input type="radio" name="parseMode" value="order"> 订单日志</label>
-                        <label class="checkbox-label"><input type="radio" name="parseMode" value="review"> 好评奖励</label>
-                        <label class="checkbox-label"><input type="radio" name="parseMode" value="itemFlow"> 道具流水</label>
-                    </div>
-                </div>
-                <div style="border-top: 1px solid #e0e0e0; margin: 16px 0;"></div>
-                <div class="rule-bar">
-                    <div><label style="margin:0; font-weight:600;">资源类型</label><select id="flowResourceSelect" class="compact-select"><option value="体力">体力</option><option value="红钻">红钻</option><option value="金币">金币</option><option value="好评点" selected>好评点</option><option value="道具" selected>道具</option></select></div>
-                    <div><strong>🚫 忽略</strong><label class="checkbox-label"><input type="checkbox" id="enableIgnoreRulesCheckbox" checked> 启用</label><button id="manageIgnoreRulesBtn" class="secondary">管理</button></div>
-                    <div><strong>📌 转换</strong><label class="checkbox-label"><input type="checkbox" id="enableSourceConversionCheckbox" checked> 启用</label><button id="manageSourceRulesBtn" class="secondary">管理</button></div>
-                </div>
-                <div class="upload-row">
-                    <div class="upload-col"><label>📁 上传流水CSV</label><div class="file-upload-wrapper"><input type="file" id="flowFileInput" accept=".csv,.txt" /><button id="uploadFlowBtn">上传解析</button><button id="debugFlowBtn" class="secondary">调试</button></div></div>
-                    <div class="upload-col"><label>来源关键词</label><input type="text" id="includeSourcesInput" placeholder="例如：棋盘,体力购买"></div>
-                    <div class="upload-col"><label>道具关键词</label><input type="text" id="itemKeywordInput" placeholder="例如：百戏锦囊"></div>
-                </div>
+        <div class="flex-row" style="margin-top:8px;">
+            <button id="smartParseBtn">✨ 智能解析</button>
+            <button id="clearSmartBtn" class="secondary">清空</button>
+            <div class="parse-mode-group">
+                <span>解析模式：</span>
+                <label class="checkbox-label"><input type="radio" name="parseMode" value="resource" checked> 资源流水</label>
+                <label class="checkbox-label"><input type="radio" name="parseMode" value="chess"> 棋子流水</label>
+                <label class="checkbox-label"><input type="radio" name="parseMode" value="order"> 订单日志</label>
+                <label class="checkbox-label"><input type="radio" name="parseMode" value="review"> 好评奖励</label>
+                <label class="checkbox-label"><input type="radio" name="parseMode" value="itemFlow"> 道具流水</label>
             </div>
-            <div class="card" style="padding: 12px 16px;">
-                <div class="collapsible-header" id="toggleTemplateHeader"><span class="arrow" id="toggleArrow">▼</span><span>📌 手动自定义话术</span><div style="margin-left:auto; display:flex; gap:8px;"><button id="manageTemplatesBtn" class="secondary">管理模板</button><button id="resetRulesBtn" class="reset-btn">重置默认</button></div></div>
-                <div class="collapsible-content" id="templateContent" style="max-height:500px;">
-                    <div class="form-group" style="margin-top:12px;"><label>选择模板：</label><select id="templateSelect" style="width:100%;"></select></div>
-                    <label>📝 变量值</label><div id="varContainer" class="var-grid"></div>
-                    <div class="flex-row"><button id="generateFromTemplateBtn" style="background:#28a745;">✨ 模板生成话术</button></div>
-                </div>
+            <!-- 🕒 时间排序切换 -->
+            <div style="display:flex; align-items:center; gap:8px; margin-left:16px;">
+                <label style="margin:0;">🕒 排序：</label>
+                <select id="sortOrderSelect" style="width:100px;">
+                    <option value="desc" selected>时间倒序</option>
+                    <option value="asc">时间正序</option>
+                </select>
             </div>
-            <div class="card" style="margin-top:20px;">
-                <div class="result-header"><label>📄 生成话术 <span id="globalResultCount" class="badge">0 条/组</span></label><div class="flex-row"><button id="copyGlobalResultBtn">📋 复制全部</button><button id="exportGlobalResultBtn">💾 导出TXT</button></div></div>
-                <textarea id="globalResultArea" rows="20" readonly style="background:#e9ecef;"></textarea>
-                <small>结果来源：<span id="resultSourceHint">等待操作</span></small>
-            </div>
-            <div style="margin-top:12px;"><div id="debugToggleHeader" class="debug-toggle"><span id="debugArrow">▶</span><span>🔍 调试日志</span></div><div id="flowDebugConsole" class="debug-console"></div></div>
         </div>
+        <div style="border-top: 1px solid #e0e0e0; margin: 16px 0;"></div>
+        <div class="rule-bar">
+            <div><label style="margin:0; font-weight:600;">资源类型</label><select id="flowResourceSelect" class="compact-select"><option value="体力">体力</option><option value="红钻">红钻</option><option value="金币">金币</option><option value="好评点" selected>好评点</option><option value="道具" selected>道具</option></select></div>
+            <div><strong>🚫 忽略</strong><label class="checkbox-label"><input type="checkbox" id="enableIgnoreRulesCheckbox" checked> 启用</label><button id="manageIgnoreRulesBtn" class="secondary">管理</button></div>
+            <div><strong>📌 转换</strong><label class="checkbox-label"><input type="checkbox" id="enableSourceConversionCheckbox" checked> 启用</label><button id="manageSourceRulesBtn" class="secondary">管理</button></div>
+        </div>
+        <div class="upload-row">
+            <div class="upload-col"><label>📁 上传流水CSV</label><div class="file-upload-wrapper"><input type="file" id="flowFileInput" accept=".csv,.txt" /><button id="uploadFlowBtn">上传解析</button><button id="debugFlowBtn" class="secondary">调试</button></div></div>
+            <div class="upload-col"><label>来源关键词</label><input type="text" id="includeSourcesInput" placeholder="例如：棋盘,体力购买"></div>
+            <div class="upload-col"><label>道具关键词</label><input type="text" id="itemKeywordInput" placeholder="例如：百戏锦囊"></div>
+        </div>
+    </div>
+    <div class="card" style="padding: 12px 16px;">
+        <div class="collapsible-header" id="toggleTemplateHeader"><span class="arrow" id="toggleArrow">▼</span><span>📌 手动自定义话术</span><div style="margin-left:auto; display:flex; gap:8px;"><button id="manageTemplatesBtn" class="secondary">管理模板</button><button id="resetRulesBtn" class="reset-btn">重置默认</button></div></div>
+        <div class="collapsible-content" id="templateContent" style="max-height:500px;">
+            <div class="form-group" style="margin-top:12px;"><label>选择模板：</label><select id="templateSelect" style="width:100%;"></select></div>
+            <label>📝 变量值</label><div id="varContainer" class="var-grid"></div>
+            <div class="flex-row"><button id="generateFromTemplateBtn" style="background:#28a745;">✨ 模板生成话术</button></div>
+        </div>
+    </div>
+    <div class="card" style="margin-top:20px;">
+        <div class="result-header"><label>📄 生成话术 <span id="globalResultCount" class="badge">0 条/组</span></label><div class="flex-row"><button id="copyGlobalResultBtn">📋 复制全部</button><button id="exportGlobalResultBtn">💾 导出TXT</button></div></div>
+        <textarea id="globalResultArea" rows="20" readonly style="background:#e9ecef;"></textarea>
+        <small>结果来源：<span id="resultSourceHint">等待操作</span></small>
+    </div>
+    <div style="margin-top:12px;"><div id="debugToggleHeader" class="debug-toggle"><span id="debugArrow">▶</span><span>🔍 调试日志</span></div><div id="flowDebugConsole" class="debug-console"></div></div>
+    </div>
 
-        <!-- 集卡页 card -->
-        <div id="tab-card" class="tab-content">
-            <div class="form-group"><label>上传集卡CSV文件</label><input type="file" id="csvFileInput" accept=".csv,.txt" /><button id="uploadCsvBtn" style="margin-top:8px;">📂 上传并解析</button><button id="debugCardBtn" class="secondary">🔍 调试</button></div>
-            <div class="form-group"><label>按卡包星级筛选：</label><select id="starFilterSelect"><option value="all">全部</option><option value="1">1星</option><option value="2">2星</option><option value="3">3星</option><option value="4">4星</option><option value="5">5星</option></select><button id="applyFilterBtn" style="margin-left:8px;">应用筛选</button></div>
-            <div class="card"><label>生成结果（共 <span id="recordCount">0</span> 条）</label><textarea id="cardResultArea" rows="20" readonly></textarea><div class="flex-row"><button id="copyAllCardBtn">📋 复制全部</button><button id="exportCardBtn">💾 导出TXT</button></div></div>
-        </div>
+    <!-- 集卡页 card -->
+    <div id="tab-card" class="tab-content">
+        <div class="form-group"><label>上传集卡CSV文件</label><input type="file" id="csvFileInput" accept=".csv,.txt" /><button id="uploadCsvBtn" style="margin-top:8px;">📂 上传并解析</button><button id="debugCardBtn" class="secondary">🔍 调试</button></div>
+        <div class="form-group"><label>按卡包星级筛选：</label><select id="starFilterSelect"><option value="all">全部</option><option value="1">1星</option><option value="2">2星</option><option value="3">3星</option><option value="4">4星</option><option value="5">5星</option></select><button id="applyFilterBtn" style="margin-left:8px;">应用筛选</button></div>
+        <div class="card"><label>生成结果（共 <span id="recordCount">0</span> 条）</label><textarea id="cardResultArea" rows="20" readonly></textarea><div class="flex-row"><button id="copyAllCardBtn">📋 复制全部</button><button id="exportCardBtn">💾 导出TXT</button></div></div>
+    </div>
 
-        <!-- 话术库 script -->
-        <div id="tab-script" class="tab-content">
-            <div class="flex-row"><input type="text" id="searchScript" placeholder="搜索话术内容..." style="flex:2;"><select id="tagFilterSelect" style="flex:1;"><option value="all">所有标签</option><option value="no_tag">无标签</option></select><button id="manageTagsBtn" class="secondary">🏷️ 管理标签</button></div>
-            <div class="flex-row" style="margin:12px 0;">
-                <button id="addScriptBtn">➕ 新增话术</button>
-                <button id="copyScriptBtn">📋 复制选中</button>
-                <button id="batchTagBtn" class="secondary">🏷️ 批量打标签</button>
-                <button id="deleteScriptBtn" class="reset-btn">🗑️ 批量删除</button>
-                <button id="importScriptBtn" class="secondary">📂 导入文本</button>
-            </div>
-            <select id="scriptListbox" size="15" style="width:100%; height:350px;" multiple></select>
-            <small>按住 Ctrl 或 Shift 可多选</small>
+    <!-- 话术库 script -->
+    <div id="tab-script" class="tab-content">
+        <div class="flex-row"><input type="text" id="searchScript" placeholder="搜索话术内容..." style="flex:2;"><select id="tagFilterSelect" style="flex:1;"><option value="all">所有标签</option><option value="no_tag">无标签</option></select><button id="manageTagsBtn" class="secondary">🏷️ 管理标签</button></div>
+        <div class="flex-row" style="margin:12px 0;">
+            <button id="addScriptBtn">➕ 新增话术</button>
+            <button id="copyScriptBtn">📋 复制选中</button>
+            <button id="batchTagBtn" class="secondary">🏷️ 批量打标签</button>
+            <button id="deleteScriptBtn" class="reset-btn">🗑️ 批量删除</button>
+            <button id="importScriptBtn" class="secondary">📂 导入文本</button>
         </div>
+        <select id="scriptListbox" size="15" style="width:100%; height:350px;" multiple></select>
+        <small>按住 Ctrl 或 Shift 可多选</small>
+    </div>
     </div>
 
     <!-- 模态框集合（样式保持一致） -->
@@ -620,7 +624,25 @@
                 if (!(document.getElementById('enableIgnoreRulesCheckbox')?.checked ?? true) || !ignoreKeywords.length) return false;
                 return ignoreKeywords.some(kw => line.toLowerCase().includes(kw.toLowerCase()));
             }
-            function cleanHeader(s) { return s.trim().replace(/^["'“”]|["'“”]$/g, ''); }
+            function cleanHeader(s) { return s.trim().replace(/^["'"]|["'"]$/g, ''); }
+
+            // ★ 时间排序函数：支持正序/倒序
+            function sortSentencesByTime(sentences, order = 'desc') {
+                if (!sentences || sentences.length < 2) return sentences;
+                const timeRegex = /\d{4}\/\d{2}\/\d{2}\s+\d{2}:\d{2}:\d{2}/;
+                return sentences.slice().sort((a, b) => {
+                    const timeA = (a.match(timeRegex) || [])[0];
+                    const timeB = (b.match(timeRegex) || [])[0];
+                    if (!timeA && !timeB) return 0;
+                    if (!timeA) return 1;
+                    if (!timeB) return -1;
+                    const dateA = new Date(timeA.replace(/\//g, '-'));
+                    const dateB = new Date(timeB.replace(/\//g, '-'));
+                    return order === 'asc' ? dateA - dateB : dateB - dateA;
+                });
+            }
+
+            function applyResourceClickReplace(text, resourceType) {
 
             function applyResourceClickReplace(text, resourceType) {
                 if (!text) return text;
@@ -953,101 +975,106 @@
                 });
             }
 
-            function smartParseAndFill() {
-                expandDebugConsole();
-                const mode = document.querySelector('input[name="parseMode"]:checked').value;
-                const raw = smartPasteInput.value.trim();
-                if (!raw) { debugConsole.innerHTML = '❌ 请输入文本'; return; }
+                function smartParseAndFill() {
+                    expandDebugConsole();
+                    const mode = document.querySelector('input[name="parseMode"]:checked').value;
+                    const raw = smartPasteInput.value.trim();
+                    if (!raw) { debugConsole.innerHTML = '❌ 请输入文本'; return; }
+                    const sortOrder = document.getElementById('sortOrderSelect').value;
 
-                if (mode === 'order') {
-                    if (raw.includes('创建')) {
-                        debugConsole.innerHTML += '\n⚠️ 检测到“创建”订单，可能无法提取完整奖励';
-                    }
-                    debugConsole.innerHTML = '📦 订单日志解析...';
-                    const s = parseOrderLog(raw);
-                    globalResultArea.value = s.join('\n\n');
-                    globalResultCount.textContent = `${s.length} 条`;
-                    resultSourceHint.textContent = '订单日志解析';
-                    navigator.clipboard.writeText(globalResultArea.value);
-                    return;
-                }
-
-                if (mode === 'itemFlow') {
-                    debugConsole.innerHTML = '🔍 道具流水解析...';
-                    const sentences = parseItemFlowLog(raw);
-                    if (!sentences.length) {
-                        debugConsole.innerHTML += '\n❌ 无有效记录';
+                    if (mode === 'order') {
+                        if (raw.includes('创建')) {
+                            debugConsole.innerHTML += '\n⚠️ 检测到"创建"订单，可能无法提取完整奖励';
+                        }
+                        debugConsole.innerHTML = '📦 订单日志解析...';
+                        let s = parseOrderLog(raw);
+                        s = sortSentencesByTime(s, sortOrder);
+                        globalResultArea.value = s.join('\n\n');
+                        globalResultCount.textContent = `${s.length} 条`;
+                        resultSourceHint.textContent = '订单日志解析';
+                        navigator.clipboard.writeText(globalResultArea.value);
                         return;
                     }
+
+                    if (mode === 'itemFlow') {
+                        debugConsole.innerHTML = '🔍 道具流水解析...';
+                        let sentences = parseItemFlowLog(raw);
+                        if (!sentences.length) {
+                            debugConsole.innerHTML += '\n❌ 无有效记录';
+                            return;
+                        }
+                        sentences = sortSentencesByTime(sentences, sortOrder);
+                        globalResultArea.value = sentences.join('\n\n');
+                        globalResultCount.textContent = `${sentences.length} 条`;
+                        resultSourceHint.textContent = '道具流水解析';
+                        navigator.clipboard.writeText(globalResultArea.value);
+                        debugConsole.innerHTML += `\n✅ 完成`;
+                        return;
+                    }
+
+                    if (mode === 'review') {
+                        debugConsole.innerHTML = '🌟 好评奖励解析...';
+                        const s = parseReviewLog(raw);
+                        globalResultArea.value = s.join('\n\n');
+                        globalResultCount.textContent = '1 条';
+                        resultSourceHint.textContent = '好评奖励解析';
+                        navigator.clipboard.writeText(globalResultArea.value);
+                        debugConsole.innerHTML += '\n✅ 完成';
+                        return;
+                    }
+
+                    if (mode === 'chess') {
+                        debugConsole.innerHTML = '🔍 棋子流水解析...';
+                        const r = parseChessLog(raw).filter(r => !r.error);
+                        if (!r.length) { debugConsole.innerHTML += '\n❌ 没有解析到有效棋子记录'; return; }
+                        r.sort((a, b) => (b.time || '').localeCompare(a.time || ''));
+                        if (sortOrder === 'asc') r.reverse();
+                        const out = r.map(r => r.finalDesc).join('\n\n');
+                        globalResultArea.value = out;
+                        globalResultCount.textContent = `${r.length} 条`;
+                        resultSourceHint.textContent = '棋子流水解析';
+                        navigator.clipboard.writeText(out);
+                        debugConsole.innerHTML += `\n✅ 完成`;
+                        return;
+                    }
+
+                    debugConsole.innerHTML = '🔍 资源流水解析...';
+                    const resourceType = document.getElementById('flowResourceSelect').value;
+                    const includeSourcesRaw = document.getElementById('includeSourcesInput').value.trim();
+                    const itemKeywordRaw = document.getElementById('itemKeywordInput').value.trim();
+                    let records = parseSmartLog(raw);
+                    if (!records.length) { debugConsole.innerHTML += '\n❌ 无记录'; return; }
+                    debugConsole.innerHTML += `\n📌 原始记录数: ${records.length}`;
+
+                    if (resourceType === '道具' && itemKeywordRaw) {
+                        const keywords = itemKeywordRaw.split(',').map(k => k.trim().toLowerCase()).filter(k => k);
+                        debugConsole.innerHTML += `\n🔍 应用道具关键词: ${keywords.join(', ')}`;
+                        records = records.filter(r => {
+                            const itemName = (r['道具名称'] || '').toLowerCase();
+                            return keywords.some(k => itemName.includes(k));
+                        });
+                        debugConsole.innerHTML += `\n📌 道具筛选后: ${records.length} 条`;
+                    }
+                    if (includeSourcesRaw) {
+                        const keywords = includeSourcesRaw.split(',').map(k => k.trim().toLowerCase()).filter(k => k);
+                        debugConsole.innerHTML += `\n🔍 应用来源关键词: ${keywords.join(', ')}`;
+                        records = records.filter(r => {
+                            const source = (r['来源'] || '').toLowerCase();
+                            return keywords.some(k => source.includes(k));
+                        });
+                        debugConsole.innerHTML += `\n📌 来源筛选后: ${records.length} 条`;
+                    }
+
+                    if (records.length === 0) { debugConsole.innerHTML += '\n⚠️ 筛选后无话术'; return; }
+                    let sentences = records.map(r => generateFlowSentence(r, resourceType, true)).filter(s => s);
+                    if (sentences.length === 0) { debugConsole.innerHTML += '\n⚠️ 无有效话术'; return; }
+                    sentences = sortSentencesByTime(sentences, sortOrder);
                     globalResultArea.value = sentences.join('\n\n');
                     globalResultCount.textContent = `${sentences.length} 条`;
-                    resultSourceHint.textContent = '道具流水解析';
+                    resultSourceHint.textContent = '智能解析（显示前后变化）';
                     navigator.clipboard.writeText(globalResultArea.value);
-                    debugConsole.innerHTML += `\n✅ 完成`;
-                    return;
+                    debugConsole.innerHTML += `\n✨ 生成 ${sentences.length} 条`;
                 }
-
-                if (mode === 'review') {
-                    debugConsole.innerHTML = '🌟 好评奖励解析...';
-                    const s = parseReviewLog(raw);
-                    globalResultArea.value = s.join('\n\n');
-                    globalResultCount.textContent = '1 条';
-                    resultSourceHint.textContent = '好评奖励解析';
-                    navigator.clipboard.writeText(globalResultArea.value);
-                    debugConsole.innerHTML += '\n✅ 完成';
-                    return;
-                }
-
-                if (mode === 'chess') {
-                    debugConsole.innerHTML = '🔍 棋子流水解析...';
-                    const r = parseChessLog(raw).filter(r => !r.error);
-                    if (!r.length) { debugConsole.innerHTML += '\n❌ 没有解析到有效棋子记录'; return; }
-                    r.sort((a, b) => (b.time || '').localeCompare(a.time || ''));
-                    const out = r.map(r => r.finalDesc).join('\n\n');
-                    globalResultArea.value = out;
-                    globalResultCount.textContent = `${r.length} 条`;
-                    resultSourceHint.textContent = '棋子流水解析';
-                    navigator.clipboard.writeText(out);
-                    debugConsole.innerHTML += `\n✅ 完成`;
-                    return;
-                }
-
-                debugConsole.innerHTML = '🔍 资源流水解析...';
-                const resourceType = document.getElementById('flowResourceSelect').value;
-                const includeSourcesRaw = document.getElementById('includeSourcesInput').value.trim();
-                const itemKeywordRaw = document.getElementById('itemKeywordInput').value.trim();
-                let records = parseSmartLog(raw);
-                if (!records.length) { debugConsole.innerHTML += '\n❌ 无记录'; return; }
-                debugConsole.innerHTML += `\n📌 原始记录数: ${records.length}`;
-
-                if (resourceType === '道具' && itemKeywordRaw) {
-                    const keywords = itemKeywordRaw.split(',').map(k => k.trim().toLowerCase()).filter(k => k);
-                    debugConsole.innerHTML += `\n🔍 应用道具关键词: ${keywords.join(', ')}`;
-                    records = records.filter(r => {
-                        const itemName = (r['道具名称'] || '').toLowerCase();
-                        return keywords.some(k => itemName.includes(k));
-                    });
-                    debugConsole.innerHTML += `\n📌 道具筛选后: ${records.length} 条`;
-                }
-                if (includeSourcesRaw) {
-                    const keywords = includeSourcesRaw.split(',').map(k => k.trim().toLowerCase()).filter(k => k);
-                    debugConsole.innerHTML += `\n🔍 应用来源关键词: ${keywords.join(', ')}`;
-                    records = records.filter(r => {
-                        const source = (r['来源'] || '').toLowerCase();
-                        return keywords.some(k => source.includes(k));
-                    });
-                    debugConsole.innerHTML += `\n📌 来源筛选后: ${records.length} 条`;
-                }
-
-                if (records.length === 0) { debugConsole.innerHTML += '\n⚠️ 筛选后无话术'; return; }
-                let sentences = records.map(r => generateFlowSentence(r, resourceType, true)).filter(s => s);
-                if (sentences.length === 0) { debugConsole.innerHTML += '\n⚠️ 无有效话术'; return; }
-                globalResultArea.value = sentences.join('\n\n');
-                globalResultCount.textContent = `${sentences.length} 条`;
-                resultSourceHint.textContent = '智能解析（显示前后变化）';
-                navigator.clipboard.writeText(globalResultArea.value);
-                debugConsole.innerHTML += `\n✨ 生成 ${sentences.length} 条`;
-            }
 
             // CSV 解析与合并
             function parseFlowCSV(csvText) {
@@ -1112,7 +1139,7 @@
                         }
                     }
 
-                    // ★ 应用棋子名称转换规则（让ID能被替换为自定义名字）
+                    // ★ 应用棋子名称转换规则
                     if (rec['道具名称']) {
                         rec['道具名称'] = applyChessNameConversion(rec['道具名称']);
                     }
@@ -1173,56 +1200,60 @@
                 return null;
             }
 
-            async function processFlowCsv() {
-                expandDebugConsole();
-                const f = document.getElementById('flowFileInput').files[0];
-                if (!f) return;
-                const selectedType = document.getElementById('flowResourceSelect').value;
-                const fileName = f.name;
-                const inferred = inferTypeFromFileName(fileName);
-                if (inferred && inferred !== selectedType) {
-                    alert('文件类型与所选资源类型不一致，请检查');
-                    return;
-                }
-                const text = await f.text();
-                let records = parseFlowCSV(text);
-                if (!records.length) {
-                    debugConsole.innerHTML += '\n❌ 无有效记录';
-                    return;
-                }
-                const itemKeywordRaw = document.getElementById('itemKeywordInput').value.trim();
-                const includeSourcesRaw = document.getElementById('includeSourcesInput').value.trim();
-                let filtered = records;
+                async function processFlowCsv() {
+                    expandDebugConsole();
+                    const f = document.getElementById('flowFileInput').files[0];
+                    if (!f) return;
+                    const selectedType = document.getElementById('flowResourceSelect').value;
+                    const fileName = f.name;
+                    const inferred = inferTypeFromFileName(fileName);
+                    if (inferred && inferred !== selectedType) {
+                        alert('文件类型与所选资源类型不一致，请检查');
+                        return;
+                    }
+                    const text = await f.text();
+                    let records = parseFlowCSV(text);
+                    if (!records.length) {
+                        debugConsole.innerHTML += '\n❌ 无有效记录';
+                        return;
+                    }
+                    const itemKeywordRaw = document.getElementById('itemKeywordInput').value.trim();
+                    const includeSourcesRaw = document.getElementById('includeSourcesInput').value.trim();
+                    let filtered = records;
 
-                if (selectedType === '道具' && itemKeywordRaw) {
-                    const keywords = itemKeywordRaw.split(',').map(k => k.trim().toLowerCase()).filter(k => k);
-                    filtered = filtered.filter(r => {
-                        const itemName = (r['道具名称'] || '').toLowerCase();
-                        return keywords.some(k => itemName.includes(k));
-                    });
-                }
-                if (includeSourcesRaw) {
-                    const keywords = includeSourcesRaw.split(',').map(k => k.trim().toLowerCase()).filter(k => k);
-                    filtered = filtered.filter(r => {
-                        const source = (r['来源'] || '').toLowerCase();
-                        return keywords.some(k => source.includes(k));
-                    });
-                }
+                    if (selectedType === '道具' && itemKeywordRaw) {
+                        const keywords = itemKeywordRaw.split(',').map(k => k.trim().toLowerCase()).filter(k => k);
+                        filtered = filtered.filter(r => {
+                            const itemName = (r['道具名称'] || '').toLowerCase();
+                            return keywords.some(k => itemName.includes(k));
+                        });
+                    }
+                    if (includeSourcesRaw) {
+                        const keywords = includeSourcesRaw.split(',').map(k => k.trim().toLowerCase()).filter(k => k);
+                        filtered = filtered.filter(r => {
+                            const source = (r['来源'] || '').toLowerCase();
+                            return keywords.some(k => source.includes(k));
+                        });
+                    }
 
-                const mergedText = buildMergedRewardText(filtered);
-                if (mergedText) {
-                    globalResultArea.value = mergedText;
-                    globalResultCount.textContent = `${mergedText.split('\n\n').filter(b => b.trim()).length} 组`;
-                    resultSourceHint.textContent = `CSV合并 · 原始${records.length}条`;
-                    navigator.clipboard.writeText(mergedText);
-                } else {
-                    const sentences = filtered.map(r => generateFlowSentence(r, selectedType, true)).filter(s => s);
-                    if (sentences.length) {
-                        globalResultArea.value = sentences.join('\n\n');
-                        globalResultCount.textContent = `${sentences.length} 条`;
+                    const sortOrder = document.getElementById('sortOrderSelect').value;
+                    const mergedText = buildMergedRewardText(filtered);
+                    if (mergedText) {
+                        const blocks = mergedText.split('\n\n').filter(b => b.trim());
+                        const sortedBlocks = sortSentencesByTime(blocks, sortOrder);
+                        globalResultArea.value = sortedBlocks.join('\n\n');
+                        globalResultCount.textContent = `${sortedBlocks.length} 组`;
+                        resultSourceHint.textContent = `CSV合并 · 原始${records.length}条`;
+                        navigator.clipboard.writeText(globalResultArea.value);
+                    } else {
+                        let sentences = filtered.map(r => generateFlowSentence(r, selectedType, true)).filter(s => s);
+                        if (sentences.length) {
+                            sentences = sortSentencesByTime(sentences, sortOrder);
+                            globalResultArea.value = sentences.join('\n\n');
+                            globalResultCount.textContent = `${sentences.length} 条`;
+                        }
                     }
                 }
-            }
 
             // ==================== 集卡功能 ====================
             let currentCardRecords = [];
@@ -1333,6 +1364,15 @@
             function bindAll() {
                 document.getElementById('smartParseBtn').onclick = smartParseAndFill;
                 document.getElementById('clearSmartBtn').onclick = () => { smartPasteInput.value = ''; globalResultArea.value = ''; debugConsole.innerHTML = ''; };
+                // ★ 排序切换：对已有结果实时排序
+                document.getElementById('sortOrderSelect').addEventListener('change', () => {
+                    const text = globalResultArea.value.trim();
+                    if (!text) return;
+                    const lines = text.split('\n\n').filter(l => l.trim());
+                    const sorted = sortSentencesByTime(lines, document.getElementById('sortOrderSelect').value);
+                    globalResultArea.value = sorted.join('\n\n');
+                });
+                document.getElementById('uploadFlowBtn').onclick = async () => {
                 document.getElementById('uploadFlowBtn').onclick = async () => {
                     const mode = document.querySelector('input[name="parseMode"]:checked').value;
                     const file = document.getElementById('flowFileInput').files[0];
