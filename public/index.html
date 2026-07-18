@@ -863,7 +863,7 @@
                 if (pendingItem) rewardItems.push(pendingItem);
                 const rewardStr = rewardItems.length ? [...new Set(rewardItems)].join('，') : '奖励';
                 const actionVerb = statusText === '完成' ? '完成订单' : (statusText === '删除' ? '删除订单' : '操作订单');
-                return [`在${finalTime.replace(/-/g, '/')}提交【${chessStr}】${actionVerb}，获得${rewardStr}`];
+                return [`在${finalTime.replace(/-/g, '/')}提交${chessStr}${actionVerb}，获得${rewardStr}`];
             }
 
             // 道具流水解析（修复来源列和转换规则）
@@ -904,7 +904,7 @@
                     const abs = Math.abs(rec.change);
                     if (abs === 0) return null;
                     if (rec.source) {
-                        return `在${rec.time}，通过【${rec.source}】${action}${abs}个${rec.itemName}`;
+                        return `在${rec.time}，通过${rec.source}${action}${abs}个${rec.itemName}`;
                     } else {
                         return `在${rec.time}，${action}${abs}个${rec.itemName}`;
                     }
@@ -1138,7 +1138,7 @@
                     if (g.items.size === 0) continue;
                     const sortedItems = Array.from(g.items.entries()).sort((a, b) => a[0].localeCompare(b[0]));
                     const rewardPart = sortedItems.map(([name, qty]) => `${name}*${qty}`).join('，');
-                    blocks.push(`${g.time.replace(/-/g, '/')}，通过【${g.source}】正常${g.action}以下物品：${rewardPart}`);
+                    blocks.push(`${g.time.replace(/-/g, '/')}，通过${g.source}正常${g.action}以下物品：${rewardPart}`);
                 }
                 return blocks.join('\n\n');
             }
