@@ -699,7 +699,7 @@
                     const abs = Math.abs(rec.change);
                     if (abs === 0) return null;
                     if (rec.source) {
-                        return `在${rec.time}，通过【${rec.source}】${action}${abs}个${rec.itemName}`;
+                        return `在${rec.time}，通过${rec.source}${action}${abs}个${rec.itemName}`;
                     } else {
                         return `在${rec.time}，${action}${abs}个${rec.itemName}`;
                     }
@@ -731,21 +731,21 @@
                     return `在${time}，${action}了${abs}个${itemName || '活动道具'}`;
                 if (type === '好评点') {
                     return source
-                        ? `在${time}，通过【${source}】${action}${abs}点好评点，从${before}变为${after}`
+                        ? `在${time}，通过${source}${action}${abs}点好评点，从${before}变为${after}`
                         : `在${time}，${action}${abs}点好评点，从${before}变为${after}`;
                 }
                 if (type === '道具' && itemName) {
                     if (itemName.includes('积分') || itemName.includes('券')) {
                         return source
-                            ? `在${time}，通过【${source}】${action}${abs}个${itemName}，从${before}变为${after}`
+                            ? `在${time}，通过${source}${action}${abs}个${itemName}，从${before}变为${after}`
                             : `在${time}，${action}${abs}个${itemName}，从${before}变为${after}`;
                     }
                     return `在${time}，${action}了${abs}个${itemName}`;
                 }
                 let sentence = showChange
-                    ? (source ? `在${time}，通过【${source}】${action}${abs}点${type}，从${before}变为${after}`
+                    ? (source ? `在${time}，通过${source}${action}${abs}点${type}，从${before}变为${after}`
                         : `在${time}，${action}${abs}点${type}，从${before}变为${after}`)
-                    : (source ? `在${time}，通过【${source}】${action}${abs}点${type}`
+                    : (source ? `在${time}，通过${source}${action}${abs}点${type}`
                         : `在${time}，${action}${abs}点${type}`);
                 return applyResourceClickReplace(sentence, type);
             }
