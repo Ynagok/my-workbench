@@ -1094,6 +1094,22 @@
                         '来源': cleanVals[colIdx['来源']] || '',
                         '道具名称': colIdx['道具名称'] >= 0 ? cleanVals[colIdx['道具名称']] : ''
                     };
+                    // 根据用户选择的资源类型，强制填充道具名称
+                    const userSelectedType = document.getElementById('flowResourceSelect').value;
+                    if (['体力', '红钻', '金币', '好评点'].includes(userSelectedType)) {
+                        // 资源类：直接使用下拉框中的类型名
+                        rec['道具名称'] = userSelectedType;
+                    } else if (!rec['道具名称']) {
+                        // 道具类：如果仍为空，尝试用第4列的数字ID（仅道具流水）
+                        const possibleId = cleanVals[3]?.trim();
+                        if (possibleId && /^\d+$/.test(possibleId)) {
+                            rec['道具名称'] = possibleId;
+                        }
+                    }
+                    // 仅对非资源类道具名应用棋子名称转换（避免把“体力”改成其他词）
+                    if (rec['道具名称'] && !['体力', '红钻', '金币', '好评点'].includes(rec['道具名称'])) {
+                        rec['道具名称'] = applyChessNameConversion(rec['道具名称']);
+                    }
                     rec['资源类型'] = detectResourceType(line);
                     if (enableIgnore && ignoreKeywords.length) {
                         const src = rec['来源'].toLowerCase(), item = rec['道具名称'].toLowerCase();
@@ -1104,34 +1120,13 @@
                     rec['来源'] = applySourceConversion(rec['来源']);
                     const { change, action } = getChangeAndAction(rec);
                     if (!action) continue;
-                    rec['行为'] = action;
-                    rec['变化量'] = change;
+                    rec['行为'] = action; rec['变化量'] = change;
                     records.push(rec);
                     debugConsole.innerHTML += `\n📌 行${i + 1}: 道具=${rec['道具名称']}, 变化=${change}, 行为=${action}`;
                 }
                 records.sort((a, b) => (b['时间'] || '').localeCompare(a['时间'] || ''));
                 return records;
             }
-
-            function buildMergedRewardText(records) {
-                const groupMap = new Map();
-                for (let rec of records) {
-                    const action = rec['行为']; if (!action) continue;
-                    const itemName = (rec['道具名称'] || '').trim(); if (!itemName) continue;
-                    const rawTime = rec['时间'];
-                    const source = rec['来源'] || '未知来源';
-                    const timeKey = formatTimeToStandard(rawTime);
-                    const groupKey = `${timeKey}|||${source}|||${action}`;
-                    if (!groupMap.has(groupKey)) groupMap.set(groupKey, { time: timeKey, source: source, action: action, items: new Map() });
-                    const group = groupMap.get(groupKey);
-                    const qty = Math.abs(rec['变化量'] || 0); if (qty <= 0) continue;
-                    const current = group.items.get(itemName) || 0;
-                    group.items.set(itemName, current + qty);
-                }
-                if (groupMap.size === 0) return null;
-                const sortedGroups = Array.from(groupMap.values()).sort(
-                    (a, b) => b.time.localeCompare(a.time) || a.source.localeCompare(b.source) || a.action.localeCompare(b.action)
-                );
 
             function buildMergedRewardText(records) {
                 const groupMap = new Map();
@@ -1165,7 +1160,7 @@
                 if (l.includes('金币')) return '金币';
                 if (l.includes('体力')) return '体力';
                 if (l.includes('背包') || l.includes('道具')) return '道具';
-                return null;
+                return '';
             }
 
             async function processFlowCsv() {
