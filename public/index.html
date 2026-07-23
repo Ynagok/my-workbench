@@ -1028,22 +1028,29 @@
                 let records = parseSmartLog(raw);
                 if (!records.length) { debugConsole.innerHTML += '\n❌ 无记录'; return; }
                 debugConsole.innerHTML += `\n📌 原始记录数: ${records.length}`;
+
                 if (resourceType === '道具' && itemKeywordRaw) {
                     const keywords = itemKeywordRaw.split(',').map(k => k.trim().toLowerCase()).filter(k => k);
                     debugConsole.innerHTML += `\n🔍 应用道具关键词: ${keywords.join(', ')}`;
-                    records = records.filter(r => { const itemName = (r['道具名称'] || '').toLowerCase(); return keywords.some(k => itemName.includes(k)); });
+                    records = records.filter(r => {
+                        const itemName = (r['道具名称'] || '').toLowerCase();
+                        return keywords.some(k => itemName.includes(k));
+                    });
                     debugConsole.innerHTML += `\n📌 道具筛选后: ${records.length} 条`;
                 }
                 if (includeSourcesRaw) {
                     const keywords = includeSourcesRaw.split(',').map(k => k.trim().toLowerCase()).filter(k => k);
                     debugConsole.innerHTML += `\n🔍 应用来源关键词: ${keywords.join(', ')}`;
-                    records = records.filter(r => { const source = (r['来源'] || '').toLowerCase(); return keywords.some(k => source.includes(k)); });
+                    records = records.filter(r => {
+                        const source = (r['来源'] || '').toLowerCase();
+                        return keywords.some(k => source.includes(k));
+                    });
                     debugConsole.innerHTML += `\n📌 来源筛选后: ${records.length} 条`;
                 }
+
                 if (records.length === 0) { debugConsole.innerHTML += '\n⚠️ 筛选后无话术'; return; }
                 let sentences = records.map(r => generateFlowSentence(r, resourceType, true)).filter(s => s);
                 if (sentences.length === 0) { debugConsole.innerHTML += '\n⚠️ 无有效话术'; return; }
-                sentences = sortSentencesByTime(sentences, sortOrder);
                 globalResultArea.value = sentences.join('\n\n');
                 globalResultCount.textContent = `${sentences.length} 条`;
                 resultSourceHint.textContent = '智能解析（显示前后变化）';
@@ -1149,7 +1156,7 @@
                     if (g.items.size === 0) continue;
                     const sortedItems = Array.from(g.items.entries()).sort((a, b) => a[0].localeCompare(b[0]));
                     const rewardPart = sortedItems.map(([name, qty]) => `${name}*${qty}`).join('，');
-                    blocks.push(`${g.time.replace(/-/g, '/')}，通过${g.source}正常${g.action}以下物品：${rewardPart}`);
+                    blocks.push(`${g.time.replace(/-/g, '/')}，通过${g.source}正常${g.action}：${rewardPart}`);
                 }
                 return blocks.join('\n\n');
             }
