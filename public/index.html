@@ -1094,9 +1094,18 @@
                         '来源': cleanVals[colIdx['来源']] || '',
                         '道具名称': colIdx['道具名称'] >= 0 ? cleanVals[colIdx['道具名称']] : ''
                     };
+                    // ★ 如果道具名称为空，优先使用资源类型作为名称
                     if (!rec['道具名称']) {
-                        const possibleId = cleanVals[3]?.trim();
-                        if (possibleId && /^\d+$/.test(possibleId)) rec['道具名称'] = possibleId;
+                        const resourceType = detectResourceType(line);
+                        if (resourceType === '体力' || resourceType === '红钻' || resourceType === '金币' || resourceType === '好评点') {
+                            rec['道具名称'] = resourceType;   // 资源类直接用类型名
+                        } else {
+                            // 非标准资源时，尝试用第4列的数字ID（仅道具流水）
+                            const possibleId = cleanVals[3]?.trim();
+                            if (possibleId && /^\d+$/.test(possibleId)) {
+                                rec['道具名称'] = possibleId;
+                            }
+                        }
                     }
                     if (rec['道具名称']) rec['道具名称'] = applyChessNameConversion(rec['道具名称']);
                     rec['资源类型'] = detectResourceType(line);
@@ -1325,15 +1334,20 @@
                 document.getElementById('closeIgnoreRuleModal').onclick = () => modals.ignore.style.display = 'none';
                 document.getElementById('closeTemplateModal').onclick = () => modals.template.style.display = 'none';
                 document.getElementById('modalAddTemplateBtn').onclick = () => { const t = prompt('输入新模板内容，可使用 {时间} {体力} 等变量'); if (t) { templates.push(t); saveData('templates', templates); renderTemplateList(); refreshTemplateSelect(); } };
-                document.getElementById('addOrUpdateRuleBtn').onclick = () => {
-                    const p = document.getElementById('newRulePattern').value.trim(), r = document.getElementById('newRuleReplacement').value.trim(), t = document.getElementById('newRuleType').value;
+                document.getElementById('addOrUpdateRuleBtn').addEventListener('click', () => {
+                    const p = document.getElementById('newRulePattern').value.trim();
+                    const r = document.getElementById('newRuleReplacement').value.trim();
+                    const t = document.getElementById('newRuleType').value;
                     if (!p) return;
-                    if (editingSourceIndex >= 0) sourceRules[editingSourceIndex] = { pattern: p, replacement: r, type: t };
-                    else sourceRules.push({ pattern: p, replacement: r, type: t });
+                    if (editingSourceIndex >= 0) {
+                        sourceRules[editingSourceIndex] = { pattern: p, replacement: r, type: t };
+                    } else {
+                        sourceRules.push({ pattern: p, replacement: r, type: t });
+                    }
                     saveData('sourceRules', sourceRules);
                     renderSourceRuleList(document.getElementById('ruleTypeFilter').value, document.getElementById('ruleSearchInput').value);
                     resetSourceEditState();
-                };
+                });
                 document.getElementById('cancelEditRuleBtn').onclick = resetSourceEditState;
                 document.getElementById('resetDefaultSourceRulesBtn').onclick = () => { sourceRules = DEFAULT_SOURCE_RULES.map(r => ({ ...r })); saveData('sourceRules', sourceRules); renderSourceRuleList(); };
                 document.getElementById('clearAllSourceRulesBtn').onclick = () => { if (confirm('清空所有转换规则？')) { sourceRules = []; saveData('sourceRules', sourceRules); renderSourceRuleList(); } };
