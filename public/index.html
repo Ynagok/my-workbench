@@ -605,7 +605,7 @@
                 if (line.includes('红钻')) return '红钻';
                 if (line.includes('金币')) return '金币';
                 if (line.includes('道具')) return '道具';
-                return '';  // 未识别时返回空字符串
+                return '';
             }
             function applyConversionByType(src, type) {
                 if (!src) return src;
@@ -636,7 +636,6 @@
 
             function sortSentencesByTime(sentences, order = 'desc') {
                 if (!sentences || sentences.length < 2) return sentences;
-                // 匹配 yyyy-MM-dd HH:mm:ss 或 yyyy/MM/dd HH:mm:ss
                 const timeRegex = /\d{4}[-\/]\d{2}[-\/]\d{2}\s+\d{2}:\d{2}:\d{2}/;
                 return sentences.slice().sort((a, b) => {
                     const timeA = (a.match(timeRegex) || [])[0];
@@ -644,7 +643,6 @@
                     if (!timeA && !timeB) return 0;
                     if (!timeA) return 1;
                     if (!timeB) return -1;
-                    // 将 - 替换为 /，确保 Date 解析一致
                     const dateA = new Date(timeA.replace(/-/g, '/'));
                     const dateB = new Date(timeB.replace(/-/g, '/'));
                     return order === 'asc' ? dateA - dateB : dateB - dateA;
@@ -659,7 +657,6 @@
                 return text.replace(/点击棋子/g, replacement);
             }
 
-            // 资源流水解析
             function parseSmartLog(rawText) {
                 const lines = rawText.split(/\r?\n/).filter(l => l.trim());
                 const records = [];
@@ -847,7 +844,6 @@
                 return [`在${finalTime.replace(/-/g, '/')}提交${chessStr}${actionVerb}，获得${rewardStr}`];
             }
 
-            // 道具流水解析（修复来源列和转换规则）
             function parseItemFlowLog(rawText) {
                 const lines = rawText.split(/\r?\n/).filter(l => l.trim());
                 const records = [];
@@ -856,22 +852,21 @@
                     if (shouldIgnoreLine(line)) continue;
 
                     const parts = line.split('\t');
-                    if (parts.length < 9) continue; // 至少9列
+                    if (parts.length < 9) continue;
 
                     const rawTime = parts[0]?.trim();
                     if (!rawTime) continue;
                     const time = formatTimeToStandard(rawTime);
 
-                    const itemId = parts[2]?.trim() || '';        // 第3列：道具ID
-                    const itemName = parts[4]?.trim() || '';      // 第5列：道具名称（可能为空）
-                    const changeStr = parts[5]?.trim() || '0';    // 第6列：变化量 (+5)
+                    const itemId = parts[2]?.trim() || '';
+                    const itemName = parts[4]?.trim() || '';
+                    const changeStr = parts[5]?.trim() || '0';
                     const change = parseInt(changeStr, 10) || 0;
                     const before = parseInt(parts[6]?.trim() || '0', 10) || 0;
                     const after = parseInt(parts[7]?.trim() || '0', 10) || 0;
-                    let source = parts[8]?.trim() || '';          // 第9列：来源
+                    let source = parts[8]?.trim() || '';
                     source = applySourceConversion(source);
 
-                    // 道具名称为空时使用ID，并应用棋子名称转换
                     let displayName = itemName || itemId;
                     displayName = applyChessNameConversion(displayName);
 
@@ -952,9 +947,7 @@
                 const sortOrder = document.getElementById('sortOrderSelect').value;
 
                 if (mode === 'order') {
-                    if (raw.includes('创建')) {
-                        debugConsole.innerHTML += '\n⚠️ 检测到“创建”订单，可能无法提取完整奖励';
-                    }
+                    if (raw.includes('创建')) debugConsole.innerHTML += '\n⚠️ 检测到"创建"订单，可能无法提取完整奖励';
                     debugConsole.innerHTML = '📦 订单日志解析...';
                     const s = parseOrderLog(raw);
                     globalResultArea.value = s.join('\n\n');
@@ -964,19 +957,20 @@
                     return;
                 }
                 if (mode === 'itemFlow') {
-                    debugConsole.innerHTML = '🔍 道具流水解析...';
-                    let sentences = parseItemFlowLog(raw);               // 用 raw 而不是 text
+                    debugConsole.innerHTML = '🔍 道具流水（文件）解析...';
+                    let sentences = parseItemFlowLog(raw);
                     if (sentences.length) {
+                        const sortOrder = document.getElementById('sortOrderSelect').value;
                         sentences = sortSentencesByTime(sentences, sortOrder);
                         globalResultArea.value = sentences.join('\n\n');
                         globalResultCount.textContent = `${sentences.length} 条`;
-                        resultSourceHint.textContent = '道具流水解析';
+                        resultSourceHint.textContent = '道具流水（上传）';
                         navigator.clipboard.writeText(globalResultArea.value);
                         debugConsole.innerHTML += '\n✅ 完成';
                     } else {
                         debugConsole.innerHTML += '\n❌ 无有效记录';
                     }
-                    return;   // 必须加 return，否则会继续执行后面的资源流水代码
+                    return;
                 }
                 if (mode === 'review') {
                     debugConsole.innerHTML = '🌟 好评奖励解析...';
@@ -1002,12 +996,10 @@
                     debugConsole.innerHTML += '\n✅ 完成';
                     return;
                 }
-                // 资源流水解析（含道具流水等，统一处理）
                 debugConsole.innerHTML = '🔍 资源流水解析...';
                 const resourceType = document.getElementById('flowResourceSelect').value;
                 const includeSourcesRaw = document.getElementById('includeSourcesInput').value.trim();
                 const itemKeywordRaw = document.getElementById('itemKeywordInput').value.trim();
-
                 let records = [];
                 try {
                     records = parseSmartLog(raw);
@@ -1015,37 +1007,21 @@
                     debugConsole.innerHTML += `\n❌ 解析错误: ${e.message}`;
                     return;
                 }
-
                 if (!records.length) { debugConsole.innerHTML += '\n❌ 无记录（请确认粘贴内容为资源流水格式）'; return; }
                 debugConsole.innerHTML += `\n📌 原始记录数: ${records.length}`;
-
-                // 道具关键词筛选
                 if (resourceType === '道具' && itemKeywordRaw) {
                     const keywords = itemKeywordRaw.split(',').map(k => k.trim().toLowerCase()).filter(k => k);
-                    debugConsole.innerHTML += `\n🔍 应用道具关键词: ${keywords.join(', ')}`;
-                    records = records.filter(r => {
-                        const itemName = (r['道具名称'] || '').toLowerCase();
-                        return keywords.some(k => itemName.includes(k));
-                    });
+                    records = records.filter(r => { const itemName = (r['道具名称'] || '').toLowerCase(); return keywords.some(k => itemName.includes(k)); });
                     debugConsole.innerHTML += `\n📌 道具筛选后: ${records.length} 条`;
                 }
-
-                // 来源关键词筛选
                 if (includeSourcesRaw) {
                     const keywords = includeSourcesRaw.split(',').map(k => k.trim().toLowerCase()).filter(k => k);
-                    debugConsole.innerHTML += `\n🔍 应用来源关键词: ${keywords.join(', ')}`;
-                    records = records.filter(r => {
-                        const source = (r['来源'] || '').toLowerCase();
-                        return keywords.some(k => source.includes(k));
-                    });
+                    records = records.filter(r => { const source = (r['来源'] || '').toLowerCase(); return keywords.some(k => source.includes(k)); });
                     debugConsole.innerHTML += `\n📌 来源筛选后: ${records.length} 条`;
                 }
-
                 if (records.length === 0) { debugConsole.innerHTML += '\n⚠️ 筛选后无记录，请放宽筛选条件'; return; }
-
                 let sentences = records.map(r => generateFlowSentence(r, resourceType, true)).filter(s => s);
                 if (sentences.length === 0) { debugConsole.innerHTML += '\n⚠️ 无有效话术（可能缺少数量变化）'; return; }
-
                 globalResultArea.value = sentences.join('\n\n');
                 globalResultCount.textContent = `${sentences.length} 条`;
                 resultSourceHint.textContent = '智能解析（显示前后变化）';
@@ -1096,19 +1072,13 @@
                         '来源': cleanVals[colIdx['来源']] || '',
                         '道具名称': colIdx['道具名称'] >= 0 ? cleanVals[colIdx['道具名称']] : ''
                     };
-                    // 根据用户选择的资源类型，强制填充道具名称
                     const userSelectedType = document.getElementById('flowResourceSelect').value;
                     if (['体力', '红钻', '金币', '好评点'].includes(userSelectedType)) {
-                        // 资源类：直接使用下拉框中的类型名
                         rec['道具名称'] = userSelectedType;
                     } else if (!rec['道具名称']) {
-                        // 道具类：如果仍为空，尝试用第4列的数字ID（仅道具流水）
                         const possibleId = cleanVals[3]?.trim();
-                        if (possibleId && /^\d+$/.test(possibleId)) {
-                            rec['道具名称'] = possibleId;
-                        }
+                        if (possibleId && /^\d+$/.test(possibleId)) rec['道具名称'] = possibleId;
                     }
-                    // 仅对非资源类道具名应用棋子名称转换（避免把“体力”改成其他词）
                     if (rec['道具名称'] && !['体力', '红钻', '金币', '好评点'].includes(rec['道具名称'])) {
                         rec['道具名称'] = applyChessNameConversion(rec['道具名称']);
                     }
@@ -1187,6 +1157,7 @@
                     const keywords = includeSourcesRaw.split(',').map(k => k.trim().toLowerCase()).filter(k => k);
                     filtered = filtered.filter(r => { const source = (r['来源'] || '').toLowerCase(); return keywords.some(k => source.includes(k)); });
                 }
+                const sortOrder = document.getElementById('sortOrderSelect').value;
                 const mergedText = buildMergedRewardText(filtered);
                 if (mergedText) {
                     const blocks = mergedText.split('\n\n').filter(b => b.trim());
@@ -1270,9 +1241,9 @@
                     const replacement = getRuleReplacement(r) || '(删除)';
                     const typeLabel = r.type === 'source' ? '来源' : (r.type === 'reward' ? '奖励' : '棋子');
                     return `<div class="rule-item" data-idx="${idx}">
-                            <span class="rule-pattern">${pattern}</span><span class="rule-type">[${typeLabel}]</span>
-                            <span>→</span><span class="rule-replacement">${replacement}</span>
-                            <div class="rule-actions"><button class="edit-source-btn" data-idx="${idx}">✏️</button><button class="delete-source-btn" data-idx="${idx}" style="background:#dc3545;">🗑️</button></div></div>`;
+                                <span class="rule-pattern">${pattern}</span><span class="rule-type">[${typeLabel}]</span>
+                                <span>→</span><span class="rule-replacement">${replacement}</span>
+                                <div class="rule-actions"><button class="edit-source-btn" data-idx="${idx}">✏️</button><button class="delete-source-btn" data-idx="${idx}" style="background:#dc3545;">🗑️</button></div></div>`;
                 }).join('') || '<div>暂无规则</div>';
                 c.querySelectorAll('.delete-source-btn').forEach(b => b.onclick = e => { const idx = parseInt(b.dataset.idx); sourceRules.splice(idx, 1); saveData('sourceRules', sourceRules); renderSourceRuleList(filterType, searchTerm); });
                 c.querySelectorAll('.edit-source-btn').forEach(b => b.onclick = e => {
@@ -1309,14 +1280,19 @@
                     const text = await file.text();
                     if (mode === 'itemFlow') {
                         debugConsole.innerHTML = '🔍 道具流水（文件）解析...';
-                        const sentences = parseItemFlowLog(text);
+                        let sentences = parseItemFlowLog(text);
                         if (sentences.length) {
+                            const sortOrder = document.getElementById('sortOrderSelect').value;
+                            sentences = sortSentencesByTime(sentences, sortOrder);
                             globalResultArea.value = sentences.join('\n\n');
                             globalResultCount.textContent = `${sentences.length} 条`;
                             resultSourceHint.textContent = '道具流水（上传）';
                             navigator.clipboard.writeText(globalResultArea.value);
                             debugConsole.innerHTML += '\n✅ 完成';
-                        } else { debugConsole.innerHTML += '\n❌ 无有效记录'; }
+                        } else {
+                            debugConsole.innerHTML += '\n❌ 无有效记录';
+                        }
+                        return;
                     } else { processFlowCsv(); }
                 };
                 document.getElementById('debugFlowBtn').onclick = async () => { const f = document.getElementById('flowFileInput').files[0]; if (!f) return; const text = await f.text(); expandDebugConsole(); debugConsole.innerHTML = `CSV前200字符:\n${text.substring(0, 200)}`; };
