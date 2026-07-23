@@ -605,7 +605,7 @@
                 if (line.includes('红钻')) return '红钻';
                 if (line.includes('金币')) return '金币';
                 if (line.includes('道具')) return '道具';
-                return '道具';
+                return '';  // 未识别时返回空字符串
             }
             function applyConversionByType(src, type) {
                 if (!src) return src;
@@ -1107,7 +1107,23 @@
                             }
                         }
                     }
-                    if (rec['道具名称']) rec['道具名称'] = applyChessNameConversion(rec['道具名称']);
+                    // 仅对非资源类道具名称应用棋子名称转换（避免把“体力”改成别的东西）
+                    if (rec['道具名称'] && !['体力', '红钻', '金币', '好评点'].includes(rec['道具名称'])) {
+                        rec['道具名称'] = applyChessNameConversion(rec['道具名称']);
+                    }
+                    // ★ 如果道具名称为空，根据行内容自动填充
+                    if (!rec['道具名称']) {
+                        const resType = detectResourceType(line);
+                        if (resType === '体力' || resType === '红钻' || resType === '金币' || resType === '好评点') {
+                            rec['道具名称'] = resType;   // 资源类直接使用资源类型名
+                        } else {
+                            // 非标准资源时，尝试用第4列的数字ID（仅对道具流水有效）
+                            const possibleId = cleanVals[3]?.trim();
+                            if (possibleId && /^\d+$/.test(possibleId)) {
+                                rec['道具名称'] = possibleId;
+                            }
+                        }
+                    }
                     rec['资源类型'] = detectResourceType(line);
                     if (enableIgnore && ignoreKeywords.length) {
                         const src = rec['来源'].toLowerCase(), item = rec['道具名称'].toLowerCase();
