@@ -1111,18 +1111,30 @@
                     if (rec['道具名称'] && !['体力', '红钻', '金币', '好评点'].includes(rec['道具名称'])) {
                         rec['道具名称'] = applyChessNameConversion(rec['道具名称']);
                     }
-                    // ★ 如果道具名称为空，根据行内容自动填充
+                    // ★ 如果道具名称为空，根据行内容和用户选择的类型自动填充
                     if (!rec['道具名称']) {
                         const resType = detectResourceType(line);
+                        // 1. 行内检测到了明确的资源类型（体力/红钻/金币/好评点）
                         if (resType === '体力' || resType === '红钻' || resType === '金币' || resType === '好评点') {
-                            rec['道具名称'] = resType;   // 资源类直接使用资源类型名
+                            rec['道具名称'] = resType;
                         } else {
-                            // 非标准资源时，尝试用第4列的数字ID（仅对道具流水有效）
-                            const possibleId = cleanVals[3]?.trim();
-                            if (possibleId && /^\d+$/.test(possibleId)) {
-                                rec['道具名称'] = possibleId;
+                            // 2. 行内未检测到，但用户在下拉框中选择了某种资源类型
+                            const userSelectedType = document.getElementById('flowResourceSelect').value;
+                            if (['体力', '红钻', '金币', '好评点'].includes(userSelectedType)) {
+                                rec['道具名称'] = userSelectedType;
+                            } else {
+                                // 3. 非资源类（道具），尝试用第4列的数字ID作为名称
+                                const possibleId = cleanVals[3]?.trim();
+                                if (possibleId && /^\d+$/.test(possibleId)) {
+                                    rec['道具名称'] = possibleId;
+                                }
                             }
                         }
+                    }
+
+                    // ★ 对道具名称应用棋子名称转换（但跳过资源类型，避免把“体力”误改为其他）
+                    if (rec['道具名称'] && !['体力', '红钻', '金币', '好评点'].includes(rec['道具名称'])) {
+                        rec['道具名称'] = applyChessNameConversion(rec['道具名称']);
                     }
                     rec['资源类型'] = detectResourceType(line);
                     if (enableIgnore && ignoreKeywords.length) {
