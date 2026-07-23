@@ -659,6 +659,7 @@
                 return text.replace(/点击棋子/g, replacement);
             }
 
+            // 资源流水解析
             function parseSmartLog(rawText) {
                 const lines = rawText.split(/\r?\n/).filter(l => l.trim());
                 const records = [];
@@ -684,21 +685,8 @@
                     const source = applySourceConversion(sourceRaw);
                     records.push({ '时间': time, '数量': change, '来源': source, '道具名称': itemName, '之前': before, '之后': after });
                 }
-
-                records.sort((a, b) => b.time.localeCompare(a.time));
-
-                const sentences = records.map(rec => {
-                    const action = rec.change > 0 ? '获得' : (rec.change < 0 ? '消耗' : '操作');
-                    const abs = Math.abs(rec.change);
-                    if (abs === 0) return null;
-                    if (rec.source) {
-                        return `在${rec.time}，通过${rec.source}${action}${abs}个${rec.itemName}`;
-                    } else {
-                        return `在${rec.time}，${action}${abs}个${rec.itemName}`;
-                    }
-                }).filter(s => s);
-
-                return sentences;
+                records.sort((a, b) => (b['时间'] || '').localeCompare(a['时间'] || ''));
+                return records;
             }
 
             function getChangeAndAction(rec) {
@@ -961,6 +949,7 @@
                 const mode = document.querySelector('input[name="parseMode"]:checked').value;
                 const raw = smartPasteInput.value.trim();
                 if (!raw) { debugConsole.innerHTML = '❌ 请输入文本'; return; }
+                const sortOrder = document.getElementById('sortOrderSelect').value;
 
                 if (mode === 'order') {
                     if (raw.includes('创建')) {
@@ -978,7 +967,6 @@
                     debugConsole.innerHTML = '🔍 道具流水解析...';
                     let sentences = parseItemFlowLog(raw);               // 用 raw 而不是 text
                     if (sentences.length) {
-                        const sortOrder = document.getElementById('sortOrderSelect').value;
                         sentences = sortSentencesByTime(sentences, sortOrder);
                         globalResultArea.value = sentences.join('\n\n');
                         globalResultCount.textContent = `${sentences.length} 条`;
@@ -1199,7 +1187,6 @@
                     const keywords = includeSourcesRaw.split(',').map(k => k.trim().toLowerCase()).filter(k => k);
                     filtered = filtered.filter(r => { const source = (r['来源'] || '').toLowerCase(); return keywords.some(k => source.includes(k)); });
                 }
-                const sortOrder = document.getElementById('sortOrderSelect').value;
                 const mergedText = buildMergedRewardText(filtered);
                 if (mergedText) {
                     const blocks = mergedText.split('\n\n').filter(b => b.trim());
