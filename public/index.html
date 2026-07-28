@@ -730,25 +730,49 @@
 
             function parseReviewLog(rawText) {
                 const lines = rawText.split(/\r?\n/).map(l => l.trim()).filter(l => l);
-                if (lines.length < 2) return ['❌ 数据格式不正确，请检查'];
+                if (lines.length < 1) return ['❌ 数据格式不正确，请检查'];
+
+                // 1. 时间提取：严格取第一行中按 Tab 分割的第二个字段（索引 1）
                 let timeStr = '';
-                const timeMatch = rawText.match(/(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})/);
-                if (timeMatch) timeStr = timeMatch[1].replace(/-/g, '/');
-                if (!timeStr) return ['❌ 未找到有效时间'];
+                const firstLineParts = lines[0].split('\t');
+                if (firstLineParts.length >= 2) {
+                    const possibleTime = firstLineParts[1]?.trim();
+                    // 验证是否为常见时间格式（yyyy-MM-dd HH:mm:ss）
+                    if (/\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}/.test(possibleTime)) {
+                        timeStr = possibleTime.replace(/-/g, '/');
+                    }
+                }
+                if (!timeStr) return ['❌ 未找到有效时间（请检查第一行格式）'];
+
+                // 2. 统计物品
                 const itemCount = new Map();
                 const chineseRegex = /^[\u4e00-\u9fa5]+$/;
-                for (let line of lines) {
+
+                // 处理第一行的第一个物品（取最后一个 Tab 分隔的字段，验证是否为纯汉字）
+                const firstItem = firstLineParts[firstLineParts.length - 1]?.trim();
+                if (firstItem && chineseRegex.test(firstItem)) {
+                    itemCount.set(firstItem, (itemCount.get(firstItem) || 0) + 1);
+                }
+
+                // 处理后续行（从第二行开始）
+                for (let i = 1; i < lines.length; i++) {
+                    const line = lines[i];
+                    // 跳过状态行（包含冒号或特定关键词）
+                    if (/当前轮次|开始时间|结束时间|是否成功|超级解锁状态/.test(line)) continue;
+                    // 统计纯汉字物品名
                     if (chineseRegex.test(line)) {
                         itemCount.set(line, (itemCount.get(line) || 0) + 1);
                     }
                 }
+
                 if (itemCount.size === 0) return ['未解析到有效奖励数据'];
+
+                // 3. 生成话术
                 const statsList = [];
                 for (let [name, count] of itemCount) {
                     statsList.push(count > 1 ? `${name}*${count}` : name);
                 }
-                const result = `在${timeStr}，获得好评奖励：${statsList.join('，')}`;
-                return [result];
+                return [`在${timeStr}，获得好评奖励：${statsList.join('，')}`];
             }
 
             function parseOrderLog(rawText) {
