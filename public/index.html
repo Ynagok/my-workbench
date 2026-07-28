@@ -732,34 +732,44 @@
                 const lines = rawText.split(/\r?\n/).map(l => l.trim()).filter(l => l);
                 if (lines.length < 1) return ['❌ 数据格式不正确，请检查'];
 
-                // 1. 时间提取：严格取第一行中按 Tab 分割的第二个字段（索引 1）
+                // 1. 智能提取时间：取全文中最后一个非状态行内的时间（领取奖励时间）
                 let timeStr = '';
-                const firstLineParts = lines[0].split('\t');
-                if (firstLineParts.length >= 2) {
-                    const possibleTime = firstLineParts[1]?.trim();
-                    // 验证是否为常见时间格式（yyyy-MM-dd HH:mm:ss）
-                    if (/\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}/.test(possibleTime)) {
-                        timeStr = possibleTime.replace(/-/g, '/');
+                const timeRegex = /(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})/g;
+                let match;
+                let lastValidTime = null;
+                while ((match = timeRegex.exec(rawText)) !== null) {
+                    const timeCandidate = match[1];
+                    // 定位该时间所在的行
+                    const beforeMatch = rawText.substring(0, match.index);
+                    const lineStart = beforeMatch.lastIndexOf('\n') + 1;
+                    const lineEnd = rawText.indexOf('\n', match.index);
+                    const line = rawText.substring(lineStart, lineEnd === -1 ? rawText.length : lineEnd).trim();
+                    // 忽略包含状态关键词的行
+                    if (!/开始时间|结束时间|当前轮次|是否成功|超级解锁状态/.test(line)) {
+                        lastValidTime = timeCandidate;
                     }
                 }
-                if (!timeStr) return ['❌ 未找到有效时间（请检查第一行格式）'];
+                if (lastValidTime) {
+                    timeStr = lastValidTime.replace(/-/g, '/');
+                } else {
+                    return ['❌ 未找到有效时间（请检查数据中是否包含领取时间）'];
+                }
 
                 // 2. 统计物品
                 const itemCount = new Map();
                 const chineseRegex = /^[\u4e00-\u9fa5]+$/;
 
-                // 处理第一行的第一个物品（取最后一个 Tab 分隔的字段，验证是否为纯汉字）
+                // 处理第一行物品（取最后一个 Tab 分隔的纯汉字字段）
+                const firstLineParts = lines[0].split('\t');
                 const firstItem = firstLineParts[firstLineParts.length - 1]?.trim();
                 if (firstItem && chineseRegex.test(firstItem)) {
                     itemCount.set(firstItem, (itemCount.get(firstItem) || 0) + 1);
                 }
 
-                // 处理后续行（从第二行开始）
+                // 处理后续行（跳过状态行，仅统计纯汉字物品）
                 for (let i = 1; i < lines.length; i++) {
                     const line = lines[i];
-                    // 跳过状态行（包含冒号或特定关键词）
                     if (/当前轮次|开始时间|结束时间|是否成功|超级解锁状态/.test(line)) continue;
-                    // 统计纯汉字物品名
                     if (chineseRegex.test(line)) {
                         itemCount.set(line, (itemCount.get(line) || 0) + 1);
                     }
