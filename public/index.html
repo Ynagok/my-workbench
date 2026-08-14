@@ -508,8 +508,7 @@
                     <button id="pixelClearBtn" class="reset-btn">清空画布</button>
                     <span style="font-size: 12px; color: #6c757d;">点击或拖动画格子填色，橡皮擦可擦除</span>
                 </div>
-                <canvas id="pixelCanvas" width="300" height="300" style="border: 1px solid #ccc; border-radius: 8px; cursor: pointer; image-rendering: pixelated; background: white;"></canvas>
-            </div>
+                <canvas id="pixelCanvas" width="300" height="300" style="width: 300px; height: 300px; border: 1px solid #ccc; border-radius: 8px; cursor: pointer; image-rendering: pixelated; background: white;"></canvas>            </div>
         </div>
     </div>
 
@@ -1335,8 +1334,10 @@
 
                 function getGridPos(e) {
                     const rect = pixelCanvas.getBoundingClientRect();
-                    const x = e.clientX - rect.left;
-                    const y = e.clientY - rect.top;
+                    const scaleX = pixelCanvas.width / rect.width;   // 计算水平缩放比
+                    const scaleY = pixelCanvas.height / rect.height; // 计算垂直缩放比
+                    const x = (e.clientX - rect.left) * scaleX;
+                    const y = (e.clientY - rect.top) * scaleY;
                     const col = Math.floor(x / cellSize);
                     const row = Math.floor(y / cellSize);
                     return { col, row };
