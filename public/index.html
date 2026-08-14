@@ -1285,10 +1285,20 @@
             function parseStarsArray(starsStr) { try { return JSON.parse(starsStr); } catch { const m = starsStr.match(/\[(.*)\]/); return m ? m[1].split(',').map(s => parseInt(s.trim(), 10)) : []; } }
             function parseAfter(afterStr) { try { return JSON.parse(afterStr); } catch { const m = afterStr.replace(/"/g, '').match(/\{(.*)\}/); if (!m) return {}; const res = {}; m[1].split(',').forEach(p => { const [k, v] = p.split(':'); if (k) res[k.trim()] = parseInt(v, 10); }); return res; } }
             function generateCardSentence(record) {
-                const packId = parseInt(record["卡包ID"]); const packName = PACK_NAME_MAP[packId] || "未知卡包";
-                const starsArray = parseStarsArray(record["卡包星级"]); const afterData = parseAfter(record["after"]);
-                const cardIds = Object.keys(afterData); const descs = [];
-                cardIds.forEach((cid, idx) => { const group = cid.substring(3, 5); const num = cid.substring(5, 7); const star = starsArray[idx] || 0; descs.push(`${group}组第${num}张（${star}星，${afterData[cid] === 1 ? '新卡' : '重复'}）`); });
+                const packId = parseInt(record["卡包ID"]);
+                const packName = PACK_NAME_MAP[packId] || "未知卡包";
+                const seriesName = (packId >= 173 && packId <= 175) ? "霞光" : "";
+                const starsArray = parseStarsArray(record["卡包星级"]);
+                const afterData = parseAfter(record["after"]);
+                const cardIds = Object.keys(afterData);
+                const descs = [];
+                cardIds.forEach((cid, idx) => {
+                    const group = cid.substring(3, 5);
+                    const num = cid.substring(5, 7);
+                    const star = starsArray[idx] || 0;
+                    const groupLabel = seriesName ? `${seriesName}${group}组` : `${group}组`;
+                    descs.push(`${groupLabel}第${num}张（${star}星，${afterData[cid] === 1 ? '新卡' : '重复'}）`);
+                });
                 return `在${record["创建时间"].replace(/-/g, '/')}，开启【${packName}】获得${cardIds.length}张卡牌，分别为${descs.join('，')}`;
             }
             function filterRecordsByStar(records, star) { if (star === 'all') return records; const target = parseInt(star); return records.filter(r => parseStarsArray(r["卡包星级"]).includes(target)); }
