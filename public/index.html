@@ -660,72 +660,73 @@
             function parseSmartLog(rawText) {
                 const lines = rawText.split(/\r?\n/).filter(l => l.trim());
                 const records = [];
+
                 for (let line of lines) {
                     if (shouldIgnoreLine(line)) continue;
-                    const rawTime = extractTime(line); if (!rawTime) continue;
+                    const rawTime = extractTime(line);
+                    if (!rawTime) continue;
                     const time = formatTimeToStandard(rawTime);
-                    const parts = line.split('\t'); if (parts.length < 6) continue;
+                    const parts = line.split('\t');
+                    if (parts.length < 6) continue;
+
+                    // 判断新格式：第3列（索引2）是资源类型文字（如“体力”、“背包”），且列数≥10
                     const thirdCol = parts[2]?.trim();
-                    const isFormatB = /^[+-]?\d+$/.test(thirdCol);
+                    const isNewFormat = !/^[+-]?\d+$/.test(thirdCol) && parts.length >= 10;
+
                     let changeRaw, beforeRaw, afterRaw, sourceRaw, itemName = '';
-                    if (isFormatB) {
-                        changeRaw = parts[2]; beforeRaw = parts[3]; afterRaw = parts[4]; sourceRaw = parts[5];
-                        itemName = (parts.length >= 9 && parts[8]?.trim()) ? parts[8]?.trim() :
-                            (parts.length >= 8 && parts[7]?.trim()) ? parts[7]?.trim() : '';
+
+                    if (isNewFormat) {
+                        // 新格式：时间, UUID, 资源类型, 道具ID, 道具名称, 货币/类型, 增减量, 之前, 之后, 来源, 来源ID
+                        const resourceType = thirdCol;                     // 体力 / 背包
+                        const itemId = parts[3]?.trim() || '';             // 101 / 3000001
+                        const rawName = parts[4]?.trim() || '';            // 体力 / 活动道具
+                        const typeLabel = parts[5]?.trim() || '';          // 货币 / 活动道具
+
+                        // 道具名称优先取第5列，如果第5列是“道具”这种泛称且第4列有ID，则用ID代替
+                        if (rawName && rawName !== '道具') {
+                            itemName = rawName;                            // 体力 / 活动道具
+                        } else if (itemId) {
+                            itemName = itemId;                             // 用道具ID
+                        } else {
+                            itemName = resourceType;
+                        }
+
+                        changeRaw = parts[6]?.trim() || '0';               // -16 / +1
+                        beforeRaw = parts[7]?.trim() || '0';
+                        afterRaw = parts[8]?.trim() || '0';
+                        sourceRaw = parts[9]?.trim() || '';
                     } else {
-                        itemName = parts[2]?.trim();
-                        changeRaw = parts[3]; beforeRaw = parts[4]; afterRaw = parts[5]; sourceRaw = parts[6];
+                        // 旧格式（保留原逻辑）
+                        const isFormatB = /^[+-]?\d+$/.test(thirdCol);
+                        if (isFormatB) {
+                            changeRaw = parts[2]; beforeRaw = parts[3]; afterRaw = parts[4]; sourceRaw = parts[5];
+                            itemName = (parts.length >= 9 && parts[8]?.trim()) ? parts[8]?.trim() :
+                                (parts.length >= 8 && parts[7]?.trim()) ? parts[7]?.trim() : '';
+                        } else {
+                            itemName = parts[2]?.trim();
+                            changeRaw = parts[3]; beforeRaw = parts[4]; afterRaw = parts[5]; sourceRaw = parts[6];
+                        }
                     }
-                    const change = parseInt(changeRaw, 10); if (isNaN(change)) continue;
-                    let before = parseFloat(beforeRaw) || 0, after = parseFloat(afterRaw) || 0;
+
+                    const change = parseInt(changeRaw, 10);
+                    if (isNaN(change)) continue;
+                    const before = parseFloat(beforeRaw) || 0;
+                    const after = parseFloat(afterRaw) || 0;
                     sourceRaw = (sourceRaw || '').trim().replace(/^["']|["']$/g, '');
                     const source = applySourceConversion(sourceRaw);
-                    records.push({ '时间': time, '数量': change, '来源': source, '道具名称': itemName, '之前': before, '之后': after });
+
+                    records.push({
+                        '时间': time,
+                        '数量': change,
+                        '来源': source,
+                        '道具名称': itemName,
+                        '之前': before,
+                        '之后': after
+                    });
                 }
+
                 records.sort((a, b) => (b['时间'] || '').localeCompare(a['时间'] || ''));
                 return records;
-            }
-
-            function getChangeAndAction(rec) {
-                let before = parseFloat(rec['之前']) || 0, after = parseFloat(rec['之后']) || 0, change = after - before;
-                if (change === 0) change = parseFloat(rec['数量']) || 0;
-                const action = change > 0 ? '获得' : (change < 0 ? '消耗' : '');
-                return { change, action, before, after };
-            }
-
-            function isActivityItem(itemName, source, resourceType) {
-                if (resourceType !== '道具') return false;
-                return ['活动道具', '活动'].some(kw => (itemName + ' ' + source).toLowerCase().includes(kw.toLowerCase()));
-            }
-
-            function generateFlowSentence(rec, type, showChange = true) {
-                const time = (rec['时间'] || '').replace(/-/g, '/');
-                const source = rec['来源'] || '';
-                const itemName = rec['道具名称'] || '';
-                const { change, action, before, after } = getChangeAndAction(rec);
-                if (!change || !action) return null;
-                const abs = Math.abs(change);
-                if (isActivityItem(itemName, source, type))
-                    return `在${time}，${action}了${abs}个${itemName || '活动道具'}`;
-                if (type === '好评点') {
-                    return source
-                        ? `在${time}，通过${source}${action}${abs}点好评点，从${before}变为${after}`
-                        : `在${time}，${action}${abs}点好评点，从${before}变为${after}`;
-                }
-                if (type === '道具' && itemName) {
-                    if (itemName.includes('积分') || itemName.includes('券')) {
-                        return source
-                            ? `在${time}，通过${source}${action}${abs}个${itemName}，从${before}变为${after}`
-                            : `在${time}，${action}${abs}个${itemName}，从${before}变为${after}`;
-                    }
-                    return `在${time}，${action}了${abs}个${itemName}`;
-                }
-                let sentence = showChange
-                    ? (source ? `在${time}，通过${source}${action}${abs}点${type}，从${before}变为${after}`
-                        : `在${time}，${action}${abs}点${type}，从${before}变为${after}`)
-                    : (source ? `在${time}，通过${source}${action}${abs}点${type}`
-                        : `在${time}，${action}${abs}点${type}`);
-                return applyResourceClickReplace(sentence, type);
             }
 
             function parseReviewLog(rawText) {
