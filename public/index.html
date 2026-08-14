@@ -1287,7 +1287,6 @@
             function generateCardSentence(record) {
                 const packId = parseInt(record["卡包ID"]);
                 const packName = PACK_NAME_MAP[packId] || "未知卡包";
-                const seriesName = (packId >= 173 && packId <= 175) ? "霞光" : "";
                 const starsArray = parseStarsArray(record["卡包星级"]);
                 const afterData = parseAfter(record["after"]);
                 const cardIds = Object.keys(afterData);
@@ -1295,9 +1294,15 @@
                 cardIds.forEach((cid, idx) => {
                     const group = cid.substring(3, 5);
                     const num = cid.substring(5, 7);
-                    const star = starsArray[idx] || 0;
-                    const groupLabel = seriesName ? `${seriesName}${group}组` : `${group}组`;
-                    descs.push(`${groupLabel}第${num}张（${star}星，${afterData[cid] === 1 ? '新卡' : '重复'}）`);
+                    const rawStar = starsArray[idx] || 0;
+
+                    // 星级显示处理：霞光系列特殊星级映射
+                    let starLabel = `${rawStar}星`;
+                    if (rawStar === 23) starLabel = "霞光3星";
+                    else if (rawStar === 24) starLabel = "霞光4星";
+                    else if (rawStar === 25) starLabel = "霞光5星";
+
+                    descs.push(`${group}组第${num}张（${starLabel}，${afterData[cid] === 1 ? '新卡' : '重复'}）`);
                 });
                 return `在${record["创建时间"].replace(/-/g, '/')}，开启【${packName}】获得${cardIds.length}张卡牌，分别为${descs.join('，')}`;
             }
