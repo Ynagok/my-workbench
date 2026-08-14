@@ -425,6 +425,7 @@
             }
     </style>
 </head>
+
 <body>
     <div class="container">
         <div class="tabs" id="tabsContainer">
@@ -497,7 +498,7 @@
             <div class="card"><label>生成结果（共 <span id="recordCount">0</span> 条）</label><textarea id="cardResultArea" rows="20" readonly></textarea><div class="flex-row"><button id="copyAllCardBtn">📋 复制全部</button><button id="exportCardBtn">💾 导出TXT</button></div></div>
         </div>
 
-        <!-- 小游戏 script -->
+        <!-- 拼豆小游戏 script -->
         <div id="tab-script" class="tab-content">
             <div style="display: flex; flex-direction: column; gap: 12px;">
                 <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
@@ -510,533 +511,925 @@
                 <canvas id="pixelCanvas" width="300" height="300" style="border: 1px solid #ccc; border-radius: 8px; cursor: pointer; image-rendering: pixelated; background: white;"></canvas>
             </div>
         </div>
+    </div>
 
-        <!-- 模态框集合 -->
-        <div id="sourceRuleModal" class="modal"><div class="modal-content"><div class="modal-header"><h3>📌 文本转换规则管理</h3><span class="close" id="closeSourceRuleModal">&times;</span></div><p class="hint-text">✨ 按类型管理转换规则：来源、订单奖励、棋子名称。可搜索定位。</p><div class="flex-row" style="margin-bottom:12px;"><select id="ruleTypeFilter" style="width:140px;"><option value="all">全部类型</option><option value="source">来源</option><option value="reward">订单奖励</option><option value="chessName">棋子名称</option></select><div class="search-box" style="flex:1;"><input type="text" id="ruleSearchInput" placeholder="搜索关键词或替换内容..."><span class="clear-search" id="clearRuleSearch" style="display:none;">✕</span></div></div><div id="sourceRuleListContainer" style="max-height:250px; overflow:auto; border:1px solid #dee2e6; border-radius:8px; padding:8px;"></div><div class="inline-form"><select id="newRuleType" style="width:120px;"><option value="source">来源</option><option value="reward">订单奖励</option><option value="chessName">棋子名称</option></select><input type="text" id="newRulePattern" placeholder="匹配关键词" style="flex:2;"><span>→</span><input type="text" id="newRuleReplacement" placeholder="替换为（留空删除）" style="flex:3;"><button id="addOrUpdateRuleBtn" style="background:#28a745;">➕ 添加</button><button id="cancelEditRuleBtn" class="secondary" style="display:none;">取消</button></div><div class="flex-row" style="margin-top:16px; justify-content:space-between;"><button id="resetDefaultSourceRulesBtn" class="secondary">重置推荐规则</button><button id="clearAllSourceRulesBtn" class="reset-btn">清空所有规则</button></div></div></div>
-        <div id="ignoreRuleModal" class="modal"><div class="modal-content"><div class="modal-header"><h3>🚫 忽略关键词管理</h3><span class="close" id="closeIgnoreRuleModal">&times;</span></div><div id="ignoreRuleListContainer" style="max-height:250px; overflow:auto; border:1px solid #dee2e6; border-radius:8px; padding:8px;"></div><div class="inline-form"><input type="text" id="newIgnoreKeyword" placeholder="关键词"><button id="addIgnoreKeywordBtn" style="background:#28a745;">➕ 添加</button></div><div class="flex-row" style="margin-top:16px; justify-content:space-between;"><button id="resetDefaultIgnoreRulesBtn" class="secondary">重置推荐</button><button id="clearAllIgnoreRulesBtn" class="reset-btn">清空</button></div></div></div>
-        <div id="templateModal" class="modal"><div class="modal-content"><div class="modal-header"><h3>管理模板</h3><span class="close" id="closeTemplateModal">&times;</span></div><button id="modalAddTemplateBtn">➕ 新增模板</button><div id="templateList"></div></div></div>
-        <div id="scriptEditModal" class="modal"><div class="modal-content" style="max-width:600px;"><div class="modal-header"><h3 id="scriptEditTitle">编辑话术</h3><span class="close" id="closeScriptModal">&times;</span></div><textarea id="scriptEditText" rows="4" style="width:100%; margin-bottom:12px;"></textarea><label>标签（可多个，用逗号或空格分隔）</label><input type="text" id="scriptEditTags" placeholder="例如：常用,补偿,活动" style="width:100%; margin-bottom:12px;"><div class="flex-row"><button id="saveScriptBtn">💾 保存</button><button id="cancelScriptBtn" class="secondary">取消</button></div></div></div>
-        <div id="batchTagModal" class="modal"><div class="modal-content" style="max-width:500px;"><div class="modal-header"><h3>批量添加标签</h3><span class="close" id="closeBatchModal">&times;</span></div><input type="text" id="batchTagInput" placeholder="标签名（逗号分隔）" style="width:100%; margin-bottom:12px;"><div class="flex-row"><button id="applyBatchTagBtn">应用</button><button id="cancelBatchBtn" class="secondary">取消</button></div></div></div>
-        <div id="manageTagsModal" class="modal"><div class="modal-content" style="max-width:500px;"><div class="modal-header"><h3>管理所有标签</h3><span class="close" id="closeManageTags">&times;</span></div><div id="allTagsList" style="margin-bottom:16px;"></div><div class="flex-row"><input type="text" id="newTagInput" placeholder="新标签名" style="flex:1;"><button id="addNewTagBtn">➕ 添加</button></div></div></div>
-        <div id="importScriptModal" class="modal"><div class="modal-content" style="max-width:500px;"><div class="modal-header"><h3>导入话术文本</h3><span class="close" id="closeImportModal">&times;</span></div><div class="checkbox-label"><input type="checkbox" id="skipDuplicateCheckbox" checked> 跳过重复</div><input type="file" id="importFileInput" accept=".txt,.csv" /><div class="flex-row" style="margin-top:12px;"><button id="confirmImportBtn">开始导入</button><button id="cancelImportBtn" class="secondary">取消</button></div><div id="importProgress" style="margin-top:8px; font-size:12px; color:#0d6efd;"></div></div></div>
+    <!-- 模态框集合 -->
+    <div id="sourceRuleModal" class="modal"><div class="modal-content"><div class="modal-header"><h3>📌 文本转换规则管理</h3><span class="close" id="closeSourceRuleModal">&times;</span></div><p class="hint-text">✨ 按类型管理转换规则：来源、订单奖励、棋子名称。可搜索定位。</p><div class="flex-row" style="margin-bottom:12px;"><select id="ruleTypeFilter" style="width:140px;"><option value="all">全部类型</option><option value="source">来源</option><option value="reward">订单奖励</option><option value="chessName">棋子名称</option></select><div class="search-box" style="flex:1;"><input type="text" id="ruleSearchInput" placeholder="搜索关键词或替换内容..."><span class="clear-search" id="clearRuleSearch" style="display:none;">✕</span></div></div><div id="sourceRuleListContainer" style="max-height:250px; overflow:auto; border:1px solid #dee2e6; border-radius:8px; padding:8px;"></div><div class="inline-form"><select id="newRuleType" style="width:120px;"><option value="source">来源</option><option value="reward">订单奖励</option><option value="chessName">棋子名称</option></select><input type="text" id="newRulePattern" placeholder="匹配关键词" style="flex:2;"><span>→</span><input type="text" id="newRuleReplacement" placeholder="替换为（留空删除）" style="flex:3;"><button id="addOrUpdateRuleBtn" style="background:#28a745;">➕ 添加</button><button id="cancelEditRuleBtn" class="secondary" style="display:none;">取消</button></div><div class="flex-row" style="margin-top:16px; justify-content:space-between;"><button id="resetDefaultSourceRulesBtn" class="secondary">重置推荐规则</button><button id="clearAllSourceRulesBtn" class="reset-btn">清空所有规则</button></div></div></div>
+    <div id="ignoreRuleModal" class="modal"><div class="modal-content"><div class="modal-header"><h3>🚫 忽略关键词管理</h3><span class="close" id="closeIgnoreRuleModal">&times;</span></div><div id="ignoreRuleListContainer" style="max-height:250px; overflow:auto; border:1px solid #dee2e6; border-radius:8px; padding:8px;"></div><div class="inline-form"><input type="text" id="newIgnoreKeyword" placeholder="关键词"><button id="addIgnoreKeywordBtn" style="background:#28a745;">➕ 添加</button></div><div class="flex-row" style="margin-top:16px; justify-content:space-between;"><button id="resetDefaultIgnoreRulesBtn" class="secondary">重置推荐</button><button id="clearAllIgnoreRulesBtn" class="reset-btn">清空</button></div></div></div>
+    <div id="templateModal" class="modal"><div class="modal-content"><div class="modal-header"><h3>管理模板</h3><span class="close" id="closeTemplateModal">&times;</span></div><button id="modalAddTemplateBtn">➕ 新增模板</button><div id="templateList"></div></div></div>
+    <div id="scriptEditModal" class="modal"><div class="modal-content" style="max-width:600px;"><div class="modal-header"><h3 id="scriptEditTitle">编辑话术</h3><span class="close" id="closeScriptModal">&times;</span></div><textarea id="scriptEditText" rows="4" style="width:100%; margin-bottom:12px;"></textarea><label>标签（可多个，用逗号或空格分隔）</label><input type="text" id="scriptEditTags" placeholder="例如：常用,补偿,活动" style="width:100%; margin-bottom:12px;"><div class="flex-row"><button id="saveScriptBtn">💾 保存</button><button id="cancelScriptBtn" class="secondary">取消</button></div></div></div>
+    <div id="batchTagModal" class="modal"><div class="modal-content" style="max-width:500px;"><div class="modal-header"><h3>批量添加标签</h3><span class="close" id="closeBatchModal">&times;</span></div><input type="text" id="batchTagInput" placeholder="标签名（逗号分隔）" style="width:100%; margin-bottom:12px;"><div class="flex-row"><button id="applyBatchTagBtn">应用</button><button id="cancelBatchBtn" class="secondary">取消</button></div></div></div>
+    <div id="manageTagsModal" class="modal"><div class="modal-content" style="max-width:500px;"><div class="modal-header"><h3>管理所有标签</h3><span class="close" id="closeManageTags">&times;</span></div><div id="allTagsList" style="margin-bottom:16px;"></div><div class="flex-row"><input type="text" id="newTagInput" placeholder="新标签名" style="flex:1;"><button id="addNewTagBtn">➕ 添加</button></div></div></div>
+    <div id="importScriptModal" class="modal"><div class="modal-content" style="max-width:500px;"><div class="modal-header"><h3>导入话术文本</h3><span class="close" id="closeImportModal">&times;</span></div><div class="checkbox-label"><input type="checkbox" id="skipDuplicateCheckbox" checked> 跳过重复</div><input type="file" id="importFileInput" accept=".txt,.csv" /><div class="flex-row" style="margin-top:12px;"><button id="confirmImportBtn">开始导入</button><button id="cancelImportBtn" class="secondary">取消</button></div><div id="importProgress" style="margin-top:8px; font-size:12px; color:#0d6efd;"></div></div></div>
 
-        <script>
-            (async function () {
-                "use strict";
-                const SERVER_URL = window.location.origin;
-                const CORE_FIELDS = ['时间', '体力', '红钻', '金币'];
-                const DEFAULT_TEMPLATES = ["查询到您在{时间}{action}{体力}点体力", "查询到您在{时间}{action}{红钻}红钻", "查询到您在{时间}{action}{金币}金币"];
-                const DEFAULT_SOURCE_RULES = [
-                    { pattern: "金币竞赛", replacement: "茶楼大战", type: "source" },
-                    { pattern: "体力购买", replacement: "购买体力", type: "source" },
-                    { pattern: "装扮活动", replacement: "装扮活动兑换", type: "source" },
-                    { pattern: "商店购买", replacement: "在商店购买", type: "source" },
-                    { pattern: "任务", replacement: "任务奖励", type: "source" },
-                    { pattern: ":", replacement: "：", type: "reward" },
-                    { pattern: "猪肉", replacement: "副棋盘活动道具", type: "reward" },
-                    { pattern: "【棋盘pass卡领取】", replacement: "进度回响", type: "source" },
-                    { pattern: "棋盘操作-使用消耗棋子", replacement: "点击棋子", type: "source" }
-                ];
-                const DEFAULT_IGNORE_KEYWORDS = ["棋盘上传"];
-                const PACK_NAME_MAP = {
-                    151: "1星百戏锦囊", 152: "1星大百戏锦囊", 153: "2星百戏锦囊", 154: "2星大百戏锦囊",
-                    155: "3星百戏锦囊", 156: "3星大百戏锦囊", 157: "4星百戏锦囊", 158: "4星大百戏锦囊",
-                    159: "5星百戏锦囊", 160: "5星大百戏锦囊", 161: "5星超大百戏锦囊",
-                    173: "霞光3星锦囊",
-                    174: "霞光4星锦囊",
-                    175: "霞光5星锦囊"
-                };
+    <script>
+        (async function () {
+            "use strict";
+            const SERVER_URL = window.location.origin;
+            const CORE_FIELDS = ['时间', '体力', '红钻', '金币'];
+            const DEFAULT_TEMPLATES = ["查询到您在{时间}{action}{体力}点体力", "查询到您在{时间}{action}{红钻}红钻", "查询到您在{时间}{action}{金币}金币"];
+            const DEFAULT_SOURCE_RULES = [
+                { pattern: "金币竞赛", replacement: "茶楼大战", type: "source" },
+                { pattern: "体力购买", replacement: "购买体力", type: "source" },
+                { pattern: "装扮活动", replacement: "装扮活动兑换", type: "source" },
+                { pattern: "商店购买", replacement: "在商店购买", type: "source" },
+                { pattern: "任务", replacement: "任务奖励", type: "source" },
+                { pattern: ":", replacement: "：", type: "reward" },
+                { pattern: "猪肉", replacement: "副棋盘活动道具", type: "reward" },
+                { pattern: "【棋盘pass卡领取】", replacement: "进度回响", type: "source" },
+                { pattern: "棋盘操作-使用消耗棋子", replacement: "点击棋子", type: "source" }
+            ];
+            const DEFAULT_IGNORE_KEYWORDS = ["棋盘上传"];
+            const PACK_NAME_MAP = {
+                151: "1星百戏锦囊", 152: "1星大百戏锦囊", 153: "2星百戏锦囊", 154: "2星大百戏锦囊",
+                155: "3星百戏锦囊", 156: "3星大百戏锦囊", 157: "4星百戏锦囊", 158: "4星大百戏锦囊",
+                159: "5星百戏锦囊", 160: "5星大百戏锦囊", 161: "5星超大百戏锦囊",
+                173: "霞光3星锦囊",
+                174: "霞光4星锦囊",
+                175: "霞光5星锦囊"
+            };
 
-                async function loadData(key, defaultValue) {
-                    try {
-                        const resp = await fetch(`${SERVER_URL}/api/data/${key}`);
-                        if (resp.ok) {
-                            const { value } = await resp.json();
-                            if (value !== undefined) {
-                                localStorage.setItem(key, JSON.stringify(value));
-                                return value;
-                            }
+            async function loadData(key, defaultValue) {
+                try {
+                    const resp = await fetch(`${SERVER_URL}/api/data/${key}`);
+                    if (resp.ok) {
+                        const { value } = await resp.json();
+                        if (value !== undefined) {
+                            localStorage.setItem(key, JSON.stringify(value));
+                            return value;
                         }
-                        localStorage.removeItem(key);
-                        throw new Error('服务器无数据');
-                    } catch {
-                        const cached = localStorage.getItem(key);
-                        return cached ? JSON.parse(cached) : defaultValue;
                     }
+                    localStorage.removeItem(key);
+                    throw new Error('服务器无数据');
+                } catch {
+                    const cached = localStorage.getItem(key);
+                    return cached ? JSON.parse(cached) : defaultValue;
                 }
-                async function saveData(key, data) {
-                    localStorage.setItem(key, JSON.stringify(data));
-                    try {
-                        await fetch(`${SERVER_URL}/api/data/${key}`, {
-                            method: 'POST', headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ value: data })
-                        });
-                    } catch (e) { console.warn('同步云端失败', e); }
-                }
+            }
+            async function saveData(key, data) {
+                localStorage.setItem(key, JSON.stringify(data));
+                try {
+                    await fetch(`${SERVER_URL}/api/data/${key}`, {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ value: data })
+                    });
+                } catch (e) { console.warn('同步云端失败', e); }
+            }
 
-                let templates = await loadData('templates', DEFAULT_TEMPLATES);
-                // let scripts = await loadData('scripts', []);   // 话术库已移除
-                let sourceRules = await loadData('sourceRules', DEFAULT_SOURCE_RULES);
-                let ignoreKeywords = await loadData('ignoreKeywords', DEFAULT_IGNORE_KEYWORDS);
-                // (function migrate() { ... })();   // 话术库已移除
-                function getRulePattern(r) { return r.pattern || ''; }
-                function getRuleReplacement(r) { return r.replacement || ''; }
-                let varInputs = {};
+            let templates = await loadData('templates', DEFAULT_TEMPLATES);
+            let sourceRules = await loadData('sourceRules', DEFAULT_SOURCE_RULES);
+            let ignoreKeywords = await loadData('ignoreKeywords', DEFAULT_IGNORE_KEYWORDS);
 
-                function expandDebugConsole() { debugConsole.style.display = 'block'; }
-                document.getElementById('debugToggleHeader')?.addEventListener('click', expandDebugConsole);
-                function cleanText(t) { return t.replace(/\ufeff/g, '').replace(/\s+/g, ' ').trim(); }
-                function extractTime(t) {
-                    const p = [/(\d{4}[-\/]\d{1,2}[-\/]\d{1,2}\s+\d{1,2}:\d{1,2}(:\d{1,2})?)/, /(\d{2}\/\d{1,2}\/\d{4}\s+\d{1,2}:\d{1,2}(:\d{1,2})?)/];
-                    for (let r of p) { const m = t.match(r); if (m) return m[1]; } return null;
+            function getRulePattern(r) { return r.pattern || ''; }
+            function getRuleReplacement(r) { return r.replacement || ''; }
+
+            // 补充 DOM 引用
+            const templateSelect = document.getElementById('templateSelect');
+            const varContainer = document.getElementById('varContainer');
+            const globalResultArea = document.getElementById('globalResultArea');
+            const globalResultCount = document.getElementById('globalResultCount');
+            const resultSourceHint = document.getElementById('resultSourceHint');
+            const debugConsole = document.getElementById('flowDebugConsole');
+            const smartPasteInput = document.getElementById('smartPasteInput');
+            let varInputs = {};
+
+            function expandDebugConsole() { debugConsole.style.display = 'block'; }
+            document.getElementById('debugToggleHeader')?.addEventListener('click', expandDebugConsole);
+            function cleanText(t) { return t.replace(/\ufeff/g, '').replace(/\s+/g, ' ').trim(); }
+            function extractTime(t) {
+                const p = [/(\d{4}[-\/]\d{1,2}[-\/]\d{1,2}\s+\d{1,2}:\d{1,2}(:\d{1,2})?)/, /(\d{2}\/\d{1,2}\/\d{4}\s+\d{1,2}:\d{1,2}(:\d{1,2})?)/];
+                for (let r of p) { const m = t.match(r); if (m) return m[1]; } return null;
+            }
+            function formatTimeToStandard(timeStr) {
+                if (!timeStr) return '';
+                let s = timeStr.replace(/\//g, '-');
+                let m = s.match(/(\d{4})-(\d{1,2})-(\d{1,2})\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?/);
+                if (!m) return s;
+                return `${m[1]}-${m[2].padStart(2, '0')}-${m[3].padStart(2, '0')} ${m[4].padStart(2, '0')}:${m[5].padStart(2, '0')}:${(m[6] || '00').padStart(2, '0')}`;
+            }
+            function detectResourceType(line) {
+                if (line.includes('好评点')) return '好评点';
+                if (line.includes('体力')) return '体力';
+                if (line.includes('红钻')) return '红钻';
+                if (line.includes('金币')) return '金币';
+                if (line.includes('道具')) return '道具';
+                return '';
+            }
+            function applyConversionByType(src, type) {
+                if (!src) return src;
+                if (!(document.getElementById('enableSourceConversionCheckbox')?.checked ?? true)) return src;
+                const lower = src.toLowerCase();
+                for (let r of sourceRules.filter(r => r.type === type)) if (r.pattern && lower.includes(r.pattern.toLowerCase())) return r.replacement || src;
+                return src;
+            }
+            function applySourceConversion(src) { return applyConversionByType(src, 'source'); }
+            function applyRewardConversion(str) {
+                if (!str) return str;
+                if (!(document.getElementById('enableSourceConversionCheckbox')?.checked ?? true)) return str;
+                let result = str;
+                for (let r of sourceRules.filter(r => r.type === 'reward')) {
+                    if (!r.pattern) continue;
+                    result = result.replace(new RegExp(r.pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), r.replacement || '');
                 }
-                function formatTimeToStandard(timeStr) {
-                    if (!timeStr) return '';
-                    let s = timeStr.replace(/\//g, '-');
-                    let m = s.match(/(\d{4})-(\d{1,2})-(\d{1,2})\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?/);
-                    if (!m) return s;
-                    return `${m[1]}-${m[2].padStart(2, '0')}-${m[3].padStart(2, '0')} ${m[4].padStart(2, '0')}:${m[5].padStart(2, '0')}:${(m[6] || '00').padStart(2, '0')}`;
-                }
-                function detectResourceType(line) {
-                    if (line.includes('好评点')) return '好评点';
-                    if (line.includes('体力')) return '体力';
-                    if (line.includes('红钻')) return '红钻';
-                    if (line.includes('金币')) return '金币';
-                    if (line.includes('道具')) return '道具';
-                    return '';
-                }
-                function applyConversionByType(src, type) {
-                    if (!src) return src;
-                    if (!(document.getElementById('enableSourceConversionCheckbox')?.checked ?? true)) return src;
-                    const lower = src.toLowerCase();
-                    for (let r of sourceRules.filter(r => r.type === type)) if (r.pattern && lower.includes(r.pattern.toLowerCase())) return r.replacement || src;
-                    return src;
-                }
-                function applySourceConversion(src) { return applyConversionByType(src, 'source'); }
-                function applyRewardConversion(str) {
-                    if (!str) return str;
-                    if (!(document.getElementById('enableSourceConversionCheckbox')?.checked ?? true)) return str;
-                    let result = str;
-                    for (let r of sourceRules.filter(r => r.type === 'reward')) {
-                        if (!r.pattern) continue;
-                        result = result.replace(new RegExp(r.pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), r.replacement || '');
+                return result.replace(/\s+/g, ' ').trim();
+            }
+            function applyChessNameConversion(name) {
+                return applyConversionByType(name, 'chessName');
+            }
+            function shouldIgnoreLine(line) {
+                if (!(document.getElementById('enableIgnoreRulesCheckbox')?.checked ?? true) || !ignoreKeywords.length) return false;
+                return ignoreKeywords.some(kw => line.toLowerCase().includes(kw.toLowerCase()));
+            }
+            function cleanHeader(s) { return s.trim().replace(/^["'"]|["'"]$/g, ''); }
+
+            function sortSentencesByTime(sentences, order = 'desc') {
+                if (!sentences || sentences.length < 2) return sentences;
+                const timeRegex = /\d{4}[-\/]\d{2}[-\/]\d{2}\s+\d{2}:\d{2}:\d{2}/;
+                return sentences.slice().sort((a, b) => {
+                    const timeA = (a.match(timeRegex) || [])[0];
+                    const timeB = (b.match(timeRegex) || [])[0];
+                    if (!timeA && !timeB) return 0;
+                    if (!timeA) return 1;
+                    if (!timeB) return -1;
+                    const dateA = new Date(timeA.replace(/-/g, '/'));
+                    const dateB = new Date(timeB.replace(/-/g, '/'));
+                    return order === 'asc' ? dateA - dateB : dateB - dateA;
+                });
+            }
+
+            function applyResourceClickReplace(text, resourceType) {
+                if (!text) return text;
+                const map = { '体力': '点击葫芦', '红钻': '点击红钻堆', '金币': '点击金币堆' };
+                const replacement = map[resourceType];
+                if (!replacement) return text;
+                return text.replace(/点击棋子/g, replacement);
+            }
+
+            function parseSmartLog(rawText) {
+                const lines = rawText.split(/\r?\n/).filter(l => l.trim());
+                const records = [];
+
+                for (let line of lines) {
+                    if (shouldIgnoreLine(line)) continue;
+                    const rawTime = extractTime(line);
+                    if (!rawTime) continue;
+                    const time = formatTimeToStandard(rawTime);
+                    const parts = line.split('\t');
+                    if (parts.length < 6) continue;
+
+                    const thirdCol = parts[2]?.trim();
+                    const isNewFormat = !/^[+-]?\d+$/.test(thirdCol) && parts.length >= 10;
+
+                    let changeRaw, beforeRaw, afterRaw, sourceRaw, itemName = '';
+
+                    if (isNewFormat) {
+                        const resourceType = thirdCol;
+                        const itemId = parts[3]?.trim() || '';
+                        const rawName = parts[4]?.trim() || '';
+                        const typeLabel = parts[5]?.trim() || '';
+
+                        if (rawName && rawName !== '道具' && rawName !== '货币') {
+                            itemName = rawName;
+                        } else if (typeLabel && typeLabel !== '货币' && typeLabel !== '道具') {
+                            itemName = typeLabel;
+                        } else if (itemId) {
+                            itemName = itemId;
+                        } else {
+                            itemName = resourceType;
+                        }
+
+                        changeRaw = parts[6]?.trim() || '0';
+                        beforeRaw = parts[7]?.trim() || '0';
+                        afterRaw = parts[8]?.trim() || '0';
+                        sourceRaw = parts[9]?.trim() || '';
+                    } else {
+                        const isFormatB = /^[+-]?\d+$/.test(thirdCol);
+                        if (isFormatB) {
+                            changeRaw = parts[2]; beforeRaw = parts[3]; afterRaw = parts[4]; sourceRaw = parts[5];
+                            itemName = (parts.length >= 9 && parts[8]?.trim()) ? parts[8]?.trim() :
+                                (parts.length >= 8 && parts[7]?.trim()) ? parts[7]?.trim() : '';
+                        } else {
+                            itemName = parts[2]?.trim();
+                            changeRaw = parts[3]; beforeRaw = parts[4]; afterRaw = parts[5]; sourceRaw = parts[6];
+                        }
                     }
-                    return result.replace(/\s+/g, ' ').trim();
-                }
-                function applyChessNameConversion(name) {
-                    return applyConversionByType(name, 'chessName');
-                }
-                function shouldIgnoreLine(line) {
-                    if (!(document.getElementById('enableIgnoreRulesCheckbox')?.checked ?? true) || !ignoreKeywords.length) return false;
-                    return ignoreKeywords.some(kw => line.toLowerCase().includes(kw.toLowerCase()));
-                }
-                function cleanHeader(s) { return s.trim().replace(/^["'"]|["'"]$/g, ''); }
 
-                function sortSentencesByTime(sentences, order = 'desc') {
-                    if (!sentences || sentences.length < 2) return sentences;
-                    const timeRegex = /\d{4}[-\/]\d{2}[-\/]\d{2}\s+\d{2}:\d{2}:\d{2}/;
-                    return sentences.slice().sort((a, b) => {
-                        const timeA = (a.match(timeRegex) || [])[0];
-                        const timeB = (b.match(timeRegex) || [])[0];
-                        if (!timeA && !timeB) return 0;
-                        if (!timeA) return 1;
-                        if (!timeB) return -1;
-                        const dateA = new Date(timeA.replace(/-/g, '/'));
-                        const dateB = new Date(timeB.replace(/-/g, '/'));
-                        return order === 'asc' ? dateA - dateB : dateB - dateA;
+                    const change = parseInt(changeRaw, 10);
+                    if (isNaN(change)) continue;
+                    const before = parseFloat(beforeRaw) || 0;
+                    const after = parseFloat(afterRaw) || 0;
+                    sourceRaw = (sourceRaw || '').trim().replace(/^["']|["']$/g, '');
+                    const source = applySourceConversion(sourceRaw);
+
+                    records.push({
+                        '时间': time,
+                        '数量': change,
+                        '来源': source,
+                        '道具名称': itemName,
+                        '之前': before,
+                        '之后': after
                     });
                 }
 
-                function applyResourceClickReplace(text, resourceType) {
-                    if (!text) return text;
-                    const map = { '体力': '点击葫芦', '红钻': '点击红钻堆', '金币': '点击金币堆' };
-                    const replacement = map[resourceType];
-                    if (!replacement) return text;
-                    return text.replace(/点击棋子/g, replacement);
+                records.sort((a, b) => (b['时间'] || '').localeCompare(a['时间'] || ''));
+                return records;
+            }
+
+            function getChangeAndAction(rec) {
+                let before = parseFloat(rec['之前']) || 0, after = parseFloat(rec['之后']) || 0, change = after - before;
+                if (change === 0) change = parseFloat(rec['数量']) || 0;
+                const action = change > 0 ? '获得' : (change < 0 ? '消耗' : '');
+                return { change, action, before, after };
+            }
+
+            function isActivityItem(itemName, source, resourceType) {
+                if (resourceType !== '道具') return false;
+                return ['活动道具', '活动'].some(kw => (itemName + ' ' + source).toLowerCase().includes(kw.toLowerCase()));
+            }
+
+            function generateFlowSentence(rec, type, showChange = true) {
+                const time = (rec['时间'] || '').replace(/-/g, '/');
+                const source = rec['来源'] || '';
+                const itemName = rec['道具名称'] || '';
+                const { change, action, before, after } = getChangeAndAction(rec);
+                if (!change || !action) return null;
+                const abs = Math.abs(change);
+                if (isActivityItem(itemName, source, type))
+                    return `在${time}，${action}了${abs}个${itemName || '活动道具'}`;
+                if (type === '好评点') {
+                    return source
+                        ? `在${time}，通过${source}${action}${abs}点好评点，从${before}变为${after}`
+                        : `在${time}，${action}${abs}点好评点，从${before}变为${after}`;
                 }
-
-                function parseSmartLog(rawText) {
-                    const lines = rawText.split(/\r?\n/).filter(l => l.trim());
-                    const records = [];
-
-                    for (let line of lines) {
-                        if (shouldIgnoreLine(line)) continue;
-                        const rawTime = extractTime(line);
-                        if (!rawTime) continue;
-                        const time = formatTimeToStandard(rawTime);
-                        const parts = line.split('\t');
-                        if (parts.length < 6) continue;
-
-                        // 判断新格式：第3列（索引2）不是数字，且列数≥10
-                        const thirdCol = parts[2]?.trim();
-                        const isNewFormat = !/^[+-]?\d+$/.test(thirdCol) && parts.length >= 10;
-
-                        let changeRaw, beforeRaw, afterRaw, sourceRaw, itemName = '';
-
-                        if (isNewFormat) {
-                            // 新格式：0时间 1UUID 2资源类型 3道具ID 4名称 5类型 6变化量 7变化前 8变化后 9来源
-                            const resourceType = thirdCol;              // 体力 / 背包
-                            const itemId = parts[3]?.trim() || '';
-                            const rawName = parts[4]?.trim() || '';     // 第5列（索引4）
-                            const typeLabel = parts[5]?.trim() || '';   // 第6列（索引5）
-
-                            // 智能名称判断：优先用 rawName，若为泛称则用 typeLabel，否则用 itemId
-                            if (rawName && rawName !== '道具' && rawName !== '货币') {
-                                itemName = rawName;                     // 体力、红钻等
-                            } else if (typeLabel && typeLabel !== '货币' && typeLabel !== '道具') {
-                                itemName = typeLabel;                   // 活动道具
-                            } else if (itemId) {
-                                itemName = itemId;
-                            } else {
-                                itemName = resourceType;
-                            }
-
-                            changeRaw = parts[6]?.trim() || '0';        // 变化量（索引6）
-                            beforeRaw = parts[7]?.trim() || '0';        // 变化前（索引7）
-                            afterRaw = parts[8]?.trim() || '0';        // 变化后（索引8）
-                            sourceRaw = parts[9]?.trim() || '';         // 来源（索引9）
-                        } else {
-                            // 旧格式（保留原逻辑）
-                            const isFormatB = /^[+-]?\d+$/.test(thirdCol);
-                            if (isFormatB) {
-                                changeRaw = parts[2]; beforeRaw = parts[3]; afterRaw = parts[4]; sourceRaw = parts[5];
-                                itemName = (parts.length >= 9 && parts[8]?.trim()) ? parts[8]?.trim() :
-                                    (parts.length >= 8 && parts[7]?.trim()) ? parts[7]?.trim() : '';
-                            } else {
-                                itemName = parts[2]?.trim();
-                                changeRaw = parts[3]; beforeRaw = parts[4]; afterRaw = parts[5]; sourceRaw = parts[6];
-                            }
-                        }
-
-                        const change = parseInt(changeRaw, 10);
-                        if (isNaN(change)) continue;
-                        const before = parseFloat(beforeRaw) || 0;
-                        const after = parseFloat(afterRaw) || 0;
-                        sourceRaw = (sourceRaw || '').trim().replace(/^["']|["']$/g, '');
-                        const source = applySourceConversion(sourceRaw);
-
-                        records.push({
-                            '时间': time,
-                            '数量': change,
-                            '来源': source,
-                            '道具名称': itemName,
-                            '之前': before,
-                            '之后': after
-                        });
-                    }
-
-                    records.sort((a, b) => (b['时间'] || '').localeCompare(a['时间'] || ''));
-                    return records;
-                }
-
-                function getChangeAndAction(rec) {
-                    let before = parseFloat(rec['之前']) || 0, after = parseFloat(rec['之后']) || 0, change = after - before;
-                    if (change === 0) change = parseFloat(rec['数量']) || 0;
-                    const action = change > 0 ? '获得' : (change < 0 ? '消耗' : '');
-                    return { change, action, before, after };
-                }
-
-                function isActivityItem(itemName, source, resourceType) {
-                    if (resourceType !== '道具') return false;
-                    return ['活动道具', '活动'].some(kw => (itemName + ' ' + source).toLowerCase().includes(kw.toLowerCase()));
-                }
-
-                function generateFlowSentence(rec, type, showChange = true) {
-                    const time = (rec['时间'] || '').replace(/-/g, '/');
-                    const source = rec['来源'] || '';
-                    const itemName = rec['道具名称'] || '';
-                    const { change, action, before, after } = getChangeAndAction(rec);
-                    if (!change || !action) return null;
-                    const abs = Math.abs(change);
-                    if (isActivityItem(itemName, source, type))
-                        return `在${time}，${action}了${abs}个${itemName || '活动道具'}`;
-                    if (type === '好评点') {
+                if (type === '道具' && itemName) {
+                    if (itemName.includes('积分') || itemName.includes('券')) {
                         return source
-                            ? `在${time}，通过${source}${action}${abs}点好评点，从${before}变为${after}`
-                            : `在${time}，${action}${abs}点好评点，从${before}变为${after}`;
+                            ? `在${time}，通过${source}${action}${abs}个${itemName}，从${before}变为${after}`
+                            : `在${time}，${action}${abs}个${itemName}，从${before}变为${after}`;
                     }
-                    if (type === '道具' && itemName) {
-                        if (itemName.includes('积分') || itemName.includes('券')) {
-                            return source
-                                ? `在${time}，通过${source}${action}${abs}个${itemName}，从${before}变为${after}`
-                                : `在${time}，${action}${abs}个${itemName}，从${before}变为${after}`;
-                        }
-                        return `在${time}，${action}了${abs}个${itemName}`;
+                    return `在${time}，${action}了${abs}个${itemName}`;
+                }
+                let sentence = showChange
+                    ? (source ? `在${time}，通过${source}${action}${abs}点${type}，从${before}变为${after}`
+                        : `在${time}，${action}${abs}点${type}，从${before}变为${after}`)
+                    : (source ? `在${time}，通过${source}${action}${abs}点${type}`
+                        : `在${time}，${action}${abs}点${type}`);
+                return applyResourceClickReplace(sentence, type);
+            }
+
+            function parseReviewLog(rawText) {
+                const lines = rawText.split(/\r?\n/).map(l => l.trim()).filter(l => l);
+                if (lines.length < 1) return ['❌ 数据格式不正确，请检查'];
+
+                let timeStr = '';
+                const timeRegex = /(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})/g;
+                let match;
+                let lastValidTime = null;
+                while ((match = timeRegex.exec(rawText)) !== null) {
+                    const timeCandidate = match[1];
+                    const beforeMatch = rawText.substring(0, match.index);
+                    const lineStart = beforeMatch.lastIndexOf('\n') + 1;
+                    const lineEnd = rawText.indexOf('\n', match.index);
+                    const line = rawText.substring(lineStart, lineEnd === -1 ? rawText.length : lineEnd).trim();
+                    if (!/开始时间|结束时间|当前轮次|是否成功|超级解锁状态/.test(line)) {
+                        lastValidTime = timeCandidate;
                     }
-                    let sentence = showChange
-                        ? (source ? `在${time}，通过${source}${action}${abs}点${type}，从${before}变为${after}`
-                            : `在${time}，${action}${abs}点${type}，从${before}变为${after}`)
-                        : (source ? `在${time}，通过${source}${action}${abs}点${type}`
-                            : `在${time}，${action}${abs}点${type}`);
-                    return applyResourceClickReplace(sentence, type);
+                }
+                if (lastValidTime) {
+                    timeStr = lastValidTime.replace(/-/g, '/');
+                } else {
+                    return ['❌ 未找到有效时间（请检查数据中是否包含领取时间）'];
                 }
 
-                function parseReviewLog(rawText) {
-                    const lines = rawText.split(/\r?\n/).map(l => l.trim()).filter(l => l);
-                    if (lines.length < 1) return ['❌ 数据格式不正确，请检查'];
+                const itemCount = new Map();
+                const chineseRegex = /^[\u4e00-\u9fa5]+$/;
 
-                    // 1. 智能提取时间：取全文中最后一个非状态行内的时间（领取奖励时间）
-                    let timeStr = '';
-                    const timeRegex = /(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})/g;
-                    let match;
-                    let lastValidTime = null;
-                    while ((match = timeRegex.exec(rawText)) !== null) {
-                        const timeCandidate = match[1];
-                        // 定位该时间所在的行
-                        const beforeMatch = rawText.substring(0, match.index);
-                        const lineStart = beforeMatch.lastIndexOf('\n') + 1;
-                        const lineEnd = rawText.indexOf('\n', match.index);
-                        const line = rawText.substring(lineStart, lineEnd === -1 ? rawText.length : lineEnd).trim();
-                        // 忽略包含状态关键词的行
-                        if (!/开始时间|结束时间|当前轮次|是否成功|超级解锁状态/.test(line)) {
-                            lastValidTime = timeCandidate;
-                        }
-                    }
-                    if (lastValidTime) {
-                        timeStr = lastValidTime.replace(/-/g, '/');
-                    } else {
-                        return ['❌ 未找到有效时间（请检查数据中是否包含领取时间）'];
-                    }
-
-                    // 2. 统计物品
-                    const itemCount = new Map();
-                    const chineseRegex = /^[\u4e00-\u9fa5]+$/;
-
-                    // 处理第一行物品（取最后一个 Tab 分隔的纯汉字字段）
-                    const firstLineParts = lines[0].split('\t');
-                    const firstItem = firstLineParts[firstLineParts.length - 1]?.trim();
-                    if (firstItem && chineseRegex.test(firstItem)) {
-                        itemCount.set(firstItem, (itemCount.get(firstItem) || 0) + 1);
-                    }
-
-                    // 处理后续行（跳过状态行，仅统计纯汉字物品）
-                    for (let i = 1; i < lines.length; i++) {
-                        const line = lines[i];
-                        if (/当前轮次|开始时间|结束时间|是否成功|超级解锁状态/.test(line)) continue;
-                        if (chineseRegex.test(line)) {
-                            itemCount.set(line, (itemCount.get(line) || 0) + 1);
-                        }
-                    }
-
-                    if (itemCount.size === 0) return ['未解析到有效奖励数据'];
-
-                    // 3. 生成话术
-                    const statsList = [];
-                    for (let [name, count] of itemCount) {
-                        statsList.push(count > 1 ? `${name}*${count}` : name);
-                    }
-                    return [`在${timeStr}，获得好评奖励：${statsList.join('，')}`];
+                const firstLineParts = lines[0].split('\t');
+                const firstItem = firstLineParts[firstLineParts.length - 1]?.trim();
+                if (firstItem && chineseRegex.test(firstItem)) {
+                    itemCount.set(firstItem, (itemCount.get(firstItem) || 0) + 1);
                 }
 
-                function parseOrderLog(rawText) {
-                    let text = rawText.replace(/\r\n/g, '\n');
-                    const parts = text.split('\t').map(p => p.trim());
-                    if (parts.length < 8) { debugConsole.innerHTML += '\n❌ 订单日志字段不足'; return []; }
-                    const fullText = rawText.toLowerCase();
-                    const orderType = parts[3] || '未知订单';
-                    const firstTime = extractTime(rawText) || '';
-                    if (fullText.includes('过期')) return [`${orderType}已在${firstTime}过期`];
-                    let statusIdx = -1, statusText = '', finalTime = '';
-                    for (let i = 0; i < parts.length; i++) {
-                        if (['完成', '删除', '创建'].includes(parts[i])) {
-                            statusIdx = i; statusText = parts[i];
-                            if (i + 1 < parts.length) finalTime = parts[i + 1];
-                            break;
-                        }
+                for (let i = 1; i < lines.length; i++) {
+                    const line = lines[i];
+                    if (/当前轮次|开始时间|结束时间|是否成功|超级解锁状态/.test(line)) continue;
+                    if (chineseRegex.test(line)) {
+                        itemCount.set(line, (itemCount.get(line) || 0) + 1);
                     }
-                    if (statusIdx === -1 || !finalTime) {
-                        const timeMatches = rawText.match(/(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})/g);
-                        if (timeMatches) finalTime = timeMatches[timeMatches.length - 1];
-                        statusText = '操作';
+                }
+
+                if (itemCount.size === 0) return ['未解析到有效奖励数据'];
+
+                const statsList = [];
+                for (let [name, count] of itemCount) {
+                    statsList.push(count > 1 ? `${name}*${count}` : name);
+                }
+                return [`在${timeStr}，获得好评奖励：${statsList.join('，')}`];
+            }
+
+            function parseOrderLog(rawText) {
+                let text = rawText.replace(/\r\n/g, '\n');
+                const parts = text.split('\t').map(p => p.trim());
+                if (parts.length < 8) { debugConsole.innerHTML += '\n❌ 订单日志字段不足'; return []; }
+                const fullText = rawText.toLowerCase();
+                const orderType = parts[3] || '未知订单';
+                const firstTime = extractTime(rawText) || '';
+                if (fullText.includes('过期')) return [`${orderType}已在${firstTime}过期`];
+                let statusIdx = -1, statusText = '', finalTime = '';
+                for (let i = 0; i < parts.length; i++) {
+                    if (['完成', '删除', '创建'].includes(parts[i])) {
+                        statusIdx = i; statusText = parts[i];
+                        if (i + 1 < parts.length) finalTime = parts[i + 1];
+                        break;
                     }
-                    let chessStartIdx = 5;
-                    if (parts[chessStartIdx] === '是') chessStartIdx = 6;
-                    let chessNames = [], fiveDigitFound = false;
-                    for (let i = chessStartIdx; i < parts.length; i++) {
-                        const segment = parts[i];
-                        const fiveDigitMatch = segment.match(/\b\d{5}\b/);
-                        if (fiveDigitMatch) {
-                            const beforeFive = segment.substring(0, segment.indexOf(fiveDigitMatch[0]));
-                            const chineseMatches = beforeFive.match(/[\u4e00-\u9fa5]+/g);
-                            if (chineseMatches) chessNames.push(...chineseMatches);
-                            fiveDigitFound = true; break;
-                        } else {
-                            const chinese = segment.match(/[\u4e00-\u9fa5]+/g);
-                            if (chinese) chessNames.push(...chinese);
-                        }
-                    }
-                    const convertedNames = chessNames.map(name => applyChessNameConversion(name));
-                    const chessStr = convertedNames.length ? [...new Set(convertedNames)].join('、') : '棋子';
-                    let rewardRaw = '';
-                    if (fiveDigitFound) {
-                        let fiveIdxInRaw = -1;
-                        for (let i = chessStartIdx; i < parts.length; i++) if (/\b\d{5}\b/.test(parts[i])) { fiveIdxInRaw = i; break; }
-                        if (fiveIdxInRaw !== -1) {
-                            const beforeReward = parts.slice(0, fiveIdxInRaw + 3).join('\t');
-                            const rewardStartPos = beforeReward.length + (fiveIdxInRaw > 0 ? 1 : 0);
-                            const statusPos = rawText.indexOf(statusText);
-                            const rewardEndPos = (statusIdx !== -1) ? statusPos : rawText.lastIndexOf(finalTime);
-                            if (rewardEndPos > rewardStartPos) rewardRaw = rawText.substring(rewardStartPos, rewardEndPos);
-                        }
+                }
+                if (statusIdx === -1 || !finalTime) {
+                    const timeMatches = rawText.match(/(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})/g);
+                    if (timeMatches) finalTime = timeMatches[timeMatches.length - 1];
+                    statusText = '操作';
+                }
+                let chessStartIdx = 5;
+                if (parts[chessStartIdx] === '是') chessStartIdx = 6;
+                let chessNames = [], fiveDigitFound = false;
+                for (let i = chessStartIdx; i < parts.length; i++) {
+                    const segment = parts[i];
+                    const fiveDigitMatch = segment.match(/\b\d{5}\b/);
+                    if (fiveDigitMatch) {
+                        const beforeFive = segment.substring(0, segment.indexOf(fiveDigitMatch[0]));
+                        const chineseMatches = beforeFive.match(/[\u4e00-\u9fa5]+/g);
+                        if (chineseMatches) chessNames.push(...chineseMatches);
+                        fiveDigitFound = true; break;
                     } else {
-                        const endPos = statusIdx !== -1 ? parts.slice(0, statusIdx).join('\t').length : rawText.lastIndexOf(finalTime);
-                        rewardRaw = rawText.substring(0, endPos);
+                        const chinese = segment.match(/[\u4e00-\u9fa5]+/g);
+                        if (chinese) chessNames.push(...chinese);
                     }
-                    rewardRaw = rewardRaw.replace(/\t/g, ' ').replace(/\d{4}-\d{2}-\d{2}\s+\d{1,2}:\d{2}:\d{2}/g, '').trim();
-                    rewardRaw = applyRewardConversion(rewardRaw);
-                    const lines = rewardRaw.split(/\n/).map(l => l.trim()).filter(l => l.length > 0);
-                    const rewardItems = [];
-                    let pendingItem = null;
-                    for (let line of lines) {
-                        if (/^\d+$/.test(line)) continue;
-                        const numMatch = line.match(/(?:[:：]\s*)?(\d+)\s*$/);
-                        let itemDesc = line;
-                        let count = null;
-                        if (numMatch) {
-                            count = numMatch[1];
-                            itemDesc = line.substring(0, numMatch.index).trim();
-                            itemDesc = itemDesc.replace(/[:：]\s*$/, '').trim();
-                        }
-                        if (itemDesc) {
-                            if (pendingItem) {
-                                if (count !== null) {
-                                    rewardItems.push(`${pendingItem} ${itemDesc}:${count}`.replace(/\s+/g, ' ').trim());
-                                    pendingItem = null;
-                                } else {
-                                    rewardItems.push(pendingItem);
-                                    pendingItem = itemDesc;
-                                }
+                }
+                const convertedNames = chessNames.map(name => applyChessNameConversion(name));
+                const chessStr = convertedNames.length ? [...new Set(convertedNames)].join('、') : '棋子';
+                let rewardRaw = '';
+                if (fiveDigitFound) {
+                    let fiveIdxInRaw = -1;
+                    for (let i = chessStartIdx; i < parts.length; i++) if (/\b\d{5}\b/.test(parts[i])) { fiveIdxInRaw = i; break; }
+                    if (fiveIdxInRaw !== -1) {
+                        const beforeReward = parts.slice(0, fiveIdxInRaw + 3).join('\t');
+                        const rewardStartPos = beforeReward.length + (fiveIdxInRaw > 0 ? 1 : 0);
+                        const statusPos = rawText.indexOf(statusText);
+                        const rewardEndPos = (statusIdx !== -1) ? statusPos : rawText.lastIndexOf(finalTime);
+                        if (rewardEndPos > rewardStartPos) rewardRaw = rawText.substring(rewardStartPos, rewardEndPos);
+                    }
+                } else {
+                    const endPos = statusIdx !== -1 ? parts.slice(0, statusIdx).join('\t').length : rawText.lastIndexOf(finalTime);
+                    rewardRaw = rawText.substring(0, endPos);
+                }
+                rewardRaw = rewardRaw.replace(/\t/g, ' ').replace(/\d{4}-\d{2}-\d{2}\s+\d{1,2}:\d{2}:\d{2}/g, '').trim();
+                rewardRaw = applyRewardConversion(rewardRaw);
+                const lines = rewardRaw.split(/\n/).map(l => l.trim()).filter(l => l.length > 0);
+                const rewardItems = [];
+                let pendingItem = null;
+                for (let line of lines) {
+                    if (/^\d+$/.test(line)) continue;
+                    const numMatch = line.match(/(?:[:：]\s*)?(\d+)\s*$/);
+                    let itemDesc = line;
+                    let count = null;
+                    if (numMatch) {
+                        count = numMatch[1];
+                        itemDesc = line.substring(0, numMatch.index).trim();
+                        itemDesc = itemDesc.replace(/[:：]\s*$/, '').trim();
+                    }
+                    if (itemDesc) {
+                        if (pendingItem) {
+                            if (count !== null) {
+                                rewardItems.push(`${pendingItem} ${itemDesc}:${count}`.replace(/\s+/g, ' ').trim());
+                                pendingItem = null;
                             } else {
-                                if (count !== null) rewardItems.push(`${itemDesc}:${count}`);
-                                else pendingItem = itemDesc;
+                                rewardItems.push(pendingItem);
+                                pendingItem = itemDesc;
                             }
-                        } else if (count !== null && pendingItem) {
-                            rewardItems.push(`${pendingItem}:${count}`);
-                            pendingItem = null;
-                        }
-                    }
-                    if (pendingItem) rewardItems.push(pendingItem);
-                    const rewardStr = rewardItems.length ? [...new Set(rewardItems)].join('，') : '奖励';
-                    const actionVerb = statusText === '完成' ? '完成订单' : (statusText === '删除' ? '删除订单' : '操作订单');
-                    return [`在${finalTime.replace(/-/g, '/')}提交${chessStr}${actionVerb}，获得${rewardStr}`];
-                }
-
-                function parseItemFlowLog(rawText) {
-                    const lines = rawText.split(/\r?\n/).filter(l => l.trim());
-                    const records = [];
-
-                    for (let line of lines) {
-                        if (shouldIgnoreLine(line)) continue;
-
-                        const parts = line.split('\t');
-                        if (parts.length < 9) continue;
-
-                        const rawTime = parts[0]?.trim();
-                        if (!rawTime) continue;
-                        const time = formatTimeToStandard(rawTime);
-
-                        const itemId = parts[2]?.trim() || '';
-                        const itemName = parts[4]?.trim() || '';
-                        const changeStr = parts[5]?.trim() || '0';
-                        const change = parseInt(changeStr, 10) || 0;
-                        const before = parseInt(parts[6]?.trim() || '0', 10) || 0;
-                        const after = parseInt(parts[7]?.trim() || '0', 10) || 0;
-                        let source = parts[8]?.trim() || '';
-                        source = applySourceConversion(source);
-
-                        let displayName = itemName || itemId;
-                        displayName = applyChessNameConversion(displayName);
-
-                        records.push({ time, itemId, itemName: displayName, change, before, after, source });
-                    }
-
-                    records.sort((a, b) => b.time.localeCompare(a.time));
-
-                    const sentences = records.map(rec => {
-                        const action = rec.change > 0 ? '获得' : (rec.change < 0 ? '消耗' : '操作');
-                        const abs = Math.abs(rec.change);
-                        if (abs === 0) return null;
-                        if (rec.source) {
-                            return `在${rec.time}，通过${rec.source}${action}${abs}个${rec.itemName}`;
                         } else {
-                            return `在${rec.time}，${action}${abs}个${rec.itemName}`;
+                            if (count !== null) rewardItems.push(`${itemDesc}:${count}`);
+                            else pendingItem = itemDesc;
                         }
-                    }).filter(s => s);
-
-                    return sentences;
-                }
-
-                function parseChessLog(raw) {
-                    const lines = raw.split(/\r?\n/);
-                    const events = []; let cur = null;
-                    const tsRgx = /^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}/;
-                    for (let l of lines) {
-                        if (!l.trim()) continue;
-                        if (tsRgx.test(l) && l.includes('\t')) { if (cur) events.push(cur); cur = l; }
-                        else if (cur) cur += '\n' + l;
+                    } else if (count !== null && pendingItem) {
+                        rewardItems.push(`${pendingItem}:${count}`);
+                        pendingItem = null;
                     }
-                    if (cur) events.push(cur);
-                    return events.map(ev => {
-                        try {
-                            const parts = ev.split('\t');
-                            if (parts.length < 6) throw new Error('字段不足');
-                            const time = formatTimeToStandard(parts[0].trim());
-                            if (!time) throw new Error('时间错误');
-                            const chessRaw = (parts[2] || '').trim();
-                            let name = '棋子', level = 0;
-                            if (chessRaw.includes('/')) {
-                                const [id, nm] = chessRaw.split('/');
-                                name = nm || chessRaw;
-                                const lm = id.match(/(\d{2})$/);
-                                if (lm) { level = parseInt(lm[1], 10); if (isNaN(level)) level = 0; }
-                            } else name = chessRaw;
-                            name = applyChessNameConversion(name);   // ★ 应用棋子名称转换规则
-                            const changeRaw = (parts[3] || '').split('\n')[0].trim();
-                            const change = parseInt(changeRaw, 10) || 0;
-                            let cmd = '';
-                            for (let i = 6; i < parts.length; i++) { const p = parts[i].trim(); if (p.includes('棋盘操作-')) { cmd = p; break; } }
-                            if (!cmd) cmd = (parts[7] || parts[8] || '').trim();
-                            if (!cmd) throw new Error('未找到命令');
-                            let desc = '';
-                            if (cmd.includes('钻石解锁泡泡')) desc = `使用红钻解锁泡泡获得${level ? level + '级' : ''}${name}`;
-                            else if (cmd.includes('广告解锁泡泡')) desc = `看广告解锁泡泡获得${level ? level + '级' : ''}${name}`;
-                            else if (cmd.includes('活动棋盘仓库推出')) desc = `从活动棋盘的临时队列中取出${level ? level + '级' : ''}${name}`;
-                            else if (cmd.includes('推出栈')) desc = `从临时队列取出${level ? level + '级' : ''}${name}`;
-                            else if (cmd.includes('推入仓库')) desc = `将${level ? level + '级' : ''}${name}放入仓库`;
-                            else if (cmd.includes('推出仓库')) desc = `从仓库取出${level ? level + '级' : ''}${name}`;
-                            else if (cmd.includes('临时队列取出')) desc = `从临时队列取出${level ? level + '级' : ''}${name}`;
-                            else if (cmd.includes('商店购买')) desc = `在商店购买了${Math.abs(change)}个${level ? level + '级' : ''}${name}`;
-                            else if (cmd.includes('合并')) desc = change > 0 ? `通过合并获得${Math.abs(change)}个${level ? level + '级' : ''}${name}` : `消耗${Math.abs(change)}个${level ? level + '级' : ''}${name}进行合成`;
-                            else if (cmd.includes('活动')) desc = `通过活动获得${Math.abs(change)}个${level ? level + '级' : ''}${name}`;
-                            else if (cmd.includes('使用消耗棋子')) desc = `消耗${Math.abs(change)}个${level ? level + '级' : ''}${name}`;
-                            else if (cmd.includes('删除')) desc = `删除了${Math.abs(change)}个${level ? level + '级' : ''}${name}`;
-                            else if (change !== 0) desc = change > 0 ? `获得${Math.abs(change)}个${level ? level + '级' : ''}${name}` : `消耗${Math.abs(change)}个${level ? level + '级' : ''}${name}`;
-                            else desc = `操作了${level ? level + '级' : ''}${name}`;
-                            return { finalDesc: `在${time} ${desc}`, time };
-                        } catch (e) { return { error: e.message }; }
-                    });
+                }
+                if (pendingItem) rewardItems.push(pendingItem);
+                const rewardStr = rewardItems.length ? [...new Set(rewardItems)].join('，') : '奖励';
+                const actionVerb = statusText === '完成' ? '完成订单' : (statusText === '删除' ? '删除订单' : '操作订单');
+                return [`在${finalTime.replace(/-/g, '/')}提交${chessStr}${actionVerb}，获得${rewardStr}`];
+            }
+
+            function parseItemFlowLog(rawText) {
+                const lines = rawText.split(/\r?\n/).filter(l => l.trim());
+                const records = [];
+
+                for (let line of lines) {
+                    if (shouldIgnoreLine(line)) continue;
+
+                    const parts = line.split('\t');
+                    if (parts.length < 9) continue;
+
+                    const rawTime = parts[0]?.trim();
+                    if (!rawTime) continue;
+                    const time = formatTimeToStandard(rawTime);
+
+                    const itemId = parts[2]?.trim() || '';
+                    const itemName = parts[4]?.trim() || '';
+                    const changeStr = parts[5]?.trim() || '0';
+                    const change = parseInt(changeStr, 10) || 0;
+                    const before = parseInt(parts[6]?.trim() || '0', 10) || 0;
+                    const after = parseInt(parts[7]?.trim() || '0', 10) || 0;
+                    let source = parts[8]?.trim() || '';
+                    source = applySourceConversion(source);
+
+                    let displayName = itemName || itemId;
+                    displayName = applyChessNameConversion(displayName);
+
+                    records.push({ time, itemId, itemName: displayName, change, before, after, source });
                 }
 
-                function smartParseAndFill() {
-                    expandDebugConsole();
-                    const mode = document.querySelector('input[name="parseMode"]:checked').value;
-                    const raw = smartPasteInput.value.trim();
-                    if (!raw) { debugConsole.innerHTML = '❌ 请输入文本'; return; }
-                    const sortOrder = document.getElementById('sortOrderSelect').value;
+                records.sort((a, b) => b.time.localeCompare(a.time));
 
-                    if (mode === 'order') {
-                        if (raw.includes('创建')) debugConsole.innerHTML += '\n⚠️ 检测到"创建"订单，可能无法提取完整奖励';
-                        debugConsole.innerHTML = '📦 订单日志解析...';
-                        const s = parseOrderLog(raw);
-                        globalResultArea.value = s.join('\n\n');
-                        globalResultCount.textContent = `${s.length} 条`;
-                        resultSourceHint.textContent = '订单日志解析';
+                const sentences = records.map(rec => {
+                    const action = rec.change > 0 ? '获得' : (rec.change < 0 ? '消耗' : '操作');
+                    const abs = Math.abs(rec.change);
+                    if (abs === 0) return null;
+                    if (rec.source) {
+                        return `在${rec.time}，通过${rec.source}${action}${abs}个${rec.itemName}`;
+                    } else {
+                        return `在${rec.time}，${action}${abs}个${rec.itemName}`;
+                    }
+                }).filter(s => s);
+
+                return sentences;
+            }
+
+            function parseChessLog(raw) {
+                const lines = raw.split(/\r?\n/);
+                const events = []; let cur = null;
+                const tsRgx = /^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}/;
+                for (let l of lines) {
+                    if (!l.trim()) continue;
+                    if (tsRgx.test(l) && l.includes('\t')) { if (cur) events.push(cur); cur = l; }
+                    else if (cur) cur += '\n' + l;
+                }
+                if (cur) events.push(cur);
+                return events.map(ev => {
+                    try {
+                        const parts = ev.split('\t');
+                        if (parts.length < 6) throw new Error('字段不足');
+                        const time = formatTimeToStandard(parts[0].trim());
+                        if (!time) throw new Error('时间错误');
+                        const chessRaw = (parts[2] || '').trim();
+                        let name = '棋子', level = 0;
+                        if (chessRaw.includes('/')) {
+                            const [id, nm] = chessRaw.split('/');
+                            name = nm || chessRaw;
+                            const lm = id.match(/(\d{2})$/);
+                            if (lm) { level = parseInt(lm[1], 10); if (isNaN(level)) level = 0; }
+                        } else name = chessRaw;
+                        name = applyChessNameConversion(name);   // ★ 应用棋子名称转换规则
+                        const changeRaw = (parts[3] || '').split('\n')[0].trim();
+                        const change = parseInt(changeRaw, 10) || 0;
+                        let cmd = '';
+                        for (let i = 6; i < parts.length; i++) { const p = parts[i].trim(); if (p.includes('棋盘操作-')) { cmd = p; break; } }
+                        if (!cmd) cmd = (parts[7] || parts[8] || '').trim();
+                        if (!cmd) throw new Error('未找到命令');
+                        let desc = '';
+                        if (cmd.includes('钻石解锁泡泡')) desc = `使用红钻解锁泡泡获得${level ? level + '级' : ''}${name}`;
+                        else if (cmd.includes('广告解锁泡泡')) desc = `看广告解锁泡泡获得${level ? level + '级' : ''}${name}`;
+                        else if (cmd.includes('活动棋盘仓库推出')) desc = `从活动棋盘的临时队列中取出${level ? level + '级' : ''}${name}`;
+                        else if (cmd.includes('推出栈')) desc = `从临时队列取出${level ? level + '级' : ''}${name}`;
+                        else if (cmd.includes('推入仓库')) desc = `将${level ? level + '级' : ''}${name}放入仓库`;
+                        else if (cmd.includes('推出仓库')) desc = `从仓库取出${level ? level + '级' : ''}${name}`;
+                        else if (cmd.includes('临时队列取出')) desc = `从临时队列取出${level ? level + '级' : ''}${name}`;
+                        else if (cmd.includes('商店购买')) desc = `在商店购买了${Math.abs(change)}个${level ? level + '级' : ''}${name}`;
+                        else if (cmd.includes('合并')) desc = change > 0 ? `通过合并获得${Math.abs(change)}个${level ? level + '级' : ''}${name}` : `消耗${Math.abs(change)}个${level ? level + '级' : ''}${name}进行合成`;
+                        else if (cmd.includes('活动')) desc = `通过活动获得${Math.abs(change)}个${level ? level + '级' : ''}${name}`;
+                        else if (cmd.includes('使用消耗棋子')) desc = `消耗${Math.abs(change)}个${level ? level + '级' : ''}${name}`;
+                        else if (cmd.includes('删除')) desc = `删除了${Math.abs(change)}个${level ? level + '级' : ''}${name}`;
+                        else if (change !== 0) desc = change > 0 ? `获得${Math.abs(change)}个${level ? level + '级' : ''}${name}` : `消耗${Math.abs(change)}个${level ? level + '级' : ''}${name}`;
+                        else desc = `操作了${level ? level + '级' : ''}${name}`;
+                        return { finalDesc: `在${time} ${desc}`, time };
+                    } catch (e) { return { error: e.message }; }
+                });
+            }
+
+            function smartParseAndFill() {
+                expandDebugConsole();
+                const mode = document.querySelector('input[name="parseMode"]:checked').value;
+                const raw = smartPasteInput.value.trim();
+                if (!raw) { debugConsole.innerHTML = '❌ 请输入文本'; return; }
+                const sortOrder = document.getElementById('sortOrderSelect').value;
+
+                if (mode === 'order') {
+                    if (raw.includes('创建')) debugConsole.innerHTML += '\n⚠️ 检测到"创建"订单，可能无法提取完整奖励';
+                    debugConsole.innerHTML = '📦 订单日志解析...';
+                    const s = parseOrderLog(raw);
+                    globalResultArea.value = s.join('\n\n');
+                    globalResultCount.textContent = `${s.length} 条`;
+                    resultSourceHint.textContent = '订单日志解析';
+                    navigator.clipboard.writeText(globalResultArea.value);
+                    return;
+                }
+                if (mode === 'itemFlow') {
+                    debugConsole.innerHTML = '🔍 道具流水（文件）解析...';
+                    let sentences = parseItemFlowLog(raw);
+                    if (sentences.length) {
+                        sentences = sortSentencesByTime(sentences, sortOrder);   // 直接使用外层 sortOrder
+                        globalResultArea.value = sentences.join('\n\n');
+                        globalResultCount.textContent = `${sentences.length} 条`;
+                        resultSourceHint.textContent = '道具流水（上传）';
                         navigator.clipboard.writeText(globalResultArea.value);
-                        return;
+                        debugConsole.innerHTML += '\n✅ 完成';
+                    } else {
+                        debugConsole.innerHTML += '\n❌ 无有效记录';
                     }
+                    return;
+                }
+                if (mode === 'review') {
+                    debugConsole.innerHTML = '🌟 好评奖励解析...';
+                    const s = parseReviewLog(raw);
+                    globalResultArea.value = s.join('\n\n');
+                    globalResultCount.textContent = '1 条';
+                    resultSourceHint.textContent = '好评奖励解析';
+                    navigator.clipboard.writeText(globalResultArea.value);
+                    debugConsole.innerHTML += '\n✅ 完成';
+                    return;
+                }
+                if (mode === 'chess') {
+                    debugConsole.innerHTML = '🔍 棋子流水解析...';
+                    const r = parseChessLog(raw).filter(r => !r.error);
+                    if (!r.length) { debugConsole.innerHTML += '\n❌ 没有解析到有效棋子记录'; return; }
+                    r.sort((a, b) => (b.time || '').localeCompare(a.time || ''));
+                    if (sortOrder === 'asc') r.reverse();
+                    const out = r.map(r => r.finalDesc).join('\n\n');
+                    globalResultArea.value = out;
+                    globalResultCount.textContent = `${r.length} 条`;
+                    resultSourceHint.textContent = '棋子流水解析';
+                    navigator.clipboard.writeText(out);
+                    debugConsole.innerHTML += '\n✅ 完成';
+                    return;
+                }
+                debugConsole.innerHTML = '🔍 资源流水解析...';
+                const resourceType = document.getElementById('flowResourceSelect').value;
+                const includeSourcesRaw = document.getElementById('includeSourcesInput').value.trim();
+                const itemKeywordRaw = document.getElementById('itemKeywordInput').value.trim();
+                let records = [];
+                try {
+                    records = parseSmartLog(raw);
+                } catch (e) {
+                    debugConsole.innerHTML += `\n❌ 解析错误: ${e.message}`;
+                    return;
+                }
+                if (!records.length) { debugConsole.innerHTML += '\n❌ 无记录（请确认粘贴内容为资源流水格式）'; return; }
+                debugConsole.innerHTML += `\n📌 原始记录数: ${records.length}`;
+                if (resourceType === '道具' && itemKeywordRaw) {
+                    const keywords = itemKeywordRaw.split(',').map(k => k.trim().toLowerCase()).filter(k => k);
+                    records = records.filter(r => { const itemName = (r['道具名称'] || '').toLowerCase(); return keywords.some(k => itemName.includes(k)); });
+                    debugConsole.innerHTML += `\n📌 道具筛选后: ${records.length} 条`;
+                }
+                if (includeSourcesRaw) {
+                    const keywords = includeSourcesRaw.split(',').map(k => k.trim().toLowerCase()).filter(k => k);
+                    records = records.filter(r => { const source = (r['来源'] || '').toLowerCase(); return keywords.some(k => source.includes(k)); });
+                    debugConsole.innerHTML += `\n📌 来源筛选后: ${records.length} 条`;
+                }
+                if (records.length === 0) { debugConsole.innerHTML += '\n⚠️ 筛选后无记录，请放宽筛选条件'; return; }
+                let sentences = records.map(r => generateFlowSentence(r, resourceType, true)).filter(s => s);
+                if (sentences.length === 0) { debugConsole.innerHTML += '\n⚠️ 无有效话术（可能缺少数量变化）'; return; }
+                globalResultArea.value = sentences.join('\n\n');
+                globalResultCount.textContent = `${sentences.length} 条`;
+                resultSourceHint.textContent = '智能解析（显示前后变化）';
+                navigator.clipboard.writeText(globalResultArea.value);
+                debugConsole.innerHTML += `\n✨ 生成 ${sentences.length} 条`;
+            }
+
+            function parseFlowCSV(csvText) {
+                const lines = csvText.split(/\r?\n/).filter(l => l.trim());
+                if (lines.length < 2) return [];
+                let delim = lines[0].includes('\t') ? '\t' : (lines[0].includes(';') ? ';' : ',');
+                const rawHeaders = lines[0].split(delim).map(h => cleanHeader(h));
+                debugConsole.innerHTML = `📋 列名: ${rawHeaders.join(' | ')}`;
+                const colMap = {
+                    '时间': ['创建时间', '时间', 'time'], '增减': ['0:减少;1:增加', '增减', 'type'],
+                    '数量': ['数量', 'change'], '之前': ['数量(before)', 'before', '之前'],
+                    '之后': ['数量(after)', 'after', '之后'], '来源': ['来源', 'source'],
+                    '道具名称': ['道具名称', '道具名', '名称', 'itemName']
+                };
+                const colIdx = {};
+                for (let [k, arr] of Object.entries(colMap)) {
+                    for (let a of arr) { const idx = rawHeaders.findIndex(h => h === a); if (idx !== -1) { colIdx[k] = idx; break; } }
+                }
+                if (colIdx['时间'] === undefined) colIdx['时间'] = 0;
+                if (colIdx['增减'] === undefined) colIdx['增减'] = 2;
+                if (colIdx['数量'] === undefined) colIdx['数量'] = 3;
+                if (colIdx['之前'] === undefined) colIdx['之前'] = 4;
+                if (colIdx['之后'] === undefined) colIdx['之后'] = 5;
+                if (colIdx['来源'] === undefined) colIdx['来源'] = 6;
+                if (colIdx['道具名称'] === undefined) colIdx['道具名称'] = -1;
+                const records = [];
+                const enableIgnore = document.getElementById('enableIgnoreRulesCheckbox')?.checked ?? true;
+                for (let i = 1; i < lines.length; i++) {
+                    let line = lines[i];
+                    const vals = []; let cur = '', inq = false;
+                    for (let ch of line) {
+                        if (ch === '"') inq = !inq;
+                        else if (ch === delim && !inq) { vals.push(cur.trim()); cur = ''; }
+                        else cur += ch;
+                    }
+                    vals.push(cur.trim());
+                    const cleanVals = vals.map(v => v.replace(/^["']|["']$/g, ''));
+                    if (cleanVals.length <= Math.max(...Object.values(colIdx))) continue;
+                    const rec = {
+                        '时间': formatTimeToStandard(cleanVals[colIdx['时间']] || ''),
+                        '增减': cleanVals[colIdx['增减']] || '', '数量': cleanVals[colIdx['数量']] || '0',
+                        '之前': cleanVals[colIdx['之前']] || '0', '之后': cleanVals[colIdx['之后']] || '0',
+                        '来源': cleanVals[colIdx['来源']] || '',
+                        '道具名称': colIdx['道具名称'] >= 0 ? cleanVals[colIdx['道具名称']] : ''
+                    };
+                    const userSelectedType = document.getElementById('flowResourceSelect').value;
+                    if (['体力', '红钻', '金币', '好评点'].includes(userSelectedType)) {
+                        rec['道具名称'] = userSelectedType;
+                    } else if (!rec['道具名称']) {
+                        const possibleId = cleanVals[3]?.trim();
+                        if (possibleId && /^\d+$/.test(possibleId)) rec['道具名称'] = possibleId;
+                    }
+                    if (rec['道具名称'] && !['体力', '红钻', '金币', '好评点'].includes(rec['道具名称'])) {
+                        rec['道具名称'] = applyChessNameConversion(rec['道具名称']);
+                    }
+                    rec['资源类型'] = detectResourceType(line);
+                    if (enableIgnore && ignoreKeywords.length) {
+                        const src = rec['来源'].toLowerCase(), item = rec['道具名称'].toLowerCase();
+                        if (ignoreKeywords.some(k => src.includes(k.toLowerCase()) || item.includes(k.toLowerCase()))) {
+                            debugConsole.innerHTML += `\n⏭️ 行${i + 1} 忽略`; continue;
+                        }
+                    }
+                    rec['来源'] = applySourceConversion(rec['来源']);
+                    const { change, action } = getChangeAndAction(rec);
+                    if (!action) continue;
+                    rec['行为'] = action; rec['变化量'] = change;
+                    records.push(rec);
+                    debugConsole.innerHTML += `\n📌 行${i + 1}: 道具=${rec['道具名称']}, 变化=${change}, 行为=${action}`;
+                }
+                records.sort((a, b) => (b['时间'] || '').localeCompare(a['时间'] || ''));
+                return records;
+            }
+
+            function buildMergedRewardText(records) {
+                const groupMap = new Map();
+                for (let rec of records) {
+                    const action = rec['行为']; if (!action) continue;
+                    const itemName = (rec['道具名称'] || '').trim(); if (!itemName) continue;
+                    const rawTime = rec['时间']; const source = rec['来源'] || '未知来源';
+                    const timeKey = formatTimeToStandard(rawTime);
+                    const groupKey = `${timeKey}|||${source}|||${action}`;
+                    if (!groupMap.has(groupKey)) groupMap.set(groupKey, { time: timeKey, source: source, action: action, items: new Map() });
+                    const group = groupMap.get(groupKey);
+                    const qty = Math.abs(rec['变化量'] || 0); if (qty <= 0) continue;
+                    const current = group.items.get(itemName) || 0;
+                    group.items.set(itemName, current + qty);
+                }
+                if (groupMap.size === 0) return null;
+                const sortedGroups = Array.from(groupMap.values()).sort((a, b) => b.time.localeCompare(a.time) || a.source.localeCompare(b.source) || a.action.localeCompare(b.action));
+                const blocks = [];
+                for (let g of sortedGroups) {
+                    if (g.items.size === 0) continue;
+                    const sortedItems = Array.from(g.items.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+                    const rewardPart = sortedItems.map(([name, qty]) => `${name}*${qty}`).join('，');
+                    blocks.push(`${g.time.replace(/-/g, '/')}，通过${g.source}正常${g.action}：${rewardPart}`);
+                }
+                return blocks.join('\n\n');
+            }
+
+            function inferTypeFromFileName(name) {
+                const l = name.toLowerCase();
+                if (l.includes('红钻')) return '红钻';
+                if (l.includes('金币')) return '金币';
+                if (l.includes('体力')) return '体力';
+                if (l.includes('背包') || l.includes('道具')) return '道具';
+                return '';
+            }
+
+            async function processFlowCsv() {
+                expandDebugConsole();
+                const f = document.getElementById('flowFileInput').files[0];
+                if (!f) return;
+                const selectedType = document.getElementById('flowResourceSelect').value;
+                const fileName = f.name;
+                const inferred = inferTypeFromFileName(fileName);
+                if (inferred && inferred !== selectedType) { alert('文件类型与所选资源类型不一致，请检查'); return; }
+                const text = await f.text();
+                let records = parseFlowCSV(text);
+                if (!records.length) { debugConsole.innerHTML += '\n❌ 无有效记录'; return; }
+                const itemKeywordRaw = document.getElementById('itemKeywordInput').value.trim();
+                const includeSourcesRaw = document.getElementById('includeSourcesInput').value.trim();
+                let filtered = records;
+                if (selectedType === '道具' && itemKeywordRaw) {
+                    const keywords = itemKeywordRaw.split(',').map(k => k.trim().toLowerCase()).filter(k => k);
+                    filtered = filtered.filter(r => { const itemName = (r['道具名称'] || '').toLowerCase(); return keywords.some(k => itemName.includes(k)); });
+                }
+                if (includeSourcesRaw) {
+                    const keywords = includeSourcesRaw.split(',').map(k => k.trim().toLowerCase()).filter(k => k);
+                    filtered = filtered.filter(r => { const source = (r['来源'] || '').toLowerCase(); return keywords.some(k => source.includes(k)); });
+                }
+                const sortOrder = document.getElementById('sortOrderSelect').value;
+                const mergedText = buildMergedRewardText(filtered);
+                if (mergedText) {
+                    const blocks = mergedText.split('\n\n').filter(b => b.trim());
+                    const sortedBlocks = sortSentencesByTime(blocks, sortOrder);
+                    globalResultArea.value = sortedBlocks.join('\n\n');
+                    globalResultCount.textContent = `${sortedBlocks.length} 组`;
+                    resultSourceHint.textContent = `CSV合并 · 原始${records.length}条`;
+                    navigator.clipboard.writeText(globalResultArea.value);
+                } else {
+                    let sentences = filtered.map(r => generateFlowSentence(r, selectedType, true)).filter(s => s);
+                    if (sentences.length) {
+                        sentences = sortSentencesByTime(sentences, sortOrder);
+                        globalResultArea.value = sentences.join('\n\n');
+                        globalResultCount.textContent = `${sentences.length} 条`;
+                    }
+                }
+            }
+
+            // ==================== 集卡功能 ====================
+            let currentCardRecords = [];
+            function parseCSVEnhanced(csvText) {
+                const lines = csvText.split(/\r?\n/).filter(l => l.trim());
+                if (lines.length < 2) return [];
+                let delim = lines[0].includes('\t') ? '\t' : (lines[0].includes(';') ? ';' : ',');
+                let headers = lines[0].split(delim).map(h => h.trim().replace(/^"|"$/g, ''));
+                const colMap = { '卡包ID': ['卡包ID', 'pack_id'], '卡包星级': ['卡包星级', 'stars'], 'after': ['after'], '创建时间': ['创建时间', 'time'] };
+                const idx = {};
+                for (let [k, arr] of Object.entries(colMap)) for (let n of arr) { let i = headers.findIndex(h => h === n); if (i !== -1) { idx[k] = i; break; } }
+                const records = [];
+                for (let i = 1; i < lines.length; i++) {
+                    let line = lines[i]; const vals = [];
+                    let cur = '', inq = false;
+                    for (let ch of line) { if (ch === '"') inq = !inq; else if (ch === delim && !inq) { vals.push(cur.trim().replace(/^"|"$/g, '')); cur = ''; } else cur += ch; }
+                    vals.push(cur.trim().replace(/^"|"$/g, ''));
+                    if (vals.length > Math.max(...Object.values(idx))) records.push({ '卡包ID': vals[idx['卡包ID']], '卡包星级': vals[idx['卡包星级']], 'after': vals[idx['after']], '创建时间': vals[idx['创建时间']] });
+                }
+                return records;
+            }
+            function parseStarsArray(starsStr) { try { return JSON.parse(starsStr); } catch { const m = starsStr.match(/\[(.*)\]/); return m ? m[1].split(',').map(s => parseInt(s.trim(), 10)) : []; } }
+            function parseAfter(afterStr) { try { return JSON.parse(afterStr); } catch { const m = afterStr.replace(/"/g, '').match(/\{(.*)\}/); if (!m) return {}; const res = {}; m[1].split(',').forEach(p => { const [k, v] = p.split(':'); if (k) res[k.trim()] = parseInt(v, 10); }); return res; } }
+            function generateCardSentence(record) {
+                const packId = parseInt(record["卡包ID"]);
+                const packName = PACK_NAME_MAP[packId] || "未知卡包";
+                const starsArray = parseStarsArray(record["卡包星级"]);
+                const afterData = parseAfter(record["after"]);
+                const cardIds = Object.keys(afterData);
+                const descs = [];
+                cardIds.forEach((cid, idx) => {
+                    const group = cid.substring(3, 5);
+                    const num = cid.substring(5, 7);
+                    const rawStar = starsArray[idx] || 0;
+
+                    // 星级显示处理：霞光系列特殊星级映射
+                    let starLabel = `${rawStar}星`;
+                    if (rawStar === 23) starLabel = "霞光3星";
+                    else if (rawStar === 24) starLabel = "霞光4星";
+                    else if (rawStar === 25) starLabel = "霞光5星";
+
+                    descs.push(`${group}组第${num}张（${starLabel}，${afterData[cid] === 1 ? '新卡' : '重复'}）`);
+                });
+                return `在${record["创建时间"].replace(/-/g, '/')}，开启【${packName}】获得${cardIds.length}张卡牌，分别为${descs.join('，')}`;
+            }
+            function filterRecordsByStar(records, star) { if (star === 'all') return records; const target = parseInt(star); return records.filter(r => parseStarsArray(r["卡包星级"]).includes(target)); }
+            async function processCardCsv() {
+                const f = document.getElementById('csvFileInput').files[0]; if (!f) return;
+                const text = await f.text(); currentCardRecords = parseCSVEnhanced(text);
+                const star = document.getElementById('starFilterSelect').value; const filtered = filterRecordsByStar(currentCardRecords, star);
+                const sentences = filtered.map(r => { try { return generateCardSentence(r); } catch { return '[解析失败]'; } });
+                document.getElementById('cardResultArea').value = sentences.join('\n\n');
+                document.getElementById('recordCount').textContent = sentences.length;
+            }
+
+            // ==================== 拼豆摸鱼小游戏 ====================
+            const pixelCanvas = document.getElementById('pixelCanvas');
+            if (pixelCanvas) {
+                const ctx = pixelCanvas.getContext('2d');
+                const gridSize = 15;
+                const cellSize = pixelCanvas.width / gridSize;
+                let currentColor = '#ff0000';
+                let isEraser = false;
+                let isDrawing = false;
+
+                function initPixelCanvas() {
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillRect(0, 0, pixelCanvas.width, pixelCanvas.height);
+                    ctx.strokeStyle = '#eeeeee';
+                    ctx.lineWidth = 1;
+                    for (let i = 0; i <= gridSize; i++) {
+                        ctx.beginPath();
+                        ctx.moveTo(i * cellSize, 0);
+                        ctx.lineTo(i * cellSize, pixelCanvas.height);
+                        ctx.stroke();
+                        ctx.moveTo(0, i * cellSize);
+                        ctx.lineTo(pixelCanvas.width, i * cellSize);
+                        ctx.stroke();
+                    }
+                }
+                initPixelCanvas();
+
+                function getGridPos(e) {
+                    const rect = pixelCanvas.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+                    const col = Math.floor(x / cellSize);
+                    const row = Math.floor(y / cellSize);
+                    return { col, row };
+                }
+
+                function fillCell(col, row) {
+                    if (col < 0 || col >= gridSize || row < 0 || row >= gridSize) return;
+                    if (isEraser) {
+                        ctx.fillStyle = '#ffffff';
+                    } else {
+                        ctx.fillStyle = currentColor;
+                    }
+                    ctx.fillRect(col * cellSize + 1, row * cellSize + 1, cellSize - 2, cellSize - 2);
+                }
+
+                pixelCanvas.addEventListener('mousedown', (e) => {
+                    isDrawing = true;
+                    const { col, row } = getGridPos(e);
+                    fillCell(col, row);
+                });
+                pixelCanvas.addEventListener('mousemove', (e) => {
+                    if (!isDrawing) return;
+                    const { col, row } = getGridPos(e);
+                    fillCell(col, row);
+                });
+                window.addEventListener('mouseup', () => { isDrawing = false; });
+
+                document.getElementById('pixelColor').addEventListener('input', (e) => {
+                    currentColor = e.target.value;
+                    isEraser = false;
+                });
+                document.getElementById('pixelEraserBtn').addEventListener('click', () => { isEraser = true; });
+                document.getElementById('pixelClearBtn').addEventListener('click', () => { initPixelCanvas(); });
+            }
+
+            // ==================== 规则管理 ====================
+            let editingSourceIndex = -1;
+            function renderSourceRuleList(filterType = 'all', searchTerm = '') {
+                const c = document.getElementById('sourceRuleListContainer');
+                let filtered = sourceRules;
+                if (filterType !== 'all') filtered = filtered.filter(r => r.type === filterType);
+                if (searchTerm) { const lower = searchTerm.toLowerCase(); filtered = filtered.filter(r => (getRulePattern(r) + getRuleReplacement(r)).toLowerCase().includes(lower)); }
+                c.innerHTML = filtered.map((r, i) => {
+                    const idx = sourceRules.indexOf(r);
+                    const pattern = getRulePattern(r);
+                    const replacement = getRuleReplacement(r) || '(删除)';
+                    const typeLabel = r.type === 'source' ? '来源' : (r.type === 'reward' ? '奖励' : '棋子');
+                    return `<div class="rule-item" data-idx="${idx}">
+                                        <span class="rule-pattern">${pattern}</span><span class="rule-type">[${typeLabel}]</span>
+                                        <span>→</span><span class="rule-replacement">${replacement}</span>
+                                        <div class="rule-actions"><button class="edit-source-btn" data-idx="${idx}">✏️</button><button class="delete-source-btn" data-idx="${idx}" style="background:#dc3545;">🗑️</button></div></div>`;
+                }).join('') || '<div>暂无规则</div>';
+                c.querySelectorAll('.delete-source-btn').forEach(b => b.onclick = e => { const idx = parseInt(b.dataset.idx); sourceRules.splice(idx, 1); saveData('sourceRules', sourceRules); renderSourceRuleList(filterType, searchTerm); });
+                c.querySelectorAll('.edit-source-btn').forEach(b => b.onclick = e => {
+                    const idx = parseInt(b.dataset.idx); const r = sourceRules[idx];
+                    document.getElementById('newRulePattern').value = getRulePattern(r);
+                    document.getElementById('newRuleReplacement').value = getRuleReplacement(r) || '';
+                    document.getElementById('newRuleType').value = r.type || 'source';
+                    document.getElementById('addOrUpdateRuleBtn').textContent = '✏️ 更新';
+                    document.getElementById('cancelEditRuleBtn').style.display = 'inline-block';
+                    editingSourceIndex = idx;
+                });
+            }
+            function resetSourceEditState() { document.getElementById('newRulePattern').value = ''; document.getElementById('newRuleReplacement').value = ''; document.getElementById('newRuleType').value = 'source'; document.getElementById('addOrUpdateRuleBtn').textContent = '➕ 添加'; document.getElementById('cancelEditRuleBtn').style.display = 'none'; editingSourceIndex = -1; }
+            function renderIgnoreRuleList() { const c = document.getElementById('ignoreRuleListContainer'); c.innerHTML = ignoreKeywords.map((k, i) => `<div class="rule-item"><span class="rule-pattern">${k}</span><div class="rule-actions"><button data-i="${i}" class="delete-ignore-btn" style="background:#dc3545;">🗑️</button></div></div>`).join('') || '<div>暂无忽略关键词</div>'; c.querySelectorAll('.delete-ignore-btn').forEach(b => b.onclick = e => { ignoreKeywords.splice(e.target.dataset.i, 1); saveData('ignoreKeywords', ignoreKeywords); renderIgnoreRuleList(); }); }
+
+            function refreshVarEntries() { varContainer.innerHTML = ''; varInputs = {}; CORE_FIELDS.forEach(f => { const lab = document.createElement('label'); lab.textContent = f + '：'; const inp = document.createElement('input'); inp.value = ''; const btn = document.createElement('button'); btn.textContent = '📋'; btn.className = 'paste-btn'; btn.onclick = () => navigator.clipboard.readText().then(t => { const cl = cleanText(t); const tm = extractTime(cl); if (tm && varInputs['时间']) varInputs['时间'].value = tm; const val = parseInt(cl.match(/-?\d+/)?.[0]); if (!isNaN(val)) inp.value = val; }); varContainer.appendChild(lab); varContainer.appendChild(inp); varContainer.appendChild(btn); varInputs[f] = inp; }); }
+            function refreshTemplateSelect() { templateSelect.innerHTML = ''; templates.forEach(t => { const o = document.createElement('option'); o.value = t; o.textContent = t.substring(0, 60); templateSelect.appendChild(o); }); }
+            function renderTemplateList() {
+                const c = document.getElementById('templateList');
+                c.innerHTML = templates.map((t, i) => `<div class="rule-item"><span>${t.substring(0, 50)}</span><div class="rule-actions"><button data-i="${i}" class="edit-template-btn">✏️</button><button data-i="${i}" class="delete-template-btn" style="background:#dc3545;">🗑️</button></div></div>`).join('');
+                c.querySelectorAll('.delete-template-btn').forEach(b => b.onclick = e => { templates.splice(e.target.dataset.i, 1); saveData('templates', templates); renderTemplateList(); refreshTemplateSelect(); });
+            }
+
+            function bindAll() {
+                document.getElementById('smartParseBtn').onclick = smartParseAndFill;
+                document.getElementById('clearSmartBtn').onclick = () => { smartPasteInput.value = ''; globalResultArea.value = ''; debugConsole.innerHTML = ''; };
+                document.getElementById('sortOrderSelect').addEventListener('change', () => {
+                    const text = globalResultArea.value.trim();
+                    if (!text) return;
+                    const lines = text.split('\n\n').filter(l => l.trim());
+                    const sorted = sortSentencesByTime(lines, document.getElementById('sortOrderSelect').value);
+                    globalResultArea.value = sorted.join('\n\n');
+                });
+                document.getElementById('uploadFlowBtn').onclick = async () => {
+                    const mode = document.querySelector('input[name="parseMode"]:checked').value;
+                    const file = document.getElementById('flowFileInput').files[0];
+                    if (!file) return;
+                    expandDebugConsole();
+                    const text = await file.text();
                     if (mode === 'itemFlow') {
                         debugConsole.innerHTML = '🔍 道具流水（文件）解析...';
-                        let sentences = parseItemFlowLog(raw);
+                        let sentences = parseItemFlowLog(text);
                         if (sentences.length) {
                             const sortOrder = document.getElementById('sortOrderSelect').value;
                             sentences = sortSentencesByTime(sentences, sortOrder);
@@ -1045,519 +1438,77 @@
                             resultSourceHint.textContent = '道具流水（上传）';
                             navigator.clipboard.writeText(globalResultArea.value);
                             debugConsole.innerHTML += '\n✅ 完成';
-                        } else {
-                            debugConsole.innerHTML += '\n❌ 无有效记录';
-                        }
+                        } else { debugConsole.innerHTML += '\n❌ 无有效记录'; }
                         return;
-                    }
-                    if (mode === 'review') {
-                        debugConsole.innerHTML = '🌟 好评奖励解析...';
-                        const s = parseReviewLog(raw);
-                        globalResultArea.value = s.join('\n\n');
-                        globalResultCount.textContent = '1 条';
-                        resultSourceHint.textContent = '好评奖励解析';
-                        navigator.clipboard.writeText(globalResultArea.value);
-                        debugConsole.innerHTML += '\n✅ 完成';
-                        return;
-                    }
-                    if (mode === 'chess') {
-                        debugConsole.innerHTML = '🔍 棋子流水解析...';
-                        const r = parseChessLog(raw).filter(r => !r.error);
-                        if (!r.length) { debugConsole.innerHTML += '\n❌ 没有解析到有效棋子记录'; return; }
-                        r.sort((a, b) => (b.time || '').localeCompare(a.time || ''));
-                        if (sortOrder === 'asc') r.reverse();
-                        const out = r.map(r => r.finalDesc).join('\n\n');
-                        globalResultArea.value = out;
-                        globalResultCount.textContent = `${r.length} 条`;
-                        resultSourceHint.textContent = '棋子流水解析';
-                        navigator.clipboard.writeText(out);
-                        debugConsole.innerHTML += '\n✅ 完成';
-                        return;
-                    }
-                    debugConsole.innerHTML = '🔍 资源流水解析...';
-                    const resourceType = document.getElementById('flowResourceSelect').value;
-                    const includeSourcesRaw = document.getElementById('includeSourcesInput').value.trim();
-                    const itemKeywordRaw = document.getElementById('itemKeywordInput').value.trim();
-                    let records = [];
-                    try {
-                        records = parseSmartLog(raw);
-                    } catch (e) {
-                        debugConsole.innerHTML += `\n❌ 解析错误: ${e.message}`;
-                        return;
-                    }
-                    if (!records.length) { debugConsole.innerHTML += '\n❌ 无记录（请确认粘贴内容为资源流水格式）'; return; }
-                    debugConsole.innerHTML += `\n📌 原始记录数: ${records.length}`;
-                    if (resourceType === '道具' && itemKeywordRaw) {
-                        const keywords = itemKeywordRaw.split(',').map(k => k.trim().toLowerCase()).filter(k => k);
-                        records = records.filter(r => { const itemName = (r['道具名称'] || '').toLowerCase(); return keywords.some(k => itemName.includes(k)); });
-                        debugConsole.innerHTML += `\n📌 道具筛选后: ${records.length} 条`;
-                    }
-                    if (includeSourcesRaw) {
-                        const keywords = includeSourcesRaw.split(',').map(k => k.trim().toLowerCase()).filter(k => k);
-                        records = records.filter(r => { const source = (r['来源'] || '').toLowerCase(); return keywords.some(k => source.includes(k)); });
-                        debugConsole.innerHTML += `\n📌 来源筛选后: ${records.length} 条`;
-                    }
-                    if (records.length === 0) { debugConsole.innerHTML += '\n⚠️ 筛选后无记录，请放宽筛选条件'; return; }
-                    let sentences = records.map(r => generateFlowSentence(r, resourceType, true)).filter(s => s);
-                    if (sentences.length === 0) { debugConsole.innerHTML += '\n⚠️ 无有效话术（可能缺少数量变化）'; return; }
-                    globalResultArea.value = sentences.join('\n\n');
-                    globalResultCount.textContent = `${sentences.length} 条`;
-                    resultSourceHint.textContent = '智能解析（显示前后变化）';
-                    navigator.clipboard.writeText(globalResultArea.value);
-                    debugConsole.innerHTML += `\n✨ 生成 ${sentences.length} 条`;
-                }
+                    } else { processFlowCsv(); }
+                };
+                document.getElementById('debugFlowBtn').onclick = async () => { const f = document.getElementById('flowFileInput').files[0]; if (!f) return; const text = await f.text(); expandDebugConsole(); debugConsole.innerHTML = `CSV前200字符:\n${text.substring(0, 200)}`; };
+                document.getElementById('copyGlobalResultBtn').onclick = () => navigator.clipboard.writeText(globalResultArea.value);
+                document.getElementById('exportGlobalResultBtn').onclick = () => { const blob = new Blob([globalResultArea.value], { type: 'text/plain' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'script.txt'; a.click(); };
+                document.getElementById('generateFromTemplateBtn').onclick = () => { let tpl = templateSelect.value; for (let [k, v] of Object.entries(varInputs)) tpl = tpl.replace(new RegExp(`\\{${k}\\}`, 'g'), v.value); tpl = tpl.replace(/\{[^}]+\}/g, ''); globalResultArea.value = tpl; globalResultCount.textContent = '1 条'; resultSourceHint.textContent = '模板生成'; navigator.clipboard.writeText(tpl); };
 
-                function parseFlowCSV(csvText) {
-                    const lines = csvText.split(/\r?\n/).filter(l => l.trim());
-                    if (lines.length < 2) return [];
-                    let delim = lines[0].includes('\t') ? '\t' : (lines[0].includes(';') ? ';' : ',');
-                    const rawHeaders = lines[0].split(delim).map(h => cleanHeader(h));
-                    debugConsole.innerHTML = `📋 列名: ${rawHeaders.join(' | ')}`;
-                    const colMap = {
-                        '时间': ['创建时间', '时间', 'time'], '增减': ['0:减少;1:增加', '增减', 'type'],
-                        '数量': ['数量', 'change'], '之前': ['数量(before)', 'before', '之前'],
-                        '之后': ['数量(after)', 'after', '之后'], '来源': ['来源', 'source'],
-                        '道具名称': ['道具名称', '道具名', '名称', 'itemName']
-                    };
-                    const colIdx = {};
-                    for (let [k, arr] of Object.entries(colMap)) {
-                        for (let a of arr) { const idx = rawHeaders.findIndex(h => h === a); if (idx !== -1) { colIdx[k] = idx; break; } }
-                    }
-                    if (colIdx['时间'] === undefined) colIdx['时间'] = 0;
-                    if (colIdx['增减'] === undefined) colIdx['增减'] = 2;
-                    if (colIdx['数量'] === undefined) colIdx['数量'] = 3;
-                    if (colIdx['之前'] === undefined) colIdx['之前'] = 4;
-                    if (colIdx['之后'] === undefined) colIdx['之后'] = 5;
-                    if (colIdx['来源'] === undefined) colIdx['来源'] = 6;
-                    if (colIdx['道具名称'] === undefined) colIdx['道具名称'] = -1;
-                    const records = [];
-                    const enableIgnore = document.getElementById('enableIgnoreRulesCheckbox')?.checked ?? true;
-                    for (let i = 1; i < lines.length; i++) {
-                        let line = lines[i];
-                        const vals = []; let cur = '', inq = false;
-                        for (let ch of line) {
-                            if (ch === '"') inq = !inq;
-                            else if (ch === delim && !inq) { vals.push(cur.trim()); cur = ''; }
-                            else cur += ch;
-                        }
-                        vals.push(cur.trim());
-                        const cleanVals = vals.map(v => v.replace(/^["']|["']$/g, ''));
-                        if (cleanVals.length <= Math.max(...Object.values(colIdx))) continue;
-                        const rec = {
-                            '时间': formatTimeToStandard(cleanVals[colIdx['时间']] || ''),
-                            '增减': cleanVals[colIdx['增减']] || '', '数量': cleanVals[colIdx['数量']] || '0',
-                            '之前': cleanVals[colIdx['之前']] || '0', '之后': cleanVals[colIdx['之后']] || '0',
-                            '来源': cleanVals[colIdx['来源']] || '',
-                            '道具名称': colIdx['道具名称'] >= 0 ? cleanVals[colIdx['道具名称']] : ''
-                        };
-                        const userSelectedType = document.getElementById('flowResourceSelect').value;
-                        if (['体力', '红钻', '金币', '好评点'].includes(userSelectedType)) {
-                            rec['道具名称'] = userSelectedType;
-                        } else if (!rec['道具名称']) {
-                            const possibleId = cleanVals[3]?.trim();
-                            if (possibleId && /^\d+$/.test(possibleId)) rec['道具名称'] = possibleId;
-                        }
-                        if (rec['道具名称'] && !['体力', '红钻', '金币', '好评点'].includes(rec['道具名称'])) {
-                            rec['道具名称'] = applyChessNameConversion(rec['道具名称']);
-                        }
-                        rec['资源类型'] = detectResourceType(line);
-                        if (enableIgnore && ignoreKeywords.length) {
-                            const src = rec['来源'].toLowerCase(), item = rec['道具名称'].toLowerCase();
-                            if (ignoreKeywords.some(k => src.includes(k.toLowerCase()) || item.includes(k.toLowerCase()))) {
-                                debugConsole.innerHTML += `\n⏭️ 行${i + 1} 忽略`; continue;
-                            }
-                        }
-                        rec['来源'] = applySourceConversion(rec['来源']);
-                        const { change, action } = getChangeAndAction(rec);
-                        if (!action) continue;
-                        rec['行为'] = action; rec['变化量'] = change;
-                        records.push(rec);
-                        debugConsole.innerHTML += `\n📌 行${i + 1}: 道具=${rec['道具名称']}, 变化=${change}, 行为=${action}`;
-                    }
-                    records.sort((a, b) => (b['时间'] || '').localeCompare(a['时间'] || ''));
-                    return records;
-                }
-
-                function buildMergedRewardText(records) {
-                    const groupMap = new Map();
-                    for (let rec of records) {
-                        const action = rec['行为']; if (!action) continue;
-                        const itemName = (rec['道具名称'] || '').trim(); if (!itemName) continue;
-                        const rawTime = rec['时间']; const source = rec['来源'] || '未知来源';
-                        const timeKey = formatTimeToStandard(rawTime);
-                        const groupKey = `${timeKey}|||${source}|||${action}`;
-                        if (!groupMap.has(groupKey)) groupMap.set(groupKey, { time: timeKey, source: source, action: action, items: new Map() });
-                        const group = groupMap.get(groupKey);
-                        const qty = Math.abs(rec['变化量'] || 0); if (qty <= 0) continue;
-                        const current = group.items.get(itemName) || 0;
-                        group.items.set(itemName, current + qty);
-                    }
-                    if (groupMap.size === 0) return null;
-                    const sortedGroups = Array.from(groupMap.values()).sort((a, b) => b.time.localeCompare(a.time) || a.source.localeCompare(b.source) || a.action.localeCompare(b.action));
-                    const blocks = [];
-                    for (let g of sortedGroups) {
-                        if (g.items.size === 0) continue;
-                        const sortedItems = Array.from(g.items.entries()).sort((a, b) => a[0].localeCompare(b[0]));
-                        const rewardPart = sortedItems.map(([name, qty]) => `${name}*${qty}`).join('，');
-                        blocks.push(`${g.time.replace(/-/g, '/')}，通过${g.source}正常${g.action}：${rewardPart}`);
-                    }
-                    return blocks.join('\n\n');
-                }
-
-                function inferTypeFromFileName(name) {
-                    const l = name.toLowerCase();
-                    if (l.includes('红钻')) return '红钻';
-                    if (l.includes('金币')) return '金币';
-                    if (l.includes('体力')) return '体力';
-                    if (l.includes('背包') || l.includes('道具')) return '道具';
-                    return '';
-                }
-
-                async function processFlowCsv() {
-                    expandDebugConsole();
-                    const f = document.getElementById('flowFileInput').files[0];
-                    if (!f) return;
-                    const selectedType = document.getElementById('flowResourceSelect').value;
-                    const fileName = f.name;
-                    const inferred = inferTypeFromFileName(fileName);
-                    if (inferred && inferred !== selectedType) { alert('文件类型与所选资源类型不一致，请检查'); return; }
-                    const text = await f.text();
-                    let records = parseFlowCSV(text);
-                    if (!records.length) { debugConsole.innerHTML += '\n❌ 无有效记录'; return; }
-                    const itemKeywordRaw = document.getElementById('itemKeywordInput').value.trim();
-                    const includeSourcesRaw = document.getElementById('includeSourcesInput').value.trim();
-                    let filtered = records;
-                    if (selectedType === '道具' && itemKeywordRaw) {
-                        const keywords = itemKeywordRaw.split(',').map(k => k.trim().toLowerCase()).filter(k => k);
-                        filtered = filtered.filter(r => { const itemName = (r['道具名称'] || '').toLowerCase(); return keywords.some(k => itemName.includes(k)); });
-                    }
-                    if (includeSourcesRaw) {
-                        const keywords = includeSourcesRaw.split(',').map(k => k.trim().toLowerCase()).filter(k => k);
-                        filtered = filtered.filter(r => { const source = (r['来源'] || '').toLowerCase(); return keywords.some(k => source.includes(k)); });
-                    }
-                    const sortOrder = document.getElementById('sortOrderSelect').value;
-                    const mergedText = buildMergedRewardText(filtered);
-                    if (mergedText) {
-                        const blocks = mergedText.split('\n\n').filter(b => b.trim());
-                        const sortedBlocks = sortSentencesByTime(blocks, sortOrder);
-                        globalResultArea.value = sortedBlocks.join('\n\n');
-                        globalResultCount.textContent = `${sortedBlocks.length} 组`;
-                        resultSourceHint.textContent = `CSV合并 · 原始${records.length}条`;
-                        navigator.clipboard.writeText(globalResultArea.value);
+                const modals = {
+                    source: document.getElementById('sourceRuleModal'), ignore: document.getElementById('ignoreRuleModal'),
+                    template: document.getElementById('templateModal'), script: document.getElementById('scriptEditModal'),
+                    batch: document.getElementById('batchTagModal'), tags: document.getElementById('manageTagsModal'),
+                    import: document.getElementById('importScriptModal')
+                };
+                document.getElementById('manageSourceRulesBtn').onclick = () => { renderSourceRuleList(document.getElementById('ruleTypeFilter').value, document.getElementById('ruleSearchInput').value); modals.source.style.display = 'block'; };
+                document.getElementById('manageIgnoreRulesBtn').onclick = () => { renderIgnoreRuleList(); modals.ignore.style.display = 'block'; };
+                document.getElementById('manageTemplatesBtn').onclick = () => { renderTemplateList(); modals.template.style.display = 'block'; };
+                document.getElementById('closeSourceRuleModal').onclick = () => modals.source.style.display = 'none';
+                document.getElementById('closeIgnoreRuleModal').onclick = () => modals.ignore.style.display = 'none';
+                document.getElementById('closeTemplateModal').onclick = () => modals.template.style.display = 'none';
+                document.getElementById('modalAddTemplateBtn').onclick = () => { const t = prompt('输入新模板内容，可使用 {时间} {体力} 等变量'); if (t) { templates.push(t); saveData('templates', templates); renderTemplateList(); refreshTemplateSelect(); } };
+                document.getElementById('addOrUpdateRuleBtn').addEventListener('click', () => {
+                    const p = document.getElementById('newRulePattern').value.trim();
+                    const r = document.getElementById('newRuleReplacement').value.trim();
+                    const t = document.getElementById('newRuleType').value;
+                    if (!p) return;
+                    if (editingSourceIndex >= 0) {
+                        sourceRules[editingSourceIndex] = { pattern: p, replacement: r, type: t };
                     } else {
-                        let sentences = filtered.map(r => generateFlowSentence(r, selectedType, true)).filter(s => s);
-                        if (sentences.length) {
-                            sentences = sortSentencesByTime(sentences, sortOrder);
-                            globalResultArea.value = sentences.join('\n\n');
-                            globalResultCount.textContent = `${sentences.length} 条`;
-                        }
+                        sourceRules.push({ pattern: p, replacement: r, type: t });
                     }
-                }
+                    saveData('sourceRules', sourceRules);
+                    renderSourceRuleList(document.getElementById('ruleTypeFilter').value, document.getElementById('ruleSearchInput').value);
+                    resetSourceEditState();
+                });
+                document.getElementById('cancelEditRuleBtn').onclick = resetSourceEditState;
+                document.getElementById('resetDefaultSourceRulesBtn').onclick = () => { sourceRules = DEFAULT_SOURCE_RULES.map(r => ({ ...r })); saveData('sourceRules', sourceRules); renderSourceRuleList(); };
+                document.getElementById('clearAllSourceRulesBtn').onclick = () => { if (confirm('清空所有转换规则？')) { sourceRules = []; saveData('sourceRules', sourceRules); renderSourceRuleList(); } };
+                document.getElementById('addIgnoreKeywordBtn').onclick = () => { const kw = document.getElementById('newIgnoreKeyword').value.trim(); if (!kw) return; if (!ignoreKeywords.includes(kw)) { ignoreKeywords.push(kw); saveData('ignoreKeywords', ignoreKeywords); renderIgnoreRuleList(); document.getElementById('newIgnoreKeyword').value = ''; } };
+                document.getElementById('resetDefaultIgnoreRulesBtn').onclick = () => { ignoreKeywords = [...DEFAULT_IGNORE_KEYWORDS]; saveData('ignoreKeywords', ignoreKeywords); renderIgnoreRuleList(); };
+                document.getElementById('clearAllIgnoreRulesBtn').onclick = () => { if (confirm('清空所有忽略关键词？')) { ignoreKeywords = []; saveData('ignoreKeywords', ignoreKeywords); renderIgnoreRuleList(); } };
 
-                // ==================== 集卡功能 ====================
-                let currentCardRecords = [];
-                function parseCSVEnhanced(csvText) {
-                    const lines = csvText.split(/\r?\n/).filter(l => l.trim());
-                    if (lines.length < 2) return [];
-                    let delim = lines[0].includes('\t') ? '\t' : (lines[0].includes(';') ? ';' : ',');
-                    let headers = lines[0].split(delim).map(h => h.trim().replace(/^"|"$/g, ''));
-                    const colMap = { '卡包ID': ['卡包ID', 'pack_id'], '卡包星级': ['卡包星级', 'stars'], 'after': ['after'], '创建时间': ['创建时间', 'time'] };
-                    const idx = {};
-                    for (let [k, arr] of Object.entries(colMap)) for (let n of arr) { let i = headers.findIndex(h => h === n); if (i !== -1) { idx[k] = i; break; } }
-                    const records = [];
-                    for (let i = 1; i < lines.length; i++) {
-                        let line = lines[i]; const vals = [];
-                        let cur = '', inq = false;
-                        for (let ch of line) { if (ch === '"') inq = !inq; else if (ch === delim && !inq) { vals.push(cur.trim().replace(/^"|"$/g, '')); cur = ''; } else cur += ch; }
-                        vals.push(cur.trim().replace(/^"|"$/g, ''));
-                        if (vals.length > Math.max(...Object.values(idx))) records.push({ '卡包ID': vals[idx['卡包ID']], '卡包星级': vals[idx['卡包星级']], 'after': vals[idx['after']], '创建时间': vals[idx['创建时间']] });
-                    }
-                    return records;
-                }
-                function parseStarsArray(starsStr) { try { return JSON.parse(starsStr); } catch { const m = starsStr.match(/\[(.*)\]/); return m ? m[1].split(',').map(s => parseInt(s.trim(), 10)) : []; } }
-                function parseAfter(afterStr) { try { return JSON.parse(afterStr); } catch { const m = afterStr.replace(/"/g, '').match(/\{(.*)\}/); if (!m) return {}; const res = {}; m[1].split(',').forEach(p => { const [k, v] = p.split(':'); if (k) res[k.trim()] = parseInt(v, 10); }); return res; } }
-                function generateCardSentence(record) {
-                    const packId = parseInt(record["卡包ID"]);
-                    const packName = PACK_NAME_MAP[packId] || "未知卡包";
-                    const starsArray = parseStarsArray(record["卡包星级"]);
-                    const afterData = parseAfter(record["after"]);
-                    const cardIds = Object.keys(afterData);
-                    const descs = [];
-                    cardIds.forEach((cid, idx) => {
-                        const group = cid.substring(3, 5);
-                        const num = cid.substring(5, 7);
-                        const rawStar = starsArray[idx] || 0;
+                document.getElementById('uploadCsvBtn').onclick = processCardCsv;
+                document.getElementById('applyFilterBtn').onclick = processCardCsv;
+                document.getElementById('copyAllCardBtn').onclick = () => navigator.clipboard.writeText(document.getElementById('cardResultArea').value);
+                document.getElementById('exportCardBtn').onclick = () => { const blob = new Blob([document.getElementById('cardResultArea').value], { type: 'text/plain' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'card.txt'; a.click(); };
+                document.getElementById('debugCardBtn').onclick = async () => { const f = document.getElementById('csvFileInput').files[0]; if (!f) return; const text = await f.text(); alert('CSV前500字符:\n' + text.substring(0, 500)); };
+                document.getElementById('toggleTemplateHeader').onclick = () => { const c = document.getElementById('templateContent'); c.classList.toggle('collapsed'); document.getElementById('toggleArrow').textContent = c.classList.contains('collapsed') ? '▶' : '▼'; };
+                document.querySelectorAll('.tab-btn').forEach(btn => btn.onclick = function () {
+                    document.querySelectorAll('.tab-btn, .tab-content').forEach(el => el.classList.remove('active'));
+                    this.classList.add('active');
+                    document.getElementById(`tab-${this.dataset.tab}`).classList.add('active');
+                });
 
-                        // 星级显示处理：霞光系列特殊星级映射
-                        let starLabel = `${rawStar}星`;
-                        if (rawStar === 23) starLabel = "霞光3星";
-                        else if (rawStar === 24) starLabel = "霞光4星";
-                        else if (rawStar === 25) starLabel = "霞光5星";
+                const typeFilter = document.getElementById('ruleTypeFilter');
+                const searchInput = document.getElementById('ruleSearchInput');
+                const clearSearch = document.getElementById('clearRuleSearch');
+                typeFilter.onchange = () => renderSourceRuleList(typeFilter.value, searchInput.value);
+                searchInput.oninput = () => { clearSearch.style.display = searchInput.value ? 'inline' : 'none'; renderSourceRuleList(typeFilter.value, searchInput.value); };
+                clearSearch.onclick = () => { searchInput.value = ''; clearSearch.style.display = 'none'; renderSourceRuleList(typeFilter.value, ''); };
+                searchInput.onkeypress = (e) => { if (e.key === 'Enter') { const term = searchInput.value.trim(); if (!term) return; const items = document.querySelectorAll('#sourceRuleListContainer .rule-item'); for (let item of items) { if (item.textContent.toLowerCase().includes(term.toLowerCase())) { item.scrollIntoView({ behavior: 'smooth', block: 'center' }); break; } } } };
 
-                        descs.push(`${group}组第${num}张（${starLabel}，${afterData[cid] === 1 ? '新卡' : '重复'}）`);
-                    });
-                    return `在${record["创建时间"].replace(/-/g, '/')}，开启【${packName}】获得${cardIds.length}张卡牌，分别为${descs.join('，')}`;
-                }
-                function filterRecordsByStar(records, star) { if (star === 'all') return records; const target = parseInt(star); return records.filter(r => parseStarsArray(r["卡包星级"]).includes(target)); }
-                async function processCardCsv() {
-                    const f = document.getElementById('csvFileInput').files[0]; if (!f) return;
-                    const text = await f.text(); currentCardRecords = parseCSVEnhanced(text);
-                    const star = document.getElementById('starFilterSelect').value; const filtered = filterRecordsByStar(currentCardRecords, star);
-                    const sentences = filtered.map(r => { try { return generateCardSentence(r); } catch { return '[解析失败]'; } });
-                    document.getElementById('cardResultArea').value = sentences.join('\n\n');
-                    document.getElementById('recordCount').textContent = sentences.length;
-                }
+                refreshVarEntries(); refreshTemplateSelect();
+            }
 
-                // ==================== 拼豆摸鱼小游戏 ====================
-                const pixelCanvas = document.getElementById('pixelCanvas');
-                if (pixelCanvas) {
-                    const ctx = pixelCanvas.getContext('2d');
-                    const gridSize = 15;               // 15x15 的拼豆网格
-                    const cellSize = pixelCanvas.width / gridSize;
-                    let currentColor = '#ff0000';
-                    let isEraser = false;
-                    let isDrawing = false;
-
-                    // 初始化画布为白色
-                    function initPixelCanvas() {
-                        ctx.fillStyle = '#ffffff';
-                        ctx.fillRect(0, 0, pixelCanvas.width, pixelCanvas.height);
-                        // 绘制浅灰网格线
-                        ctx.strokeStyle = '#eeeeee';
-                        ctx.lineWidth = 1;
-                        for (let i = 0; i <= gridSize; i++) {
-                            ctx.beginPath();
-                            ctx.moveTo(i * cellSize, 0);
-                            ctx.lineTo(i * cellSize, pixelCanvas.height);
-                            ctx.stroke();
-                            ctx.moveTo(0, i * cellSize);
-                            ctx.lineTo(pixelCanvas.width, i * cellSize);
-                            ctx.stroke();
-                        }
-                    }
-                    initPixelCanvas();
-
-                    // 获取格子坐标
-                    function getGridPos(e) {
-                        const rect = pixelCanvas.getBoundingClientRect();
-                        const x = e.clientX - rect.left;
-                        const y = e.clientY - rect.top;
-                        const col = Math.floor(x / cellSize);
-                        const row = Math.floor(y / cellSize);
-                        return { col, row };
-                    }
-
-                    // 填充格子
-                    function fillCell(col, row) {
-                        if (col < 0 || col >= gridSize || row < 0 || row >= gridSize) return;
-                        if (isEraser) {
-                            ctx.fillStyle = '#ffffff';
-                        } else {
-                            ctx.fillStyle = currentColor;
-                        }
-                        ctx.fillRect(col * cellSize + 1, row * cellSize + 1, cellSize - 2, cellSize - 2);
-                    }
-
-                    // 事件监听
-                    pixelCanvas.addEventListener('mousedown', (e) => {
-                        isDrawing = true;
-                        const { col, row } = getGridPos(e);
-                        fillCell(col, row);
-                    });
-                    pixelCanvas.addEventListener('mousemove', (e) => {
-                        if (!isDrawing) return;
-                        const { col, row } = getGridPos(e);
-                        fillCell(col, row);
-                    });
-                    window.addEventListener('mouseup', () => {
-                        isDrawing = false;
-                    });
-
-                    // 颜色选择
-                    document.getElementById('pixelColor').addEventListener('input', (e) => {
-                        currentColor = e.target.value;
-                        isEraser = false;
-                    });
-
-                    // 橡皮擦
-                    document.getElementById('pixelEraserBtn').addEventListener('click', () => {
-                        isEraser = true;
-                    });
-
-                    // 清空画布
-                    document.getElementById('pixelClearBtn').addEventListener('click', () => {
-                        initPixelCanvas();
-                    });
-                }
-
-                // ==================== 规则管理 ====================
-                let editingSourceIndex = -1;
-                function renderSourceRuleList(filterType = 'all', searchTerm = '') {
-                    const c = document.getElementById('sourceRuleListContainer');
-                    let filtered = sourceRules;
-                    if (filterType !== 'all') filtered = filtered.filter(r => r.type === filterType);
-                    if (searchTerm) { const lower = searchTerm.toLowerCase(); filtered = filtered.filter(r => (getRulePattern(r) + getRuleReplacement(r)).toLowerCase().includes(lower)); }
-                    c.innerHTML = filtered.map((r, i) => {
-                        const idx = sourceRules.indexOf(r);
-                        const pattern = getRulePattern(r);
-                        const replacement = getRuleReplacement(r) || '(删除)';
-                        const typeLabel = r.type === 'source' ? '来源' : (r.type === 'reward' ? '奖励' : '棋子');
-                        return `<div class="rule-item" data-idx="${idx}">
-                                        <span class="rule-pattern">${pattern}</span><span class="rule-type">[${typeLabel}]</span>
-                                        <span>→</span><span class="rule-replacement">${replacement}</span>
-                                        <div class="rule-actions"><button class="edit-source-btn" data-idx="${idx}">✏️</button><button class="delete-source-btn" data-idx="${idx}" style="background:#dc3545;">🗑️</button></div></div>`;
-                    }).join('') || '<div>暂无规则</div>';
-                    c.querySelectorAll('.delete-source-btn').forEach(b => b.onclick = e => { const idx = parseInt(b.dataset.idx); sourceRules.splice(idx, 1); saveData('sourceRules', sourceRules); renderSourceRuleList(filterType, searchTerm); });
-                    c.querySelectorAll('.edit-source-btn').forEach(b => b.onclick = e => {
-                        const idx = parseInt(b.dataset.idx); const r = sourceRules[idx];
-                        document.getElementById('newRulePattern').value = getRulePattern(r);
-                        document.getElementById('newRuleReplacement').value = getRuleReplacement(r) || '';
-                        document.getElementById('newRuleType').value = r.type || 'source';
-                        document.getElementById('addOrUpdateRuleBtn').textContent = '✏️ 更新';
-                        document.getElementById('cancelEditRuleBtn').style.display = 'inline-block';
-                        editingSourceIndex = idx;
-                    });
-                }
-                function resetSourceEditState() { document.getElementById('newRulePattern').value = ''; document.getElementById('newRuleReplacement').value = ''; document.getElementById('newRuleType').value = 'source'; document.getElementById('addOrUpdateRuleBtn').textContent = '➕ 添加'; document.getElementById('cancelEditRuleBtn').style.display = 'none'; editingSourceIndex = -1; }
-                function renderIgnoreRuleList() { const c = document.getElementById('ignoreRuleListContainer'); c.innerHTML = ignoreKeywords.map((k, i) => `<div class="rule-item"><span class="rule-pattern">${k}</span><div class="rule-actions"><button data-i="${i}" class="delete-ignore-btn" style="background:#dc3545;">🗑️</button></div></div>`).join('') || '<div>暂无忽略关键词</div>'; c.querySelectorAll('.delete-ignore-btn').forEach(b => b.onclick = e => { ignoreKeywords.splice(e.target.dataset.i, 1); saveData('ignoreKeywords', ignoreKeywords); renderIgnoreRuleList(); }); }
-
-                function refreshVarEntries() { varContainer.innerHTML = ''; varInputs = {}; CORE_FIELDS.forEach(f => { const lab = document.createElement('label'); lab.textContent = f + '：'; const inp = document.createElement('input'); inp.value = ''; const btn = document.createElement('button'); btn.textContent = '📋'; btn.className = 'paste-btn'; btn.onclick = () => navigator.clipboard.readText().then(t => { const cl = cleanText(t); const tm = extractTime(cl); if (tm && varInputs['时间']) varInputs['时间'].value = tm; const val = parseInt(cl.match(/-?\d+/)?.[0]); if (!isNaN(val)) inp.value = val; }); varContainer.appendChild(lab); varContainer.appendChild(inp); varContainer.appendChild(btn); varInputs[f] = inp; }); }
-                function refreshTemplateSelect() { templateSelect.innerHTML = ''; templates.forEach(t => { const o = document.createElement('option'); o.value = t; o.textContent = t.substring(0, 60); templateSelect.appendChild(o); }); }
-
-                function bindAll() {
-                    document.getElementById('smartParseBtn').onclick = smartParseAndFill;
-                    document.getElementById('clearSmartBtn').onclick = () => { smartPasteInput.value = ''; globalResultArea.value = ''; debugConsole.innerHTML = ''; };
-                    document.getElementById('sortOrderSelect').addEventListener('change', () => {
-                        const text = globalResultArea.value.trim();
-                        if (!text) return;
-                        const lines = text.split('\n\n').filter(l => l.trim());
-                        const sorted = sortSentencesByTime(lines, document.getElementById('sortOrderSelect').value);
-                        globalResultArea.value = sorted.join('\n\n');
-                    });
-                    document.getElementById('uploadFlowBtn').onclick = async () => {
-                        const mode = document.querySelector('input[name="parseMode"]:checked').value;
-                        const file = document.getElementById('flowFileInput').files[0];
-                        if (!file) return;
-                        expandDebugConsole();
-                        const text = await file.text();
-                        if (mode === 'itemFlow') {
-                            debugConsole.innerHTML = '🔍 道具流水（文件）解析...';
-                            let sentences = parseItemFlowLog(text);
-                            if (sentences.length) {
-                                const sortOrder = document.getElementById('sortOrderSelect').value;
-                                sentences = sortSentencesByTime(sentences, sortOrder);
-                                globalResultArea.value = sentences.join('\n\n');
-                                globalResultCount.textContent = `${sentences.length} 条`;
-                                resultSourceHint.textContent = '道具流水（上传）';
-                                navigator.clipboard.writeText(globalResultArea.value);
-                                debugConsole.innerHTML += '\n✅ 完成';
-                            } else {
-                                debugConsole.innerHTML += '\n❌ 无有效记录';
-                            }
-                            return;
-                        } else { processFlowCsv(); }
-                    };
-                    document.getElementById('debugFlowBtn').onclick = async () => { const f = document.getElementById('flowFileInput').files[0]; if (!f) return; const text = await f.text(); expandDebugConsole(); debugConsole.innerHTML = `CSV前200字符:\n${text.substring(0, 200)}`; };
-                    document.getElementById('copyGlobalResultBtn').onclick = () => navigator.clipboard.writeText(globalResultArea.value);
-                    document.getElementById('exportGlobalResultBtn').onclick = () => { const blob = new Blob([globalResultArea.value], { type: 'text/plain' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'script.txt'; a.click(); };
-                    document.getElementById('generateFromTemplateBtn').onclick = () => { let tpl = templateSelect.value; for (let [k, v] of Object.entries(varInputs)) tpl = tpl.replace(new RegExp(`\\{${k}\\}`, 'g'), v.value); tpl = tpl.replace(/\{[^}]+\}/g, ''); globalResultArea.value = tpl; globalResultCount.textContent = '1 条'; resultSourceHint.textContent = '模板生成'; navigator.clipboard.writeText(tpl); };
-
-                    const modals = {
-                        source: document.getElementById('sourceRuleModal'), ignore: document.getElementById('ignoreRuleModal'),
-                        template: document.getElementById('templateModal'), script: document.getElementById('scriptEditModal'),
-                        batch: document.getElementById('batchTagModal'), tags: document.getElementById('manageTagsModal'),
-                        import: document.getElementById('importScriptModal')
-                    };
-                    document.getElementById('manageSourceRulesBtn').onclick = () => { renderSourceRuleList(document.getElementById('ruleTypeFilter').value, document.getElementById('ruleSearchInput').value); modals.source.style.display = 'block'; };
-                    document.getElementById('manageIgnoreRulesBtn').onclick = () => { renderIgnoreRuleList(); modals.ignore.style.display = 'block'; };
-                    document.getElementById('manageTemplatesBtn').onclick = () => { renderTemplateList(); modals.template.style.display = 'block'; };
-                    document.getElementById('closeSourceRuleModal').onclick = () => modals.source.style.display = 'none';
-                    document.getElementById('closeIgnoreRuleModal').onclick = () => modals.ignore.style.display = 'none';
-                    document.getElementById('closeTemplateModal').onclick = () => modals.template.style.display = 'none';
-                    document.getElementById('modalAddTemplateBtn').onclick = () => { const t = prompt('输入新模板内容，可使用 {时间} {体力} 等变量'); if (t) { templates.push(t); saveData('templates', templates); renderTemplateList(); refreshTemplateSelect(); } };
-                    document.getElementById('addOrUpdateRuleBtn').addEventListener('click', () => {
-                        const p = document.getElementById('newRulePattern').value.trim();
-                        const r = document.getElementById('newRuleReplacement').value.trim();
-                        const t = document.getElementById('newRuleType').value;
-                        if (!p) return;
-                        if (editingSourceIndex >= 0) {
-                            sourceRules[editingSourceIndex] = { pattern: p, replacement: r, type: t };
-                        } else {
-                            sourceRules.push({ pattern: p, replacement: r, type: t });
-                        }
-                        saveData('sourceRules', sourceRules);
-                        renderSourceRuleList(document.getElementById('ruleTypeFilter').value, document.getElementById('ruleSearchInput').value);
-                        resetSourceEditState();
-                    });
-                    document.getElementById('cancelEditRuleBtn').onclick = resetSourceEditState;
-                    document.getElementById('resetDefaultSourceRulesBtn').onclick = () => { sourceRules = DEFAULT_SOURCE_RULES.map(r => ({ ...r })); saveData('sourceRules', sourceRules); renderSourceRuleList(); };
-                    document.getElementById('clearAllSourceRulesBtn').onclick = () => { if (confirm('清空所有转换规则？')) { sourceRules = []; saveData('sourceRules', sourceRules); renderSourceRuleList(); } };
-                    document.getElementById('addIgnoreKeywordBtn').onclick = () => { const kw = document.getElementById('newIgnoreKeyword').value.trim(); if (!kw) return; if (!ignoreKeywords.includes(kw)) { ignoreKeywords.push(kw); saveData('ignoreKeywords', ignoreKeywords); renderIgnoreRuleList(); document.getElementById('newIgnoreKeyword').value = ''; } };
-                    document.getElementById('resetDefaultIgnoreRulesBtn').onclick = () => { ignoreKeywords = [...DEFAULT_IGNORE_KEYWORDS]; saveData('ignoreKeywords', ignoreKeywords); renderIgnoreRuleList(); };
-                    document.getElementById('clearAllIgnoreRulesBtn').onclick = () => { if (confirm('清空所有忽略关键词？')) { ignoreKeywords = []; saveData('ignoreKeywords', ignoreKeywords); renderIgnoreRuleList(); } };
-
-                    document.getElementById('addScriptBtn').onclick = () => { document.getElementById('scriptEditTitle').textContent = '新增话术'; document.getElementById('scriptEditText').value = ''; document.getElementById('scriptEditTags').value = ''; modals.script.style.display = 'block'; };
-                    document.getElementById('copyScriptBtn').onclick = () => { const lb = document.getElementById('scriptListbox'); if (lb.selectedOptions.length) { const texts = Array.from(lb.selectedOptions).map(o => scripts[o.value].text); navigator.clipboard.writeText(texts.join('\n')); } };
-                    document.getElementById('deleteScriptBtn').onclick = () => { const lb = document.getElementById('scriptListbox'); const idxs = Array.from(lb.selectedOptions).map(o => parseInt(o.value)); scripts = scripts.filter((_, i) => !idxs.includes(i)); saveData('scripts', scripts); refreshScriptList(); renderTagFilter(); };
-                    document.getElementById('batchTagBtn').onclick = () => { if (document.getElementById('scriptListbox').selectedOptions.length) modals.batch.style.display = 'block'; };
-                    document.getElementById('manageTagsBtn').onclick = () => { renderAllTagsList(); modals.tags.style.display = 'block'; };
-                    document.getElementById('importScriptBtn').onclick = () => modals.import.style.display = 'block';
-                    document.getElementById('applyBatchTagBtn').onclick = () => {
-                        const tags = document.getElementById('batchTagInput').value.split(/[,，\s]+/).filter(t => t);
-                        const lb = document.getElementById('scriptListbox');
-                        Array.from(lb.selectedOptions).forEach(o => { const s = scripts[o.value]; tags.forEach(t => { if (!s.tags.includes(t)) s.tags.push(t); }); });
-                        saveData('scripts', scripts); refreshScriptList(); renderTagFilter(); modals.batch.style.display = 'none';
-                    };
-                    document.getElementById('saveScriptBtn').onclick = () => {
-                        const text = document.getElementById('scriptEditText').value.trim(); if (!text) return;
-                        const tags = document.getElementById('scriptEditTags').value.split(/[,，\s]+/).filter(t => t);
-                        const isEdit = document.getElementById('scriptEditTitle').textContent.includes('编辑');
-                        if (isEdit) { const idx = parseInt(document.getElementById('scriptEditText').dataset.index); scripts[idx] = { text, tags }; }
-                        else { scripts.push({ text, tags }); }
-                        saveData('scripts', scripts); refreshScriptList(); renderTagFilter(); modals.script.style.display = 'none';
-                    };
-                    document.getElementById('confirmImportBtn').onclick = async () => {
-                        const f = document.getElementById('importFileInput').files[0]; if (!f) return;
-                        const text = await f.text(); const lines = text.split(/\r?\n/).filter(l => l.trim());
-                        const skip = document.getElementById('skipDuplicateCheckbox').checked; let added = 0;
-                        lines.forEach(l => { if (skip && scripts.some(s => s.text === l)) return; scripts.push({ text: l, tags: [] }); added++; });
-                        saveData('scripts', scripts); refreshScriptList(); renderTagFilter();
-                        document.getElementById('importProgress').textContent = `成功导入 ${added} 条话术`;
-                    };
-                    document.getElementById('addNewTagBtn').onclick = () => { const tag = document.getElementById('newTagInput').value.trim(); if (!tag || getAllTags().includes(tag)) return; document.getElementById('newTagInput').value = ''; renderAllTagsList(); renderTagFilter(); };
-                    document.querySelectorAll('.close, .modal .secondary, .modal .reset-btn').forEach(b => { if (b.id.includes('close') || b.id.includes('cancel')) b.onclick = () => { Object.values(modals).forEach(m => m.style.display = 'none'); }; });
-                    window.onclick = (e) => { if (e.target.classList.contains('modal')) e.target.style.display = 'none'; };
-
-                    document.getElementById('searchScript').oninput = filterScripts;
-                    document.getElementById('tagFilterSelect').onchange = filterScripts;
-                    document.getElementById('uploadCsvBtn').onclick = processCardCsv;
-                    document.getElementById('applyFilterBtn').onclick = processCardCsv;
-                    document.getElementById('copyAllCardBtn').onclick = () => navigator.clipboard.writeText(document.getElementById('cardResultArea').value);
-                    document.getElementById('exportCardBtn').onclick = () => { const blob = new Blob([document.getElementById('cardResultArea').value], { type: 'text/plain' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'card.txt'; a.click(); };
-                    document.getElementById('debugCardBtn').onclick = async () => { const f = document.getElementById('csvFileInput').files[0]; if (!f) return; const text = await f.text(); alert('CSV前500字符:\n' + text.substring(0, 500)); };
-                    document.getElementById('toggleTemplateHeader').onclick = () => { const c = document.getElementById('templateContent'); c.classList.toggle('collapsed'); document.getElementById('toggleArrow').textContent = c.classList.contains('collapsed') ? '▶' : '▼'; };
-                    document.querySelectorAll('.tab-btn').forEach(btn => btn.onclick = function () {
-                        document.querySelectorAll('.tab-btn, .tab-content').forEach(el => el.classList.remove('active'));
-                        this.classList.add('active');
-                        document.getElementById(`tab-${this.dataset.tab}`).classList.add('active');
-                    });
-
-                    const typeFilter = document.getElementById('ruleTypeFilter');
-                    const searchInput = document.getElementById('ruleSearchInput');
-                    const clearSearch = document.getElementById('clearRuleSearch');
-                    typeFilter.onchange = () => renderSourceRuleList(typeFilter.value, searchInput.value);
-                    searchInput.oninput = () => { clearSearch.style.display = searchInput.value ? 'inline' : 'none'; renderSourceRuleList(typeFilter.value, searchInput.value); };
-                    clearSearch.onclick = () => { searchInput.value = ''; clearSearch.style.display = 'none'; renderSourceRuleList(typeFilter.value, ''); };
-                    searchInput.onkeypress = (e) => { if (e.key === 'Enter') { const term = searchInput.value.trim(); if (!term) return; const items = document.querySelectorAll('#sourceRuleListContainer .rule-item'); for (let item of items) { if (item.textContent.toLowerCase().includes(term.toLowerCase())) { item.scrollIntoView({ behavior: 'smooth', block: 'center' }); break; } } } };
-
-                    refreshVarEntries(); refreshTemplateSelect(); // 话术库相关已移除
-                }
-
-                bindAll();
-                new Sortable(document.getElementById('tabsContainer'), { animation: 150 });
-                debugConsole.style.display = 'none';
-                debugConsole.innerHTML = '🟢 工作台就绪 · 完整功能正常';
-            })();
-        </script>
+            bindAll();
+            new Sortable(document.getElementById('tabsContainer'), { animation: 150 });
+            debugConsole.style.display = 'none';
+            debugConsole.innerHTML = '🟢 工作台就绪 · 完整功能正常';
+        })();
+    </script>
 </body>
 </html>
