@@ -679,11 +679,14 @@
                         // 新格式：0时间 1UUID 2资源类型 3道具ID 4名称 5类型 6变化量 7变化前 8变化后 9来源
                         const resourceType = thirdCol;              // 体力 / 背包
                         const itemId = parts[3]?.trim() || '';
-                        const rawName = parts[4]?.trim() || '';     // 名称是第5列（索引4）
+                        const rawName = parts[4]?.trim() || '';     // 第5列（索引4）
+                        const typeLabel = parts[5]?.trim() || '';   // 第6列（索引5）
 
-                        // 优先使用实际名称；若名称为“道具”且ID存在，则用ID代替
-                        if (rawName && rawName !== '道具') {
-                            itemName = rawName;                     // 体力 / 活动道具
+                        // 智能名称判断：优先用 rawName，若为泛称则用 typeLabel，否则用 itemId
+                        if (rawName && rawName !== '道具' && rawName !== '货币') {
+                            itemName = rawName;                     // 体力、红钻等
+                        } else if (typeLabel && typeLabel !== '货币' && typeLabel !== '道具') {
+                            itemName = typeLabel;                   // 活动道具
                         } else if (itemId) {
                             itemName = itemId;
                         } else {
@@ -695,7 +698,7 @@
                         afterRaw = parts[8]?.trim() || '0';        // 变化后（索引8）
                         sourceRaw = parts[9]?.trim() || '';         // 来源（索引9）
                     } else {
-                        // 旧格式（保留原有逻辑）
+                        // 旧格式（保留原逻辑）
                         const isFormatB = /^[+-]?\d+$/.test(thirdCol);
                         if (isFormatB) {
                             changeRaw = parts[2]; beforeRaw = parts[3]; afterRaw = parts[4]; sourceRaw = parts[5];
