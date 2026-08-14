@@ -999,6 +999,7 @@
                             const lm = id.match(/(\d{2})$/);
                             if (lm) { level = parseInt(lm[1], 10); if (isNaN(level)) level = 0; }
                         } else name = chessRaw;
+                        name = applyChessNameConversion(name);   // ★ 应用棋子名称转换规则
                         const changeRaw = (parts[3] || '').split('\n')[0].trim();
                         const change = parseInt(changeRaw, 10) || 0;
                         let cmd = '';
