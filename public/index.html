@@ -729,6 +729,44 @@
                 return records;
             }
 
+            function generateFlowSentence(rec, type, showChange = true) {
+                const time = (rec['时间'] || '').replace(/-/g, '/');
+                const source = rec['来源'] || '';
+                const itemName = rec['道具名称'] || '';
+                const { change, action, before, after } = getChangeAndAction(rec);
+                if (!change || !action) return null;
+                const abs = Math.abs(change);
+
+                // 活动道具的特殊话术
+                if (isActivityItem(itemName, source, type))
+                    return `在${time}，${action}了${abs}个${itemName || '活动道具'}`;
+
+                // 好评点（强制显示前后变化）
+                if (type === '好评点') {
+                    return source
+                        ? `在${time}，通过【${source}】${action}${abs}点好评点，从${before}变为${after}`
+                        : `在${time}，${action}${abs}点好评点，从${before}变为${after}`;
+                }
+
+                // 道具类（积分、券显示前后变化）
+                if (type === '道具' && itemName) {
+                    if (itemName.includes('积分') || itemName.includes('券')) {
+                        return source
+                            ? `在${time}，通过【${source}】${action}${abs}个${itemName}，从${before}变为${after}`
+                            : `在${time}，${action}${abs}个${itemName}，从${before}变为${after}`;
+                    }
+                    return `在${time}，${action}了${abs}个${itemName}`;
+                }
+
+                // 资源类（体力/红钻/金币等）
+                let sentence = showChange
+                    ? (source ? `在${time}，通过【${source}】${action}${abs}点${type}，从${before}变为${after}`
+                        : `在${time}，${action}${abs}点${type}，从${before}变为${after}`)
+                    : (source ? `在${time}，通过【${source}】${action}${abs}点${type}`
+                        : `在${time}，${action}${abs}点${type}`);
+                return applyResourceClickReplace(sentence, type);
+            }
+
             function parseReviewLog(rawText) {
                 const lines = rawText.split(/\r?\n/).map(l => l.trim()).filter(l => l);
                 if (lines.length < 1) return ['❌ 数据格式不正确，请检查'];
