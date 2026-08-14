@@ -1379,15 +1379,24 @@
                 });
                 window.addEventListener('mouseup', () => { isDrawing = false; });
 
-                // 颜色选择
+                // 颜色选择器：点击时立即关闭橡皮擦，恢复橡皮擦按钮颜色
+                document.getElementById('pixelColor').addEventListener('click', () => {
+                    isEraser = false;
+                    document.getElementById('pixelEraserBtn').style.background = '#6c757d';
+                });
+
+                // 颜色选择器：输入改变时更新当前颜色，并关闭橡皮擦
                 document.getElementById('pixelColor').addEventListener('input', (e) => {
                     currentColor = e.target.value;
                     isEraser = false;
+                    document.getElementById('pixelEraserBtn').style.background = '#6c757d';
                 });
 
-                // 橡皮擦
-                document.getElementById('pixelEraserBtn').addEventListener('click', () => { isEraser = true; });
-
+                // 橡皮擦按钮：切换橡皮擦状态，而不是固定开启
+                document.getElementById('pixelEraserBtn').addEventListener('click', function () {
+                    isEraser = !isEraser;                     // 切换橡皮擦模式
+                    this.style.background = isEraser ? '#dc3545' : '#6c757d';  // 开启时红色，关闭时灰色
+                });
                 // 清空画布
                 document.getElementById('pixelClearBtn').addEventListener('click', initPixelCanvas);
 
