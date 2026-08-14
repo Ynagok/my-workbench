@@ -431,7 +431,7 @@
         <div class="tabs" id="tabsContainer">
             <button class="tab-btn active" data-tab="gen">🎤 话术生成</button>
             <button class="tab-btn" data-tab="card">📊 集卡分析</button>
-            <button class="tab-btn" data-tab="script">📚 话术库</button>
+            <button class="tab-btn" data-tab="script">📚 小游戏</button>
         </div>
 
         <!-- 话术生成 gen -->
@@ -502,10 +502,14 @@
         <div id="tab-script" class="tab-content">
             <div style="display: flex; flex-direction: column; gap: 12px;">
                 <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-                    <span style="font-weight: 600;">🎨 拼豆</span>
-                    <input type="color" id="pixelColor" value="#ff0000" style="width: 40px; height: 40px; padding: 0; border: 1px solid #ccc; border-radius: 6px; cursor: pointer;">
+                    <span style="font-weight:600;">🎨 拼豆</span>
+                    <input type="color" id="pixelColor" value="#ff0000" style="width:40px;height:40px;padding:0;border:1px solid #ccc;border-radius:6px;cursor:pointer;">
                     <button id="pixelEraserBtn" class="secondary" style="background:#6c757d;">橡皮擦</button>
                     <button id="pixelClearBtn" class="reset-btn">清空画布</button>
+                    <!-- 新增尺寸设置 -->
+                    <label style="margin:0;">格子数：</label>
+                    <input type="number" id="pixelGridSize" value="15" min="5" max="40" style="width:70px;">
+                    <button id="pixelResizeBtn" class="secondary" style="background:#17a2b8;">应用尺寸</button>
                     <span style="font-size: 12px; color: #6c757d;">点击或拖动画格子填色，橡皮擦可擦除</span>
                 </div>
                 <canvas id="pixelCanvas" width="300" height="300" style="width: 300px; height: 300px; border: 1px solid #ccc; border-radius: 8px; cursor: pointer; image-rendering: pixelated; background: white;"></canvas>            </div>
@@ -1309,12 +1313,23 @@
             const pixelCanvas = document.getElementById('pixelCanvas');
             if (pixelCanvas) {
                 const ctx = pixelCanvas.getContext('2d');
-                const gridSize = 15;
-                const cellSize = pixelCanvas.width / gridSize;
+                let gridSize = parseInt(document.getElementById('pixelGridSize').value, 10) || 15; // 当前格子数
+                const cellSize = 20;  // 每个格子的固定像素大小
                 let currentColor = '#ff0000';
                 let isEraser = false;
                 let isDrawing = false;
 
+                // 根据格子数调整画布尺寸
+                function resizeCanvas() {
+                    const newSize = gridSize * cellSize;
+                    pixelCanvas.width = newSize;
+                    pixelCanvas.height = newSize;
+                    pixelCanvas.style.width = newSize + 'px';
+                    pixelCanvas.style.height = newSize + 'px';
+                    initPixelCanvas();
+                }
+
+                // 初始化画布（白色背景 + 浅灰网格）
                 function initPixelCanvas() {
                     ctx.fillStyle = '#ffffff';
                     ctx.fillRect(0, 0, pixelCanvas.width, pixelCanvas.height);
@@ -1330,12 +1345,13 @@
                         ctx.stroke();
                     }
                 }
-                initPixelCanvas();
+                resizeCanvas();
 
+                // 获取格子坐标（兼容缩放）
                 function getGridPos(e) {
                     const rect = pixelCanvas.getBoundingClientRect();
-                    const scaleX = pixelCanvas.width / rect.width;   // 计算水平缩放比
-                    const scaleY = pixelCanvas.height / rect.height; // 计算垂直缩放比
+                    const scaleX = pixelCanvas.width / rect.width;
+                    const scaleY = pixelCanvas.height / rect.height;
                     const x = (e.clientX - rect.left) * scaleX;
                     const y = (e.clientY - rect.top) * scaleY;
                     const col = Math.floor(x / cellSize);
@@ -1343,16 +1359,14 @@
                     return { col, row };
                 }
 
+                // 填充格子
                 function fillCell(col, row) {
                     if (col < 0 || col >= gridSize || row < 0 || row >= gridSize) return;
-                    if (isEraser) {
-                        ctx.fillStyle = '#ffffff';
-                    } else {
-                        ctx.fillStyle = currentColor;
-                    }
+                    ctx.fillStyle = isEraser ? '#ffffff' : currentColor;
                     ctx.fillRect(col * cellSize + 1, row * cellSize + 1, cellSize - 2, cellSize - 2);
                 }
 
+                // 事件监听
                 pixelCanvas.addEventListener('mousedown', (e) => {
                     isDrawing = true;
                     const { col, row } = getGridPos(e);
@@ -1365,12 +1379,28 @@
                 });
                 window.addEventListener('mouseup', () => { isDrawing = false; });
 
+                // 颜色选择
                 document.getElementById('pixelColor').addEventListener('input', (e) => {
                     currentColor = e.target.value;
                     isEraser = false;
                 });
+
+                // 橡皮擦
                 document.getElementById('pixelEraserBtn').addEventListener('click', () => { isEraser = true; });
-                document.getElementById('pixelClearBtn').addEventListener('click', () => { initPixelCanvas(); });
+
+                // 清空画布
+                document.getElementById('pixelClearBtn').addEventListener('click', initPixelCanvas);
+
+                // 应用新尺寸
+                document.getElementById('pixelResizeBtn').addEventListener('click', () => {
+                    const newSize = parseInt(document.getElementById('pixelGridSize').value, 10);
+                    if (newSize >= 5 && newSize <= 40) {
+                        gridSize = newSize;
+                        resizeCanvas();
+                    } else {
+                        alert('格子数需在 5-40 之间');
+                    }
+                });
             }
 
             // ==================== 规则管理 ====================
