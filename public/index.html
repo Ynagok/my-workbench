@@ -1668,103 +1668,62 @@
                     });
 
                 // ==================== 导出图纸 ====================
-                function exportBlueprint() {
-                    const originalCanvas = pixelCanvas;
-                    const legendHeight = Math.ceil(paletteColors.length / 4) * 30 + 20; // 图例区域高度
-                    const exportCanvas = document.createElement('canvas');
-                    exportCanvas.width = originalCanvas.width;
-                    exportCanvas.height = originalCanvas.height + legendHeight;
-                    const exportCtx = exportCanvas.getContext('2d');
+                    function exportBlueprint() {
+                        const originalCanvas = pixelCanvas;
+                        const exportCanvas = document.createElement('canvas');
+                        exportCanvas.width = originalCanvas.width;
+                        exportCanvas.height = originalCanvas.height;   // 不再增加图例高度
+                        const exportCtx = exportCanvas.getContext('2d');
 
-                    // 白色背景
-                    exportCtx.fillStyle = '#ffffff';
-                    exportCtx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
+                        // 白色背景
+                        exportCtx.fillStyle = '#ffffff';
+                        exportCtx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
 
-                    // 绘制原画布内容（包含颜色块）
-                    exportCtx.drawImage(originalCanvas, 0, 0);
+                        // 绘制原画布内容（包含颜色块）
+                        exportCtx.drawImage(originalCanvas, 0, 0);
 
-                    // 重新绘制网格，使网格线清晰
-                    exportCtx.strokeStyle = '#cccccc';
-                    exportCtx.lineWidth = 1;
-                    for (let i = 0; i <= gridSize; i++) {
-                        exportCtx.beginPath();
-                        exportCtx.moveTo(i * cellSize, 0);
-                        exportCtx.lineTo(i * cellSize, originalCanvas.height);
-                        exportCtx.stroke();
-                        exportCtx.moveTo(0, i * cellSize);
-                        exportCtx.lineTo(originalCanvas.width, i * cellSize);
-                        exportCtx.stroke();
-                    }
+                        // 重新绘制网格，使网格线清晰
+                        exportCtx.strokeStyle = '#cccccc';
+                        exportCtx.lineWidth = 1;
+                        for (let i = 0; i <= gridSize; i++) {
+                            exportCtx.beginPath();
+                            exportCtx.moveTo(i * cellSize, 0);
+                            exportCtx.lineTo(i * cellSize, originalCanvas.height);
+                            exportCtx.stroke();
+                            exportCtx.moveTo(0, i * cellSize);
+                            exportCtx.lineTo(originalCanvas.width, i * cellSize);
+                            exportCtx.stroke();
+                        }
 
-                    // 在每个已填充的格子上标注色号
-                    exportCtx.font = `${Math.max(5, cellSize * 0.4)}px sans-serif`;
-                    exportCtx.textAlign = 'center';
-                    exportCtx.textBaseline = 'middle';
+                        // 在每个已填充的格子上标注色号
+                        exportCtx.font = `${Math.max(5, cellSize * 0.4)}px sans-serif`;
+                        exportCtx.textAlign = 'center';
+                        exportCtx.textBaseline = 'middle';
 
-                    for (let row = 0; row < gridSize; row++) {
-                        for (let col = 0; col < gridSize; col++) {
-                            // 获取画布该格子中心的颜色
-                            const x = col * cellSize + Math.floor(cellSize / 2);
-                            const y = row * cellSize + Math.floor(cellSize / 2);
-                            const pixelData = ctx.getImageData(x, y, 1, 1).data;
-                            const r = pixelData[0], g = pixelData[1], b = pixelData[2], a = pixelData[3];
+                        for (let row = 0; row < gridSize; row++) {
+                            for (let col = 0; col < gridSize; col++) {
+                                const x = col * cellSize + Math.floor(cellSize / 2);
+                                const y = row * cellSize + Math.floor(cellSize / 2);
+                                const pixelData = ctx.getImageData(x, y, 1, 1).data;
+                                const r = pixelData[0], g = pixelData[1], b = pixelData[2], a = pixelData[3];
 
-                            // 跳过白色或透明
-                            if (a === 0 || (r === 255 && g === 255 && b === 255)) continue;
+                                if (a === 0 || (r === 255 && g === 255 && b === 255)) continue;
 
-                            // 转换为十六进制字符串（小写，与 paletteColors 一致）
-                            const hex = '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('');
+                                const hex = '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('');
+                                const label = colorToLabel[hex];
+                                if (!label) continue;
 
-                            // 查找色号
-                            const label = colorToLabel[hex];
-                            if (!label) continue;
-
-                            // 根据背景颜色选择文字颜色（黑或白）
-                            exportCtx.fillStyle = getContrastYIQ(hex);
-                            exportCtx.fillText(label, col * cellSize + cellSize / 2, row * cellSize + cellSize / 2);
+                                exportCtx.fillStyle = getContrastYIQ(hex);
+                                exportCtx.fillText(label, col * cellSize + cellSize / 2, row * cellSize + cellSize / 2);
                             }
                         }
 
-                    // 绘制图例
-                    const legendStartY = originalCanvas.height + 10;
-                    const swatchSize = 20;
-                    const gap = 5;
-                    const maxLegendCols = 4;
-                    const legendX = 10;
-                    let legendCol = 0;
-                    let legendRow = 0;
-
-                    exportCtx.font = '12px sans-serif';
-                    exportCtx.fillStyle = '#000000';
-                    exportCtx.textAlign = 'left';
-                    exportCtx.textBaseline = 'middle';
-
-                    paletteColors.forEach((color) => {
-                        const label = colorToLabel[color] || '?';
-                        const x = legendX + (legendCol * (swatchSize + 50));
-                        const y = legendStartY + (legendRow * (swatchSize + gap));
-
-                        exportCtx.fillStyle = color;
-                        exportCtx.fillRect(x, y, swatchSize, swatchSize);
-                        exportCtx.strokeStyle = '#000000';
-                        exportCtx.strokeRect(x, y, swatchSize, swatchSize);
-
-                        exportCtx.fillStyle = '#000000';
-                        exportCtx.fillText(label, x + swatchSize + 5, y + swatchSize / 2);
-
-                        legendCol++;
-                        if (legendCol >= maxLegendCols) {
-                            legendCol = 0;
-                            legendRow++;
-                        }
-                    });
-
-                    // 触发下载
-                    const link = document.createElement('a');
-                    link.download = '拼豆图纸.png';
-                    link.href = exportCanvas.toDataURL('image/png');
-                    link.click();
-                }
+                        // 触发下载
+                        const link = document.createElement('a');
+                        link.download = '拼豆图纸.png';
+                        link.href = exportCanvas.toDataURL('image/png');
+                        link.click();
+                    }
 
                 document.getElementById('pixelExportBtn').addEventListener('click', exportBlueprint);
                 }
