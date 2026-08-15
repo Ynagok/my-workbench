@@ -1378,7 +1378,35 @@
                         '#b0a796', '#ae8082', '#a68862', '#c4b3bb', '#9d7693', '#644b51',
                         '#c79266', '#c27563', '#747d7a'
                     ];
-                }
+
+                    function hexToRgb(hex) {
+                        hex = hex.replace('#', '');
+                        return [
+                            parseInt(hex.substr(0, 2), 16),
+                            parseInt(hex.substr(2, 2), 16),
+                            parseInt(hex.substr(4, 2), 16)
+                        ];
+                    }
+
+                    function colorDistance(c1, c2) {
+                        const [r1, g1, b1] = hexToRgb(c1);
+                        const [r2, g2, b2] = hexToRgb(c2);
+                        const rmean = (r1 + r2) / 2;
+                        const dr = r1 - r2, dg = g1 - g2, db = b1 - b2;
+                        return (2 + rmean / 256) * dr * dr + 4 * dg * dg + (2 + (255 - rmean) / 256) * db * db;
+                    }
+
+                    function findClosestPaletteColor(hexColor) {
+                        let minDist = Infinity, closest = paletteColors[0];
+                        for (const pColor of paletteColors) {
+                            const d = colorDistance(hexColor, pColor);
+                            if (d < minDist) {
+                                minDist = d;
+                                closest = pColor;
+                            }
+                        }
+                        return closest;
+                    }
 
                     function drawBoard() {
                         ctx.fillStyle = '#ffffff';
@@ -1691,34 +1719,6 @@
                             // 根据背景颜色选择文字颜色（黑或白）
                             exportCtx.fillStyle = getContrastYIQ(hex);
                             exportCtx.fillText(label, col * cellSize + cellSize / 2, row * cellSize + cellSize / 2);
-                            function hexToRgb(hex) {
-                                hex = hex.replace('#', '');
-                                return [
-                                    parseInt(hex.substr(0, 2), 16),
-                                    parseInt(hex.substr(2, 2), 16),
-                                    parseInt(hex.substr(4, 2), 16)
-                                ];
-                            }
-
-                            function colorDistance(c1, c2) {
-                                const [r1, g1, b1] = hexToRgb(c1);
-                                const [r2, g2, b2] = hexToRgb(c2);
-                                // 使用加权欧几里得距离，更符合人眼感知
-                                const rmean = (r1 + r2) / 2;
-                                const dr = r1 - r2, dg = g1 - g2, db = b1 - b2;
-                                return (2 + rmean / 256) * dr * dr + 4 * dg * dg + (2 + (255 - rmean) / 256) * db * db;
-                            }
-
-                            function findClosestPaletteColor(hexColor) {
-                                let minDist = Infinity, closest = paletteColors[0];
-                                for (const pColor of paletteColors) {
-                                    const d = colorDistance(hexColor, pColor);
-                                    if (d < minDist) {
-                                        minDist = d;
-                                        closest = pColor;
-                                    }
-                                }
-                                return closest;
                             }
                         }
 
