@@ -1551,6 +1551,7 @@
                                             const hex = '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('');
                                             const color = (a > 128) ? findClosestPaletteColor(hex) : '#ffffff';
                                             ctx.fillStyle = color;
+                                            ctx.fillRect(col * cellSize + 1, row * cellSize + 1, cellSize - 2, cellSize - 2);
                                         }
                                         currentCell = end;
                                         if (currentCell < totalCells) {
