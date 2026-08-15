@@ -511,7 +511,7 @@
                     <input type="file" id="pixelFileInput" accept="image/*" style="display:none;">
                     <!-- 新增尺寸设置 -->
                     <label style="margin:0;">格子数：</label>
-                    <input type="number" id="pixelGridSize" value="15" min="5" max="40" style="width:70px;">
+                    <input type="number" id="pixelGridSize" value="15" min="5" max="100" style="width:80px;">
                     <button id="pixelResizeBtn" class="secondary" style="background:#17a2b8;">应用尺寸</button>
                     <span style="font-size: 12px; color: #6c757d;">点击或拖动画格子填色，橡皮擦可擦除</span>
                 </div>
@@ -1316,6 +1316,7 @@
             const pixelCanvas = document.getElementById('pixelCanvas');
             if (pixelCanvas) {
                 const ctx = pixelCanvas.getContext('2d');
+                let importAnimationId = null;   // 用于取消未完成的导入动画
                 let gridSize = parseInt(document.getElementById('pixelGridSize').value, 10) || 15; // 当前格子数
                 const cellSize = 20;  // 每个格子的固定像素大小
                 let currentColor = '#ff0000';
@@ -1403,11 +1404,7 @@
                 // 清空画布
                 document.getElementById('pixelClearBtn').addEventListener('click', initPixelCanvas);
 
-                // 导入图片功能
-                document.getElementById('pixelImportBtn').addEventListener('click', () => {
-                    document.getElementById('pixelFileInput').click();   // 触发文件选择
-                });
-
+                // 导入图片功能（带逐格填充动画）
                 document.getElementById('pixelFileInput').addEventListener('change', (e) => {
                     const file = e.target.files[0];
                     if (!file) return;
@@ -1426,40 +1423,53 @@
                             // 读取像素数据
                             const imageData = tempCtx.getImageData(0, 0, gridSize, gridSize).data;
 
-                            // 清空拼豆画布并填充像素图
+                            // 清空拼豆画布
                             initPixelCanvas();
-                            for (let row = 0; row < gridSize; row++) {
-                                for (let col = 0; col < gridSize; col++) {
-                                    const index = (row * gridSize + col) * 4;
-                                    const r = imageData[index];
-                                    const g = imageData[index + 1];
-                                    const b = imageData[index + 2];
-                                    const a = imageData[index + 3];
 
-                                    // 如果透明度很低，视为白色（不填充或填充白色）
+                            // 逐格填充动画
+                            const totalCells = gridSize * gridSize;
+                            const frames = 60;                         // 总帧数（约1秒）
+                            const cellsPerFrame = Math.ceil(totalCells / frames);
+                            let cellIndex = 0;
+
+                            // 取消之前的动画（如果有）
+                            if (importAnimationId) cancelAnimationFrame(importAnimationId);
+
+                            function fillFrame() {
+                                const end = Math.min(cellIndex + cellsPerFrame, totalCells);
+                                for (let i = cellIndex; i < end; i++) {
+                                    const row = Math.floor(i / gridSize);
+                                    const col = i % gridSize;
+                                    const pixelIndex = (row * gridSize + col) * 4;
+                                    const r = imageData[pixelIndex];
+                                    const g = imageData[pixelIndex + 1];
+                                    const b = imageData[pixelIndex + 2];
+                                    const a = imageData[pixelIndex + 3];
                                     const color = (a > 128) ? `rgb(${r},${g},${b})` : '#ffffff';
-
-                                    // 填充对应格子（留出1px边距保留网格线）
                                     ctx.fillStyle = color;
                                     ctx.fillRect(col * cellSize + 1, row * cellSize + 1, cellSize - 2, cellSize - 2);
                                 }
+                                cellIndex = end;
+                                if (cellIndex < totalCells) {
+                                    importAnimationId = requestAnimationFrame(fillFrame);
+                                }
                             }
+                            fillFrame();
                         };
                         img.src = event.target.result;
                     };
                     reader.readAsDataURL(file);
-                    // 重置文件输入，以便重复导入同一文件也能触发 change
                     e.target.value = '';
                 });
 
                 // 应用新尺寸
                 document.getElementById('pixelResizeBtn').addEventListener('click', () => {
                     const newSize = parseInt(document.getElementById('pixelGridSize').value, 10);
-                    if (newSize >= 5 && newSize <= 40) {
+                    if (newSize >= 5 && newSize <= 100) {
                         gridSize = newSize;
                         resizeCanvas();
                     } else {
-                        alert('格子数需在 5-40 之间');
+                        alert('格子数需在 5-100 之间');
                     }
                 });
             }
