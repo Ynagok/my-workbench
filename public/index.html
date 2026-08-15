@@ -1670,33 +1670,39 @@
                 // ==================== 导出图纸 ====================
                     function exportBlueprint() {
                         const originalCanvas = pixelCanvas;
+                        // 导出缩放因子：数值越大，导出图片越清晰（一般 3~5 足够）
+                        const exportScale = 6;
+
+                        // 创建高分辨率画布
                         const exportCanvas = document.createElement('canvas');
-                        exportCanvas.width = originalCanvas.width;
-                        exportCanvas.height = originalCanvas.height;   // 不再增加图例高度
+                        exportCanvas.width = originalCanvas.width * exportScale;
+                        exportCanvas.height = originalCanvas.height * exportScale;
                         const exportCtx = exportCanvas.getContext('2d');
 
                         // 白色背景
                         exportCtx.fillStyle = '#ffffff';
                         exportCtx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
 
-                        // 绘制原画布内容（包含颜色块）
-                        exportCtx.drawImage(originalCanvas, 0, 0);
+                        // 绘制原画布内容（自动缩放）
+                        exportCtx.drawImage(originalCanvas, 0, 0, exportCanvas.width, exportCanvas.height);
 
-                        // 重新绘制网格，使网格线清晰
+                        // 重新绘制网格线（按放大后的尺寸）
+                        const scaledCell = cellSize * exportScale;
                         exportCtx.strokeStyle = '#cccccc';
-                        exportCtx.lineWidth = 1;
+                        exportCtx.lineWidth = Math.max(1, exportScale);
                         for (let i = 0; i <= gridSize; i++) {
                             exportCtx.beginPath();
-                            exportCtx.moveTo(i * cellSize, 0);
-                            exportCtx.lineTo(i * cellSize, originalCanvas.height);
+                            exportCtx.moveTo(i * scaledCell, 0);
+                            exportCtx.lineTo(i * scaledCell, exportCanvas.height);
                             exportCtx.stroke();
-                            exportCtx.moveTo(0, i * cellSize);
-                            exportCtx.lineTo(originalCanvas.width, i * cellSize);
+                            exportCtx.moveTo(0, i * scaledCell);
+                            exportCtx.lineTo(exportCanvas.width, i * scaledCell);
                             exportCtx.stroke();
                         }
 
-                        // 在每个已填充的格子上标注色号
-                        exportCtx.font = `${Math.max(5, cellSize * 0.4)}px sans-serif`;
+                        // 在每个已填充的格子上标注色号（字体按比例放大）
+                        const baseFontSize = Math.max(5, cellSize * 0.4);
+                        exportCtx.font = `${baseFontSize * exportScale}px sans-serif`;
                         exportCtx.textAlign = 'center';
                         exportCtx.textBaseline = 'middle';
 
@@ -1714,7 +1720,10 @@
                                 if (!label) continue;
 
                                 exportCtx.fillStyle = getContrastYIQ(hex);
-                                exportCtx.fillText(label, col * cellSize + cellSize / 2, row * cellSize + cellSize / 2);
+                                // 文字位置同样按放大后的坐标计算
+                                const centerX = col * scaledCell + scaledCell / 2;
+                                const centerY = row * scaledCell + scaledCell / 2;
+                                exportCtx.fillText(label, centerX, centerY);
                             }
                         }
 
