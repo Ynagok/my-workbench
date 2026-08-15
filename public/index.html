@@ -1404,7 +1404,12 @@
                 // 清空画布
                 document.getElementById('pixelClearBtn').addEventListener('click', initPixelCanvas);
 
-                // 导入图片功能（使用 setTimeout 逐格填充，更稳定）
+                // 导入图片按钮：触发文件选择
+                document.getElementById('pixelImportBtn').addEventListener('click', () => {
+                    document.getElementById('pixelFileInput').click();
+                });
+
+                // 导入图片功能（带逐格填充动画）
                 document.getElementById('pixelFileInput').addEventListener('change', (e) => {
                     const file = e.target.files[0];
                     if (!file) return;
@@ -1417,22 +1422,17 @@
                         };
                         img.onload = function () {
                             try {
-                                // 创建临时画布，将图片缩放到 gridSize x gridSize
                                 const tempCanvas = document.createElement('canvas');
                                 tempCanvas.width = gridSize;
                                 tempCanvas.height = gridSize;
                                 const tempCtx = tempCanvas.getContext('2d');
                                 tempCtx.drawImage(img, 0, 0, gridSize, gridSize);
-
-                                // 读取像素数据
                                 const imageData = tempCtx.getImageData(0, 0, gridSize, gridSize).data;
 
-                                // 清空拼豆画布
                                 initPixelCanvas();
 
-                                // 使用 setTimeout 实现逐格填充动画
                                 const totalCells = gridSize * gridSize;
-                                const step = Math.max(1, Math.floor(totalCells / 200)); // 约200次更新完成
+                                const step = Math.max(1, Math.floor(totalCells / 200));
                                 let currentCell = 0;
 
                                 function fillNextBatch() {
@@ -1451,7 +1451,7 @@
                                     }
                                     currentCell = end;
                                     if (currentCell < totalCells) {
-                                        setTimeout(fillNextBatch, 10); // 每10ms填充一批
+                                        setTimeout(fillNextBatch, 10);
                                     }
                                 }
                                 fillNextBatch();
@@ -1468,6 +1468,7 @@
                     reader.readAsDataURL(file);
                     e.target.value = '';
                 });
+
                 // 应用新尺寸
                 document.getElementById('pixelResizeBtn').addEventListener('click', () => {
                     const newSize = parseInt(document.getElementById('pixelGridSize').value, 10);
