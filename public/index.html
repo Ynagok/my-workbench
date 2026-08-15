@@ -1632,6 +1632,35 @@
                         exportCtx.stroke();
                     }
 
+                    // 在每个已填充的格子上标注色号
+                    exportCtx.font = `${Math.max(5, cellSize * 0.4)}px sans-serif`;
+                    exportCtx.textAlign = 'center';
+                    exportCtx.textBaseline = 'middle';
+
+                    for (let row = 0; row < gridSize; row++) {
+                        for (let col = 0; col < gridSize; col++) {
+                            // 获取画布该格子中心的颜色
+                            const x = col * cellSize + Math.floor(cellSize / 2);
+                            const y = row * cellSize + Math.floor(cellSize / 2);
+                            const pixelData = ctx.getImageData(x, y, 1, 1).data;
+                            const r = pixelData[0], g = pixelData[1], b = pixelData[2], a = pixelData[3];
+
+                            // 跳过白色或透明
+                            if (a === 0 || (r === 255 && g === 255 && b === 255)) continue;
+
+                            // 转换为十六进制字符串（小写，与 paletteColors 一致）
+                            const hex = '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('');
+
+                            // 查找色号
+                            const label = colorToLabel[hex];
+                            if (!label) continue;
+
+                            // 根据背景颜色选择文字颜色（黑或白）
+                            exportCtx.fillStyle = getContrastYIQ(hex);
+                            exportCtx.fillText(label, col * cellSize + cellSize / 2, row * cellSize + cellSize / 2);
+                        }
+                    }
+
                     // 绘制图例
                     const legendStartY = originalCanvas.height + 10;
                     const swatchSize = 20;
