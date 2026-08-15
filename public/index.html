@@ -507,7 +507,7 @@
                     <button id="pixelEraserBtn" class="secondary" style="background:#6c757d;">橡皮擦</button>
                     <button id="pixelClearBtn" class="reset-btn">清空画布</button>
                     <!-- 导入图片按钮 -->
-                    <button id="pixelImportBtn" class="secondary" style="background:#28a745;">📷 导入图片</button>
+                    <label for="pixelFileInput" style="background:#28a745; color:white; padding:8px 12px; border-radius:8px; cursor:pointer; font-size:14px;">📷 导入图片</label>
                     <input type="file" id="pixelFileInput" accept="image/*" style="display:none;">
                     <!-- 新增尺寸设置 -->
                     <label style="margin:0;">格子数：</label>
@@ -1411,15 +1411,17 @@
                 document.getElementById('pixelClearBtn').addEventListener('click', initPixelCanvas);
 
                 // 导入图片按钮：触发文件选择
-                document.getElementById('pixelImportBtn').addEventListener('click', () => {
-                    document.getElementById('pixelFileInput').click();
-                });
-
-                // 导入图片功能（支持填充方式和逐格动画）
                 document.getElementById('pixelFileInput').addEventListener('change', (e) => {
                     const file = e.target.files[0];
-                    if (!file) return;
+                    if (file) {
+                        importImageFromFile(file);
+                    }
+                    e.target.value = '';   // 允许重复导入同一文件
+                });
 
+                // 导入图片：处理文件并逐格填充
+                function importImageFromFile(file) {
+                    if (!file) return;
                     const reader = new FileReader();
                     reader.onload = function (event) {
                         const img = new Image();
@@ -1428,7 +1430,6 @@
                         };
                         img.onload = function () {
                             try {
-                                // 创建临时画布，将图片缩放到 gridSize x gridSize
                                 const tempCanvas = document.createElement('canvas');
                                 tempCanvas.width = gridSize;
                                 tempCanvas.height = gridSize;
@@ -1436,10 +1437,8 @@
                                 const fillMode = document.getElementById('pixelFillMode').value;
 
                                 if (fillMode === 'stretch') {
-                                    // 拉伸填充
                                     tempCtx.drawImage(img, 0, 0, gridSize, gridSize);
                                 } else if (fillMode === 'cover') {
-                                    // 裁切填充
                                     const scale = Math.max(gridSize / img.width, gridSize / img.height);
                                     const srcW = gridSize / scale;
                                     const srcH = gridSize / scale;
@@ -1447,7 +1446,6 @@
                                     const srcY = (img.height - srcH) / 2;
                                     tempCtx.drawImage(img, srcX, srcY, srcW, srcH, 0, 0, gridSize, gridSize);
                                 } else if (fillMode === 'contain') {
-                                    // 留白填充
                                     tempCtx.fillStyle = '#ffffff';
                                     tempCtx.fillRect(0, 0, gridSize, gridSize);
                                     const scale = Math.min(gridSize / img.width, gridSize / img.height);
@@ -1458,13 +1456,9 @@
                                     tempCtx.drawImage(img, offsetX, offsetY, drawW, drawH);
                                 }
 
-                                // 获取像素数据
                                 const imageData = tempCtx.getImageData(0, 0, gridSize, gridSize).data;
-
-                                // 清空拼豆画布（保留网格线）
                                 initPixelCanvas();
 
-                                // 逐格填充动画（约200次更新，速度适中）
                                 const totalCells = gridSize * gridSize;
                                 const step = Math.max(1, Math.floor(totalCells / 200));
                                 let currentCell = 0;
@@ -1490,7 +1484,7 @@
                                 }
                                 fillNextBatch();
                             } catch (error) {
-                                console.error('导入图片处理出错:', error);
+                                console.error('图片处理出错:', error);
                                 alert('图片处理失败，请重试');
                             }
                         };
@@ -1500,8 +1494,7 @@
                         alert('文件读取失败');
                     };
                     reader.readAsDataURL(file);
-                    e.target.value = '';
-                });
+                }
 
                 // 应用新尺寸
                 document.getElementById('pixelResizeBtn').addEventListener('click', () => {
@@ -1511,6 +1504,27 @@
                         resizeCanvas();
                     } else {
                         alert('格子数需在 5-100 之间');
+                    }
+                });
+
+                // 监听剪贴板粘贴事件：识别截图并自动导入
+                document.addEventListener('paste', (e) => {
+                    // 仅在当前激活标签是“小游戏”时处理（可选，避免影响其他输入框）
+                    const activeTab = document.querySelector('.tab-content.active');
+                    if (!activeTab || activeTab.id !== 'tab-script') return;
+
+                    const items = e.clipboardData && e.clipboardData.items;
+                    if (!items) return;
+
+                    for (let i = 0; i < items.length; i++) {
+                        if (items[i].type.startsWith('image/')) {
+                            const file = items[i].getAsFile();
+                            if (file) {
+                                e.preventDefault();   // 阻止默认粘贴行为
+                                importImageFromFile(file);
+                                return;
+                            }
+                        }
                     }
                 });
             }
