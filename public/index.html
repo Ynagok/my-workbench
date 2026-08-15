@@ -1404,7 +1404,7 @@
                 // 清空画布
                 document.getElementById('pixelClearBtn').addEventListener('click', initPixelCanvas);
 
-                // 导入图片功能（带逐格填充动画）
+                // 导入图片功能（使用 setTimeout 逐格填充，更稳定）
                 document.getElementById('pixelFileInput').addEventListener('change', (e) => {
                     const file = e.target.files[0];
                     if (!file) return;
@@ -1412,56 +1412,62 @@
                     const reader = new FileReader();
                     reader.onload = function (event) {
                         const img = new Image();
+                        img.onerror = function () {
+                            alert('图片加载失败，请选择有效的图片文件');
+                        };
                         img.onload = function () {
-                            // 创建临时画布，将图片缩放到 gridSize x gridSize
-                            const tempCanvas = document.createElement('canvas');
-                            tempCanvas.width = gridSize;
-                            tempCanvas.height = gridSize;
-                            const tempCtx = tempCanvas.getContext('2d');
-                            tempCtx.drawImage(img, 0, 0, gridSize, gridSize);
+                            try {
+                                // 创建临时画布，将图片缩放到 gridSize x gridSize
+                                const tempCanvas = document.createElement('canvas');
+                                tempCanvas.width = gridSize;
+                                tempCanvas.height = gridSize;
+                                const tempCtx = tempCanvas.getContext('2d');
+                                tempCtx.drawImage(img, 0, 0, gridSize, gridSize);
 
-                            // 读取像素数据
-                            const imageData = tempCtx.getImageData(0, 0, gridSize, gridSize).data;
+                                // 读取像素数据
+                                const imageData = tempCtx.getImageData(0, 0, gridSize, gridSize).data;
 
-                            // 清空拼豆画布
-                            initPixelCanvas();
+                                // 清空拼豆画布
+                                initPixelCanvas();
 
-                            // 逐格填充动画
-                            const totalCells = gridSize * gridSize;
-                            const frames = 60;                         // 总帧数（约1秒）
-                            const cellsPerFrame = Math.ceil(totalCells / frames);
-                            let cellIndex = 0;
+                                // 使用 setTimeout 实现逐格填充动画
+                                const totalCells = gridSize * gridSize;
+                                const step = Math.max(1, Math.floor(totalCells / 200)); // 约200次更新完成
+                                let currentCell = 0;
 
-                            // 取消之前的动画（如果有）
-                            if (importAnimationId) cancelAnimationFrame(importAnimationId);
-
-                            function fillFrame() {
-                                const end = Math.min(cellIndex + cellsPerFrame, totalCells);
-                                for (let i = cellIndex; i < end; i++) {
-                                    const row = Math.floor(i / gridSize);
-                                    const col = i % gridSize;
-                                    const pixelIndex = (row * gridSize + col) * 4;
-                                    const r = imageData[pixelIndex];
-                                    const g = imageData[pixelIndex + 1];
-                                    const b = imageData[pixelIndex + 2];
-                                    const a = imageData[pixelIndex + 3];
-                                    const color = (a > 128) ? `rgb(${r},${g},${b})` : '#ffffff';
-                                    ctx.fillStyle = color;
-                                    ctx.fillRect(col * cellSize + 1, row * cellSize + 1, cellSize - 2, cellSize - 2);
+                                function fillNextBatch() {
+                                    const end = Math.min(currentCell + step, totalCells);
+                                    for (let i = currentCell; i < end; i++) {
+                                        const row = Math.floor(i / gridSize);
+                                        const col = i % gridSize;
+                                        const pixelIndex = (row * gridSize + col) * 4;
+                                        const r = imageData[pixelIndex];
+                                        const g = imageData[pixelIndex + 1];
+                                        const b = imageData[pixelIndex + 2];
+                                        const a = imageData[pixelIndex + 3];
+                                        const color = (a > 128) ? `rgb(${r},${g},${b})` : '#ffffff';
+                                        ctx.fillStyle = color;
+                                        ctx.fillRect(col * cellSize + 1, row * cellSize + 1, cellSize - 2, cellSize - 2);
+                                    }
+                                    currentCell = end;
+                                    if (currentCell < totalCells) {
+                                        setTimeout(fillNextBatch, 10); // 每10ms填充一批
+                                    }
                                 }
-                                cellIndex = end;
-                                if (cellIndex < totalCells) {
-                                    importAnimationId = requestAnimationFrame(fillFrame);
-                                }
+                                fillNextBatch();
+                            } catch (error) {
+                                console.error('导入图片处理出错:', error);
+                                alert('图片处理失败，请重试');
                             }
-                            fillFrame();
                         };
                         img.src = event.target.result;
+                    };
+                    reader.onerror = function () {
+                        alert('文件读取失败');
                     };
                     reader.readAsDataURL(file);
                     e.target.value = '';
                 });
-
                 // 应用新尺寸
                 document.getElementById('pixelResizeBtn').addEventListener('click', () => {
                     const newSize = parseInt(document.getElementById('pixelGridSize').value, 10);
