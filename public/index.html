@@ -520,6 +520,7 @@
                             <option value="contain">留白填充</option>
                         </select>
                         <span style="font-size:12px;color:#6c757d;">支持Ctrl+V粘贴截图</span>
+                        <button id="pixelExportBtn" class="secondary" style="background:#007bff;">📤 导出图纸</button>
                     </div>
                     <!-- 色卡面板（默认隐藏） -->
                     <div id="pixelColorPalette" style="display:none; flex-wrap:wrap; gap:4px; margin-top:8px; padding:8px; border:1px solid #ccc; border-radius:8px; background:#f8f9fa; max-width:100%;"></div>
@@ -1334,6 +1335,7 @@
                     let isEraser = false;
                     let isDrawing = false;
                     let isMouseDown = false;
+                    const colorToLabel = {};   // 颜色 -> 色号 映射
 
                     function drawBoard() {
                         ctx.fillStyle = '#ffffff';
@@ -1586,6 +1588,7 @@
                         colorBtn.style.color = getContrastYIQ(color);
                         colorBtn.textContent = colorId;
                         colorBtn.title = `${colorId} ${color}`;
+                        colorToLabel[color] = colorId;
 
                         colorBtn.addEventListener('click', () => {
                             currentColor = color;
@@ -1599,7 +1602,78 @@
                         currentRowDiv.appendChild(colorBtn);
                         colIndex++;
                     });
+
+                // ==================== 导出图纸 ====================
+                function exportBlueprint() {
+                    const originalCanvas = pixelCanvas;
+                    const legendHeight = Math.ceil(paletteColors.length / 4) * 30 + 20; // 图例区域高度
+                    const exportCanvas = document.createElement('canvas');
+                    exportCanvas.width = originalCanvas.width;
+                    exportCanvas.height = originalCanvas.height + legendHeight;
+                    const exportCtx = exportCanvas.getContext('2d');
+
+                    // 白色背景
+                    exportCtx.fillStyle = '#ffffff';
+                    exportCtx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
+
+                    // 绘制原画布内容（包含颜色块）
+                    exportCtx.drawImage(originalCanvas, 0, 0);
+
+                    // 重新绘制网格，使网格线清晰
+                    exportCtx.strokeStyle = '#cccccc';
+                    exportCtx.lineWidth = 1;
+                    for (let i = 0; i <= gridSize; i++) {
+                        exportCtx.beginPath();
+                        exportCtx.moveTo(i * cellSize, 0);
+                        exportCtx.lineTo(i * cellSize, originalCanvas.height);
+                        exportCtx.stroke();
+                        exportCtx.moveTo(0, i * cellSize);
+                        exportCtx.lineTo(originalCanvas.width, i * cellSize);
+                        exportCtx.stroke();
+                    }
+
+                    // 绘制图例
+                    const legendStartY = originalCanvas.height + 10;
+                    const swatchSize = 20;
+                    const gap = 5;
+                    const maxLegendCols = 4;
+                    const legendX = 10;
+                    let legendCol = 0;
+                    let legendRow = 0;
+
+                    exportCtx.font = '12px sans-serif';
+                    exportCtx.fillStyle = '#000000';
+                    exportCtx.textAlign = 'left';
+                    exportCtx.textBaseline = 'middle';
+
+                    paletteColors.forEach((color) => {
+                        const label = colorToLabel[color] || '?';
+                        const x = legendX + (legendCol * (swatchSize + 50));
+                        const y = legendStartY + (legendRow * (swatchSize + gap));
+
+                        exportCtx.fillStyle = color;
+                        exportCtx.fillRect(x, y, swatchSize, swatchSize);
+                        exportCtx.strokeStyle = '#000000';
+                        exportCtx.strokeRect(x, y, swatchSize, swatchSize);
+
+                        exportCtx.fillStyle = '#000000';
+                        exportCtx.fillText(label, x + swatchSize + 5, y + swatchSize / 2);
+
+                        legendCol++;
+                        if (legendCol >= maxLegendCols) {
+                            legendCol = 0;
+                            legendRow++;
+                        }
+                    });
+
+                    // 触发下载
+                    const link = document.createElement('a');
+                    link.download = '拼豆图纸.png';
+                    link.href = exportCanvas.toDataURL('image/png');
+                    link.click();
                 }
+
+                document.getElementById('pixelExportBtn').addEventListener('click', exportBlueprint);
 
                         // ==================== 规则管理 ====================
                         let editingSourceIndex = -1;
