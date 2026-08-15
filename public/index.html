@@ -505,6 +505,7 @@
                 <div style="flex: 1; min-width: 300px; display: flex; flex-direction: column; gap: 12px;">
                     <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
                         <input type="color" id="pixelColor" value="#ff0000" style="width:40px;height:40px;padding:0;border:1px solid #ccc;border-radius:6px;cursor:pointer;">
+                        <button id="pixelPaletteToggleBtn" class="secondary" style="background:#6c757d;">🎨 色卡</button>
                         <button id="pixelEraserBtn" class="secondary" style="background:#6c757d;">橡皮擦</button>
                         <button id="pixelClearBtn" class="reset-btn">清空画布</button>
                         <label for="pixelFileInput" style="background:#28a745;color:white;padding:8px 12px;border-radius:8px;cursor:pointer;font-size:14px;">📷 导入图片</label>
@@ -520,16 +521,12 @@
                         </select>
                         <span style="font-size:12px;color:#6c757d;">支持Ctrl+V粘贴截图</span>
                     </div>
+                    <!-- 色卡面板（默认隐藏） -->
+                    <div id="pixelColorPalette" style="display:none; flex-wrap:wrap; gap:4px; margin-top:8px; padding:8px; border:1px solid #ccc; border-radius:8px; background:#f8f9fa; max-width:100%;"></div>
                     <!-- 画布容器 -->
                     <div style="border: 2px solid #dee2e6; border-radius: 8px; padding: 4px; background: #f8f9fa; display: inline-block;">
                         <canvas id="pixelCanvas" width="600" height="600" style="display:block; width:100%; height:auto; cursor:crosshair; image-rendering:pixelated;"></canvas>
                     </div>
-                </div>
-
-                <!-- 右侧：色卡 -->
-                <div style="width: 280px; max-height: 600px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 8px; padding: 12px; background: #ffffff;">
-                    <div style="font-weight:600; margin-bottom:8px;">🎨 色卡</div>
-                    <div id="pixelColorPalette" style="display: flex; flex-direction: column; gap: 8px;"></div>
                 </div>
             </div>
         </div>
@@ -1332,26 +1329,15 @@
                 if (pixelCanvas) {
                     const ctx = pixelCanvas.getContext('2d');
                     let gridSize = parseInt(document.getElementById('pixelGridSize').value, 10) || 40;
-                    const cellSize = 15;   // 每个格子的实际像素大小（用于圆形豆子）
+                    const cellSize = 15;
                     let currentColor = '#ff0000';
                     let isEraser = false;
                     let isDrawing = false;
                     let isMouseDown = false;
 
-                    // 根据格子数调整画布尺寸
-                    function resizeCanvas() {
-                        const newSize = gridSize * cellSize;
-                        pixelCanvas.width = newSize;
-                        pixelCanvas.height = newSize;
-                        pixelCanvas.style.width = newSize + 'px';
-                        pixelCanvas.style.height = newSize + 'px';
-                        drawBoard();
-                    }
-
                     function drawBoard() {
                         ctx.fillStyle = '#ffffff';
                         ctx.fillRect(0, 0, pixelCanvas.width, pixelCanvas.height);
-                        // 绘制浅灰网格线
                         ctx.strokeStyle = '#eeeeee';
                         ctx.lineWidth = 1;
                         for (let i = 0; i <= gridSize; i++) {
@@ -1364,21 +1350,25 @@
                             ctx.stroke();
                         }
                     }
-                }
 
-                    // 填充
-                function fillCell(col, row) {
-                    if (col < 0 || col >= gridSize || row < 0 || row >= gridSize) return;
-                    ctx.fillStyle = isEraser ? '#ffffff' : currentColor;
-                    ctx.fillRect(col * cellSize + 1, row * cellSize + 1, cellSize - 2, cellSize - 2);
-                }
-                    // 初始化画布
-                    function initPixelCanvas() {
+                    function resizeCanvas() {
+                        const newSize = gridSize * cellSize;
+                        pixelCanvas.width = newSize;
+                        pixelCanvas.height = newSize;
+                        pixelCanvas.style.width = newSize + 'px';
+                        pixelCanvas.style.height = newSize + 'px';
                         drawBoard();
                     }
+
+                    function fillCell(col, row) {
+                        if (col < 0 || col >= gridSize || row < 0 || row >= gridSize) return;
+                        ctx.fillStyle = isEraser ? '#ffffff' : currentColor;
+                        ctx.fillRect(col * cellSize + 1, row * cellSize + 1, cellSize - 2, cellSize - 2);
+                    }
+
+                    function initPixelCanvas() { drawBoard(); }
                     resizeCanvas();
 
-                    // 获取格子坐标（兼容缩放）
                     function getGridPos(e) {
                         const rect = pixelCanvas.getBoundingClientRect();
                         const scaleX = pixelCanvas.width / rect.width;
@@ -1390,7 +1380,6 @@
                         return { col, row };
                     }
 
-                    // 鼠标事件
                     pixelCanvas.addEventListener('mousedown', (e) => {
                         isMouseDown = true;
                         const { col, row } = getGridPos(e);
@@ -1403,7 +1392,6 @@
                     });
                     window.addEventListener('mouseup', () => { isMouseDown = false; });
 
-                    // 颜色选择器
                     const colorInput = document.getElementById('pixelColor');
                     colorInput.addEventListener('click', () => { isEraser = false; });
                     colorInput.addEventListener('input', (e) => {
@@ -1412,23 +1400,24 @@
                         document.getElementById('pixelEraserBtn').style.background = '#6c757d';
                     });
 
-                    // 橡皮擦按钮
+                    document.getElementById('pixelPaletteToggleBtn').addEventListener('click', () => {
+                        const palette = document.getElementById('pixelColorPalette');
+                        palette.style.display = (palette.style.display === 'none') ? 'flex' : 'none';
+                    });
+
                     document.getElementById('pixelEraserBtn').addEventListener('click', function () {
                         isEraser = !isEraser;
                         this.style.background = isEraser ? '#dc3545' : '#6c757d';
                     });
 
-                    // 清空画布
                     document.getElementById('pixelClearBtn').addEventListener('click', initPixelCanvas);
 
-                    // 导入图片按钮
                     document.getElementById('pixelFileInput').addEventListener('change', (e) => {
                         const file = e.target.files[0];
                         if (file) importImageFromFile(file);
                         e.target.value = '';
                     });
 
-                    // 导入图片处理
                     function importImageFromFile(file) {
                         if (!file) return;
                         const reader = new FileReader();
@@ -1480,10 +1469,11 @@
                                             const g = imageData[pixelIndex + 1];
                                             const b = imageData[pixelIndex + 2];
                                             const a = imageData[pixelIndex + 3];
-                                            const color = (a > 128) ? `rgb(${r},${g},${b})` : '#e0e0e0';
+                                            const color = (a > 128) ? `rgb(${r},${g},${b})` : '#ffffff';
                                             ctx.fillStyle = color;
                                             ctx.fillRect(col * cellSize + 1, row * cellSize + 1, cellSize - 2, cellSize - 2);
-                                            currentCell = end;
+                                        }
+                                        currentCell = end;
                                         if (currentCell < totalCells) {
                                             setTimeout(fillNextBatch, 10);
                                         }
@@ -1500,7 +1490,6 @@
                         reader.readAsDataURL(file);
                     }
 
-                    // 应用新尺寸
                     document.getElementById('pixelResizeBtn').addEventListener('click', () => {
                         const newSize = parseInt(document.getElementById('pixelGridSize').value, 10);
                         if (newSize >= 5 && newSize <= 100) {
@@ -1511,7 +1500,6 @@
                         }
                     });
 
-                    // 剪贴板粘贴
                     document.addEventListener('paste', (e) => {
                         const activeTab = document.querySelector('.tab-content.active');
                         if (!activeTab || activeTab.id !== 'tab-script') return;
@@ -1531,14 +1519,12 @@
 
                     // ==================== 色卡生成 ====================
                     const paletteColors = [
-                        // 基础色
                         '#000000', '#ffffff', '#808080', '#c0c0c0', '#800000', '#ff0000',
                         '#ff8080', '#ffc0c0', '#804000', '#ff8000', '#ffc080', '#ffe0c0',
                         '#808000', '#ffff00', '#ffff80', '#ffffc0', '#008000', '#00ff00',
                         '#80ff80', '#c0ffc0', '#008080', '#00ffff', '#80ffff', '#c0ffff',
                         '#000080', '#0000ff', '#8080ff', '#c0c0ff', '#800080', '#ff00ff',
                         '#ff80ff', '#ffc0ff',
-                        // 常用补充
                         '#8b4513', '#d2691e', '#f4a460', '#ffe4b5', '#ffd700', '#ffa500',
                         '#ff6347', '#dc143c', '#ff69b4', '#ffb6c1', '#da70d6', '#ba55d3',
                         '#7b68ee', '#6a5acd', '#483d8b', '#191970', '#00008b', '#4169e1',
@@ -1550,7 +1536,7 @@
 
                     const paletteContainer = document.getElementById('pixelColorPalette');
                     paletteContainer.innerHTML = '';
-                    const colorsPerRow = 8;
+                    const colorsPerRow = 10;
                     let rowIndex = 0;
                     let currentRowDiv = null;
                     let colIndex = 0;
@@ -1586,8 +1572,8 @@
                         const colorBtn = document.createElement('button');
                         colorBtn.type = 'button';
                         const colorId = String.fromCharCode(65 + (rowIndex - 1)) + (colIndex + 1);
-                        colorBtn.style.width = '30px';
-                        colorBtn.style.height = '30px';
+                        colorBtn.style.width = '24px';
+                        colorBtn.style.height = '24px';
                         colorBtn.style.borderRadius = '6px';
                         colorBtn.style.border = '1px solid #999';
                         colorBtn.style.background = color;
@@ -1595,7 +1581,7 @@
                         colorBtn.style.display = 'flex';
                         colorBtn.style.alignItems = 'center';
                         colorBtn.style.justifyContent = 'center';
-                        colorBtn.style.fontSize = '8px';
+                        colorBtn.style.fontSize = '7px';
                         colorBtn.style.fontWeight = 'bold';
                         colorBtn.style.color = getContrastYIQ(color);
                         colorBtn.textContent = colorId;
@@ -1615,143 +1601,143 @@
                     });
                 }
 
-                // ==================== 规则管理 ====================
-                let editingSourceIndex = -1;
-                function renderSourceRuleList(filterType = 'all', searchTerm = '') {
-                    const c = document.getElementById('sourceRuleListContainer');
-                    let filtered = sourceRules;
-                    if (filterType !== 'all') filtered = filtered.filter(r => r.type === filterType);
-                    if (searchTerm) { const lower = searchTerm.toLowerCase(); filtered = filtered.filter(r => (getRulePattern(r) + getRuleReplacement(r)).toLowerCase().includes(lower)); }
-                    c.innerHTML = filtered.map((r, i) => {
-                        const idx = sourceRules.indexOf(r);
-                        const pattern = getRulePattern(r);
-                        const replacement = getRuleReplacement(r) || '(删除)';
-                        const typeLabel = r.type === 'source' ? '来源' : (r.type === 'reward' ? '奖励' : '棋子');
-                        return `<div class="rule-item" data-idx="${idx}">
-                                                <span class="rule-pattern">${pattern}</span><span class="rule-type">[${typeLabel}]</span>
-                                                <span>→</span><span class="rule-replacement">${replacement}</span>
-                                                <div class="rule-actions"><button class="edit-source-btn" data-idx="${idx}">✏️</button><button class="delete-source-btn" data-idx="${idx}" style="background:#dc3545;">🗑️</button></div></div>`;
-                    }).join('') || '<div>暂无规则</div>';
-                    c.querySelectorAll('.delete-source-btn').forEach(b => b.onclick = e => { const idx = parseInt(b.dataset.idx); sourceRules.splice(idx, 1); saveData('sourceRules', sourceRules); renderSourceRuleList(filterType, searchTerm); });
-                    c.querySelectorAll('.edit-source-btn').forEach(b => b.onclick = e => {
-                        const idx = parseInt(b.dataset.idx); const r = sourceRules[idx];
-                        document.getElementById('newRulePattern').value = getRulePattern(r);
-                        document.getElementById('newRuleReplacement').value = getRuleReplacement(r) || '';
-                        document.getElementById('newRuleType').value = r.type || 'source';
-                        document.getElementById('addOrUpdateRuleBtn').textContent = '✏️ 更新';
-                        document.getElementById('cancelEditRuleBtn').style.display = 'inline-block';
-                        editingSourceIndex = idx;
-                    });
-                }
-                function resetSourceEditState() { document.getElementById('newRulePattern').value = ''; document.getElementById('newRuleReplacement').value = ''; document.getElementById('newRuleType').value = 'source'; document.getElementById('addOrUpdateRuleBtn').textContent = '➕ 添加'; document.getElementById('cancelEditRuleBtn').style.display = 'none'; editingSourceIndex = -1; }
-                function renderIgnoreRuleList() { const c = document.getElementById('ignoreRuleListContainer'); c.innerHTML = ignoreKeywords.map((k, i) => `<div class="rule-item"><span class="rule-pattern">${k}</span><div class="rule-actions"><button data-i="${i}" class="delete-ignore-btn" style="background:#dc3545;">🗑️</button></div></div>`).join('') || '<div>暂无忽略关键词</div>'; c.querySelectorAll('.delete-ignore-btn').forEach(b => b.onclick = e => { ignoreKeywords.splice(e.target.dataset.i, 1); saveData('ignoreKeywords', ignoreKeywords); renderIgnoreRuleList(); }); }
+                        // ==================== 规则管理 ====================
+                        let editingSourceIndex = -1;
+                    function renderSourceRuleList(filterType = 'all', searchTerm = '') {
+                        const c = document.getElementById('sourceRuleListContainer');
+                        let filtered = sourceRules;
+                        if (filterType !== 'all') filtered = filtered.filter(r => r.type === filterType);
+                        if (searchTerm) { const lower = searchTerm.toLowerCase(); filtered = filtered.filter(r => (getRulePattern(r) + getRuleReplacement(r)).toLowerCase().includes(lower)); }
+                        c.innerHTML = filtered.map((r, i) => {
+                            const idx = sourceRules.indexOf(r);
+                            const pattern = getRulePattern(r);
+                            const replacement = getRuleReplacement(r) || '(删除)';
+                            const typeLabel = r.type === 'source' ? '来源' : (r.type === 'reward' ? '奖励' : '棋子');
+                            return `<div class="rule-item" data-idx="${idx}">
+                                                        <span class="rule-pattern">${pattern}</span><span class="rule-type">[${typeLabel}]</span>
+                                                        <span>→</span><span class="rule-replacement">${replacement}</span>
+                                                        <div class="rule-actions"><button class="edit-source-btn" data-idx="${idx}">✏️</button><button class="delete-source-btn" data-idx="${idx}" style="background:#dc3545;">🗑️</button></div></div>`;
+                        }).join('') || '<div>暂无规则</div>';
+                        c.querySelectorAll('.delete-source-btn').forEach(b => b.onclick = e => { const idx = parseInt(b.dataset.idx); sourceRules.splice(idx, 1); saveData('sourceRules', sourceRules); renderSourceRuleList(filterType, searchTerm); });
+                        c.querySelectorAll('.edit-source-btn').forEach(b => b.onclick = e => {
+                            const idx = parseInt(b.dataset.idx); const r = sourceRules[idx];
+                            document.getElementById('newRulePattern').value = getRulePattern(r);
+                            document.getElementById('newRuleReplacement').value = getRuleReplacement(r) || '';
+                            document.getElementById('newRuleType').value = r.type || 'source';
+                            document.getElementById('addOrUpdateRuleBtn').textContent = '✏️ 更新';
+                            document.getElementById('cancelEditRuleBtn').style.display = 'inline-block';
+                            editingSourceIndex = idx;
+                        });
+                    }
+                    function resetSourceEditState() { document.getElementById('newRulePattern').value = ''; document.getElementById('newRuleReplacement').value = ''; document.getElementById('newRuleType').value = 'source'; document.getElementById('addOrUpdateRuleBtn').textContent = '➕ 添加'; document.getElementById('cancelEditRuleBtn').style.display = 'none'; editingSourceIndex = -1; }
+                    function renderIgnoreRuleList() { const c = document.getElementById('ignoreRuleListContainer'); c.innerHTML = ignoreKeywords.map((k, i) => `<div class="rule-item"><span class="rule-pattern">${k}</span><div class="rule-actions"><button data-i="${i}" class="delete-ignore-btn" style="background:#dc3545;">🗑️</button></div></div>`).join('') || '<div>暂无忽略关键词</div>'; c.querySelectorAll('.delete-ignore-btn').forEach(b => b.onclick = e => { ignoreKeywords.splice(e.target.dataset.i, 1); saveData('ignoreKeywords', ignoreKeywords); renderIgnoreRuleList(); }); }
 
-                function refreshVarEntries() { varContainer.innerHTML = ''; varInputs = {}; CORE_FIELDS.forEach(f => { const lab = document.createElement('label'); lab.textContent = f + '：'; const inp = document.createElement('input'); inp.value = ''; const btn = document.createElement('button'); btn.textContent = '📋'; btn.className = 'paste-btn'; btn.onclick = () => navigator.clipboard.readText().then(t => { const cl = cleanText(t); const tm = extractTime(cl); if (tm && varInputs['时间']) varInputs['时间'].value = tm; const val = parseInt(cl.match(/-?\d+/)?.[0]); if (!isNaN(val)) inp.value = val; }); varContainer.appendChild(lab); varContainer.appendChild(inp); varContainer.appendChild(btn); varInputs[f] = inp; }); }
-                function refreshTemplateSelect() { templateSelect.innerHTML = ''; templates.forEach(t => { const o = document.createElement('option'); o.value = t; o.textContent = t.substring(0, 60); templateSelect.appendChild(o); }); }
-                function renderTemplateList() {
-                    const c = document.getElementById('templateList');
-                    c.innerHTML = templates.map((t, i) => `<div class="rule-item"><span>${t.substring(0, 50)}</span><div class="rule-actions"><button data-i="${i}" class="edit-template-btn">✏️</button><button data-i="${i}" class="delete-template-btn" style="background:#dc3545;">🗑️</button></div></div>`).join('');
-                    c.querySelectorAll('.delete-template-btn').forEach(b => b.onclick = e => { templates.splice(e.target.dataset.i, 1); saveData('templates', templates); renderTemplateList(); refreshTemplateSelect(); });
-                }
+                    function refreshVarEntries() { varContainer.innerHTML = ''; varInputs = {}; CORE_FIELDS.forEach(f => { const lab = document.createElement('label'); lab.textContent = f + '：'; const inp = document.createElement('input'); inp.value = ''; const btn = document.createElement('button'); btn.textContent = '📋'; btn.className = 'paste-btn'; btn.onclick = () => navigator.clipboard.readText().then(t => { const cl = cleanText(t); const tm = extractTime(cl); if (tm && varInputs['时间']) varInputs['时间'].value = tm; const val = parseInt(cl.match(/-?\d+/)?.[0]); if (!isNaN(val)) inp.value = val; }); varContainer.appendChild(lab); varContainer.appendChild(inp); varContainer.appendChild(btn); varInputs[f] = inp; }); }
+                    function refreshTemplateSelect() { templateSelect.innerHTML = ''; templates.forEach(t => { const o = document.createElement('option'); o.value = t; o.textContent = t.substring(0, 60); templateSelect.appendChild(o); }); }
+                    function renderTemplateList() {
+                        const c = document.getElementById('templateList');
+                        c.innerHTML = templates.map((t, i) => `<div class="rule-item"><span>${t.substring(0, 50)}</span><div class="rule-actions"><button data-i="${i}" class="edit-template-btn">✏️</button><button data-i="${i}" class="delete-template-btn" style="background:#dc3545;">🗑️</button></div></div>`).join('');
+                        c.querySelectorAll('.delete-template-btn').forEach(b => b.onclick = e => { templates.splice(e.target.dataset.i, 1); saveData('templates', templates); renderTemplateList(); refreshTemplateSelect(); });
+                    }
 
-                function bindAll() {
-                    document.getElementById('smartParseBtn').onclick = smartParseAndFill;
-                    document.getElementById('clearSmartBtn').onclick = () => { smartPasteInput.value = ''; globalResultArea.value = ''; debugConsole.innerHTML = ''; };
-                    document.getElementById('sortOrderSelect').addEventListener('change', () => {
-                        const text = globalResultArea.value.trim();
-                        if (!text) return;
-                        const lines = text.split('\n\n').filter(l => l.trim());
-                        const sorted = sortSentencesByTime(lines, document.getElementById('sortOrderSelect').value);
-                        globalResultArea.value = sorted.join('\n\n');
-                    });
-                    document.getElementById('uploadFlowBtn').onclick = async () => {
-                        const mode = document.querySelector('input[name="parseMode"]:checked').value;
-                        const file = document.getElementById('flowFileInput').files[0];
-                        if (!file) return;
-                        expandDebugConsole();
-                        const text = await file.text();
-                        if (mode === 'itemFlow') {
-                            debugConsole.innerHTML = '🔍 道具流水（文件）解析...';
-                            let sentences = parseItemFlowLog(text);
-                            if (sentences.length) {
-                                const sortOrder = document.getElementById('sortOrderSelect').value;
-                                sentences = sortSentencesByTime(sentences, sortOrder);
-                                globalResultArea.value = sentences.join('\n\n');
-                                globalResultCount.textContent = `${sentences.length} 条`;
-                                resultSourceHint.textContent = '道具流水（上传）';
-                                navigator.clipboard.writeText(globalResultArea.value);
-                                debugConsole.innerHTML += '\n✅ 完成';
-                            } else { debugConsole.innerHTML += '\n❌ 无有效记录'; }
-                            return;
-                        } else { processFlowCsv(); }
-                    };
-                    document.getElementById('debugFlowBtn').onclick = async () => { const f = document.getElementById('flowFileInput').files[0]; if (!f) return; const text = await f.text(); expandDebugConsole(); debugConsole.innerHTML = `CSV前200字符:\n${text.substring(0, 200)}`; };
-                    document.getElementById('copyGlobalResultBtn').onclick = () => navigator.clipboard.writeText(globalResultArea.value);
-                    document.getElementById('exportGlobalResultBtn').onclick = () => { const blob = new Blob([globalResultArea.value], { type: 'text/plain' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'script.txt'; a.click(); };
-                    document.getElementById('generateFromTemplateBtn').onclick = () => { let tpl = templateSelect.value; for (let [k, v] of Object.entries(varInputs)) tpl = tpl.replace(new RegExp(`\\{${k}\\}`, 'g'), v.value); tpl = tpl.replace(/\{[^}]+\}/g, ''); globalResultArea.value = tpl; globalResultCount.textContent = '1 条'; resultSourceHint.textContent = '模板生成'; navigator.clipboard.writeText(tpl); };
+                    function bindAll() {
+                        document.getElementById('smartParseBtn').onclick = smartParseAndFill;
+                        document.getElementById('clearSmartBtn').onclick = () => { smartPasteInput.value = ''; globalResultArea.value = ''; debugConsole.innerHTML = ''; };
+                        document.getElementById('sortOrderSelect').addEventListener('change', () => {
+                            const text = globalResultArea.value.trim();
+                            if (!text) return;
+                            const lines = text.split('\n\n').filter(l => l.trim());
+                            const sorted = sortSentencesByTime(lines, document.getElementById('sortOrderSelect').value);
+                            globalResultArea.value = sorted.join('\n\n');
+                        });
+                        document.getElementById('uploadFlowBtn').onclick = async () => {
+                            const mode = document.querySelector('input[name="parseMode"]:checked').value;
+                            const file = document.getElementById('flowFileInput').files[0];
+                            if (!file) return;
+                            expandDebugConsole();
+                            const text = await file.text();
+                            if (mode === 'itemFlow') {
+                                debugConsole.innerHTML = '🔍 道具流水（文件）解析...';
+                                let sentences = parseItemFlowLog(text);
+                                if (sentences.length) {
+                                    const sortOrder = document.getElementById('sortOrderSelect').value;
+                                    sentences = sortSentencesByTime(sentences, sortOrder);
+                                    globalResultArea.value = sentences.join('\n\n');
+                                    globalResultCount.textContent = `${sentences.length} 条`;
+                                    resultSourceHint.textContent = '道具流水（上传）';
+                                    navigator.clipboard.writeText(globalResultArea.value);
+                                    debugConsole.innerHTML += '\n✅ 完成';
+                                } else { debugConsole.innerHTML += '\n❌ 无有效记录'; }
+                                return;
+                            } else { processFlowCsv(); }
+                        };
+                        document.getElementById('debugFlowBtn').onclick = async () => { const f = document.getElementById('flowFileInput').files[0]; if (!f) return; const text = await f.text(); expandDebugConsole(); debugConsole.innerHTML = `CSV前200字符:\n${text.substring(0, 200)}`; };
+                        document.getElementById('copyGlobalResultBtn').onclick = () => navigator.clipboard.writeText(globalResultArea.value);
+                        document.getElementById('exportGlobalResultBtn').onclick = () => { const blob = new Blob([globalResultArea.value], { type: 'text/plain' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'script.txt'; a.click(); };
+                        document.getElementById('generateFromTemplateBtn').onclick = () => { let tpl = templateSelect.value; for (let [k, v] of Object.entries(varInputs)) tpl = tpl.replace(new RegExp(`\\{${k}\\}`, 'g'), v.value); tpl = tpl.replace(/\{[^}]+\}/g, ''); globalResultArea.value = tpl; globalResultCount.textContent = '1 条'; resultSourceHint.textContent = '模板生成'; navigator.clipboard.writeText(tpl); };
 
-                    const modals = {
-                        source: document.getElementById('sourceRuleModal'), ignore: document.getElementById('ignoreRuleModal'),
-                        template: document.getElementById('templateModal'), script: document.getElementById('scriptEditModal'),
-                        batch: document.getElementById('batchTagModal'), tags: document.getElementById('manageTagsModal'),
-                        import: document.getElementById('importScriptModal')
-                    };
-                    document.getElementById('manageSourceRulesBtn').onclick = () => { renderSourceRuleList(document.getElementById('ruleTypeFilter').value, document.getElementById('ruleSearchInput').value); modals.source.style.display = 'block'; };
-                    document.getElementById('manageIgnoreRulesBtn').onclick = () => { renderIgnoreRuleList(); modals.ignore.style.display = 'block'; };
-                    document.getElementById('manageTemplatesBtn').onclick = () => { renderTemplateList(); modals.template.style.display = 'block'; };
-                    document.getElementById('closeSourceRuleModal').onclick = () => modals.source.style.display = 'none';
-                    document.getElementById('closeIgnoreRuleModal').onclick = () => modals.ignore.style.display = 'none';
-                    document.getElementById('closeTemplateModal').onclick = () => modals.template.style.display = 'none';
-                    document.getElementById('modalAddTemplateBtn').onclick = () => { const t = prompt('输入新模板内容，可使用 {时间} {体力} 等变量'); if (t) { templates.push(t); saveData('templates', templates); renderTemplateList(); refreshTemplateSelect(); } };
-                    document.getElementById('addOrUpdateRuleBtn').addEventListener('click', () => {
-                        const p = document.getElementById('newRulePattern').value.trim();
-                        const r = document.getElementById('newRuleReplacement').value.trim();
-                        const t = document.getElementById('newRuleType').value;
-                        if (!p) return;
-                        if (editingSourceIndex >= 0) {
-                            sourceRules[editingSourceIndex] = { pattern: p, replacement: r, type: t };
-                        } else {
-                            sourceRules.push({ pattern: p, replacement: r, type: t });
-                        }
-                        saveData('sourceRules', sourceRules);
-                        renderSourceRuleList(document.getElementById('ruleTypeFilter').value, document.getElementById('ruleSearchInput').value);
-                        resetSourceEditState();
-                    });
-                    document.getElementById('cancelEditRuleBtn').onclick = resetSourceEditState;
-                    document.getElementById('resetDefaultSourceRulesBtn').onclick = () => { sourceRules = DEFAULT_SOURCE_RULES.map(r => ({ ...r })); saveData('sourceRules', sourceRules); renderSourceRuleList(); };
-                    document.getElementById('clearAllSourceRulesBtn').onclick = () => { if (confirm('清空所有转换规则？')) { sourceRules = []; saveData('sourceRules', sourceRules); renderSourceRuleList(); } };
-                    document.getElementById('addIgnoreKeywordBtn').onclick = () => { const kw = document.getElementById('newIgnoreKeyword').value.trim(); if (!kw) return; if (!ignoreKeywords.includes(kw)) { ignoreKeywords.push(kw); saveData('ignoreKeywords', ignoreKeywords); renderIgnoreRuleList(); document.getElementById('newIgnoreKeyword').value = ''; } };
-                    document.getElementById('resetDefaultIgnoreRulesBtn').onclick = () => { ignoreKeywords = [...DEFAULT_IGNORE_KEYWORDS]; saveData('ignoreKeywords', ignoreKeywords); renderIgnoreRuleList(); };
-                    document.getElementById('clearAllIgnoreRulesBtn').onclick = () => { if (confirm('清空所有忽略关键词？')) { ignoreKeywords = []; saveData('ignoreKeywords', ignoreKeywords); renderIgnoreRuleList(); } };
+                        const modals = {
+                            source: document.getElementById('sourceRuleModal'), ignore: document.getElementById('ignoreRuleModal'),
+                            template: document.getElementById('templateModal'), script: document.getElementById('scriptEditModal'),
+                            batch: document.getElementById('batchTagModal'), tags: document.getElementById('manageTagsModal'),
+                            import: document.getElementById('importScriptModal')
+                        };
+                        document.getElementById('manageSourceRulesBtn').onclick = () => { renderSourceRuleList(document.getElementById('ruleTypeFilter').value, document.getElementById('ruleSearchInput').value); modals.source.style.display = 'block'; };
+                        document.getElementById('manageIgnoreRulesBtn').onclick = () => { renderIgnoreRuleList(); modals.ignore.style.display = 'block'; };
+                        document.getElementById('manageTemplatesBtn').onclick = () => { renderTemplateList(); modals.template.style.display = 'block'; };
+                        document.getElementById('closeSourceRuleModal').onclick = () => modals.source.style.display = 'none';
+                        document.getElementById('closeIgnoreRuleModal').onclick = () => modals.ignore.style.display = 'none';
+                        document.getElementById('closeTemplateModal').onclick = () => modals.template.style.display = 'none';
+                        document.getElementById('modalAddTemplateBtn').onclick = () => { const t = prompt('输入新模板内容，可使用 {时间} {体力} 等变量'); if (t) { templates.push(t); saveData('templates', templates); renderTemplateList(); refreshTemplateSelect(); } };
+                        document.getElementById('addOrUpdateRuleBtn').addEventListener('click', () => {
+                            const p = document.getElementById('newRulePattern').value.trim();
+                            const r = document.getElementById('newRuleReplacement').value.trim();
+                            const t = document.getElementById('newRuleType').value;
+                            if (!p) return;
+                            if (editingSourceIndex >= 0) {
+                                sourceRules[editingSourceIndex] = { pattern: p, replacement: r, type: t };
+                            } else {
+                                sourceRules.push({ pattern: p, replacement: r, type: t });
+                            }
+                            saveData('sourceRules', sourceRules);
+                            renderSourceRuleList(document.getElementById('ruleTypeFilter').value, document.getElementById('ruleSearchInput').value);
+                            resetSourceEditState();
+                        });
+                        document.getElementById('cancelEditRuleBtn').onclick = resetSourceEditState;
+                        document.getElementById('resetDefaultSourceRulesBtn').onclick = () => { sourceRules = DEFAULT_SOURCE_RULES.map(r => ({ ...r })); saveData('sourceRules', sourceRules); renderSourceRuleList(); };
+                        document.getElementById('clearAllSourceRulesBtn').onclick = () => { if (confirm('清空所有转换规则？')) { sourceRules = []; saveData('sourceRules', sourceRules); renderSourceRuleList(); } };
+                        document.getElementById('addIgnoreKeywordBtn').onclick = () => { const kw = document.getElementById('newIgnoreKeyword').value.trim(); if (!kw) return; if (!ignoreKeywords.includes(kw)) { ignoreKeywords.push(kw); saveData('ignoreKeywords', ignoreKeywords); renderIgnoreRuleList(); document.getElementById('newIgnoreKeyword').value = ''; } };
+                        document.getElementById('resetDefaultIgnoreRulesBtn').onclick = () => { ignoreKeywords = [...DEFAULT_IGNORE_KEYWORDS]; saveData('ignoreKeywords', ignoreKeywords); renderIgnoreRuleList(); };
+                        document.getElementById('clearAllIgnoreRulesBtn').onclick = () => { if (confirm('清空所有忽略关键词？')) { ignoreKeywords = []; saveData('ignoreKeywords', ignoreKeywords); renderIgnoreRuleList(); } };
 
-                    document.getElementById('uploadCsvBtn').onclick = processCardCsv;
-                    document.getElementById('applyFilterBtn').onclick = processCardCsv;
-                    document.getElementById('copyAllCardBtn').onclick = () => navigator.clipboard.writeText(document.getElementById('cardResultArea').value);
-                    document.getElementById('exportCardBtn').onclick = () => { const blob = new Blob([document.getElementById('cardResultArea').value], { type: 'text/plain' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'card.txt'; a.click(); };
-                    document.getElementById('debugCardBtn').onclick = async () => { const f = document.getElementById('csvFileInput').files[0]; if (!f) return; const text = await f.text(); alert('CSV前500字符:\n' + text.substring(0, 500)); };
-                    document.getElementById('toggleTemplateHeader').onclick = () => { const c = document.getElementById('templateContent'); c.classList.toggle('collapsed'); document.getElementById('toggleArrow').textContent = c.classList.contains('collapsed') ? '▶' : '▼'; };
-                    document.querySelectorAll('.tab-btn').forEach(btn => btn.onclick = function () {
-                        document.querySelectorAll('.tab-btn, .tab-content').forEach(el => el.classList.remove('active'));
-                        this.classList.add('active');
-                        document.getElementById(`tab-${this.dataset.tab}`).classList.add('active');
-                    });
+                        document.getElementById('uploadCsvBtn').onclick = processCardCsv;
+                        document.getElementById('applyFilterBtn').onclick = processCardCsv;
+                        document.getElementById('copyAllCardBtn').onclick = () => navigator.clipboard.writeText(document.getElementById('cardResultArea').value);
+                        document.getElementById('exportCardBtn').onclick = () => { const blob = new Blob([document.getElementById('cardResultArea').value], { type: 'text/plain' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'card.txt'; a.click(); };
+                        document.getElementById('debugCardBtn').onclick = async () => { const f = document.getElementById('csvFileInput').files[0]; if (!f) return; const text = await f.text(); alert('CSV前500字符:\n' + text.substring(0, 500)); };
+                        document.getElementById('toggleTemplateHeader').onclick = () => { const c = document.getElementById('templateContent'); c.classList.toggle('collapsed'); document.getElementById('toggleArrow').textContent = c.classList.contains('collapsed') ? '▶' : '▼'; };
+                        document.querySelectorAll('.tab-btn').forEach(btn => btn.onclick = function () {
+                            document.querySelectorAll('.tab-btn, .tab-content').forEach(el => el.classList.remove('active'));
+                            this.classList.add('active');
+                            document.getElementById(`tab-${this.dataset.tab}`).classList.add('active');
+                        });
 
-                    const typeFilter = document.getElementById('ruleTypeFilter');
-                    const searchInput = document.getElementById('ruleSearchInput');
-                    const clearSearch = document.getElementById('clearRuleSearch');
-                    typeFilter.onchange = () => renderSourceRuleList(typeFilter.value, searchInput.value);
-                    searchInput.oninput = () => { clearSearch.style.display = searchInput.value ? 'inline' : 'none'; renderSourceRuleList(typeFilter.value, searchInput.value); };
-                    clearSearch.onclick = () => { searchInput.value = ''; clearSearch.style.display = 'none'; renderSourceRuleList(typeFilter.value, ''); };
-                    searchInput.onkeypress = (e) => { if (e.key === 'Enter') { const term = searchInput.value.trim(); if (!term) return; const items = document.querySelectorAll('#sourceRuleListContainer .rule-item'); for (let item of items) { if (item.textContent.toLowerCase().includes(term.toLowerCase())) { item.scrollIntoView({ behavior: 'smooth', block: 'center' }); break; } } } };
+                        const typeFilter = document.getElementById('ruleTypeFilter');
+                        const searchInput = document.getElementById('ruleSearchInput');
+                        const clearSearch = document.getElementById('clearRuleSearch');
+                        typeFilter.onchange = () => renderSourceRuleList(typeFilter.value, searchInput.value);
+                        searchInput.oninput = () => { clearSearch.style.display = searchInput.value ? 'inline' : 'none'; renderSourceRuleList(typeFilter.value, searchInput.value); };
+                        clearSearch.onclick = () => { searchInput.value = ''; clearSearch.style.display = 'none'; renderSourceRuleList(typeFilter.value, ''); };
+                        searchInput.onkeypress = (e) => { if (e.key === 'Enter') { const term = searchInput.value.trim(); if (!term) return; const items = document.querySelectorAll('#sourceRuleListContainer .rule-item'); for (let item of items) { if (item.textContent.toLowerCase().includes(term.toLowerCase())) { item.scrollIntoView({ behavior: 'smooth', block: 'center' }); break; } } } };
 
-                    refreshVarEntries(); refreshTemplateSelect();
-                }
+                        refreshVarEntries(); refreshTemplateSelect();
+                    }
 
-                bindAll();
-                new Sortable(document.getElementById('tabsContainer'), { animation: 150 });
-                debugConsole.style.display = 'none';
-                debugConsole.innerHTML = '🟢 工作台就绪 · 完整功能正常';
-            })();
+                    bindAll();
+                    new Sortable(document.getElementById('tabsContainer'), { animation: 150 });
+                    debugConsole.style.display = 'none';
+                    debugConsole.innerHTML = '🟢 工作台就绪 · 完整功能正常';
+                }) ();
         </script>
 </body>
 </html>
