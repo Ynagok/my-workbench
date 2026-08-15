@@ -1336,6 +1336,49 @@
                     let isDrawing = false;
                     let isMouseDown = false;
                     const colorToLabel = {};   // 颜色 -> 色号 映射
+                    const paletteColors = ['#faf5cd', '#fcfed6', '#fcff92', '#f7ec5c', '#f0d83a', '#fda951',
+                        '#fa8c4f', '#fbda4d', '#f79d5f', '#f47e38', '#fedb99', '#fda276',
+                        '#fec667', '#f75842', '#fbf65e', '#feff97', '#fde173', '#fcbf80',
+                        '#fd7e77', '#f9d666', '#fae393', '#edf878', '#e4c8ba', '#f3f6a9',
+                        '#fdf785', '#ffc734',
+                        '#dff13b', '#64f343', '#a1f586', '#5fdf34', '#39e158', '#64e0a4',
+                        '#3eae7c', '#1d9b54', '#2a5037', '#9ad1ba', '#627032', '#1a6e3d',
+                        '#c8e87d', '#abe84f', '#305335', '#c0ed9c', '#9eb33e', '#e6ed4f',
+                        '#26b78e', '#cbeccf', '#18616a', '#0a4241', '#343b1a', '#e8faa6',
+                        '#4e846d', '#907c35', '#d0e0af', '#9ee5bb', '#c6df5f', '#e3fbb1',
+                        '#b4e691', '#92ad60',
+                        '#f0fee4', '#abf8fe', '#a2e0f7', '#44cdfb', '#06aadf', '#54a7e9',
+                        '#3977ca', '#0f52bd', '#3349c3', '#3cbce3', '#2aded3', '#1e334e',
+                        '#cde7fe', '#d5fcf7', '#21c5c4', '#1858a2', '#02d1f3', '#213244',
+                        '#18869d', '#1a70a9', '#bcddfc', '#6bb1bb', '#c8e2fd', '#7ec5f9',
+                        '#a9e8e0', '#42adcf', '#d0def9', '#bdcee8', '#364a89',
+                        '#acb7ef', '#868dd3', '#3554af', '#162d7b', '#b34ec6', '#b37bdc',
+                        '#8758a9', '#e3d2fe', '#d5b9f4', '#301a49', '#beb9e2', '#dc99ce',
+                        '#b5038d', '#862993', '#2f1f8c', '#e2e4f0', '#c7d3f9', '#9a64b8',
+                        '#d8c2d9', '#9a35ad', '#940595', '#38389a', '#eadbf8', '#768ae1',
+                        '#4950c2', '#d6c6eb',
+                        '#f6d4cb', '#fcc1dd', '#f6bde8', '#e8649e', '#f0569f', '#eb4172',
+                        '#c53674', '#fddbe9', '#e376c7', '#d13b95', '#f7dad4', '#f693bf',
+                        '#b5026a', '#fad4bf', '#f5c9ca', '#fbf4ec', '#f7e3ec', '#f9c8db',
+                        '#f6bbd1', '#d7c6ce', '#c09da4', '#b38c9f', '#937d8a', '#debee5',
+                        '#fe9381', '#f63d4b', '#ee4e3e', '#fb2a40', '#e10328', '#913635',
+                        '#911932', '#bb0126', '#e0677a', '#874628', '#592323', '#f3536b',
+                        '#f45c45', '#fcadb2', '#d50527', '#f8c0a9', '#e89b7d', '#d07f4a',
+                        '#be454a', '#c69495', '#f2b8c6', '#f7c3d0', '#ed806c', '#e09daf',
+                        '#e84854',
+                        '#ffe4d3', '#fcc6ac', '#f1c4a5', '#dcb387', '#e7b34e', '#e3a014',
+                        '#985c3a', '#713d2f', '#e4b685', '#da8c42', '#dac898', '#fec993',
+                        '#b2714b', '#8b684c', '#f6f8e3', '#f2d8c1', '#77544e', '#ffe3d5',
+                        '#dd7d41', '#a5452f', '#b38561',
+                        '#ffffff', '#fbfbfb', '#b4b4b4', '#878787', '#464648', '#2c2c2c',
+                        '#010101', '#e7d6dc', '#efedee', '#ebebeb', '#cdcdcd', '#fdf6ee',
+                        '#f4edf1', '#ced7d4', '#9aa6a6', '#1b1213', '#f0eeef', '#fcfff6',
+                        '#f2eee5', '#96a09f', '#f8fbe6', '#cacad2', '#9b9c94',
+                        '#bbc6b6', '#909994', '#697e81', '#e0d4bc', '#d1ccaf', '#b0aa86',
+                        '#b0a796', '#ae8082', '#a68862', '#c4b3bb', '#9d7693', '#644b51',
+                        '#c79266', '#c27563', '#747d7a'
+                    ];
+                }
 
                     function drawBoard() {
                         ctx.fillStyle = '#ffffff';
@@ -1397,7 +1440,12 @@
                     const colorInput = document.getElementById('pixelColor');
                     colorInput.addEventListener('click', () => { isEraser = false; });
                     colorInput.addEventListener('input', (e) => {
-                        currentColor = e.target.value;
+                        let chosen = e.target.value;
+                        if (!paletteColors.includes(chosen)) {
+                            chosen = findClosestPaletteColor(chosen);   // 吸附到最近色卡颜色
+                            e.target.value = chosen;                    // 同步显示
+                        }
+                        currentColor = chosen;
                         isEraser = false;
                         document.getElementById('pixelEraserBtn').style.background = '#6c757d';
                     });
@@ -1471,9 +1519,10 @@
                                             const g = imageData[pixelIndex + 1];
                                             const b = imageData[pixelIndex + 2];
                                             const a = imageData[pixelIndex + 3];
-                                            const color = (a > 128) ? `rgb(${r},${g},${b})` : '#ffffff';
+                                            const origColor = (a > 128) ? `rgb(${r},${g},${b})` : '#ffffff';
+                                            const hex = '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('');
+                                            const color = (a > 128) ? findClosestPaletteColor(hex) : '#ffffff';
                                             ctx.fillStyle = color;
-                                            ctx.fillRect(col * cellSize + 1, row * cellSize + 1, cellSize - 2, cellSize - 2);
                                         }
                                         currentCell = end;
                                         if (currentCell < totalCells) {
@@ -1520,22 +1569,6 @@
                     });
 
                     // ==================== 色卡生成 ====================
-                    const paletteColors = [
-                        '#000000', '#ffffff', '#808080', '#c0c0c0', '#800000', '#ff0000',
-                        '#ff8080', '#ffc0c0', '#804000', '#ff8000', '#ffc080', '#ffe0c0',
-                        '#808000', '#ffff00', '#ffff80', '#ffffc0', '#008000', '#00ff00',
-                        '#80ff80', '#c0ffc0', '#008080', '#00ffff', '#80ffff', '#c0ffff',
-                        '#000080', '#0000ff', '#8080ff', '#c0c0ff', '#800080', '#ff00ff',
-                        '#ff80ff', '#ffc0ff',
-                        '#8b4513', '#d2691e', '#f4a460', '#ffe4b5', '#ffd700', '#ffa500',
-                        '#ff6347', '#dc143c', '#ff69b4', '#ffb6c1', '#da70d6', '#ba55d3',
-                        '#7b68ee', '#6a5acd', '#483d8b', '#191970', '#00008b', '#4169e1',
-                        '#1e90ff', '#00bfff', '#87ceeb', '#b0c4de', '#5f9ea0', '#2e8b57',
-                        '#3cb371', '#90ee90', '#8fbc8f', '#556b2f', '#6b8e23', '#9acd32',
-                        '#adff2f', '#f0e68c', '#eedd82', '#bdb76b', '#d2b48c', '#bc8f8f',
-                        '#a0522d', '#cd853f', '#deb887', '#f5f5dc', '#faebd7', '#faf0e6'
-                    ];
-
                     const paletteContainer = document.getElementById('pixelColorPalette');
                     paletteContainer.innerHTML = '';
                     const colorsPerRow = 10;
@@ -1658,8 +1691,36 @@
                             // 根据背景颜色选择文字颜色（黑或白）
                             exportCtx.fillStyle = getContrastYIQ(hex);
                             exportCtx.fillText(label, col * cellSize + cellSize / 2, row * cellSize + cellSize / 2);
+                            function hexToRgb(hex) {
+                                hex = hex.replace('#', '');
+                                return [
+                                    parseInt(hex.substr(0, 2), 16),
+                                    parseInt(hex.substr(2, 2), 16),
+                                    parseInt(hex.substr(4, 2), 16)
+                                ];
+                            }
+
+                            function colorDistance(c1, c2) {
+                                const [r1, g1, b1] = hexToRgb(c1);
+                                const [r2, g2, b2] = hexToRgb(c2);
+                                // 使用加权欧几里得距离，更符合人眼感知
+                                const rmean = (r1 + r2) / 2;
+                                const dr = r1 - r2, dg = g1 - g2, db = b1 - b2;
+                                return (2 + rmean / 256) * dr * dr + 4 * dg * dg + (2 + (255 - rmean) / 256) * db * db;
+                            }
+
+                            function findClosestPaletteColor(hexColor) {
+                                let minDist = Infinity, closest = paletteColors[0];
+                                for (const pColor of paletteColors) {
+                                    const d = colorDistance(hexColor, pColor);
+                                    if (d < minDist) {
+                                        minDist = d;
+                                        closest = pColor;
+                                    }
+                                }
+                                return closest;
+                            }
                         }
-                    }
 
                     // 绘制图例
                     const legendStartY = originalCanvas.height + 10;
