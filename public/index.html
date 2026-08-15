@@ -1415,7 +1415,7 @@
                     document.getElementById('pixelFileInput').click();
                 });
 
-                // 导入图片功能（带逐格填充动画）
+                // 导入图片功能（支持填充方式和逐格动画）
                 document.getElementById('pixelFileInput').addEventListener('change', (e) => {
                     const file = e.target.files[0];
                     if (!file) return;
@@ -1428,6 +1428,7 @@
                         };
                         img.onload = function () {
                             try {
+                                // 创建临时画布，将图片缩放到 gridSize x gridSize
                                 const tempCanvas = document.createElement('canvas');
                                 tempCanvas.width = gridSize;
                                 tempCanvas.height = gridSize;
@@ -1435,10 +1436,10 @@
                                 const fillMode = document.getElementById('pixelFillMode').value;
 
                                 if (fillMode === 'stretch') {
-                                    // 拉伸填充：直接缩放到网格大小
+                                    // 拉伸填充
                                     tempCtx.drawImage(img, 0, 0, gridSize, gridSize);
                                 } else if (fillMode === 'cover') {
-                                    // 裁切填充：保持比例，覆盖整个网格，超出部分裁掉
+                                    // 裁切填充
                                     const scale = Math.max(gridSize / img.width, gridSize / img.height);
                                     const srcW = gridSize / scale;
                                     const srcH = gridSize / scale;
@@ -1446,7 +1447,7 @@
                                     const srcY = (img.height - srcH) / 2;
                                     tempCtx.drawImage(img, srcX, srcY, srcW, srcH, 0, 0, gridSize, gridSize);
                                 } else if (fillMode === 'contain') {
-                                    // 留白填充：保持比例，完整显示图片，空白处填白色
+                                    // 留白填充
                                     tempCtx.fillStyle = '#ffffff';
                                     tempCtx.fillRect(0, 0, gridSize, gridSize);
                                     const scale = Math.min(gridSize / img.width, gridSize / img.height);
@@ -1457,16 +1458,42 @@
                                     tempCtx.drawImage(img, offsetX, offsetY, drawW, drawH);
                                 }
 
-                                // 继续读取像素数据（以下代码不变）
+                                // 获取像素数据
                                 const imageData = tempCtx.getImageData(0, 0, gridSize, gridSize).data;
+
+                                // 清空拼豆画布（保留网格线）
                                 initPixelCanvas();
-                                // ... 逐格填充动画
+
+                                // 逐格填充动画（约200次更新，速度适中）
+                                const totalCells = gridSize * gridSize;
+                                const step = Math.max(1, Math.floor(totalCells / 200));
+                                let currentCell = 0;
+
+                                function fillNextBatch() {
+                                    const end = Math.min(currentCell + step, totalCells);
+                                    for (let i = currentCell; i < end; i++) {
+                                        const row = Math.floor(i / gridSize);
+                                        const col = i % gridSize;
+                                        const pixelIndex = (row * gridSize + col) * 4;
+                                        const r = imageData[pixelIndex];
+                                        const g = imageData[pixelIndex + 1];
+                                        const b = imageData[pixelIndex + 2];
+                                        const a = imageData[pixelIndex + 3];
+                                        const color = (a > 128) ? `rgb(${r},${g},${b})` : '#ffffff';
+                                        ctx.fillStyle = color;
+                                        ctx.fillRect(col * cellSize + 1, row * cellSize + 1, cellSize - 2, cellSize - 2);
+                                    }
+                                    currentCell = end;
+                                    if (currentCell < totalCells) {
+                                        setTimeout(fillNextBatch, 10);
+                                    }
+                                }
+                                fillNextBatch();
                             } catch (error) {
                                 console.error('导入图片处理出错:', error);
                                 alert('图片处理失败，请重试');
                             }
                         };
-
                         img.src = event.target.result;
                     };
                     reader.onerror = function () {
