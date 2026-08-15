@@ -503,7 +503,7 @@
             <div style="display: flex; flex-direction: column; gap: 12px;">
                 <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
                     <span style="font-weight:600;">🎨 拼豆</span>
-                    <input type="color" id="pixelColor" value="#ff0000" style="width:40px;height:40px;padding:0;border:1px solid #ccc;border-radius:6px;cursor:pointer;">
+                    <input type="color" id="pixelColor" value="#ff0000" style="width:40px;height:40px;padding:0;border:1px solid #ccc;border-radius:6px;cursor:pointer;"><div id="pixelColorPalette" style="display:flex; flex-wrap:wrap; gap:4px; margin-top:4px;"></div>
                     <button id="pixelEraserBtn" class="secondary" style="background:#6c757d;">橡皮擦</button>
                     <button id="pixelClearBtn" class="reset-btn">清空画布</button>
                     <!-- 导入图片按钮 -->
@@ -1400,6 +1400,88 @@
                     currentColor = e.target.value;
                     isEraser = false;
                     document.getElementById('pixelEraserBtn').style.background = '#6c757d';
+                });
+
+                // ==================== 色卡（拼豆风格色号） ====================
+                const paletteColors = [
+                    '#ff0000', '#ff8800', '#ffff00', '#00cc00', '#0088ff', '#8800ff', '#ff00ff',
+                    '#000000', '#ffffff', '#888888', '#ffcccc', '#ffcc88', '#ffffcc', '#ccffcc',
+                    '#ccddff', '#eeccff', '#aa8866', '#6688aa', '#ff6666', '#66ff66', '#6666ff'
+                ];
+
+                const paletteContainer = document.getElementById('pixelColorPalette');
+                paletteContainer.innerHTML = ''; // 清空
+
+                const colorsPerRow = 6;
+                let rowIndex = 0;
+                let colIndex = 0;
+                let currentRowDiv = null;
+
+                // 辅助函数：根据背景颜色返回黑或白文字颜色
+                function getContrastYIQ(hexcolor) {
+                    hexcolor = hexcolor.replace('#', '');
+                    const r = parseInt(hexcolor.substr(0, 2), 16);
+                    const g = parseInt(hexcolor.substr(2, 2), 16);
+                    const b = parseInt(hexcolor.substr(4, 2), 16);
+                    const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
+                    return (yiq >= 128) ? '#000000' : '#ffffff';
+                }
+
+                paletteColors.forEach((color, index) => {
+                    // 每行第一个颜色：创建新行容器和行标签
+                    if (index % colorsPerRow === 0) {
+                        const rowLetter = String.fromCharCode(65 + rowIndex); // A, B, C...
+                        currentRowDiv = document.createElement('div');
+                        currentRowDiv.style.display = 'flex';
+                        currentRowDiv.style.alignItems = 'center';
+                        currentRowDiv.style.gap = '4px';
+                        currentRowDiv.style.marginBottom = '4px';
+
+                        const rowLabel = document.createElement('span');
+                        rowLabel.textContent = rowLetter;
+                        rowLabel.style.fontWeight = 'bold';
+                        rowLabel.style.width = '20px';
+                        rowLabel.style.textAlign = 'center';
+                        currentRowDiv.appendChild(rowLabel);
+
+                        paletteContainer.appendChild(currentRowDiv);
+                        rowIndex++;
+                        colIndex = 0;
+                    }
+
+                    // 创建色块
+                    const colorBtn = document.createElement('button');
+                    colorBtn.type = 'button';
+                    const colorId = String.fromCharCode(65 + (rowIndex - 1)) + (colIndex + 1); // 例如 A1, A2
+                    colorBtn.style.width = '36px';
+                    colorBtn.style.height = '36px';
+                    colorBtn.style.borderRadius = '6px';
+                    colorBtn.style.border = '1px solid #999';
+                    colorBtn.style.background = color;
+                    colorBtn.style.cursor = 'pointer';
+                    colorBtn.style.padding = '0';
+                    colorBtn.style.display = 'flex';
+                    colorBtn.style.alignItems = 'center';
+                    colorBtn.style.justifyContent = 'center';
+                    colorBtn.style.fontSize = '9px';
+                    colorBtn.style.fontWeight = 'bold';
+                    colorBtn.style.color = getContrastYIQ(color);
+                    colorBtn.textContent = colorId;
+                    colorBtn.title = colorId + ' ' + color;
+
+                    // 点击事件
+                    colorBtn.addEventListener('click', () => {
+                        currentColor = color;
+                        isEraser = false;
+                        document.getElementById('pixelColor').value = color;   // 同步颜色选择器
+                        document.getElementById('pixelEraserBtn').style.background = '#6c757d'; // 恢复橡皮擦按钮颜色
+                        // 高亮当前选中色块
+                        paletteContainer.querySelectorAll('button').forEach(b => b.style.border = '1px solid #999');
+                        colorBtn.style.border = '3px solid #333';
+                    });
+
+                    currentRowDiv.appendChild(colorBtn);
+                    colIndex++;
                 });
 
                 // 橡皮擦按钮：切换橡皮擦状态，而不是固定开启
