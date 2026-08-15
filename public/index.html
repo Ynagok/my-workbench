@@ -1581,10 +1581,13 @@
 
                     document.addEventListener('paste', (e) => {
                         const activeTab = document.querySelector('.tab-content.active');
+                        console.log('粘贴事件触发，当前激活标签:', activeTab?.id);
                         if (!activeTab || activeTab.id !== 'tab-script') return;
                         const items = e.clipboardData && e.clipboardData.items;
+                        console.log('剪贴板项目:', items);
                         if (!items) return;
                         for (let i = 0; i < items.length; i++) {
+                            console.log('项目类型:', items[i].type);
                             if (items[i].type.startsWith('image/')) {
                                 const file = items[i].getAsFile();
                                 if (file) {
@@ -1595,7 +1598,6 @@
                             }
                         }
                     });
-
                     // ==================== 色卡生成 ====================
                     const paletteContainer = document.getElementById('pixelColorPalette');
                     paletteContainer.innerHTML = '';
