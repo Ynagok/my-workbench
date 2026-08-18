@@ -525,13 +525,18 @@
                     <!-- 色卡面板（默认隐藏） -->
                     <div id="pixelColorPalette" style="display:none; flex-wrap:wrap; gap:4px; margin-top:8px; padding:8px; border:1px solid #ccc; border-radius:8px; background:#f8f9fa; max-width:100%;"></div>
                     <!-- 画布容器 -->
-                    <div style="position: relative; display: inline-block; border: 2px solid #dee2e6; border-radius: 8px; padding: 4px; background: #f8f9fa;">
-                        <!-- 左侧行号标签容器 -->
-                        <div id="pixelRowLabels" style="position: absolute; left: 0; top: 0; bottom: 0; width: 20px; pointer-events: none; z-index: 2; overflow: hidden;"></div>
-                        <!-- 顶部列号标签容器 -->
-                        <div id="pixelColLabels" style="position: absolute; top: 0; left: 20px; right: 0; height: 20px; pointer-events: none; z-index: 2; overflow: hidden;"></div>
-                        <!-- 画布 -->
-                        <canvas id="pixelCanvas" width="600" height="600" style="display:block; width:100%; height:auto; cursor:crosshair; image-rendering:pixelated; position: relative; z-index: 1;"></canvas>
+                    <div style="position: relative; display: inline-block; border: 2px solid #dee2e6; border-radius: 8px; padding: 4px; background: #f8f9fa; overflow: hidden;">
+                        <!-- 左上角占位（避免行列号重叠） -->
+                        <div style="position: absolute; top: 0; left: 0; width: 20px; height: 20px; background: #f8f9fa; z-index: 3;"></div>
+
+                        <!-- 左侧行号容器（坐标轴纵轴） -->
+                        <div id="pixelRowLabels" style="position: absolute; left: 0; top: 20px; width: 20px; pointer-events: none; z-index: 2;"></div>
+
+                        <!-- 顶部列号容器（坐标轴横轴） -->
+                        <div id="pixelColLabels" style="position: absolute; top: 0; left: 20px; right: 0; height: 20px; pointer-events: none; z-index: 2;"></div>
+
+                        <!-- 画布（向右下偏移，留出标签空间） -->
+                        <canvas id="pixelCanvas" width="600" height="600" style="display:block; width:600px; height:600px; margin-left:20px; margin-top:20px; cursor:crosshair; image-rendering:pixelated; position: relative; z-index: 1;"></canvas>
                     </div>
                 </div>
             </div>
@@ -1433,26 +1438,24 @@
                         const rowLabels = document.getElementById('pixelRowLabels');
                         const colLabels = document.getElementById('pixelColLabels');
 
-                        // 清空原有标签
+                        // 清空旧标签
                         rowLabels.innerHTML = '';
                         colLabels.innerHTML = '';
 
-                        // 设置标签容器大小与画布一致（偏移后）
-                        const canvasWidth = pixelCanvas.width;
-                        const canvasHeight = pixelCanvas.height;
-                        rowLabels.style.height = canvasHeight + 'px';
-                        colLabels.style.width = canvasWidth + 'px';
+                        // 设置容器大小与画布实际像素尺寸一致
+                        rowLabels.style.height = pixelCanvas.height + 'px';
+                        colLabels.style.width = pixelCanvas.width + 'px';
 
                         // 生成顶部列号（1~gridSize）
                         for (let col = 0; col < gridSize; col++) {
                             const span = document.createElement('span');
                             span.textContent = col + 1;
                             span.style.position = 'absolute';
-                            span.style.left = (col * cellSize + cellSize / 2) + 'px';
+                            span.style.left = (col * cellSize + cellSize / 2) + 'px';  // 列号中心与格子中心对齐
                             span.style.top = '0';
                             span.style.transform = 'translateX(-50%)';
                             span.style.fontSize = '10px';
-                            span.style.lineHeight = '20px';  // 与 colLabels 高度一致
+                            span.style.lineHeight = '20px';
                             span.style.color = '#333';
                             span.style.pointerEvents = 'none';
                             colLabels.appendChild(span);
@@ -1463,13 +1466,13 @@
                             const span = document.createElement('span');
                             span.textContent = row + 1;
                             span.style.position = 'absolute';
-                            span.style.top = (row * cellSize + cellSize / 2) + 'px';
+                            span.style.top = (row * cellSize + cellSize / 2) + 'px';  // 行号中心与格子中心对齐
                             span.style.left = '0';
                             span.style.transform = 'translateY(-50%)';
                             span.style.fontSize = '10px';
                             span.style.lineHeight = '20px';
                             span.style.textAlign = 'center';
-                            span.style.width = '20px';  // 与 rowLabels 宽度一致
+                            span.style.width = '20px';
                             span.style.color = '#333';
                             span.style.pointerEvents = 'none';
                             rowLabels.appendChild(span);
