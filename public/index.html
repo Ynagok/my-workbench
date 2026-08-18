@@ -525,18 +525,15 @@
                     <!-- 色卡面板（默认隐藏） -->
                     <div id="pixelColorPalette" style="display:none; flex-wrap:wrap; gap:4px; margin-top:8px; padding:8px; border:1px solid #ccc; border-radius:8px; background:#f8f9fa; max-width:100%;"></div>
                     <!-- 画布容器 -->
-                    <div style="position: relative; display: inline-block; border: 2px solid #dee2e6; border-radius: 8px; padding: 4px; background: #f8f9fa; overflow: hidden;">
-                        <!-- 左上角占位（避免行列号重叠） -->
+                    <div style="position: relative; display: inline-block; border: 2px solid #dee2e6; border-radius: 8px; padding: 4px; background: #f8f9fa; overflow: auto; max-width: 100%; max-height: 80vh;">
+                        <!-- 左上角占位 -->
                         <div style="position: absolute; top: 0; left: 0; width: 20px; height: 20px; background: #f8f9fa; z-index: 3;"></div>
-
-                        <!-- 左侧行号容器（坐标轴纵轴） -->
+                        <!-- 左侧行号容器 -->
                         <div id="pixelRowLabels" style="position: absolute; left: 0; top: 20px; width: 20px; pointer-events: none; z-index: 2;"></div>
-
-                        <!-- 顶部列号容器（坐标轴横轴） -->
+                        <!-- 顶部列号容器 -->
                         <div id="pixelColLabels" style="position: absolute; top: 0; left: 20px; right: 0; height: 20px; pointer-events: none; z-index: 2;"></div>
-
-                        <!-- 画布（向右下偏移，留出标签空间） -->
-                        <canvas id="pixelCanvas" width="600" height="600" style="display:block; width:600px; height:600px; margin-left:20px; margin-top:20px; cursor:crosshair; image-rendering:pixelated; position: relative; z-index: 1;"></canvas>
+                        <!-- 画布（不设置固定像素CSS宽高，由画布实际宽度决定） -->
+                        <canvas id="pixelCanvas" width="600" height="600" style="display:block; margin-left:20px; margin-top:20px; cursor:crosshair; image-rendering:pixelated; position: relative; z-index: 1;"></canvas>
                     </div>
                 </div>
             </div>
@@ -1483,9 +1480,8 @@
                         const newSize = gridSize * cellSize;
                         pixelCanvas.width = newSize;
                         pixelCanvas.height = newSize;
-                        pixelCanvas.style.width = newSize + 'px';
-                        pixelCanvas.style.height = newSize + 'px';
                         drawBoard();
+                        updateLabelPositions();
                     }
 
                     function fillCell(col, row) {
@@ -1727,56 +1723,59 @@
                 // ==================== 导出图纸 ====================
                     function exportBlueprint() {
                         const originalCanvas = pixelCanvas;
-                        // 导出缩放因子：数值越大，导出图片越清晰（一般 3~5 足够）
-                        const exportScale = 6;
+                        const exportScale = 6;   // 高清倍数
 
-                        // 创建高分辨率画布
+                        // 创建导出画布
                         const exportCanvas = document.createElement('canvas');
                         exportCanvas.width = originalCanvas.width * exportScale;
                         exportCanvas.height = originalCanvas.height * exportScale;
                         const exportCtx = exportCanvas.getContext('2d');
 
-                        // 白色背景
+                        // 背景白色
                         exportCtx.fillStyle = '#ffffff';
                         exportCtx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
 
-                        // 绘制原画布内容（自动缩放）
+                        // 绘制原画布（放大）
                         exportCtx.drawImage(originalCanvas, 0, 0, exportCanvas.width, exportCanvas.height);
 
-                        // 重新绘制网格线（按放大后的尺寸）
+                        // 获取主画布像素数据（一次性）
+                        const mainImageData = ctx.getImageData(0, 0, originalCanvas.width, originalCanvas.height).data;
                         const scaledCell = cellSize * exportScale;
-                        exportCtx.strokeStyle = '#cccccc';
-                        exportCtx.lineWidth = Math.max(1, exportScale);
-                        for (let i = 0; i <= gridSize; i++) {
-                            exportCtx.beginPath();
-                            exportCtx.moveTo(i * scaledCell, 0);
-                            exportCtx.lineTo(i * scaledCell, exportCanvas.height);
-                            exportCtx.stroke();
-                            exportCtx.moveTo(0, i * scaledCell);
-                            exportCtx.lineTo(exportCanvas.width, i * scaledCell);
-                            exportCtx.stroke();
-                        }
-                        // 在每个已填充的格子上标注色号（字体按比例放大）
+
+                        // 设置文字样式
                         const baseFontSize = Math.max(5, cellSize * 0.4);
                         exportCtx.font = `${baseFontSize * exportScale}px sans-serif`;
                         exportCtx.textAlign = 'center';
                         exportCtx.textBaseline = 'middle';
 
+                        // 遍历每个格子，标注色号
                         for (let row = 0; row < gridSize; row++) {
                             for (let col = 0; col < gridSize; col++) {
-                                const x = col * cellSize + Math.floor(cellSize / 2);
-                                const y = row * cellSize + Math.floor(cellSize / 2);
-                                const pixelData = ctx.getImageData(x, y, 1, 1).data;
-                                const r = pixelData[0], g = pixelData[1], b = pixelData[2], a = pixelData[3];
+                                // 计算在主画布上的像素索引
+                                const px = Math.floor(col * cellSize + cellSize / 2);
+                                const py = Math.floor(row * cellSize + cellSize / 2);
+                                const dataIndex = (py * originalCanvas.width + px) * 4;
+                                const r = mainImageData[dataIndex];
+                                const g = mainImageData[dataIndex + 1];
+                                const b = mainImageData[dataIndex + 2];
+                                const a = mainImageData[dataIndex + 3];
 
+                                // 跳过完全透明或白色背景
                                 if (a === 0 || (r === 255 && g === 255 && b === 255)) continue;
 
+                                // 转换为十六进制颜色
                                 const hex = '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('');
-                                const label = colorToLabel[hex];
+
+                                // 查找色号，若找不到则尝试吸附后查找
+                                let label = colorToLabel[hex];
+                                if (!label) {
+                                    const closest = findClosestPaletteColor(hex);
+                                    label = colorToLabel[closest] || null;
+                                }
                                 if (!label) continue;
 
+                                // 文字颜色（黑或白）
                                 exportCtx.fillStyle = getContrastYIQ(hex);
-                                // 文字位置同样按放大后的坐标计算
                                 const centerX = col * scaledCell + scaledCell / 2;
                                 const centerY = row * scaledCell + scaledCell / 2;
                                 exportCtx.fillText(label, centerX, centerY);
