@@ -525,8 +525,13 @@
                     <!-- 色卡面板（默认隐藏） -->
                     <div id="pixelColorPalette" style="display:none; flex-wrap:wrap; gap:4px; margin-top:8px; padding:8px; border:1px solid #ccc; border-radius:8px; background:#f8f9fa; max-width:100%;"></div>
                     <!-- 画布容器 -->
-                    <div style="border: 2px solid #dee2e6; border-radius: 8px; padding: 4px; background: #f8f9fa; display: inline-block;">
-                        <canvas id="pixelCanvas" width="600" height="600" style="display:block; width:100%; height:auto; cursor:crosshair; image-rendering:pixelated;"></canvas>
+                    <div style="position: relative; display: inline-block; border: 2px solid #dee2e6; border-radius: 8px; padding: 4px; background: #f8f9fa;">
+                        <!-- 左侧行号标签容器 -->
+                        <div id="pixelRowLabels" style="position: absolute; left: 0; top: 0; bottom: 0; width: 20px; pointer-events: none; z-index: 2; overflow: hidden;"></div>
+                        <!-- 顶部列号标签容器 -->
+                        <div id="pixelColLabels" style="position: absolute; top: 0; left: 20px; right: 0; height: 20px; pointer-events: none; z-index: 2; overflow: hidden;"></div>
+                        <!-- 画布 -->
+                        <canvas id="pixelCanvas" width="600" height="600" style="display:block; width:100%; height:auto; cursor:crosshair; image-rendering:pixelated; position: relative; z-index: 1;"></canvas>
                     </div>
                 </div>
             </div>
@@ -1424,6 +1429,53 @@
                         }
                     }
 
+                    function updateLabelPositions() {
+                        const rowLabels = document.getElementById('pixelRowLabels');
+                        const colLabels = document.getElementById('pixelColLabels');
+
+                        // 清空原有标签
+                        rowLabels.innerHTML = '';
+                        colLabels.innerHTML = '';
+
+                        // 设置标签容器大小与画布一致（偏移后）
+                        const canvasWidth = pixelCanvas.width;
+                        const canvasHeight = pixelCanvas.height;
+                        rowLabels.style.height = canvasHeight + 'px';
+                        colLabels.style.width = canvasWidth + 'px';
+
+                        // 生成顶部列号（1~gridSize）
+                        for (let col = 0; col < gridSize; col++) {
+                            const span = document.createElement('span');
+                            span.textContent = col + 1;
+                            span.style.position = 'absolute';
+                            span.style.left = (col * cellSize + cellSize / 2) + 'px';
+                            span.style.top = '0';
+                            span.style.transform = 'translateX(-50%)';
+                            span.style.fontSize = '10px';
+                            span.style.lineHeight = '20px';  // 与 colLabels 高度一致
+                            span.style.color = '#333';
+                            span.style.pointerEvents = 'none';
+                            colLabels.appendChild(span);
+                        }
+
+                        // 生成左侧行号（1~gridSize）
+                        for (let row = 0; row < gridSize; row++) {
+                            const span = document.createElement('span');
+                            span.textContent = row + 1;
+                            span.style.position = 'absolute';
+                            span.style.top = (row * cellSize + cellSize / 2) + 'px';
+                            span.style.left = '0';
+                            span.style.transform = 'translateY(-50%)';
+                            span.style.fontSize = '10px';
+                            span.style.lineHeight = '20px';
+                            span.style.textAlign = 'center';
+                            span.style.width = '20px';  // 与 rowLabels 宽度一致
+                            span.style.color = '#333';
+                            span.style.pointerEvents = 'none';
+                            rowLabels.appendChild(span);
+                        }
+                    }
+
                     function resizeCanvas() {
                         const newSize = gridSize * cellSize;
                         pixelCanvas.width = newSize;
@@ -1441,6 +1493,7 @@
 
                     function initPixelCanvas() { drawBoard(); }
                     resizeCanvas();
+                    updateLabelPositions();
 
                     function getGridPos(e) {
                         const rect = pixelCanvas.getBoundingClientRect();
@@ -1575,6 +1628,7 @@
                         if (newSize >= 5 && newSize <= 100) {
                             gridSize = newSize;
                             resizeCanvas();
+                            updateLabelPositions();
                         } else {
                             alert('格子数需在 5-100 之间');
                         }
@@ -1699,21 +1753,6 @@
                             exportCtx.lineTo(exportCanvas.width, i * scaledCell);
                             exportCtx.stroke();
                         }
-
-                        // 绘制列号（顶部，数字 1~gridSize）
-                        for (let col = 0; col < gridSize; col++) {
-                            const centerX = borderSize + col * scaledCell + scaledCell / 2;
-                            const centerY = borderSize / 2;
-                            exportCtx.fillText(String(col + 1), centerX, centerY);
-                        }
-
-                        // 绘制行号（左侧，数字 1~gridSize）
-                        for (let row = 0; row < gridSize; row++) {
-                            const centerX = borderSize / 2;
-                            const centerY = borderSize + row * scaledCell + scaledCell / 2;
-                            exportCtx.fillText(String(row + 1), centerX, centerY);
-                        }
-
                         // 在每个已填充的格子上标注色号（字体按比例放大）
                         const baseFontSize = Math.max(5, cellSize * 0.4);
                         exportCtx.font = `${baseFontSize * exportScale}px sans-serif`;
