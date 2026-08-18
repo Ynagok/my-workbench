@@ -1670,50 +1670,35 @@
                 // ==================== 导出图纸 ====================
                     function exportBlueprint() {
                         const originalCanvas = pixelCanvas;
-                        const exportScale = 4;                 // 导出清晰度倍数
-                        const borderSize = 40 * exportScale;   // 边缘标注区域宽度（可根据需要调整）
+                        // 导出缩放因子：数值越大，导出图片越清晰（一般 3~5 足够）
+                        const exportScale = 6;
 
-                        // 创建导出画布：原画布尺寸 * 倍数 + 左右/上下边框
+                        // 创建高分辨率画布
                         const exportCanvas = document.createElement('canvas');
-                        exportCanvas.width = originalCanvas.width * exportScale + borderSize;
-                        exportCanvas.height = originalCanvas.height * exportScale + borderSize;
+                        exportCanvas.width = originalCanvas.width * exportScale;
+                        exportCanvas.height = originalCanvas.height * exportScale;
                         const exportCtx = exportCanvas.getContext('2d');
 
                         // 白色背景
                         exportCtx.fillStyle = '#ffffff';
                         exportCtx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
 
-                        // 绘制原画布内容（偏移到边框内侧）
-                        exportCtx.drawImage(
-                            originalCanvas,
-                            borderSize,
-                            borderSize,
-                            originalCanvas.width * exportScale,
-                            originalCanvas.height * exportScale
-                        );
+                        // 绘制原画布内容（自动缩放）
+                        exportCtx.drawImage(originalCanvas, 0, 0, exportCanvas.width, exportCanvas.height);
 
-                        // 网格参数（放大后）
+                        // 重新绘制网格线（按放大后的尺寸）
                         const scaledCell = cellSize * exportScale;
-
-                        // 绘制网格线
                         exportCtx.strokeStyle = '#cccccc';
                         exportCtx.lineWidth = Math.max(1, exportScale);
                         for (let i = 0; i <= gridSize; i++) {
                             exportCtx.beginPath();
-                            exportCtx.moveTo(borderSize + i * scaledCell, borderSize);
-                            exportCtx.lineTo(borderSize + i * scaledCell, borderSize + gridSize * scaledCell);
+                            exportCtx.moveTo(i * scaledCell, 0);
+                            exportCtx.lineTo(i * scaledCell, exportCanvas.height);
                             exportCtx.stroke();
-                            exportCtx.moveTo(borderSize, borderSize + i * scaledCell);
-                            exportCtx.lineTo(borderSize + gridSize * scaledCell, borderSize + i * scaledCell);
+                            exportCtx.moveTo(0, i * scaledCell);
+                            exportCtx.lineTo(exportCanvas.width, i * scaledCell);
                             exportCtx.stroke();
                         }
-
-                        // 设置文字样式（行列编号）
-                        exportCtx.fillStyle = '#000000';
-                        exportCtx.textAlign = 'center';
-                        exportCtx.textBaseline = 'middle';
-                        const labelFontSize = 14 * exportScale;   // 行列数字大小
-                        exportCtx.font = `${labelFontSize}px sans-serif`;
 
                         // 绘制列号（顶部，数字 1~gridSize）
                         for (let col = 0; col < gridSize; col++) {
@@ -1729,16 +1714,17 @@
                             exportCtx.fillText(String(row + 1), centerX, centerY);
                         }
 
-                        // 在每个格子上标注色号
+                        // 在每个已填充的格子上标注色号（字体按比例放大）
                         const baseFontSize = Math.max(5, cellSize * 0.4);
                         exportCtx.font = `${baseFontSize * exportScale}px sans-serif`;
+                        exportCtx.textAlign = 'center';
+                        exportCtx.textBaseline = 'middle';
 
                         for (let row = 0; row < gridSize; row++) {
                             for (let col = 0; col < gridSize; col++) {
-                                // 获取画布该格子中心的颜色（注意从原画布读取，需使用原始坐标）
-                                const origX = col * cellSize + Math.floor(cellSize / 2);
-                                const origY = row * cellSize + Math.floor(cellSize / 2);
-                                const pixelData = ctx.getImageData(origX, origY, 1, 1).data;
+                                const x = col * cellSize + Math.floor(cellSize / 2);
+                                const y = row * cellSize + Math.floor(cellSize / 2);
+                                const pixelData = ctx.getImageData(x, y, 1, 1).data;
                                 const r = pixelData[0], g = pixelData[1], b = pixelData[2], a = pixelData[3];
 
                                 if (a === 0 || (r === 255 && g === 255 && b === 255)) continue;
@@ -1747,10 +1733,10 @@
                                 const label = colorToLabel[hex];
                                 if (!label) continue;
 
-                                // 文字颜色根据背景自动选择黑/白
                                 exportCtx.fillStyle = getContrastYIQ(hex);
-                                const centerX = borderSize + col * scaledCell + scaledCell / 2;
-                                const centerY = borderSize + row * scaledCell + scaledCell / 2;
+                                // 文字位置同样按放大后的坐标计算
+                                const centerX = col * scaledCell + scaledCell / 2;
+                                const centerY = row * scaledCell + scaledCell / 2;
                                 exportCtx.fillText(label, centerX, centerY);
                             }
                         }
@@ -1761,6 +1747,9 @@
                         link.href = exportCanvas.toDataURL('image/png');
                         link.click();
                     }
+
+                document.getElementById('pixelExportBtn').addEventListener('click', exportBlueprint);
+                }
 
                 // ==================== 规则管理 ====================
                         let editingSourceIndex = -1;
