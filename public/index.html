@@ -1322,8 +1322,23 @@
                     });
                     return `在${record["创建时间"].replace(/-/g, '/')}，开启【${packName}】获得${cardIds.length}张卡牌，分别为${descs.join('，')}`;
                 }
-                function filterRecordsByStar(records, star) { if (star === 'all') return records; const target = parseInt(star); return records.filter(r => parseStarsArray(r["卡包星级"]).includes(target)); }
-                async function processCardCsv() {
+                function filterRecordsByStar(records, star) {
+                    if (star === 'all') return records;
+                    const target = parseInt(star);
+                    // 建立星级到霞光星级的映射（3↔23, 4↔24, 5↔25）
+                    const extraStars = {
+                        3: 23,
+                        4: 24,
+                        5: 25
+                    };
+                    const targetList = [target];
+                    if (extraStars[target]) targetList.push(extraStars[target]);
+
+                    return records.filter(r => {
+                        const stars = parseStarsArray(r["卡包星级"]);
+                        return targetList.some(t => stars.includes(t));
+                    });
+                }                async function processCardCsv() {
                     const f = document.getElementById('csvFileInput').files[0]; if (!f) return;
                     const text = await f.text(); currentCardRecords = parseCSVEnhanced(text);
                     const star = document.getElementById('starFilterSelect').value; const filtered = filterRecordsByStar(currentCardRecords, star);
