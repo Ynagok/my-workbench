@@ -426,6 +426,130 @@
                 cursor: pointer;
                 color: #aaa;
             }
+
+        /* 工具栏按钮统一为小尺寸 */
+        #tab-script button,
+        #tab-script .secondary,
+        #tab-script label[for="pixelFileInput"] {
+            padding: 8px 12px;
+            font-size: 13px;
+            border-radius: 8px;
+        }
+
+        /* 色卡面板背景柔和 */
+        #pixelColorPalette {
+            background: #fafbfd;
+            border: 1px solid #e6e9f0;
+            border-radius: 12px;
+        }
+        /* ========== 护眼舒适增强 ========== */
+        body {
+            font-size: 16px; /* 字体稍大，阅读更轻松 */
+            line-height: 1.7; /* 行距增加 */
+            color: #2f3542;
+            background-color: #f4f6f9; /* 更柔和的背景 */
+        }
+
+        .container {
+            box-shadow: 0 6px 18px rgba(0,0,0,0.04); /* 阴影更轻 */
+            border: 1px solid #e2e6ee;
+        }
+
+        .card,
+        .inline-card {
+            background: #ffffff;
+            border: 1px solid #edf0f5;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+            padding: 18px 20px;
+            margin-bottom: 16px;
+            transition: box-shadow 0.2s;
+        }
+
+            .card:hover,
+            .inline-card:hover {
+                box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            }
+
+        button,
+        select,
+        input,
+        textarea {
+            border-radius: 10px;
+            border-color: #dce1e8;
+            transition: all 0.2s;
+        }
+
+        button {
+            background: #6c8cff;
+            font-weight: 500;
+        }
+
+            button:hover {
+                background: #5b7cfa;
+                box-shadow: 0 2px 8px rgba(108,140,255,0.25);
+            }
+
+        select:focus,
+        input:focus,
+        textarea:focus {
+            border-color: #6c8cff;
+            box-shadow: 0 0 0 3px rgba(108,140,255,0.12);
+        }
+
+        label {
+            color: #3a4256;
+            font-weight: 500;
+        }
+
+        /* 结果文本框浅灰背景，降低反差 */
+        #globalResultArea,
+        #cardResultArea {
+            background: #fafbfd !important;
+            color: #2f3542;
+            border: 1px solid #e2e6ee;
+        }
+
+        /* 调试控制台低亮度护眼 */
+        .debug-console {
+            background: #252b36;
+            color: #cbd1dc;
+        }
+
+        /* 选项卡更柔和 */
+        .tab-btn {
+            color: #3a4256;
+        }
+
+            .tab-btn:hover {
+                background: #f0f4ff;
+            }
+
+            .tab-btn.active {
+                background: #eef2ff;
+                color: #5b7cfa;
+                font-weight: 600;
+            }
+
+        /* 拼豆工具栏更紧凑，减少视觉压力 */
+        #tab-script button,
+        #tab-script .secondary,
+        #tab-script label[for="pixelFileInput"] {
+            padding: 7px 12px;
+            font-size: 13px;
+            border-radius: 8px;
+        }
+
+        #pixelColorPalette {
+            background: #fafbfd;
+            border: 1px solid #e6e9f0;
+            border-radius: 12px;
+        }
+
+        /* 可选：降低蓝光，使画面略暖 */
+        body {
+            filter: sepia(0.04) saturate(0.95) brightness(1.0);
+        }
+
     </style>
 </head>
 
