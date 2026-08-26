@@ -826,11 +826,7 @@
                     } else {
                         return ['❌ 未找到有效时间（请检查数据中是否包含领取时间）'];
                     }
-                    // 如果日志包含“当前轮次: 超级”，直接返回超级奖励话术
-                    if (rawText.includes('当前轮次: 超级')) {
-                        return [`在${timeStr}，获得超级好评点全部奖励`];
-                    }
-
+                  
                     const itemCount = new Map();
                     const chineseRegex = /^[\u4e00-\u9fa5]+$/;
 
@@ -854,9 +850,15 @@
                     for (let [name, count] of itemCount) {
                         statsList.push(count > 1 ? `${name}*${count}` : name);
                     }
-                    return [`在${timeStr}，获得好评奖励：${statsList.join('，')}`];
-                }
-
+                    let result;
+                    if (rawText.includes('当前轮次: 超级')) {
+                        result = `在${timeStr}，获得超级好评点全部奖励：${statsList.join('，')}`;
+                    } else {
+                        result = `在${timeStr}，获得好评奖励：${statsList.join('，')}`;
+                    }
+                    return [result];
+                    }
+             
                 function parseOrderLog(rawText) {
                     let text = rawText.replace(/\r\n/g, '\n');
                     const parts = text.split('\t').map(p => p.trim());
