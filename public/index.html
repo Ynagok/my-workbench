@@ -444,11 +444,10 @@
                     <button id="clearSmartBtn" class="secondary">清空</button>
                     <div class="parse-mode-group">
                         <span>解析模式：</span>
-                        <label class="checkbox-label"><input type="radio" name="parseMode" value="resource" checked> 资源流水</label>
+                        <label class="checkbox-label"><input type="radio" name="parseMode" value="resource" checked> 资源&活动奖励流水</label>
                         <label class="checkbox-label"><input type="radio" name="parseMode" value="chess"> 棋子流水</label>
                         <label class="checkbox-label"><input type="radio" name="parseMode" value="order"> 订单日志</label>
                         <label class="checkbox-label"><input type="radio" name="parseMode" value="review"> 好评奖励</label>
-                        <label class="checkbox-label"><input type="radio" name="parseMode" value="itemFlow"> 道具流水</label>
                     </div>
                 </div>
                 <div style="border-top: 1px solid #e0e0e0; margin: 16px 0;"></div>
@@ -1128,13 +1127,53 @@
                         debugConsole.innerHTML += `\n📌 来源筛选后: ${records.length} 条`;
                     }
                     if (records.length === 0) { debugConsole.innerHTML += '\n⚠️ 筛选后无记录，请放宽筛选条件'; return; }
-                    let sentences = records.map(r => generateFlowSentence(r, resourceType, true)).filter(s => s);
+
+                    // ========== 合并相同时间+来源+行为的记录 ==========
+                    const groupMap = new Map();
+                    for (const rec of records) {
+                        const { change, action } = getChangeAndAction(rec);
+                        if (!action || change === 0) continue;
+
+                        const timeKey = (rec['时间'] || '').replace(/-/g, '/');
+                        const source = rec['来源'] || '';
+                        const groupKey = `${timeKey}|||${source}|||${action}`;
+
+                        if (!groupMap.has(groupKey)) {
+                            groupMap.set(groupKey, {
+                                time: timeKey,
+                                source: source,
+                                action: action,
+                                items: new Map()
+                            });
+                        }
+
+                        const group = groupMap.get(groupKey);
+                        const itemName = rec['道具名称'] || resourceType;
+                        const qty = Math.abs(change);
+                        group.items.set(itemName, (group.items.get(itemName) || 0) + qty);
+                    }
+
+                    // 量词：资源类用“点”，道具类用“个”
+                    const unit = ['体力', '红钻', '金币', '好评点'].includes(resourceType) ? '点' : '个';
+
+                    const sentences = [];
+                    for (const group of groupMap.values()) {
+                        const itemParts = [];
+                        for (const [name, qty] of group.items) {
+                            itemParts.push(`${name}*${qty}`);
+                        }
+                        const itemStr = itemParts.join('，');
+                        const sourceStr = group.source ? `，通过【${group.source}】` : '';
+                        sentences.push(`在${group.time}${sourceStr}${group.action}${itemStr}`);
+                    }
+
                     if (sentences.length === 0) { debugConsole.innerHTML += '\n⚠️ 无有效话术（可能缺少数量变化）'; return; }
+
                     globalResultArea.value = sentences.join('\n\n');
                     globalResultCount.textContent = `${sentences.length} 条`;
-                    resultSourceHint.textContent = '智能解析（显示前后变化）';
+                    resultSourceHint.textContent = '智能解析（合并相同记录）';
                     navigator.clipboard.writeText(globalResultArea.value);
-                    debugConsole.innerHTML += `\n✨ 生成 ${sentences.length} 条`;
+                    debugConsole.innerHTML += `\n✨ 生成 ${sentences.length} 条（已合并）`;
                 }
 
                 function parseFlowCSV(csvText) {
