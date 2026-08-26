@@ -8,16 +8,16 @@
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
     <style>
         :root {
-            --primary: #0d6efd;
-            --primary-hover: #0b5ed7;
-            --bg: #f0f2f5;
+            --primary: #5b7cfa; /* 柔和的蓝紫色 */
+            --primary-hover: #4a6ae8;
+            --bg: #f5f7fb; /* 更柔和的背景 */
             --surface: #ffffff;
-            --border: #dee2e6;
-            --text: #495057;
-            --text-secondary: #6c757d;
-            --radius: 12px;
-            --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
-            --shadow: 0 8px 20px rgba(0,0,0,0.1);
+            --border: #e2e6ee;
+            --text: #3a4256;
+            --text-secondary: #7a859a;
+            --radius: 14px;
+            --shadow-sm: 0 2px 6px rgba(0,0,0,0.04);
+            --shadow: 0 8px 24px rgba(0,0,0,0.06);
         }
 
         * {
@@ -37,18 +37,19 @@
             max-width: 1400px;
             margin: 0 auto;
             background: var(--surface);
-            border-radius: 16px;
+            border-radius: 20px;
             box-shadow: var(--shadow);
             overflow: hidden;
+            border: 1px solid var(--border);
         }
 
         .tabs {
             display: flex;
             background: #ffffff;
-            border-bottom: 2px solid var(--border);
-            padding: 0 16px;
+            border-bottom: 1px solid var(--border);
+            padding: 0 24px;
+            gap: 4px;
             flex-wrap: wrap;
-            cursor: grab;
         }
 
             .tabs:active {
@@ -58,10 +59,11 @@
         .tab-btn {
             background: none;
             border: none;
-            padding: 12px 24px;
-            font-size: 16px;
             cursor: pointer;
-            transition: 0.2s;
+            padding: 14px 22px;
+            font-size: 15px;
+            border-radius: 8px 8px 0 0;
+            transition: all 0.2s ease;
             border-bottom: 3px solid transparent;
             margin-bottom: -2px;
             color: var(--text);
@@ -70,15 +72,14 @@
         }
 
             .tab-btn:hover {
-                background: #e9ecef;
-                border-bottom-color: #adb5bd;
-                color: var(--primary);
+                background: #f0f4ff;
+                border-bottom-color: #cdd9ff;
             }
 
             .tab-btn.active {
-                color: var(--primary);
+                background: #f5f7fb;
                 border-bottom-color: var(--primary);
-                background: #f8f9fa;
+                color: var(--primary);
                 font-weight: 600;
             }
 
@@ -113,18 +114,25 @@
         }
 
         select, input, textarea, button {
-            padding: 8px 12px;
-            border: 1px solid #ced4da;
-            border-radius: 8px;
+            padding: 10px 14px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
             font-size: 14px;
+            transition: all 0.2s;
         }
+
+            select:focus, input:focus, textarea:focus {
+                outline: none;
+                border-color: var(--primary);
+                box-shadow: 0 0 0 3px rgba(91,124,250,0.1);
+            }
 
         button {
             background: var(--primary);
             color: white;
             border: none;
             cursor: pointer;
-            transition: 0.2s;
+            font-weight: 500;
         }
 
             button:hover {
@@ -177,17 +185,11 @@
             }
 
         .debug-console {
-            background: #1e1e1e;
-            color: #d4d4d4;
-            border: 1px solid #333;
-            border-radius: 8px;
-            padding: 12px;
-            margin-top: 8px;
-            font-family: monospace;
-            font-size: 12px;
-            max-height: 200px;
-            overflow: auto;
-            white-space: pre-wrap;
+            background: #1f2430;
+            color: #c8d0e0;
+            padding: 16px;
+            border-radius: 12px;
+            font-size: 13px;
             display: none;
         }
 
@@ -276,11 +278,14 @@
             margin-bottom: 8px;
         }
 
+        .card,
         .inline-card {
             background: #ffffff;
-            border: 1px solid #dee2e6;
-            border-radius: 12px;
-            padding: 16px;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 16px;
+            border: 1px solid #edf0f5;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.02);
         }
 
         .collapsible-header {
@@ -311,9 +316,8 @@
 
         .rule-bar {
             display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 16px;
-            align-items: stretch;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
             margin-bottom: 16px;
         }
 
@@ -339,11 +343,10 @@
             align-items: stretch;
         }
 
-        .upload-col {
-            flex: 1;
-            min-width: 200px;
-            display: flex;
-            flex-direction: column;
+        .upload-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
         }
 
             .upload-col label {
