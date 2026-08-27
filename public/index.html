@@ -1054,36 +1054,20 @@
                     rewardRaw = applyRewardConversion(rewardRaw);
                     const lines = rewardRaw.split(/\n/).map(l => l.trim()).filter(l => l.length > 0);
                     const rewardItems = [];
-                    let pendingItem = null;
                     for (let line of lines) {
-                        if (/^\d+$/.test(line)) continue;
+                        if (/^\d+$/.test(line)) continue;               // 忽略纯数字行
                         const numMatch = line.match(/(?:[:：]\s*)?(\d+)\s*$/);
                         let itemDesc = line;
-                        let count = null;
+                        let count = 1;                                   // 默认数量为 1
                         if (numMatch) {
-                            count = numMatch[1];
+                            count = parseInt(numMatch[1], 10);
                             itemDesc = line.substring(0, numMatch.index).trim();
                             itemDesc = itemDesc.replace(/[:：]\s*$/, '').trim();
                         }
                         if (itemDesc) {
-                            if (pendingItem) {
-                                if (count !== null) {
-                                    rewardItems.push(`${pendingItem} ${itemDesc}:${count}`.replace(/\s+/g, ' ').trim());
-                                    pendingItem = null;
-                                } else {
-                                    rewardItems.push(pendingItem);
-                                    pendingItem = itemDesc;
-                                }
-                            } else {
-                                if (count !== null) rewardItems.push(`${itemDesc}:${count}`);
-                                else pendingItem = itemDesc;
-                            }
-                        } else if (count !== null && pendingItem) {
-                            rewardItems.push(`${pendingItem}:${count}`);
-                            pendingItem = null;
+                            rewardItems.push(`${itemDesc}:${count}`);
                         }
                     }
-                    if (pendingItem) rewardItems.push(pendingItem);
                     const rewardStr = rewardItems.length ? [...new Set(rewardItems)].join('，') : '奖励';
                     const actionVerb = statusText === '完成' ? '完成订单' : (statusText === '删除' ? '删除订单' : '操作订单');
                     return [`在${finalTime.replace(/-/g, '/')}提交${chessStr}${actionVerb}，获得${rewardStr}`];
