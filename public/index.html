@@ -906,7 +906,7 @@
                         const after = parseFloat(afterRaw) || 0;
                         sourceRaw = (sourceRaw || '').trim().replace(/^["']|["']$/g, '');
                         const source = applySourceConversion(sourceRaw);
-                        itemName = applyGlobalConversions(itemName);
+                        itemName = applyAllConversions(itemName);
 
                         records.push({
                             '时间': time,
@@ -1120,7 +1120,7 @@
                         const before = parseInt(parts[6]?.trim() || '0', 10) || 0;
                         const after = parseInt(parts[7]?.trim() || '0', 10) || 0;
                         let source = parts[8]?.trim() || '';
-                        source = applySourceConversion(source);
+                        source = applyAllConversions(source);
 
                         let displayName = itemName || itemId;
                         displayName = applyChessNameConversion(displayName);
