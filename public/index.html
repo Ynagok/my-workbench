@@ -1220,9 +1220,9 @@
                     }
                     if (mode === 'review') {
                         debugConsole.innerHTML = '🌟 好评奖励解析...';
-                        const out = r.map(r => applyAllConversions(r.finalDesc)).join('\n\n');
-                        globalResultArea.value = out;
-                        globalResultCount.textContent = '1 条';
+                        const s = parseReviewLog(raw).map(sentence => applyAllConversions(sentence));
+                        globalResultArea.value = s.join('\n\n');
+                        globalResultCount.textContent = `${s.length} 条`;
                         resultSourceHint.textContent = '好评奖励解析';
                         navigator.clipboard.writeText(globalResultArea.value);
                         debugConsole.innerHTML += '\n✅ 完成';
@@ -1234,7 +1234,7 @@
                         if (!r.length) { debugConsole.innerHTML += '\n❌ 没有解析到有效棋子记录'; return; }
                         r.sort((a, b) => (b.time || '').localeCompare(a.time || ''));
                         if (sortOrder === 'asc') r.reverse();
-                        const out = r.map(r => r.finalDesc).join('\n\n');
+                        const out = r.map(r => applyAllConversions(r.finalDesc)).join('\n\n');
                         globalResultArea.value = out;
                         globalResultCount.textContent = `${r.length} 条`;
                         resultSourceHint.textContent = '棋子流水解析';
