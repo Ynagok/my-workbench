@@ -837,7 +837,8 @@
                         const rawTime = extractTime(line);
                         if (!rawTime) continue;
                         const time = formatTimeToStandard(rawTime);
-                        const parts = line.split('\t');
+                        const delimiter = line.includes('\t') ? '\t' : (line.includes(',') ? ',' : ' ');
+                        const parts = line.split(delimiter);
                         if (parts.length < 6) continue;
 
                         const thirdCol = parts[2]?.trim();
