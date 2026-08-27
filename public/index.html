@@ -869,21 +869,23 @@
                         let changeRaw, beforeRaw, afterRaw, sourceRaw, itemName = '';
 
                         // 常见格式：时间 | 玩家ID | 资源类型/物品 | 变化量 | 之前 | 之后 | 来源 | ...
-                        if (isFormatB) {
-                            // 检查第五列是否为数字，若不是数字则可能是道具格式2
-                            const fifthIsNumber = /^[+-]?\d+$/.test(parts[4]?.trim());
-                            if (!fifthIsNumber && parts.length >= 9) {
-                                // 道具格式2：时间, UUID, 道具ID, 道具名称, 类型, 数量, 之前, 之后, 来源
-                                itemName = parts[3]?.trim() || parts[2]?.trim();   // 道具名称优先，否则用ID
-                                changeRaw = parts[5]?.trim() || '0';
-                                beforeRaw = parts[6]?.trim() || '0';
-                                afterRaw = parts[7]?.trim() || '0';
-                                sourceRaw = parts[8]?.trim() || '';
+                        if (parts.length >= 7) {
+                            // 判断第三个字段是否为数字（旧格式B：时间,ID,增减,数量,之前,之后,来源）
+                            const thirdIsNumber = /^[+-]?\d+$/.test(parts[2]?.trim());
+                            if (thirdIsNumber) {
+                                // 旧格式：变化量在parts[2]（可能带正负），之前parts[3]，之后parts[4]，来源parts[5]
+                                changeRaw = parts[2];
+                                beforeRaw = parts[3];
+                                afterRaw = parts[4];
+                                sourceRaw = parts[5];
+                                itemName = parts.length >= 8 ? parts[7] || parts[6] || resourceType : resourceType;
                             } else {
-                                // 原有旧格式B：时间, UUID, 增减量, 之前, 之后, 来源...
-                                changeRaw = parts[2]; beforeRaw = parts[3]; afterRaw = parts[4]; sourceRaw = parts[5];
-                                itemName = (parts.length >= 9 && parts[8]?.trim()) ? parts[8]?.trim() :
-                                    (parts.length >= 8 && parts[7]?.trim()) ? parts[7]?.trim() : '';
+                                // 新格式：资源类型在parts[2]，物品ID在parts[3]，变化量parts[6]，之前parts[7]，之后parts[8]，来源parts[9]
+                                itemName = parts[4] && parts[4] !== '道具' ? parts[4] : (parts[3] || resourceType);
+                                changeRaw = parts[6] || '0';
+                                beforeRaw = parts[7] || '0';
+                                afterRaw = parts[8] || '0';
+                                sourceRaw = parts[9] || parts[5] || '';
                             }
                         } else {
                             // 极简格式：时间 | 资源类型 | 变化量 | 之前 | 之后 | 来源
