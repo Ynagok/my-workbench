@@ -788,6 +788,17 @@
                 function applyChessNameConversion(name) {
                     return applyConversionByType(name, 'chessName');
                 }
+                function applyAllConversions(text) {
+                    if (!text) return text;
+                    if (!(document.getElementById('enableSourceConversionCheckbox')?.checked ?? true)) return text;
+                    let result = text;
+                    for (let r of sourceRules) {
+                        if (!r.pattern) continue;
+                        const escaped = r.pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                        result = result.replace(new RegExp(escaped, 'gi'), r.replacement || '');
+                    }
+                    return result.replace(/\s+/g, ' ').trim();
+                }
                 function shouldIgnoreLine(line) {
                     if (!(document.getElementById('enableIgnoreRulesCheckbox')?.checked ?? true) || !ignoreKeywords.length) return false;
                     return ignoreKeywords.some(kw => line.toLowerCase().includes(kw.toLowerCase()));
@@ -1184,7 +1195,7 @@
                     if (mode === 'order') {
                         if (raw.includes('创建')) debugConsole.innerHTML += '\n⚠️ 检测到"创建"订单，可能无法提取完整奖励';
                         debugConsole.innerHTML = '📦 订单日志解析...';
-                        const s = parseOrderLog(raw);
+                        const s = parseOrderLog(raw).map(sentence => applyAllConversions(sentence));
                         globalResultArea.value = s.join('\n\n');
                         globalResultCount.textContent = `${s.length} 条`;
                         resultSourceHint.textContent = '订单日志解析';
@@ -1195,7 +1206,8 @@
                         debugConsole.innerHTML = '🔍 道具流水（文件）解析...';
                         let sentences = parseItemFlowLog(raw);
                         if (sentences.length) {
-                            sentences = sortSentencesByTime(sentences, sortOrder);   // 直接使用外层 sortOrder
+                            sentences = sortSentencesByTime(sentences, sortOrder);
+                            sentences = sentences.map(s => applyAllConversions(s));
                             globalResultArea.value = sentences.join('\n\n');
                             globalResultCount.textContent = `${sentences.length} 条`;
                             resultSourceHint.textContent = '道具流水（上传）';
@@ -1208,8 +1220,8 @@
                     }
                     if (mode === 'review') {
                         debugConsole.innerHTML = '🌟 好评奖励解析...';
-                        const s = parseReviewLog(raw);
-                        globalResultArea.value = s.join('\n\n');
+                        const out = r.map(r => applyAllConversions(r.finalDesc)).join('\n\n');
+                        globalResultArea.value = out;
                         globalResultCount.textContent = '1 条';
                         resultSourceHint.textContent = '好评奖励解析';
                         navigator.clipboard.writeText(globalResultArea.value);
@@ -1296,6 +1308,7 @@
 
                     if (sentences.length === 0) { debugConsole.innerHTML += '\n⚠️ 无有效话术（可能缺少数量变化）'; return; }
 
+                    sentences = sentences.map(s => applyAllConversions(s));
                     globalResultArea.value = sentences.join('\n\n');
                     globalResultCount.textContent = `${sentences.length} 条`;
                     resultSourceHint.textContent = '智能解析（合并相同记录）';
@@ -1434,7 +1447,8 @@
                     const sortOrder = document.getElementById('sortOrderSelect').value;
                     const mergedText = buildMergedRewardText(filtered);
                     if (mergedText) {
-                        const blocks = mergedText.split('\n\n').filter(b => b.trim());
+                        let blocks = mergedText.split('\n\n').filter(b => b.trim());
+                        blocks = blocks.map(b => applyAllConversions(b));
                         const sortedBlocks = sortSentencesByTime(blocks, sortOrder);
                         globalResultArea.value = sortedBlocks.join('\n\n');
                         globalResultCount.textContent = `${sortedBlocks.length} 组`;
@@ -1444,6 +1458,7 @@
                         let sentences = filtered.map(r => generateFlowSentence(r, selectedType, true)).filter(s => s);
                         if (sentences.length) {
                             sentences = sortSentencesByTime(sentences, sortOrder);
+                            sentences = sentences.map(s => applyAllConversions(s));
                             globalResultArea.value = sentences.join('\n\n');
                             globalResultCount.textContent = `${sentences.length} 条`;
                         }
@@ -2040,6 +2055,7 @@
                                 if (sentences.length) {
                                     const sortOrder = document.getElementById('sortOrderSelect').value;
                                     sentences = sortSentencesByTime(sentences, sortOrder);
+                                    sentences = sentences.map(s => applyAllConversions(s));
                                     globalResultArea.value = sentences.join('\n\n');
                                     globalResultCount.textContent = `${sentences.length} 条`;
                                     resultSourceHint.textContent = '道具流水（上传）';
@@ -2052,7 +2068,12 @@
                         document.getElementById('debugFlowBtn').onclick = async () => { const f = document.getElementById('flowFileInput').files[0]; if (!f) return; const text = await f.text(); expandDebugConsole(); debugConsole.innerHTML = `CSV前200字符:\n${text.substring(0, 200)}`; };
                         document.getElementById('copyGlobalResultBtn').onclick = () => navigator.clipboard.writeText(globalResultArea.value);
                         document.getElementById('exportGlobalResultBtn').onclick = () => { const blob = new Blob([globalResultArea.value], { type: 'text/plain' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'script.txt'; a.click(); };
-                        document.getElementById('generateFromTemplateBtn').onclick = () => { let tpl = templateSelect.value; for (let [k, v] of Object.entries(varInputs)) tpl = tpl.replace(new RegExp(`\\{${k}\\}`, 'g'), v.value); tpl = tpl.replace(/\{[^}]+\}/g, ''); globalResultArea.value = tpl; globalResultCount.textContent = '1 条'; resultSourceHint.textContent = '模板生成'; navigator.clipboard.writeText(tpl); };
+                        document.getElementById('generateFromTemplateBtn').onclick = () => {
+                            let tpl = templateSelect.value;
+                            for (let [k, v] of Object.entries(varInputs)) tpl = tpl.replace(new RegExp(`\\{${k}\\}`, 'g'), v.value);
+                            tpl = tpl.replace(/\{[^}]+\}/g, '');
+                            tpl = applyAllConversions(tpl);
+                            globalResultArea.value = tpl;
 
                         const modals = {
                             source: document.getElementById('sourceRuleModal'), ignore: document.getElementById('ignoreRuleModal'),
