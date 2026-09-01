@@ -1379,6 +1379,17 @@
                             '来源': cleanVals[colIdx['来源']] || '',
                             '道具名称': colIdx['道具名称'] >= 0 ? cleanVals[colIdx['道具名称']] : ''
                         };
+
+                        // ★ 新增：根据增减标记修正数量符号
+                        let quantity = parseFloat(rec['数量']) || 0;
+                        const incDec = (rec['增减'] || '').toString().toLowerCase();
+                        if (incDec.includes('减少') || incDec === '0' || incDec.includes('-1')) {
+                            quantity = -Math.abs(quantity);
+                        } else if (incDec.includes('增加') || incDec === '1' || incDec.includes('+1')) {
+                            quantity = Math.abs(quantity);
+                        }
+                        rec['数量'] = quantity;
+
                         const userSelectedType = document.getElementById('flowResourceSelect').value;
                         if (['体力', '红钻', '金币', '好评点'].includes(userSelectedType)) {
                             rec['道具名称'] = userSelectedType;
