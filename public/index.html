@@ -1533,7 +1533,7 @@
             <div class="card">
                 <label>生成结果（共 <span id="recordCount">0</span> 条）</label>
                 <div id="cardResultPreview" class="card-preview"></div>
-                <textarea id="cardResultArea" rows="12" readonly></textarea>
+                <textarea id="cardResultArea" rows="12" readonly style="display:none;"></textarea>
                 <div class="flex-row" style="margin-top:10px;">
                     <button id="copyAllCardBtn">📋 复制全部</button>
                     <button id="exportCardBtn">💾 导出TXT</button>
@@ -4886,7 +4886,10 @@
                     document.getElementById('cardResultArea').value = texts.join('\n\n');
 
                     const preview = document.getElementById('cardResultPreview');
-                    if (preview) preview.innerHTML = htmls.join('\n\n');
+                    if (preview) {
+                        preview.innerHTML = htmls.join('\n\n');
+                        preview.style.display = 'block';
+                    }
 
                     document.getElementById('recordCount').textContent = texts.length;
                 }
