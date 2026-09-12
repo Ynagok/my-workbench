@@ -1086,6 +1086,185 @@
                  max-height: none;
              }
          }
+        /* ============================================================
+   拼豆小游戏 · UI 统一（覆盖内联样式）
+   ============================================================ */
+
+        /* --- 色卡 / 橡皮擦按钮（原灰底） --- */
+        #pixelPaletteToggleBtn,
+        #pixelEraserBtn {
+            background: var(--surface) !important;
+            color: var(--ink-1) !important;
+            border: 1px solid var(--line-1) !important;
+        }
+
+            #pixelPaletteToggleBtn:hover,
+            #pixelEraserBtn:hover {
+                background: var(--dark) !important;
+                color: #fff !important;
+                border-color: var(--dark) !important;
+            }
+            /* 橡皮擦激活态（JS 会写内联 var(--ak-danger)） */
+            #pixelEraserBtn[style*="ak-danger"],
+            #pixelEraserBtn[style*="e53935"] {
+                background: var(--danger) !important;
+                color: #fff !important;
+                border-color: var(--danger) !important;
+            }
+
+        /* --- 导入图片按钮（原绿色底） --- */
+        #tab-script label[for="pixelFileInput"] {
+            background: var(--accent-dim) !important;
+            color: var(--accent-ink) !important;
+            border: 1px solid var(--accent-line) !important;
+            padding: 7px 12px !important;
+            border-radius: var(--r-sm) !important;
+            font-size: 11.5px !important;
+            font-family: var(--font-display) !important;
+            font-weight: 700 !important;
+            letter-spacing: 0.12em !important;
+            text-transform: uppercase !important;
+            cursor: pointer !important;
+            display: inline-block !important;
+            transition: all 0.16s ease !important;
+        }
+
+            #tab-script label[for="pixelFileInput"]:hover {
+                background: var(--accent) !important;
+                color: var(--dark) !important;
+                border-color: var(--accent) !important;
+                box-shadow: 0 0 0 3px var(--accent-dim), 0 4px 12px var(--accent-glow) !important;
+            }
+
+        /* --- 应用尺寸 / 导出图纸（原青、蓝底） --- */
+        #pixelResizeBtn,
+        #pixelExportBtn {
+            background: var(--dark) !important;
+            color: #fff !important;
+            border: 1px solid var(--dark) !important;
+            padding: 7px 12px !important;
+            font-size: 11.5px !important;
+            border-radius: var(--r-sm) !important;
+        }
+
+            #pixelResizeBtn:hover,
+            #pixelExportBtn:hover {
+                background: var(--accent) !important;
+                color: var(--dark) !important;
+                border-color: var(--accent) !important;
+                box-shadow: 0 0 0 3px var(--accent-dim), 0 4px 12px var(--accent-glow) !important;
+            }
+
+        /* --- 格子数输入框 --- */
+        #pixelGridSize {
+            background: var(--bg-1) !important;
+            border: 1px solid var(--line-0) !important;
+            border-radius: var(--r-sm) !important;
+            color: var(--ink-0) !important;
+            height: 36px !important;
+            padding: 0 10px !important;
+            font-family: var(--font-mono) !important;
+            transition: all 0.15s ease !important;
+        }
+
+            #pixelGridSize:focus {
+                border-color: var(--accent) !important;
+                background: var(--surface) !important;
+                box-shadow: 0 0 0 3px var(--accent-dim) !important;
+            }
+
+        /* --- 填充模式 select --- */
+        #pixelFillMode {
+            background-color: var(--bg-1) !important;
+            background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'><path fill='%23a67c00' d='M2 4l4 4 4-4z'/></svg>") !important;
+            background-repeat: no-repeat !important;
+            background-position: right 10px center !important;
+            background-size: 10px !important;
+            border: 1px solid var(--line-0) !important;
+            border-radius: var(--r-sm) !important;
+            color: var(--ink-0) !important;
+            height: 36px !important;
+            padding: 0 30px 0 12px !important;
+            appearance: none !important;
+            -webkit-appearance: none !important;
+            font-family: var(--font-display) !important;
+            font-weight: 600 !important;
+            cursor: pointer !important;
+            transition: all 0.15s ease !important;
+        }
+
+            #pixelFillMode:focus {
+                border-color: var(--accent) !important;
+                background-color: var(--surface) !important;
+                box-shadow: 0 0 0 3px var(--accent-dim) !important;
+            }
+
+            #pixelFillMode option {
+                background: var(--surface);
+                color: var(--ink-0);
+            }
+
+        /* --- 颜色选择器 --- */
+        #pixelColor {
+            border: 1px solid var(--line-1) !important;
+            border-radius: var(--r-sm) !important;
+            background: var(--surface) !important;
+            padding: 3px !important;
+            cursor: pointer !important;
+        }
+
+            #pixelColor::-webkit-color-swatch-wrapper {
+                padding: 0;
+            }
+
+            #pixelColor::-webkit-color-swatch {
+                border: none;
+                border-radius: 3px;
+            }
+
+            #pixelColor::-moz-color-swatch {
+                border: none;
+                border-radius: 3px;
+            }
+
+        /* --- 色板面板 --- */
+        #pixelColorPalette {
+            background: var(--bg-1) !important;
+            border: 1px solid var(--line-0) !important;
+            border-radius: var(--r-md) !important;
+            padding: 10px !important;
+        }
+
+        /* --- 画布容器（原 2px 灰边框 + 8px 圆角） --- */
+        #tab-script div[style*="border: 2px solid #dee2e6"] {
+            border: 1px solid var(--line-1) !important;
+            border-radius: var(--r-md) !important;
+            background: var(--bg-1) !important;
+            padding: 6px !important;
+        }
+
+        /* --- 画布左上角占位方块（原 #f8f9fa） --- */
+        #tab-script div[style*="background: #f8f9fa"][style*="z-index: 3"] {
+            background: var(--bg-1) !important;
+        }
+
+        /* --- “支持Ctrl+V粘贴截图”提示 --- */
+        #tab-script span[style*="color:#6c757d"] {
+            color: var(--ink-3) !important;
+            font-size: 11.5px !important;
+            letter-spacing: 0.02em !important;
+        }
+
+        /* --- “格子数：”“填充：”标签 --- */
+        #tab-script label[style*="margin:0"] {
+            color: var(--ink-2) !important;
+            font-family: var(--font-display) !important;
+            font-size: 12px !important;
+            font-weight: 700 !important;
+            letter-spacing: 0.12em !important;
+            text-transform: uppercase !important;
+            margin: 0 !important;
+        }
     </style>
 </head>
 
@@ -3404,6 +3583,26 @@
 
                 // ==================== 数据读写 ====================
                 async function loadData(key, defaultValue) {
+                    // ===== 本地优先模式 =====
+                    // 1. 先看 localStorage
+                    const cached = localStorage.getItem(key);
+                    if (cached !== null) {
+                        try {
+                            const parsed = JSON.parse(cached);
+                            // 后台静默拉一次服务器，用来更新其他设备的改动
+                            fetch(`${SERVER_URL}/api/data/${key}`).then(r => r.ok ? r.json() : null).then(j => {
+                                if (j && j.value !== undefined) {
+                                    // 服务器上有数据，但只有当本地还是旧版时才覆盖（可选策略）
+                                    // 这里选择不覆盖本地，保持本地优先
+                                }
+                            }).catch(() => { });
+                            return parsed;
+                        } catch (e) {
+                            console.warn(`解析 localStorage[${key}] 失败，将尝试服务器`, e);
+                        }
+                    }
+
+                    // 2. 本地没有，去服务器拉
                     try {
                         const resp = await fetch(`${SERVER_URL}/api/data/${key}`);
                         if (resp.ok) {
@@ -3413,12 +3612,12 @@
                                 return value;
                             }
                         }
-                        localStorage.removeItem(key);
-                        throw new Error('服务器无数据');
-                    } catch {
-                        const cached = localStorage.getItem(key);
-                        return cached ? JSON.parse(cached) : defaultValue;
+                    } catch (e) {
+                        console.warn(`拉取服务器数据失败 [${key}]`, e);
                     }
+
+                    // 3. 服务器也没有，用默认值（代码里写死的那份）
+                    return defaultValue;
                 }
 
                 async function saveData(key, data) {
