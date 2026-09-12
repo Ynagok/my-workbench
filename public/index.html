@@ -1418,17 +1418,17 @@
             font-family: var(--font-mono);
             font-size: 12.5px;
             line-height: 1.9;
-            white-space: pre-wrap;
-            word-break: break-word;
-            min-height: 480px; /* ★ 和原 textarea rows="20" 差不多高 */
-            max-height: 480px; /* ★ 固定高度，内容多则滚动 */
+            white-space: pre-wrap; /* ★ 关键：保留 \n 换行 */
+            word-break: break-word; /* ★ 长内容自动折行 */
+            min-height: 480px;
+            max-height: 480px;
             overflow: auto;
             margin-bottom: 10px;
             color: var(--ink-0);
         }
 
             .card-preview:empty::before {
-                content: '（解析后此处显示新卡高亮预览）';
+                content: ;
                 color: var(--ink-3);
                 font-family: var(--font-sans);
             }
