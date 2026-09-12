@@ -1478,7 +1478,7 @@
 
                 function applyResourceClickReplace(text, resourceType) {
                     if (!text) return text;
-                    const map = { '体力': '点击葫芦', '红钻': '点击红钻堆', '金币': '点击金币堆' };
+                    const map = { '体力': '点击葫芦', '红钻': '点击红钻堆', '金币': '点击金币堆', '铜钱': '点击金币堆' };
                     const replacement = map[resourceType];
                     if (!replacement) return text;
                     return text.replace(/点击棋子/g, replacement);
