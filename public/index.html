@@ -1662,6 +1662,32 @@
                     return map;
                 }
 
+                // ★ 保留源码分类信息（按 allPresentGoods 的 type 分组）
+                function extractAllPresentGoodsGrouped(source) {
+                    const raw = extractAllPresentGoodsFromSource(source);
+                    if (!raw) return null;
+                    const groups = {};
+                    for (const [typeKey, typeVal] of Object.entries(raw)) {
+                        if (!typeVal || !typeVal.goods) continue;
+                        const typeName = (typeVal.name || '').trim() || ('分类 ' + typeKey);
+                        const groupMap = {};
+                        function walk(goods) {
+                            if (!goods) return;
+                            for (const [id, item] of Object.entries(goods)) {
+                                if (item && item.name && String(item.name).trim()) {
+                                    groupMap[id] = String(item.name).trim();
+                                }
+                                if (item && item.goods) walk(item.goods);
+                            }
+                        }
+                        walk(typeVal.goods);
+                        if (Object.keys(groupMap).length) {
+                            groups[typeName] = groupMap;
+                        }
+                    }
+                    return groups;
+                }
+
                 function extractOptionMapFromSource(source) {
                     const map = {};
                     const re = /<option[^>]*value=["']?(\d+)["']?[^>]*>([\s\S]*?)<\/option>/gi;
@@ -1707,70 +1733,8 @@
                     return map;
                 }
 
-                function doImportMapping(apply) {
-                    const source = document.getElementById('importMappingSource').value;
-                    const resultEl = document.getElementById('importMappingResult');
-                    resultEl.style.display = 'block';
-                    if (!source.trim()) { resultEl.textContent = '❌ 请先粘贴源码'; return; }
-
-                    let itemMapFromAll = {};
-                    let itemMapFromOption = {};
-                    const allGoods = extractAllPresentGoodsFromSource(source);
-                    if (allGoods) itemMapFromAll = flattenAllPresentGoods(allGoods);
-                    itemMapFromOption = extractOptionMapFromSource(source);
-
-                    const itemMap = { ...itemMapFromOption, ...itemMapFromAll };
-                    const mergeMode = document.getElementById('importMergeMode').checked;
-                    const alsoSource = document.getElementById('importAlsoSource').checked;
-                    const alsoActivity = document.getElementById('importAlsoActivity').checked;
-                    const srcMap = alsoSource ? extractSourceMapFromSource(source) : {};
-                    const actMap = alsoActivity ? extractActivityMapFromSource(source) : {};
-
-                    const lines = [];
-                    lines.push('=== 解析结果 ===');
-                    lines.push(`物品映射：allPresentGoods 提取 ${Object.keys(itemMapFromAll).length} 条，`);
-                    lines.push(`           option 标签提取 ${Object.keys(itemMapFromOption).length} 条，`);
-                    lines.push(`           合并后共 ${Object.keys(itemMap).length} 条`);
-                    if (alsoSource) lines.push(`来源映射：${Object.keys(srcMap).length} 条`);
-                    if (alsoActivity) lines.push(`活动映射：${Object.keys(actMap).length} 条`);
-
-                    const sampleItem = Object.entries(itemMap).slice(0, 5);
-                    if (sampleItem.length) { lines.push(''); lines.push('物品示例：' + sampleItem.map(([k, v]) => `${k}=${v}`).join(', ')); }
-                    const sampleSrc = Object.entries(srcMap).slice(0, 5);
-                    if (sampleSrc.length) lines.push('来源示例：' + sampleSrc.map(([k, v]) => `${k}=${v}`).join(', '));
-                    const sampleAct = Object.entries(actMap).slice(0, 5);
-                    if (sampleAct.length) lines.push('活动示例：' + sampleAct.map(([k, v]) => `${k}=${v}`).join(', '));
-
-                    if (Object.keys(itemMap).length === 0 && Object.keys(srcMap).length === 0 && Object.keys(actMap).length === 0) {
-                        lines.push(''); lines.push('❌ 没有提取到任何数据。请确认粘贴的是完整的 HTML 源码，或者包含 var allPresentGoods = {...} 的片段。');
-                        resultEl.textContent = lines.join('\n'); return;
-                    }
-
-                    if (!apply) {
-                        lines.push(''); lines.push('👁️ 预览模式，未写入。点击「解析并导入」才会应用。');
-                        resultEl.textContent = lines.join('\n'); return;
-                    }
-
-                    if (Object.keys(itemMap).length > 0) {
-                        itemNameMap = mergeMode ? { ...itemNameMap, ...itemMap } : itemMap;
-                        saveData('itemNameMap', itemNameMap);
-                    }
-                    if (Object.keys(srcMap).length > 0) {
-                        sourceIdMap = mergeMode ? { ...sourceIdMap, ...srcMap } : srcMap;
-                        saveData('sourceIdMap', sourceIdMap);
-                    }
-                    if (Object.keys(actMap).length > 0) {
-                        activityTypeMap = mergeMode ? { ...activityTypeMap, ...actMap } : actMap;
-                        saveData('activityTypeMap', activityTypeMap);
-                    }
-
-                    lines.push(''); lines.push(mergeMode ? '✅ 已合并到现有映射并保存' : '✅ 已替换并保存');
-                    lines.push(`当前物品总数：${Object.keys(itemNameMap).length}`);
-                    resultEl.textContent = lines.join('\n');
-
-                    const typeSelect = document.getElementById('mappingTypeSelect');
-                    if (typeSelect) renderMappingList(document.getElementById('mappingSearchInput')?.value || '');
-                }
+                // ==================== 解析：智能粘贴 ====================
+                function parseSmartLog(rawText) {
 
                 // ==================== 解析：智能粘贴 ====================
                 function parseSmartLog(rawText) {
