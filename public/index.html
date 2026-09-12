@@ -1733,8 +1733,174 @@
                     return map;
                 }
 
-                // ==================== 解析：智能粘贴 ====================
-                function parseSmartLog(rawText) {
+                function doImportMapping(apply) {
+                    const source = document.getElementById('importMappingSource').value;
+                    const resultEl = document.getElementById('importMappingResult');
+                    resultEl.style.display = 'block';
+                    if (!source.trim()) { resultEl.textContent = '❌ 请先粘贴源码或JSON'; return; }
+
+                    // ===== 分支 1：识别导出的 mapping.json =====
+                    const trimmed = source.trim();
+                    if (trimmed.startsWith('{') &&
+                        (trimmed.includes('itemNameMap') || trimmed.includes('sourceIdMap') || trimmed.includes('activityTypeMap'))) {
+                        try {
+                            const data = JSON.parse(trimmed);
+                            const mergeMode = document.getElementById('importMergeMode').checked;
+                            const lines = ['=== 识别为映射 JSON ==='];
+                            let itemCount = 0, srcCount = 0, actCount = 0;
+
+                            if (data.itemNameMap && Object.keys(data.itemNameMap).length) {
+                                itemCount = Object.keys(data.itemNameMap).length;
+                                lines.push(`📦 物品映射：${itemCount} 条`);
+                                if (apply) {
+                                    itemNameMap = mergeMode ? { ...itemNameMap, ...data.itemNameMap } : data.itemNameMap;
+                                    saveData('itemNameMap', itemNameMap);
+                                }
+                            }
+                            if (data.sourceIdMap && Object.keys(data.sourceIdMap).length) {
+                                srcCount = Object.keys(data.sourceIdMap).length;
+                                lines.push(`🔗 来源映射：${srcCount} 条`);
+                                if (apply) {
+                                    sourceIdMap = mergeMode ? { ...sourceIdMap, ...data.sourceIdMap } : data.sourceIdMap;
+                                    saveData('sourceIdMap', sourceIdMap);
+                                }
+                            }
+                            if (data.activityTypeMap && Object.keys(data.activityTypeMap).length) {
+                                actCount = Object.keys(data.activityTypeMap).length;
+                                lines.push(`🎯 活动映射：${actCount} 条`);
+                                if (apply) {
+                                    activityTypeMap = mergeMode ? { ...activityTypeMap, ...data.activityTypeMap } : data.activityTypeMap;
+                                    saveData('activityTypeMap', activityTypeMap);
+                                }
+                            }
+                            if (itemCount + srcCount + actCount === 0) {
+                                lines.push('❌ JSON 中未找到任何映射字段');
+                                resultEl.textContent = lines.join('\n');
+                                return;
+                            }
+                            lines.push('');
+                            lines.push(apply
+                                ? (mergeMode ? '✅ 已合并到现有映射并保存' : '✅ 已替换并保存')
+                                : '👁️ 预览模式，未写入。点击「解析并导入」才会应用。');
+                            if (apply) lines.push(`当前物品总数：${Object.keys(itemNameMap).length}`);
+                            resultEl.textContent = lines.join('\n');
+                            if (apply && document.getElementById('mappingTypeSelect')) {
+                                renderMappingList(document.getElementById('mappingSearchInput')?.value || '');
+                            }
+                            return;
+                        } catch (e) {
+                            resultEl.textContent = '❌ JSON 解析失败：' + e.message;
+                            return;
+                        }
+                    }
+
+                    // ===== 分支 2：识别游戏源码 HTML =====
+                    let itemMapFromAll = {};
+                    let itemMapFromOption = {};
+                    let groupedItemMap = null;
+
+                    const allGoods = extractAllPresentGoodsFromSource(source);
+                    if (allGoods) {
+                        itemMapFromAll = flattenAllPresentGoods(allGoods);
+                        groupedItemMap = extractAllPresentGoodsGrouped(source);
+                    }
+                    itemMapFromOption = extractOptionMapFromSource(source);
+
+                    const itemMap = { ...itemMapFromOption, ...itemMapFromAll };
+                    const mergeMode = document.getElementById('importMergeMode').checked;
+                    const alsoSource = document.getElementById('importAlsoSource').checked;
+                    const alsoActivity = document.getElementById('importAlsoActivity').checked;
+                    const srcMap = alsoSource ? extractSourceMapFromSource(source) : {};
+                    const actMap = alsoActivity ? extractActivityMapFromSource(source) : {};
+
+                    const lines = [];
+                    lines.push('=== 解析结果 ===');
+
+                    lines.push(`📦 物品映射`);
+                    if (groupedItemMap && Object.keys(groupedItemMap).length > 0) {
+                        lines.push(`   来源：allPresentGoods（按源码分类）`);
+                        for (const [groupName, groupMap] of Object.entries(groupedItemMap)) {
+                            lines.push(`   ├─ 【${groupName}】${Object.keys(groupMap).length} 条`);
+                            const samples = Object.entries(groupMap).slice(0, 5);
+                            for (const [k, v] of samples) {
+                                lines.push(`   │    ${k} = ${v}`);
+                            }
+                            if (Object.keys(groupMap).length > 5) {
+                                lines.push(`   │    ... 还有 ${Object.keys(groupMap).length - 5} 条`);
+                            }
+                        }
+                    }
+                    if (Object.keys(itemMapFromOption).length > 0) {
+                        lines.push(`   ├─ 【option 标签】${Object.keys(itemMapFromOption).length} 条`);
+                        const samples = Object.entries(itemMapFromOption).slice(0, 5);
+                        for (const [k, v] of samples) {
+                            lines.push(`   │    ${k} = ${v}`);
+                        }
+                        if (Object.keys(itemMapFromOption).length > 5) {
+                            lines.push(`   │    ... 还有 ${Object.keys(itemMapFromOption).length - 5} 条`);
+                        }
+                    }
+                    lines.push(`   └─ 合并后共 ${Object.keys(itemMap).length} 条`);
+
+                    if (alsoSource) {
+                        lines.push('');
+                        lines.push(`🔗 来源映射：${Object.keys(srcMap).length} 条`);
+                        const samples = Object.entries(srcMap).slice(0, 5);
+                        for (const [k, v] of samples) {
+                            lines.push(`   ${k} = ${v}`);
+                        }
+                        if (Object.keys(srcMap).length > 5) {
+                            lines.push(`   ... 还有 ${Object.keys(srcMap).length - 5} 条`);
+                        }
+                    }
+
+                    if (alsoActivity) {
+                        lines.push('');
+                        lines.push(`🎯 活动映射：${Object.keys(actMap).length} 条`);
+                        const samples = Object.entries(actMap).slice(0, 5);
+                        for (const [k, v] of samples) {
+                            lines.push(`   ${k} = ${v}`);
+                        }
+                        if (Object.keys(actMap).length > 5) {
+                            lines.push(`   ... 还有 ${Object.keys(actMap).length - 5} 条`);
+                        }
+                    }
+
+                    if (Object.keys(itemMap).length === 0 && Object.keys(srcMap).length === 0 && Object.keys(actMap).length === 0) {
+                        lines.push('');
+                        lines.push('❌ 没有提取到任何数据。请确认粘贴的是完整的 HTML 源码，或者包含 var allPresentGoods = {...} 的片段。');
+                        resultEl.textContent = lines.join('\n');
+                        return;
+                    }
+
+                    if (!apply) {
+                        lines.push('');
+                        lines.push('👁️ 预览模式，未写入。点击「解析并导入」才会应用。');
+                        resultEl.textContent = lines.join('\n');
+                        return;
+                    }
+
+                    if (Object.keys(itemMap).length > 0) {
+                        itemNameMap = mergeMode ? { ...itemNameMap, ...itemMap } : itemMap;
+                        saveData('itemNameMap', itemNameMap);
+                    }
+                    if (Object.keys(srcMap).length > 0) {
+                        sourceIdMap = mergeMode ? { ...sourceIdMap, ...srcMap } : srcMap;
+                        saveData('sourceIdMap', sourceIdMap);
+                    }
+                    if (Object.keys(actMap).length > 0) {
+                        activityTypeMap = mergeMode ? { ...activityTypeMap, ...actMap } : actMap;
+                        saveData('activityTypeMap', activityTypeMap);
+                    }
+
+                    lines.push('');
+                    lines.push(mergeMode ? '✅ 已合并到现有映射并保存' : '✅ 已替换并保存');
+                    lines.push(`当前物品总数：${Object.keys(itemNameMap).length}`);
+                    resultEl.textContent = lines.join('\n');
+
+                    const typeSelect = document.getElementById('mappingTypeSelect');
+                    if (typeSelect) renderMappingList(document.getElementById('mappingSearchInput')?.value || '');
+                }
 
                 // ==================== 解析：智能粘贴 ====================
                 function parseSmartLog(rawText) {
