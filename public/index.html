@@ -1407,6 +1407,39 @@
                     top: 0 !important;
                     vertical-align: middle !important;
                 }
+        /* ============================================================
+           集卡结果 · 新卡高亮预览（记号笔效果）
+           ============================================================ */
+        .card-preview {
+            background: var(--bg-1);
+            border: 1px solid var(--line-0);
+            border-radius: var(--r-md);
+            padding: 14px 16px;
+            font-family: var(--font-mono);
+            font-size: 12.5px;
+            line-height: 1.9;
+            white-space: pre-wrap;
+            word-break: break-word;
+            max-height: 320px;
+            overflow: auto;
+            margin-bottom: 10px;
+            color: var(--ink-0);
+        }
+
+            .card-preview:empty::before {
+                content: '（解析后此处显示新卡高亮预览）';
+                color: var(--ink-3);
+                font-family: var(--font-sans);
+            }
+
+            /* 记号笔高亮：中段黄色粗，两端淡出 */
+            .card-preview mark.hl-new {
+                background: linear-gradient( 180deg, transparent 35%, rgba(255, 204, 0, 0.72) 35%, rgba(255, 204, 0, 0.72) 92%, transparent 92% );
+                color: inherit;
+                padding: 0 3px;
+                border-radius: 2px;
+                font-weight: 700;
+            }
     </style>
 </head>
 
@@ -1497,7 +1530,15 @@
         <div id="tab-card" class="tab-content">
             <div class="form-group"><label>上传集卡CSV文件</label><input type="file" id="csvFileInput" accept=".csv,.txt" /><button id="uploadCsvBtn" style="margin-top:8px;">📂 上传并解析</button><button id="debugCardBtn" class="secondary">🔍 调试</button></div>
             <div class="form-group"><label>按卡牌星级筛选：</label><select id="starFilterSelect"><option value="all">全部</option><option value="1">1星</option><option value="2">2星</option><option value="3">3星</option><option value="4">4星</option><option value="5">5星</option></select><button id="applyFilterBtn" style="margin-left:8px;">应用筛选</button></div>
-            <div class="card"><label>生成结果（共 <span id="recordCount">0</span> 条）</label><textarea id="cardResultArea" rows="20" readonly></textarea><div class="flex-row"><button id="copyAllCardBtn">复制全部</button><button id="exportCardBtn">导出TXT</button></div></div>
+            <div class="card">
+                <label>生成结果（共 <span id="recordCount">0</span> 条）</label>
+                <div id="cardResultPreview" class="card-preview"></div>
+                <textarea id="cardResultArea" rows="12" readonly></textarea>
+                <div class="flex-row" style="margin-top:10px;">
+                    <button id="copyAllCardBtn">📋 复制全部</button>
+                    <button id="exportCardBtn">💾 导出TXT</button>
+                </div>
+            </div>
         </div>
 
         <!-- 拼豆小游戏 -->
@@ -4797,7 +4838,8 @@
                     const starsArray = parseStarsArray(record["卡包星级"]);
                     const afterData = parseAfter(record["after"]);
                     const cardIds = Object.keys(afterData);
-                    const descs = [];
+                    const textParts = [];
+                    const htmlParts = [];
                     cardIds.forEach((cid, idx) => {
                         const group = cid.substring(3, 5);
                         const num = cid.substring(5, 7);
@@ -4806,9 +4848,17 @@
                         if (rawStar === 23) starLabel = "霞光3星";
                         else if (rawStar === 24) starLabel = "霞光4星";
                         else if (rawStar === 25) starLabel = "霞光5星";
-                        descs.push(`${group}组第${num}张（${starLabel}，${afterData[cid] === 1 ? '新卡' : '重复'}）`);
+                        const isNew = afterData[cid] === 1;
+                        const seg = `${group}组第${num}张（${starLabel}，${isNew ? '新卡' : '重复'}）`;
+                        textParts.push(seg);
+                        htmlParts.push(isNew ? `<mark class="hl-new">${seg}</mark>` : seg);
                     });
-                    return `在${record["创建时间"].replace(/-/g, '/')}，开启【${packName}】获得${cardIds.length}张卡牌，分别为${descs.join('，')}`;
+                    const time = record["创建时间"].replace(/-/g, '/');
+                    const prefix = `在${time}，开启【${packName}】获得${cardIds.length}张卡牌，分别为`;
+                    return {
+                        text: `${prefix}${textParts.join('，')}`,
+                        html: `${prefix}${htmlParts.join('，')}`
+                    };
                 }
                 function filterRecordsByStar(records, star) {
                     if (star === 'all') return records;
@@ -4826,9 +4876,19 @@
                     const text = await f.text(); currentCardRecords = parseCSVEnhanced(text);
                     const star = document.getElementById('starFilterSelect').value;
                     const filtered = filterRecordsByStar(currentCardRecords, star);
-                    const sentences = filtered.map(r => { try { return generateCardSentence(r); } catch { return '[解析失败]'; } });
-                    document.getElementById('cardResultArea').value = sentences.join('\n\n');
-                    document.getElementById('recordCount').textContent = sentences.length;
+                    const results = filtered.map(r => {
+                        try { return generateCardSentence(r); }
+                        catch { return { text: '[解析失败]', html: '[解析失败]' }; }
+                    });
+                    const texts = results.map(r => r.text);
+                    const htmls = results.map(r => r.html);
+
+                    document.getElementById('cardResultArea').value = texts.join('\n\n');
+
+                    const preview = document.getElementById('cardResultPreview');
+                    if (preview) preview.innerHTML = htmls.join('\n\n');
+
+                    document.getElementById('recordCount').textContent = texts.length;
                 }
 
                 // ==================== 拼豆小游戏 ====================
