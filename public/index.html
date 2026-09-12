@@ -1410,7 +1410,7 @@
         /* ============================================================
            集卡结果 · 新卡高亮预览（记号笔效果）
            ============================================================ */
-        .card-preview {
+        . .card-preview {
             background: var(--bg-1);
             border: 1px solid var(--line-0);
             border-radius: var(--r-md);
@@ -1420,7 +1420,8 @@
             line-height: 1.9;
             white-space: pre-wrap;
             word-break: break-word;
-            max-height: 320px;
+            min-height: 480px; /* ★ 和原 textarea rows="20" 差不多高 */
+            max-height: 480px; /* ★ 固定高度，内容多则滚动 */
             overflow: auto;
             margin-bottom: 10px;
             color: var(--ink-0);
