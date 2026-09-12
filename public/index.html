@@ -1265,6 +1265,148 @@
             text-transform: uppercase !important;
             margin: 0 !important;
         }
+        /* ============================================================
+   UI 整齐化 · 拼豆工具栏 + 解析模式
+   ============================================================ */
+
+        /* ---------- 拼豆工具栏：统一高度 36px ---------- */
+        #tab-script #pixelColor,
+        #tab-script #pixelPaletteToggleBtn,
+        #tab-script #pixelEraserBtn,
+        #tab-script #pixelClearBtn,
+        #tab-script #pixelGridSize,
+        #tab-script #pixelResizeBtn,
+        #tab-script #pixelFillMode,
+        #tab-script #pixelExportBtn,
+        #tab-script label[for="pixelFileInput"] {
+            height: 36px !important;
+            min-height: 36px !important;
+            max-height: 36px !important;
+            box-sizing: border-box !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            line-height: 1 !important;
+            font-size: 12px !important;
+            padding: 0 14px !important;
+            margin: 0 !important;
+            vertical-align: middle !important;
+        }
+
+        /* 颜色选择器收窄 */
+        #tab-script #pixelColor {
+            width: 44px !important;
+            padding: 4px !important;
+        }
+
+        /* 格子数数字输入 */
+        #tab-script #pixelGridSize {
+            width: 80px !important;
+            padding: 0 10px !important;
+            text-align: center !important;
+            font-family: var(--font-mono) !important;
+        }
+
+        /* 填充模式下拉 */
+        #tab-script #pixelFillMode {
+            width: 120px !important;
+            padding: 0 30px 0 12px !important;
+        }
+
+        /* ---------- "格子数：" "填充：" 标签也统一高度 ---------- */
+        #tab-script label[style*="margin:0"],
+        #tab-script label[style*="margin: 0"] {
+            height: 36px !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            font-size: 12px !important;
+            font-weight: 700 !important;
+            color: var(--ink-2) !important;
+            letter-spacing: 0.12em !important;
+            text-transform: uppercase !important;
+            font-family: var(--font-display) !important;
+        }
+
+        /* ---------- "支持Ctrl+V粘贴截图" 提示居中 ---------- */
+        #tab-script span[style*="color:#6c757d"],
+        #tab-script span[style*="color: #6c757d"] {
+            display: inline-flex !important;
+            align-items: center !important;
+            height: 36px !important;
+            font-size: 11.5px !important;
+            color: var(--ink-3) !important;
+            margin: 0 !important;
+            padding: 0 4px !important;
+            letter-spacing: 0.02em !important;
+        }
+
+        /* ---------- 拼豆工具栏父容器：统一间距 ---------- */
+        #tab-script > div > div > div:first-child {
+            gap: 10px !important;
+            align-items: center !important;
+            row-gap: 10px !important;
+        }
+
+        /* ---------- 色板里的小方块按钮不受影响 ---------- */
+        #pixelColorPalette button {
+            height: 24px !important;
+            min-height: 24px !important;
+            max-height: 24px !important;
+            width: 24px !important;
+            padding: 0 !important;
+            font-size: 7px !important;
+        }
+
+        /* ============================================================
+   解析模式：radio 组整齐对齐
+   ============================================================ */
+        .parse-mode-group {
+            display: inline-flex !important;
+            align-items: center !important;
+            gap: 18px !important;
+            flex-wrap: wrap !important;
+            margin-left: auto !important;
+            height: 36px !important;
+        }
+
+            .parse-mode-group > span {
+                display: inline-flex !important;
+                align-items: center !important;
+                height: 36px !important;
+                font-size: 12px !important;
+                font-weight: 700 !important;
+                color: var(--ink-2) !important;
+                letter-spacing: 0.12em !important;
+                text-transform: uppercase !important;
+                font-family: var(--font-display) !important;
+                margin: 0 !important;
+            }
+
+            .parse-mode-group .checkbox-label {
+                display: inline-flex !important;
+                align-items: center !important;
+                gap: 6px !important;
+                font-size: 13px !important;
+                line-height: 1 !important;
+                height: 36px !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                vertical-align: middle !important;
+            }
+
+                .parse-mode-group .checkbox-label input[type="radio"] {
+                    width: 14px !important;
+                    height: 14px !important;
+                    margin: 0 !important;
+                    padding: 0 !important;
+                    flex-shrink: 0 !important;
+                    accent-color: var(--accent) !important;
+                    position: relative !important;
+                    top: 0 !important;
+                    vertical-align: middle !important;
+                }
     </style>
 </head>
 
