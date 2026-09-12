@@ -8,9 +8,9 @@
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
     <style>
         :root {
-            --primary: #5b7cfa; /* 柔和的蓝紫色 */
+            --primary: #5b7cfa;
             --primary-hover: #4a6ae8;
-            --bg: #f5f7fb; /* 更柔和的背景 */
+            --bg: #f5f7fb;
             --surface: #ffffff;
             --border: #e2e6ee;
             --text: #3a4256;
@@ -18,6 +18,12 @@
             --radius: 14px;
             --shadow-sm: 0 2px 6px rgba(0,0,0,0.04);
             --shadow: 0 8px 24px rgba(0,0,0,0.06);
+            /* AK 变量（供脚本使用） */
+            --ak-primary: #6c8cff;
+            --ak-danger: #dc3545;
+            --ak-border: #dce1e8;
+            --ak-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+            --ak-text-mute: #7a859a;
         }
 
         * {
@@ -337,23 +343,16 @@
         }
 
         .upload-row {
-            display: flex;
-            gap: 16px;
-            flex-wrap: wrap;
-            align-items: stretch;
-        }
-
-        .upload-row {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 16px;
         }
 
-            .upload-col label {
-                margin-bottom: 4px;
-                font-weight: 500;
-                font-size: 14px;
-            }
+        .upload-col label {
+            margin-bottom: 4px;
+            font-weight: 500;
+            font-size: 14px;
+        }
 
         .file-upload-wrapper {
             display: flex;
@@ -427,7 +426,6 @@
                 color: #aaa;
             }
 
-        /* 工具栏按钮统一为小尺寸 */
         #tab-script button,
         #tab-script .secondary,
         #tab-script label[for="pixelFileInput"] {
@@ -436,22 +434,21 @@
             border-radius: 8px;
         }
 
-        /* 色卡面板背景柔和 */
         #pixelColorPalette {
             background: #fafbfd;
             border: 1px solid #e6e9f0;
             border-radius: 12px;
         }
-        /* ========== 护眼舒适增强 ========== */
+
         body {
-            font-size: 16px; /* 字体稍大，阅读更轻松 */
-            line-height: 1.7; /* 行距增加 */
+            font-size: 16px;
+            line-height: 1.7;
             color: #2f3542;
-            background-color: #f4f6f9; /* 更柔和的背景 */
+            background-color: #f4f6f9;
         }
 
         .container {
-            box-shadow: 0 6px 18px rgba(0,0,0,0.04); /* 阴影更轻 */
+            box-shadow: 0 6px 18px rgba(0,0,0,0.04);
             border: 1px solid #e2e6ee;
         }
 
@@ -501,7 +498,6 @@
             font-weight: 500;
         }
 
-        /* 结果文本框浅灰背景，降低反差 */
         #globalResultArea,
         #cardResultArea {
             background: #fafbfd !important;
@@ -509,13 +505,11 @@
             border: 1px solid #e2e6ee;
         }
 
-        /* 调试控制台低亮度护眼 */
         .debug-console {
             background: #252b36;
             color: #cbd1dc;
         }
 
-        /* 选项卡更柔和 */
         .tab-btn {
             color: #3a4256;
         }
@@ -530,7 +524,6 @@
                 font-weight: 600;
             }
 
-        /* 拼豆工具栏更紧凑，减少视觉压力 */
         #tab-script button,
         #tab-script .secondary,
         #tab-script label[for="pixelFileInput"] {
@@ -545,11 +538,9 @@
             border-radius: 12px;
         }
 
-        /* 可选：降低蓝光，使画面略暖 */
         body {
             filter: sepia(0.04) saturate(0.95) brightness(1.0);
         }
-
     </style>
 </head>
 
@@ -582,6 +573,7 @@
                     <div><label style="margin:0; font-weight:600;">资源类型</label><select id="flowResourceSelect" class="compact-select"><option value="体力">体力</option><option value="红钻">红钻</option><option value="金币">金币</option><option value="好评点" selected>好评点</option><option value="道具" selected>道具</option></select></div>
                     <div><strong>🚫 忽略</strong><label class="checkbox-label"><input type="checkbox" id="enableIgnoreRulesCheckbox" checked> 启用</label><button id="manageIgnoreRulesBtn" class="secondary">管理</button></div>
                     <div><strong>📌 转换</strong><label class="checkbox-label"><input type="checkbox" id="enableSourceConversionCheckbox" checked> 启用</label><button id="manageSourceRulesBtn" class="secondary">管理</button></div>
+                    <div><strong>🗂️ 映射</strong><button id="manageMappingBtn" class="secondary">管理</button></div>
                 </div>
                 <div class="upload-row">
                     <div class="upload-col"><label>📁 上传流水CSV</label><div class="file-upload-wrapper"><input type="file" id="flowFileInput" accept=".csv,.txt" /><button id="uploadFlowBtn">上传解析</button><button id="debugFlowBtn" class="secondary">调试</button></div></div>
@@ -624,10 +616,9 @@
             <div class="card"><label>生成结果（共 <span id="recordCount">0</span> 条）</label><textarea id="cardResultArea" rows="20" readonly></textarea><div class="flex-row"><button id="copyAllCardBtn">📋 复制全部</button><button id="exportCardBtn">💾 导出TXT</button></div></div>
         </div>
 
-        <!-- 拼豆小游戏（Adobe风格布局） -->
+        <!-- 拼豆小游戏 -->
         <div id="tab-script" class="tab-content">
             <div style="display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap;">
-                <!-- 左侧：工具 + 画布 -->
                 <div style="flex: 1; min-width: 300px; display: flex; flex-direction: column; gap: 12px;">
                     <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
                         <input type="color" id="pixelColor" value="#ff0000" style="width:40px;height:40px;padding:0;border:1px solid #ccc;border-radius:6px;cursor:pointer;">
@@ -648,17 +639,11 @@
                         <span style="font-size:12px;color:#6c757d;">支持Ctrl+V粘贴截图</span>
                         <button id="pixelExportBtn" class="secondary" style="background:#007bff;">📤 导出图纸</button>
                     </div>
-                    <!-- 色卡面板（默认隐藏） -->
                     <div id="pixelColorPalette" style="display:none; flex-wrap:wrap; gap:4px; margin-top:8px; padding:8px; border:1px solid #ccc; border-radius:8px; background:#f8f9fa; max-width:100%;"></div>
-                    <!-- 画布容器 -->
                     <div style="position: relative; display: inline-block; border: 2px solid #dee2e6; border-radius: 8px; padding: 4px; background: #f8f9fa; overflow: auto; max-width: 100%; max-height: 80vh;">
-                        <!-- 左上角占位 -->
                         <div style="position: absolute; top: 0; left: 0; width: 20px; height: 20px; background: #f8f9fa; z-index: 3;"></div>
-                        <!-- 左侧行号容器 -->
                         <div id="pixelRowLabels" style="position: absolute; left: 0; top: 20px; width: 20px; pointer-events: none; z-index: 2;"></div>
-                        <!-- 顶部列号容器 -->
                         <div id="pixelColLabels" style="position: absolute; top: 0; left: 20px; right: 0; height: 20px; pointer-events: none; z-index: 2;"></div>
-                        <!-- 画布（不设置固定像素CSS宽高，由画布实际宽度决定） -->
                         <canvas id="pixelCanvas" width="600" height="600" style="display:block; margin-left:20px; margin-top:20px; cursor:crosshair; image-rendering:pixelated; position: relative; z-index: 1;"></canvas>
                     </div>
                 </div>
@@ -666,20 +651,85 @@
         </div>
 
         <!-- 模态框集合 -->
-        <div id="sourceRuleModal" class="modal"><div class="modal-content"><div class="modal-header"><h3>📌 文本转换规则管理</h3><span class="close" id="closeSourceRuleModal">&times;</span></div><p class="hint-text">✨ 按类型管理转换规则：来源、订单奖励、棋子名称。可搜索定位。</p><div class="flex-row" style="margin-bottom:12px;"><select id="ruleTypeFilter" style="width:140px;"><option value="all">全部类型</option><option value="source">来源</option><option value="reward">订单奖励</option><option value="chessName">棋子名称</option></select><div class="search-box" style="flex:1;"><input type="text" id="ruleSearchInput" placeholder="搜索关键词或替换内容..."><span class="clear-search" id="clearRuleSearch" style="display:none;">✕</span></div></div><div id="sourceRuleListContainer" style="max-height:250px; overflow:auto; border:1px solid #dee2e6; border-radius:8px; padding:8px;"></div><div class="inline-form"><select id="newRuleType" style="width:120px;"><option value="source">来源</option><option value="reward">订单奖励</option><option value="chessName">棋子名称</option></select><input type="text" id="newRulePattern" placeholder="匹配关键词" style="flex:2;"><span>→</span><input type="text" id="newRuleReplacement" placeholder="替换为（留空删除）" style="flex:3;"><button id="addOrUpdateRuleBtn" style="background:#28a745;">➕ 添加</button><button id="cancelEditRuleBtn" class="secondary" style="display:none;">取消</button></div><div class="flex-row" style="margin-top:16px; justify-content:space-between;"><button id="resetDefaultSourceRulesBtn" class="secondary">重置推荐规则</button><button id="clearAllSourceRulesBtn" class="reset-btn">清空所有规则</button></div></div></div>
-        <div id="ignoreRuleModal" class="modal"><div class="modal-content"><div class="modal-header"><h3>🚫 忽略关键词管理</h3><span class="close" id="closeIgnoreRuleModal">&times;</span></div><div id="ignoreRuleListContainer" style="max-height:250px; overflow:auto; border:1px solid #dee2e6; border-radius:8px; padding:8px;"></div><div class="inline-form"><input type="text" id="newIgnoreKeyword" placeholder="关键词"><button id="addIgnoreKeywordBtn" style="background:#28a745;">➕ 添加</button></div><div class="flex-row" style="margin-top:16px; justify-content:space-between;"><button id="resetDefaultIgnoreRulesBtn" class="secondary">重置推荐</button><button id="clearAllIgnoreRulesBtn" class="reset-btn">清空</button></div></div></div>
+        <div id="sourceRuleModal" class="modal"><div class="modal-content"><div class="modal-header"><h3>📌 文本转换规则管理</h3><span class="close" id="closeSourceRuleModal">&times;</span></div><p class="hint-text">✨ 按类型管理转换规则：来源、订单奖励、棋子名称。可搜索定位。</p><div class="flex-row" style="margin-bottom:12px;"><select id="ruleTypeFilter" style="width:140px;"><option value="all">全部类型</option><option value="source">来源</option><option value="reward">订单奖励</option><option value="chessName">棋子名称</option></select><div class="search-box" style="flex:1;"><input type="text" id="ruleSearchInput" placeholder="搜索关键词或替换内容..."><span class="clear-search" id="clearRuleSearch" style="display:none;">✕</span></div></div><div id="sourceRuleListContainer" style="max-height:250px; overflow:auto; border:1px solid #dee2e6; border-radius:8px; padding:8px;"></div><div class="flex-row" style="margin-top:12px;"><select id="newRuleType" style="width:120px;"><option value="source">来源</option><option value="reward">订单奖励</option><option value="chessName">棋子名称</option></select><input type="text" id="newRulePattern" placeholder="匹配关键词" style="flex:2;"><span>→</span><input type="text" id="newRuleReplacement" placeholder="替换为（留空删除）" style="flex:3;"><button id="addOrUpdateRuleBtn" style="background:#28a745;">➕ 添加</button><button id="cancelEditRuleBtn" class="secondary" style="display:none;">取消</button></div><div class="flex-row" style="margin-top:16px; justify-content:space-between;"><button id="resetDefaultSourceRulesBtn" class="secondary">重置推荐规则</button><button id="clearAllSourceRulesBtn" class="reset-btn">清空所有规则</button></div></div></div>
+
+        <div id="ignoreRuleModal" class="modal"><div class="modal-content"><div class="modal-header"><h3>🚫 忽略关键词管理</h3><span class="close" id="closeIgnoreRuleModal">&times;</span></div><div id="ignoreRuleListContainer" style="max-height:250px; overflow:auto; border:1px solid #dee2e6; border-radius:8px; padding:8px;"></div><div class="flex-row" style="margin-top:12px;"><input type="text" id="newIgnoreKeyword" placeholder="关键词"><button id="addIgnoreKeywordBtn" style="background:#28a745;">➕ 添加</button></div><div class="flex-row" style="margin-top:16px; justify-content:space-between;"><button id="resetDefaultIgnoreRulesBtn" class="secondary">重置推荐</button><button id="clearAllIgnoreRulesBtn" class="reset-btn">清空</button></div></div></div>
+
         <div id="templateModal" class="modal"><div class="modal-content"><div class="modal-header"><h3>管理模板</h3><span class="close" id="closeTemplateModal">&times;</span></div><button id="modalAddTemplateBtn">➕ 新增模板</button><div id="templateList"></div></div></div>
+
         <div id="scriptEditModal" class="modal"><div class="modal-content" style="max-width:600px;"><div class="modal-header"><h3 id="scriptEditTitle">编辑话术</h3><span class="close" id="closeScriptModal">&times;</span></div><textarea id="scriptEditText" rows="4" style="width:100%; margin-bottom:12px;"></textarea><label>标签（可多个，用逗号或空格分隔）</label><input type="text" id="scriptEditTags" placeholder="例如：常用,补偿,活动" style="width:100%; margin-bottom:12px;"><div class="flex-row"><button id="saveScriptBtn">💾 保存</button><button id="cancelScriptBtn" class="secondary">取消</button></div></div></div>
+
         <div id="batchTagModal" class="modal"><div class="modal-content" style="max-width:500px;"><div class="modal-header"><h3>批量添加标签</h3><span class="close" id="closeBatchModal">&times;</span></div><input type="text" id="batchTagInput" placeholder="标签名（逗号分隔）" style="width:100%; margin-bottom:12px;"><div class="flex-row"><button id="applyBatchTagBtn">应用</button><button id="cancelBatchBtn" class="secondary">取消</button></div></div></div>
+
         <div id="manageTagsModal" class="modal"><div class="modal-content" style="max-width:500px;"><div class="modal-header"><h3>管理所有标签</h3><span class="close" id="closeManageTags">&times;</span></div><div id="allTagsList" style="margin-bottom:16px;"></div><div class="flex-row"><input type="text" id="newTagInput" placeholder="新标签名" style="flex:1;"><button id="addNewTagBtn">➕ 添加</button></div></div></div>
+
         <div id="importScriptModal" class="modal"><div class="modal-content" style="max-width:500px;"><div class="modal-header"><h3>导入话术文本</h3><span class="close" id="closeImportModal">&times;</span></div><div class="checkbox-label"><input type="checkbox" id="skipDuplicateCheckbox" checked> 跳过重复</div><input type="file" id="importFileInput" accept=".txt,.csv" /><div class="flex-row" style="margin-top:12px;"><button id="confirmImportBtn">开始导入</button><button id="cancelImportBtn" class="secondary">取消</button></div><div id="importProgress" style="margin-top:8px; font-size:12px; color:#0d6efd;"></div></div></div>
+
+        <!-- 映射管理模态框（新增） -->
+        <div id="mappingModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>🗂️ 映射管理</h3>
+                    <span class="close" id="closeMappingModal">&times;</span>
+                </div>
+                <p class="hint-text">管理物品ID、来源ID、活动类型ID到名称的映射。支持从游戏源码一键导入。</p>
+                <div class="flex-row" style="margin-bottom:12px;">
+                    <select id="mappingTypeSelect" style="width:170px;">
+                        <option value="item">物品映射</option>
+                        <option value="source">来源映射</option>
+                        <option value="activity">活动类型映射</option>
+                    </select>
+                    <div class="search-box" style="flex:1; min-width:180px;">
+                        <input type="text" id="mappingSearchInput" placeholder="搜索ID或名称...">
+                    </div>
+                    <button id="importMappingBtn" class="secondary">📥 从源码导入</button>
+                    <button id="exportMappingBtn" class="secondary">📤 导出JSON</button>
+                    <button id="resetMappingBtn" class="reset-btn">重置默认</button>
+                </div>
+                <div id="mappingListContainer" style="max-height:320px; overflow:auto; border:1px solid #dee2e6; border-radius:8px; padding:8px;"></div>
+                <div class="flex-row" style="margin-top:12px;">
+                    <input type="text" id="newMappingId" placeholder="ID（如 151）" style="width:140px;">
+                    <span>→</span>
+                    <input type="text" id="newMappingName" placeholder="名称（如 1星百戏锦囊）" style="flex:1;">
+                    <button id="addMappingBtn" style="background:#28a745;">➕ 添加</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 从源码导入映射模态框（新增） -->
+        <div id="importMappingModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>📥 从源码导入映射</h3>
+                    <span class="close" id="closeImportMappingModal">&times;</span>
+                </div>
+                <p class="hint-text">粘贴包含 <code>var allPresentGoods = {...}</code> 或 <code>&lt;option&gt;</code> 标签的 HTML/JS 源码。会自动提取物品、来源、活动映射。</p>
+                <textarea id="importMappingSource" rows="10" placeholder="粘贴源码..." style="width:100%; font-family:monospace; font-size:12px;"></textarea>
+                <div class="flex-row" style="margin-top:12px;">
+                    <label class="checkbox-label"><input type="checkbox" id="importMergeMode" checked> 合并到现有映射（不勾选则替换）</label>
+                    <label class="checkbox-label"><input type="checkbox" id="importAlsoSource" checked> 同时导入来源映射</label>
+                    <label class="checkbox-label"><input type="checkbox" id="importAlsoActivity" checked> 同时导入活动映射</label>
+                </div>
+                <div class="flex-row" style="margin-top:12px;">
+                    <button id="doImportMappingBtn">✅ 解析并导入</button>
+                    <button id="previewImportMappingBtn" class="secondary">👁️ 预览</button>
+                    <button id="clearImportMappingBtn" class="secondary">清空</button>
+                </div>
+                <div id="importMappingResult" style="display:none; margin-top:12px; padding:12px; background:#f8f9fa; border-radius:8px; font-family:monospace; font-size:12px; white-space:pre-wrap; max-height:300px; overflow:auto;"></div>
+            </div>
+        </div>
 
         <script>
             (async function () {
                 "use strict";
+
                 const SERVER_URL = window.location.origin;
                 const CORE_FIELDS = ['时间', '体力', '红钻', '金币'];
-                const DEFAULT_TEMPLATES = ["查询到您在{时间}{action}{体力}点体力", "查询到您在{时间}{action}{红钻}红钻", "查询到您在{时间}{action}{金币}金币"];
+                const DEFAULT_TEMPLATES = [
+                    "查询到您在{时间}{action}{体力}点体力",
+                    "查询到您在{时间}{action}{红钻}红钻",
+                    "查询到您在{时间}{action}{金币}金币"
+                ];
                 const DEFAULT_SOURCE_RULES = [
                     { pattern: "金币竞赛", replacement: "茶楼大战", type: "source" },
                     { pattern: "体力购买", replacement: "购买体力", type: "source" },
@@ -701,6 +751,138 @@
                     175: "霞光5星锦囊"
                 };
 
+                // ==================== 物品/来源/活动映射（默认示例） ====================
+                const DEFAULT_ITEM_NAME_MAP = {
+                    "101": "体力", "102": "铜钱", "103": "红宝石", "104": "pass卡经验值", "105": "好评点",
+                    "151": "1星百戏锦囊", "152": "1星大百戏锦囊", "153": "2星百戏锦囊", "154": "2星大百戏锦囊",
+                    "155": "3星百戏锦囊", "156": "3星大百戏锦囊", "157": "4星百戏锦囊", "158": "4星大百戏锦囊",
+                    "159": "5星百戏锦囊", "160": "5星大百戏锦囊", "161": "5星超大百戏锦囊",
+                    "10101": "竹子", "10102": "竹片", "10103": "竹篓", "10104": "竹简食篓",
+                    "10201": "茶叶", "10202": "茶叶袋", "10203": "茶叶罐", "10204": "茶壶",
+                    "10301": "毛笔", "10302": "直尺毛笔", "10303": "手作用具",
+                    "10401": "空盒", "10402": "盖盒", "10403": "木盒", "10404": "妆奁",
+                    "10501": "棉花", "10502": "棉花团", "10503": "棉线", "10504": "多股棉线"
+                };
+
+                const DEFAULT_SOURCE_ID_MAP = {
+                    "1": "默认", "2": "创建角色", "3": "商店购买", "4": "商店刷新",
+                    "5": "主线任务提交", "6": "邮箱", "7": "观看广告获得体力", "8": "体力购买",
+                    "9": "每日特价商品购买", "10": "热卖商品购买", "11": "热卖商品刷新",
+                    "12": "免费体力", "13": "完成订单", "14": "开始特殊订单", "15": "完成特殊订单",
+                    "16": "棋盘上传", "17": "pass卡奖励领取", "18": "支付购买", "19": "礼包码兑换",
+                    "20": "绒绒大冒险", "21": "金币竞赛", "22": "集卡活动-卡组收集奖励",
+                    "23": "集卡活动-卡册收集奖励", "24": "集卡活动-卡册升级",
+                    "25": "集卡活动-重复星数兑换", "26": "活动道具回收", "27": "链式礼包购买",
+                    "28": "每日（周）礼包购买", "29": "能量礼包购买", "30": "等级礼包购买",
+                    "31": "新手礼包购买", "32": "后台", "33": "pass卡购买",
+                    "34": "菜园捣蛋鬼奖励领取", "35": "茶楼大赛奖励领取", "36": "三合一礼包",
+                    "37": "1+x礼包购买", "38": "体力链式活动", "39": "好评点",
+                    "40": "卡牌必得礼包", "41": "分享礼物", "42": "分享进度礼物",
+                    "43": "分享礼物-其他玩家", "44": "礼包货币购买", "45": "微信游戏圈任务",
+                    "46": "限时任务", "47": "麒麟寻宝", "48": "龙宫夺宝", "49": "云端寻宝",
+                    "50": "微信小程序奖励", "51": "全部订阅", "53": "颠峰厨王争霸",
+                    "54": "盛世大富翁", "55": "集卡活动-开卡包", "56": "集卡活动-使用万能牌",
+                    "57": "基础棋盘活动", "58": "新手大礼包领取", "59": "装扮活动",
+                    "60": "装扮道具回收", "61": "限时排行", "62": "能量挑战",
+                    "63": "好感度商店购买", "64": "好感度礼物赠送", "65": "好感度等级领取",
+                    "66": "好感度每日回礼", "67": "棋盘操作", "68": "棋盘操作-删除棋子",
+                    "69": "棋盘操作-撤销删除棋子", "70": "棋盘操作-使用消耗棋子",
+                    "71": "棋盘操作-常规母棋生产", "72": "棋盘操作-增加仓库容量",
+                    "73": "棋盘操作-邀请增加仓库容量", "74": "棋盘操作-自动恢复hp",
+                    "75": "棋盘操作-钻石解锁泡泡", "76": "棋盘操作-母棋填充库存",
+                    "77": "棋盘操作-开启宝箱", "78": "棋盘操作-收集活动奖励",
+                    "79": "棋盘操作-更新活动成就", "80": "pk100活动最终奖励",
+                    "81": "活动捏面人", "82": "活动捏面人最终大奖", "83": "装扮活动配套活动",
+                    "84": "祈愿树活动商品购买", "85": "祈愿树活动抽奖", "86": "提篮问芳活动",
+                    "87": "探险棋盘活动", "88": "探险棋盘活动-棋子解锁奖励",
+                    "89": "探险棋盘活动-棋子组解锁奖励", "90": "探险棋盘活动-棋子全解锁奖励",
+                    "91": "农场活动棋盘", "92": "邀请得红钻", "93": "抖音游戏圈任务",
+                    "94": "抖音小程序奖励", "95": "棋盘操作-交换棋子", "96": "棋盘操作-合并棋子",
+                    "97": "棋盘操作-推入仓库", "98": "棋盘操作-推出仓库", "99": "棋盘操作-移动棋子",
+                    "100": "限时0元购奖励", "101": "棋盘操作-服务器", "102": "棋盘操作-背包道具转换奖励",
+                    "103": "pass完成任务", "104": "棋盘操作-推出栈", "105": "棋盘操作-泡泡死亡",
+                    "106": "棋盘操作-自动母棋生产", "107": "棋盘操作-临时母棋生产",
+                    "108": "棋盘操作-宝箱母棋生产", "109": "棋盘操作-积分宝箱生产",
+                    "110": "棋盘操作-活动临时母棋自动生产", "111": "棋盘操作-活动临时母棋点击生产",
+                    "112": "棋盘操作-活动棋盘临时母棋合并", "113": "棋盘操作-三选一功能棋",
+                    "114": "连连看活动-阶段奖励", "115": "连连看活动-轮次奖励",
+                    "116": "连连看活动-最终大奖", "117": "棋盘操作-广告解锁泡泡",
+                    "118": "活动棋盘操作-挖掘棋子", "119": "棋盘操作-泡泡出现",
+                    "120": "基础棋盘活动-棋子解锁奖励", "121": "棋盘操作-冰冻棋子死亡",
+                    "122": "棋盘操作-创建棋子到棋盘", "123": "日常签到", "124": "55解锁棋盘",
+                    "125": "棋盘操作-剪刀", "126": "棋盘操作-金币出现",
+                    "127": "棋盘操作-活动结束清理棋子", "128": "棋盘操作-合并剪刀",
+                    "129": "棋盘操作-使用万能棋子合并", "130": "棋盘操作-充值",
+                    "131": "活动捏面人回收奖励", "132": "棋盘操作-冰冻棋子出现",
+                    "133": "棋盘操作-活动棋盘消耗棋子合并", "134": "棋盘操作-签到",
+                    "135": "棋盘操作-活动动物棋子奖励", "136": "棋盘操作-活动地块奖励",
+                    "137": "自宅家具商店购买", "138": "自宅家具商店刷新",
+                    "139": "自宅家具商店家具券兑换", "140": "限时0元购礼包购买",
+                    "141": "一次性分享任务", "142": "服务端体力自动恢复",
+                    "143": "棋盘操作-使用替身棋子", "144": "五星好评", "145": "棋盘pass卡领取",
+                    "146": "棋盘pass卡购买", "147": "支付宝游戏圈任务", "148": "支付宝小程序奖励",
+                    "149": "回归奖励", "150": "棋盘操作-快照", "151": "拼图初始化",
+                    "152": "点亮拼图", "153": "击鼓传花游玩", "154": "击鼓传花轮次奖励",
+                    "155": "击鼓传花最终奖励", "156": "击鼓传花兑换", "157": "跳过广告购买",
+                    "158": "击鼓传花回收", "159": "自宅券日礼包购买", "160": "活动自宅券礼包",
+                    "161": "联动抽签活动", "162": "棋盘操作-喂食母棋", "163": "棋盘操作-喂食母棋生产",
+                    "164": "棋盘操作-解锁格子", "165": "棋盘操作-推入栈", "166": "大转盘",
+                    "167": "限时累充奖励", "168": "限时累充最终奖励", "169": "限时累充活动结束",
+                    "170": "游客绑定", "171": "社群关注", "172": "节日礼包购买",
+                    "173": "5连礼包购买", "174": "棋盘操作-更新地块", "175": "支付宝7日签到",
+                    "176": "问卷调查活动", "177": "棋盘操作-初始化", "178": "棋盘解锁获得奖励",
+                    "179": "活动结束补领能量挑战礼包奖励", "180": "棋盘操作-活动棋盘仓库推出棋子",
+                    "181": "七日任务-任务奖励", "182": "七日任务-点数奖励",
+                    "183": "七日任务-星级奖励", "184": "自宅解锁", "185": "七日任务-补发",
+                    "186": "好运对对碰", "187": "好运对对碰开始", "188": "好运对对碰盲盒购买",
+                    "189": "华为小程序奖励", "190": "77常规棋盘",
+                    "191": "77棋盘活动-棋子解锁奖励", "192": "77棋盘活动-棋子组解锁奖励",
+                    "193": "77棋盘活动-棋子全解锁奖励", "194": "棋盘操作-红包母棋点击生产",
+                    "195": "棋盘操作-冰冻棋子合并", "196": "限时闯关活动",
+                    "197": "好运对对碰结束", "198": "还愿锦鲤",
+                    "199": "55棋盘活动-棋子组解锁奖励", "200": "55棋盘活动-棋子全解锁奖励",
+                    "201": "1+x礼包免费领取", "202": "能量礼包免费领取",
+                    "203": "链式礼包免费领取", "204": "53棋盘活动-棋子组解锁奖励",
+                    "205": "53棋盘活动-棋子全解锁奖励", "206": "VIP问卷调查活动",
+                    "207": "棋盘操作-使用母棋效果棋子", "208": "棋盘操作-活动棋盘结束",
+                    "209": "棋盘操作-走地图棋盘仓库推出棋子", "210": "自宅家具商店每日免费领取",
+                    "211": "走地图活动-拾取物品奖励", "212": "走地图活动-主线任务奖励",
+                    "213": "走地图活动-支线任务奖励", "214": "走地图活动-支线全部完成奖励",
+                    "215": "走地图活动-棋子解锁奖励", "216": "走地图活动-棋子组解锁奖励",
+                    "217": "走地图活动-初始化奖励", "218": "走地图活动-限时进度奖励",
+                    "219": "走地图活动-消耗活动体力", "220": "走地图活动-结算回收体力",
+                    "221": "绑定邮箱", "222": "超级好评点", "223": "连连看活动-道具回收奖励",
+                    "224": "棋盘操作-灶神显灵", "225": "完成宝箱订单", "226": "换装初始解锁",
+                    "227": "限时分享奖励", "228": "抖音绑定", "229": "小红书绑定",
+                    "230": "大促销礼包购买", "231": "手偶活动-轮次胜利奖励",
+                    "232": "手偶活动-进度奖励", "233": "棋盘操作-走地图棋盘结束",
+                    "234": "棋盘操作-新棋子插入栈底部", "235": "跳过广告获得体力",
+                    "236": "集卡活动-闪卡奖励", "237": "打怪棋盘活动",
+                    "238": "茶楼经营薄任务奖励", "239": "茶楼经营薄最终奖励",
+                    "240": "茶楼经营薄-结算补领任务奖励", "241": "茶楼经营薄-结算补领最终奖励",
+                    "242": "棋盘操作-母棋工厂放入", "243": "棋盘操作-母棋工厂使用",
+                    "244": "棋盘操作-母棋工厂生产", "245": "下午茶礼包购买",
+                    "246": "下午茶礼包免费领取", "247": "织布大赛", "248": "体力排行榜",
+                    "249": "集卡活动-幻狐牌集卡组收集奖励", "250": "集卡活动-幻狐牌集卡册收集奖励",
+                    "251": "集卡活动-幻狐牌集结算", "252": "集卡活动-结算"
+                };
+
+                const DEFAULT_ACTIVITY_TYPE_MAP = {
+                    "2": "PASS卡", "3": "绒绒大冒险", "4": "玉琢的挑战", "5": "菜园捣蛋鬼",
+                    "7": "鹦鹉订单", "8": "茶楼大赛", "10": "盛世大富商",
+                    "12": "23基础棋盘活动", "18": "龙宫夺宝赛", "20": "麒麟的摘星梦",
+                    "22": "提篮问芳活动", "24": "限时任务", "26": "云端寻宝",
+                    "27": "灶神显灵", "28": "额外积分buff", "29": "额外金币buff",
+                    "30": "惊喜奖励buff", "31": "冷却助力buff", "32": "能量狂欢buff",
+                    "33": "双倍卡包buff", "40": "捏面人活动", "41": "49探险活动棋盘",
+                    "43": "55解锁棋盘活动", "44": "53棋盘活动", "48": "连连看",
+                    "54": "击鼓传花", "59": "大转盘", "60": "限时累充活动",
+                    "66": "好运对对碰", "67": "茶楼七日任务", "68": "77棋盘活动",
+                    "70": "还愿锦鲤", "71": "限时闯关", "73": "93走地图棋盘",
+                    "74": "猫咪叠罗汉", "77": "手偶活动", "79": "织布大赛", "81": "体力排行榜"
+                };
+
+                // ==================== 数据读写 ====================
                 async function loadData(key, defaultValue) {
                     try {
                         const resp = await fetch(`${SERVER_URL}/api/data/${key}`);
@@ -718,11 +900,13 @@
                         return cached ? JSON.parse(cached) : defaultValue;
                     }
                 }
+
                 async function saveData(key, data) {
                     localStorage.setItem(key, JSON.stringify(data));
                     try {
                         await fetch(`${SERVER_URL}/api/data/${key}`, {
-                            method: 'POST', headers: { 'Content-Type': 'application/json' },
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ value: data })
                         });
                     } catch (e) { console.warn('同步云端失败', e); }
@@ -731,11 +915,14 @@
                 let templates = await loadData('templates', DEFAULT_TEMPLATES);
                 let sourceRules = await loadData('sourceRules', DEFAULT_SOURCE_RULES);
                 let ignoreKeywords = await loadData('ignoreKeywords', DEFAULT_IGNORE_KEYWORDS);
+                let itemNameMap = await loadData('itemNameMap', DEFAULT_ITEM_NAME_MAP);
+                let sourceIdMap = await loadData('sourceIdMap', DEFAULT_SOURCE_ID_MAP);
+                let activityTypeMap = await loadData('activityTypeMap', DEFAULT_ACTIVITY_TYPE_MAP);
 
                 function getRulePattern(r) { return r.pattern || ''; }
                 function getRuleReplacement(r) { return r.replacement || ''; }
 
-                // 补充 DOM 引用
+                // ==================== DOM 引用 ====================
                 const templateSelect = document.getElementById('templateSelect');
                 const varContainer = document.getElementById('varContainer');
                 const globalResultArea = document.getElementById('globalResultArea');
@@ -745,13 +932,20 @@
                 const smartPasteInput = document.getElementById('smartPasteInput');
                 let varInputs = {};
 
-                function expandDebugConsole() { debugConsole.style.display = 'block'; }
+                function expandDebugConsole() { if (debugConsole) debugConsole.style.display = 'block'; }
                 document.getElementById('debugToggleHeader')?.addEventListener('click', expandDebugConsole);
+
                 function cleanText(t) { return t.replace(/\ufeff/g, '').replace(/\s+/g, ' ').trim(); }
+
                 function extractTime(t) {
-                    const p = [/(\d{4}[-\/]\d{1,2}[-\/]\d{1,2}\s+\d{1,2}:\d{1,2}(:\d{1,2})?)/, /(\d{2}\/\d{1,2}\/\d{4}\s+\d{1,2}:\d{1,2}(:\d{1,2})?)/];
-                    for (let r of p) { const m = t.match(r); if (m) return m[1]; } return null;
+                    const p = [
+                        /(\d{4}[-\/]\d{1,2}[-\/]\d{1,2}\s+\d{1,2}:\d{1,2}(:\d{1,2})?)/,
+                        /(\d{2}\/\d{1,2}\/\d{4}\s+\d{1,2}:\d{1,2}(:\d{1,2})?)/
+                    ];
+                    for (let r of p) { const m = t.match(r); if (m) return m[1]; }
+                    return null;
                 }
+
                 function formatTimeToStandard(timeStr) {
                     if (!timeStr) return '';
                     let s = timeStr.replace(/\//g, '-');
@@ -759,6 +953,7 @@
                     if (!m) return s;
                     return `${m[1]}-${m[2].padStart(2, '0')}-${m[3].padStart(2, '0')} ${m[4].padStart(2, '0')}:${m[5].padStart(2, '0')}:${(m[6] || '00').padStart(2, '0')}`;
                 }
+
                 function detectResourceType(line) {
                     if (line.includes('好评点')) return '好评点';
                     if (line.includes('体力')) return '体力';
@@ -767,14 +962,20 @@
                     if (line.includes('道具')) return '道具';
                     return '';
                 }
+
+                // ==================== 转换 & 映射 ====================
                 function applyConversionByType(src, type) {
                     if (!src) return src;
                     if (!(document.getElementById('enableSourceConversionCheckbox')?.checked ?? true)) return src;
                     const lower = src.toLowerCase();
-                    for (let r of sourceRules.filter(r => r.type === type)) if (r.pattern && lower.includes(r.pattern.toLowerCase())) return r.replacement || src;
+                    for (let r of sourceRules.filter(r => r.type === type)) {
+                        if (r.pattern && lower.includes(r.pattern.toLowerCase())) return r.replacement || src;
+                    }
                     return src;
                 }
+
                 function applySourceConversion(src) { return applyConversionByType(src, 'source'); }
+
                 function applyRewardConversion(str) {
                     if (!str) return str;
                     if (!(document.getElementById('enableSourceConversionCheckbox')?.checked ?? true)) return str;
@@ -785,9 +986,11 @@
                     }
                     return result.replace(/\s+/g, ' ').trim();
                 }
+
                 function applyChessNameConversion(name) {
                     return applyConversionByType(name, 'chessName');
                 }
+
                 function applyAllConversions(text) {
                     if (!text) return text;
                     if (!(document.getElementById('enableSourceConversionCheckbox')?.checked ?? true)) return text;
@@ -799,10 +1002,38 @@
                     }
                     return result.replace(/\s+/g, ' ').trim();
                 }
+
+                // ★ 物品ID解析
+                function resolveItemName(id, name) {
+                    name = (name || '').trim();
+                    id = String(id || '').trim();
+                    if (name && !/^\d+$/.test(name)) {
+                        if (name !== id) return name;
+                    }
+                    if (id && itemNameMap[id]) return itemNameMap[id];
+                    return name || id || '未知物品';
+                }
+
+                // ★ 来源ID解析
+                function resolveSource(id, name) {
+                    name = (name || '').trim();
+                    id = String(id || '').trim();
+                    if (name && !/^\d+$/.test(name)) return name;
+                    if (id && sourceIdMap[id]) return sourceIdMap[id];
+                    return name || id || '';
+                }
+
+                // ★ 活动类型解析
+                function resolveActivityType(id) {
+                    id = String(id || '').trim();
+                    return activityTypeMap[id] || id || '';
+                }
+
                 function shouldIgnoreLine(line) {
                     if (!(document.getElementById('enableIgnoreRulesCheckbox')?.checked ?? true) || !ignoreKeywords.length) return false;
                     return ignoreKeywords.some(kw => line.toLowerCase().includes(kw.toLowerCase()));
                 }
+
                 function cleanHeader(s) { return s.trim().replace(/^["'"]|["'"]$/g, ''); }
 
                 function sortSentencesByTime(sentences, order = 'desc') {
@@ -828,20 +1059,165 @@
                     return text.replace(/点击棋子/g, replacement);
                 }
 
+                // ==================== 从源码导入映射 ====================
+                function extractAllPresentGoodsFromSource(source) {
+                    const m = source.match(/allPresentGoods\s*=\s*\{/);
+                    if (!m) return null;
+                    const start = source.indexOf('{', m.index);
+                    let depth = 0, inStr = false, strCh = '', end = -1;
+                    for (let i = start; i < source.length; i++) {
+                        const c = source[i];
+                        if (inStr) {
+                            if (c === '\\') { i++; continue; }
+                            if (c === strCh) inStr = false;
+                        } else {
+                            if (c === '"' || c === "'") { inStr = true; strCh = c; }
+                            else if (c === '{') depth++;
+                            else if (c === '}') { depth--; if (depth === 0) { end = i; break; } }
+                        }
+                    }
+                    if (end === -1) return null;
+                    const text = source.substring(start, end + 1);
+                    try { return new Function('return ' + text)(); }
+                    catch (e) { console.error('解析 allPresentGoods 失败:', e); return null; }
+                }
+
+                function flattenAllPresentGoods(obj) {
+                    const map = {};
+                    function walk(goods) {
+                        if (!goods) return;
+                        for (const [id, item] of Object.entries(goods)) {
+                            if (item && item.name && String(item.name).trim()) {
+                                map[id] = String(item.name).trim();
+                            }
+                            if (item && item.goods) walk(item.goods);
+                        }
+                    }
+                    for (const type of Object.values(obj)) {
+                        if (type && type.goods) walk(type.goods);
+                    }
+                    return map;
+                }
+
+                function extractOptionMapFromSource(source) {
+                    const map = {};
+                    const re = /<option[^>]*value=["']?(\d+)["']?[^>]*>([\s\S]*?)<\/option>/gi;
+                    let m;
+                    while ((m = re.exec(source)) !== null) {
+                        const id = m[1];
+                        let text = m[2].replace(/<[^>]+>/g, '').trim();
+                        text = text.replace(/^\d+\s*[-—–]\s*/, '').trim();
+                        text = text.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&nbsp;/g, ' ');
+                        if (id && text) map[id] = text;
+                    }
+                    return map;
+                }
+
+                function extractSourceMapFromSource(source) {
+                    const map = {};
+                    const selectRe = /<select[^>]*name=["']?(from|opFrom)["']?[^>]*>([\s\S]*?)<\/select>/gi;
+                    let sm;
+                    while ((sm = selectRe.exec(source)) !== null) {
+                        const inner = sm[2];
+                        const optRe = /<option[^>]*value=["']?(-?\d+)["']?[^>]*>([\s\S]*?)<\/option>/gi;
+                        let om;
+                        while ((om = optRe.exec(inner)) !== null) {
+                            const v = om[1];
+                            let t = om[2].replace(/<[^>]+>/g, '').trim();
+                            t = t.replace(/&amp;/g, '&').replace(/&nbsp;/g, ' ');
+                            if (v && v !== '-1' && t && !/全部/.test(t)) map[v] = t;
+                        }
+                    }
+                    return map;
+                }
+
+                function extractActivityMapFromSource(source) {
+                    const map = {};
+                    const re = /data-target=["']#activity-(\d+)["'][^>]*>([\s\S]*?)<\/a>/gi;
+                    let m;
+                    while ((m = re.exec(source)) !== null) {
+                        const id = m[1];
+                        let text = m[2].replace(/<[^>]+>/g, '').trim();
+                        text = text.replace(/&amp;/g, '&').replace(/&nbsp;/g, ' ');
+                        if (id && text) map[id] = text;
+                    }
+                    return map;
+                }
+
+                function doImportMapping(apply) {
+                    const source = document.getElementById('importMappingSource').value;
+                    const resultEl = document.getElementById('importMappingResult');
+                    resultEl.style.display = 'block';
+                    if (!source.trim()) { resultEl.textContent = '❌ 请先粘贴源码'; return; }
+
+                    let itemMapFromAll = {};
+                    let itemMapFromOption = {};
+                    const allGoods = extractAllPresentGoodsFromSource(source);
+                    if (allGoods) itemMapFromAll = flattenAllPresentGoods(allGoods);
+                    itemMapFromOption = extractOptionMapFromSource(source);
+
+                    const itemMap = { ...itemMapFromOption, ...itemMapFromAll };
+                    const mergeMode = document.getElementById('importMergeMode').checked;
+                    const alsoSource = document.getElementById('importAlsoSource').checked;
+                    const alsoActivity = document.getElementById('importAlsoActivity').checked;
+                    const srcMap = alsoSource ? extractSourceMapFromSource(source) : {};
+                    const actMap = alsoActivity ? extractActivityMapFromSource(source) : {};
+
+                    const lines = [];
+                    lines.push('=== 解析结果 ===');
+                    lines.push(`物品映射：allPresentGoods 提取 ${Object.keys(itemMapFromAll).length} 条，`);
+                    lines.push(`           option 标签提取 ${Object.keys(itemMapFromOption).length} 条，`);
+                    lines.push(`           合并后共 ${Object.keys(itemMap).length} 条`);
+                    if (alsoSource) lines.push(`来源映射：${Object.keys(srcMap).length} 条`);
+                    if (alsoActivity) lines.push(`活动映射：${Object.keys(actMap).length} 条`);
+
+                    const sampleItem = Object.entries(itemMap).slice(0, 5);
+                    if (sampleItem.length) { lines.push(''); lines.push('物品示例：' + sampleItem.map(([k, v]) => `${k}=${v}`).join(', ')); }
+                    const sampleSrc = Object.entries(srcMap).slice(0, 5);
+                    if (sampleSrc.length) lines.push('来源示例：' + sampleSrc.map(([k, v]) => `${k}=${v}`).join(', '));
+                    const sampleAct = Object.entries(actMap).slice(0, 5);
+                    if (sampleAct.length) lines.push('活动示例：' + sampleAct.map(([k, v]) => `${k}=${v}`).join(', '));
+
+                    if (Object.keys(itemMap).length === 0 && Object.keys(srcMap).length === 0 && Object.keys(actMap).length === 0) {
+                        lines.push(''); lines.push('❌ 没有提取到任何数据。请确认粘贴的是完整的 HTML 源码，或者包含 var allPresentGoods = {...} 的片段。');
+                        resultEl.textContent = lines.join('\n'); return;
+                    }
+
+                    if (!apply) {
+                        lines.push(''); lines.push('👁️ 预览模式，未写入。点击「解析并导入」才会应用。');
+                        resultEl.textContent = lines.join('\n'); return;
+                    }
+
+                    if (Object.keys(itemMap).length > 0) {
+                        itemNameMap = mergeMode ? { ...itemNameMap, ...itemMap } : itemMap;
+                        saveData('itemNameMap', itemNameMap);
+                    }
+                    if (Object.keys(srcMap).length > 0) {
+                        sourceIdMap = mergeMode ? { ...sourceIdMap, ...srcMap } : srcMap;
+                        saveData('sourceIdMap', sourceIdMap);
+                    }
+                    if (Object.keys(actMap).length > 0) {
+                        activityTypeMap = mergeMode ? { ...activityTypeMap, ...actMap } : actMap;
+                        saveData('activityTypeMap', activityTypeMap);
+                    }
+
+                    lines.push(''); lines.push(mergeMode ? '✅ 已合并到现有映射并保存' : '✅ 已替换并保存');
+                    lines.push(`当前物品总数：${Object.keys(itemNameMap).length}`);
+                    resultEl.textContent = lines.join('\n');
+
+                    const typeSelect = document.getElementById('mappingTypeSelect');
+                    if (typeSelect) renderMappingList(document.getElementById('mappingSearchInput')?.value || '');
+                }
+
+                // ==================== 解析：智能粘贴 ====================
                 function parseSmartLog(rawText) {
                     const lines = rawText.split(/\r?\n/).filter(l => l.trim());
                     const records = [];
 
                     for (let line of lines) {
-                        if (shouldIgnoreLine(line)) {
-                            debugConsole.innerHTML += `\n⏭️ 忽略行: ${line.substring(0, 60)}`;
-                            continue;
-                        }
+                        if (shouldIgnoreLine(line)) { debugConsole.innerHTML += `\n⏭️ 忽略行: ${line.substring(0, 60)}`; continue; }
                         const rawTime = extractTime(line);
-                        if (!rawTime) {
-                            debugConsole.innerHTML += `\n⚠️ 无时间: ${line.substring(0, 60)}`;
-                            continue;
-                        }
+                        if (!rawTime) { debugConsole.innerHTML += `\n⚠️ 无时间: ${line.substring(0, 60)}`; continue; }
                         const time = formatTimeToStandard(rawTime);
                         const parts = line.split('\t');
                         if (parts.length < 6) continue;
@@ -849,52 +1225,40 @@
                         const thirdCol = parts[2]?.trim();
                         const isNewFormat = !/^[+-]?\d+$/.test(thirdCol) && parts.length >= 10;
 
-                        let changeRaw, beforeRaw, afterRaw, sourceRaw, itemName = '';
+                        let changeRaw, beforeRaw, afterRaw, sourceRaw, itemName = '', itemId = '', sourceId = '';
 
                         if (isNewFormat) {
-                            // 新格式：时间、UUID、资源类型、道具ID、道具名称、类型、数量、之前、之后、来源、来源ID
                             const resourceType = thirdCol;
-                            const itemId = parts[3]?.trim() || '';
+                            itemId = parts[3]?.trim() || '';
                             const rawName = parts[4]?.trim() || '';
                             const typeLabel = parts[5]?.trim() || '';
-
-                            if (rawName && rawName !== '道具' && rawName !== '货币') {
-                                itemName = rawName;
-                            } else if (typeLabel && typeLabel !== '货币' && typeLabel !== '道具') {
-                                itemName = typeLabel;
-                            } else if (itemId) {
-                                itemName = itemId;
-                            } else {
-                                itemName = resourceType;
-                            }
-
+                            if (rawName && rawName !== '道具' && rawName !== '货币') itemName = rawName;
+                            else if (typeLabel && typeLabel !== '货币' && typeLabel !== '道具') itemName = typeLabel;
+                            else if (itemId) itemName = itemId;
+                            else itemName = resourceType;
                             changeRaw = parts[6]?.trim() || '0';
                             beforeRaw = parts[7]?.trim() || '0';
                             afterRaw = parts[8]?.trim() || '0';
                             sourceRaw = parts[9]?.trim() || '';
+                            sourceId = parts[10]?.trim() || '';
                         } else {
                             const isFormatB = /^[+-]?\d+$/.test(thirdCol);
                             if (isFormatB) {
-                                // 旧格式B：时间、UUID、变化量、之前、之后、来源...
-                                changeRaw = parts[2];
-                                beforeRaw = parts[3];
-                                afterRaw = parts[4];
+                                changeRaw = parts[2]; beforeRaw = parts[3]; afterRaw = parts[4];
                                 sourceRaw = parts[5] || '';
                                 itemName = parts.length >= 8 ? parts[7] || parts[6] || '' : '';
+                                itemId = parts.length >= 8 ? parts[6] || '' : '';
                             } else {
-                                // 资源格式：时间、UUID、资源类型（如体力）、变化量、之前、之后、来源...
-                                // 也可能是道具格式2：时间、UUID、道具ID、道具名称、类型、数量、之前、之后、来源
                                 const resourceType = thirdCol;
                                 const fifthIsNumber = /^[+-]?\d+$/.test(parts[4]?.trim());
                                 if (!fifthIsNumber && parts.length >= 9) {
-                                    // 道具格式2
+                                    itemId = parts[2]?.trim() || '';
                                     itemName = parts[3]?.trim() || parts[2]?.trim();
                                     changeRaw = parts[5]?.trim() || '0';
                                     beforeRaw = parts[6]?.trim() || '0';
                                     afterRaw = parts[7]?.trim() || '0';
                                     sourceRaw = parts[8]?.trim() || '';
                                 } else {
-                                    // 资源格式（体力、红钻等）
                                     itemName = resourceType;
                                     changeRaw = parts[3]?.trim() || '0';
                                     beforeRaw = parts[4]?.trim() || '0';
@@ -905,23 +1269,18 @@
                         }
 
                         const change = parseInt(changeRaw, 10);
-                        if (isNaN(change) || change === 0) {
-                            debugConsole.innerHTML += ` | 变化量为0或无效，跳过`;
-                            continue;
-                        }
+                        if (isNaN(change) || change === 0) { debugConsole.innerHTML += ` | 变化量为0或无效，跳过`; continue; }
                         const before = parseFloat(beforeRaw) || 0;
                         const after = parseFloat(afterRaw) || 0;
                         sourceRaw = (sourceRaw || '').trim().replace(/^["']|["']$/g, '');
-                        const source = applySourceConversion(sourceRaw);
-                        itemName = applyAllConversions?.(itemName) || itemName;
+                        let resolvedSource = resolveSource(sourceId, sourceRaw);
+                        resolvedSource = applySourceConversion(resolvedSource);
+                        let resolvedItemName = resolveItemName(itemId, itemName);
+                        resolvedItemName = applyAllConversions?.(resolvedItemName) || resolvedItemName;
 
                         records.push({
-                            '时间': time,
-                            '数量': change,
-                            '来源': source,
-                            '道具名称': itemName,
-                            '之前': before,
-                            '之后': after
+                            '时间': time, '数量': change, '来源': resolvedSource,
+                            '道具名称': resolvedItemName, '之前': before, '之后': after
                         });
                     }
 
@@ -930,7 +1289,6 @@
                 }
 
                 function getChangeAndAction(rec) {
-                    // 直接使用解析时存入的“数量”字段作为变化量，避免前后差值计算错误
                     let change = parseFloat(rec['数量']) || 0;
                     const action = change > 0 ? '获得' : (change < 0 ? '消耗' : '');
                     return { change, action, before: rec['之前'] || 0, after: rec['之后'] || 0 };
@@ -948,85 +1306,61 @@
                     const { change, action, before, after } = getChangeAndAction(rec);
                     if (!change || !action) return null;
                     const abs = Math.abs(change);
-                    if (isActivityItem(itemName, source, type))
-                        return `在${time}，${action}了${abs}个${itemName || '活动道具'}`;
+                    if (isActivityItem(itemName, source, type)) return `在${time}，${action}了${abs}个${itemName || '活动道具'}`;
                     if (type === '好评点') {
-                        return source
-                            ? `在${time}，通过${source}${action}${abs}点好评点，从${before}变为${after}`
-                            : `在${time}，${action}${abs}点好评点，从${before}变为${after}`;
+                        return source ? `在${time}，通过${source}${action}${abs}点好评点，从${before}变为${after}` : `在${time}，${action}${abs}点好评点，从${before}变为${after}`;
                     }
                     if (type === '道具' && itemName) {
                         if (itemName.includes('积分') || itemName.includes('券')) {
-                            return source
-                                ? `在${time}，通过${source}${action}${abs}个${itemName}，从${before}变为${after}`
-                                : `在${time}，${action}${abs}个${itemName}，从${before}变为${after}`;
+                            return source ? `在${time}，通过${source}${action}${abs}个${itemName}，从${before}变为${after}` : `在${time}，${action}${abs}个${itemName}，从${before}变为${after}`;
                         }
                         return `在${time}，${action}了${abs}个${itemName}`;
                     }
                     let sentence = showChange
-                        ? (source ? `在${time}，通过${source}${action}${abs}点${type}，从${before}变为${after}`
-                            : `在${time}，${action}${abs}点${type}，从${before}变为${after}`)
-                        : (source ? `在${time}，通过${source}${action}${abs}点${type}`
-                            : `在${time}，${action}${abs}点${type}`);
+                        ? (source ? `在${time}，通过${source}${action}${abs}点${type}，从${before}变为${after}` : `在${time}，${action}${abs}点${type}，从${before}变为${after}`)
+                        : (source ? `在${time}，通过${source}${action}${abs}点${type}` : `在${time}，${action}${abs}点${type}`);
                     return applyResourceClickReplace(sentence, type);
                 }
 
+                // ==================== 解析：好评奖励 ====================
                 function parseReviewLog(rawText) {
                     const lines = rawText.split(/\r?\n/).map(l => l.trim()).filter(l => l);
                     if (lines.length < 1) return ['❌ 数据格式不正确，请检查'];
-
                     let timeStr = '';
                     const timeRegex = /(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})/g;
-                    let match;
-                    let lastValidTime = null;
+                    let match, lastValidTime = null;
                     while ((match = timeRegex.exec(rawText)) !== null) {
                         const timeCandidate = match[1];
                         const beforeMatch = rawText.substring(0, match.index);
                         const lineStart = beforeMatch.lastIndexOf('\n') + 1;
                         const lineEnd = rawText.indexOf('\n', match.index);
                         const line = rawText.substring(lineStart, lineEnd === -1 ? rawText.length : lineEnd).trim();
-                        if (!/开始时间|结束时间|当前轮次|是否成功|超级解锁状态/.test(line)) {
-                            lastValidTime = timeCandidate;
-                        }
+                        if (!/开始时间|结束时间|当前轮次|是否成功|超级解锁状态/.test(line)) lastValidTime = timeCandidate;
                     }
-                    if (lastValidTime) {
-                        timeStr = lastValidTime.replace(/-/g, '/');
-                    } else {
-                        return ['❌ 未找到有效时间（请检查数据中是否包含领取时间）'];
-                    }
-                  
+                    if (lastValidTime) timeStr = lastValidTime.replace(/-/g, '/');
+                    else return ['❌ 未找到有效时间（请检查数据中是否包含领取时间）'];
+
                     const itemCount = new Map();
                     const chineseRegex = /^[\u4e00-\u9fa5]+$/;
-
                     const firstLineParts = lines[0].split('\t');
                     const firstItem = firstLineParts[firstLineParts.length - 1]?.trim();
-                    if (firstItem && chineseRegex.test(firstItem)) {
-                        itemCount.set(firstItem, (itemCount.get(firstItem) || 0) + 1);
-                    }
-
+                    if (firstItem && chineseRegex.test(firstItem)) itemCount.set(firstItem, (itemCount.get(firstItem) || 0) + 1);
                     for (let i = 1; i < lines.length; i++) {
                         const line = lines[i];
                         if (/当前轮次|开始时间|结束时间|是否成功|超级解锁状态/.test(line)) continue;
-                        if (chineseRegex.test(line)) {
-                            itemCount.set(line, (itemCount.get(line) || 0) + 1);
-                        }
+                        if (chineseRegex.test(line)) itemCount.set(line, (itemCount.get(line) || 0) + 1);
                     }
-
                     if (itemCount.size === 0) return ['未解析到有效奖励数据'];
 
                     const statsList = [];
-                    for (let [name, count] of itemCount) {
-                        statsList.push(count > 1 ? `${name}*${count}` : name);
-                    }
+                    for (let [name, count] of itemCount) statsList.push(count > 1 ? `${name}*${count}` : name);
                     let result;
-                    if (rawText.includes('当前轮次: 超级')) {
-                        result = `在${timeStr}，获得超级好评点全部奖励：${statsList.join('，')}`;
-                    } else {
-                        result = `在${timeStr}，获得好评奖励：${statsList.join('，')}`;
-                    }
+                    if (rawText.includes('当前轮次: 超级')) result = `在${timeStr}，获得超级好评点全部奖励：${statsList.join('，')}`;
+                    else result = `在${timeStr}，获得好评奖励：${statsList.join('，')}`;
                     return [result];
-                    }
-             
+                }
+
+                // ==================== 解析：订单日志 ====================
                 function parseOrderLog(rawText) {
                     let text = rawText.replace(/\r\n/g, '\n');
                     const parts = text.split('\t').map(p => p.trim());
@@ -1086,38 +1420,32 @@
                     const lines = rewardRaw.split(/\n/).map(l => l.trim()).filter(l => l.length > 0);
                     const rewardItems = [];
                     for (let line of lines) {
-                        if (/^\d+$/.test(line)) continue;               // 忽略纯数字行
+                        if (/^\d+$/.test(line)) continue;
                         const numMatch = line.match(/(?:[:：]\s*)?(\d+)\s*$/);
-                        let itemDesc = line;
-                        let count = 1;                                   // 默认数量为 1
+                        let itemDesc = line, count = 1;
                         if (numMatch) {
                             count = parseInt(numMatch[1], 10);
                             itemDesc = line.substring(0, numMatch.index).trim();
                             itemDesc = itemDesc.replace(/[:：]\s*$/, '').trim();
                         }
-                        if (itemDesc) {
-                            rewardItems.push(`${itemDesc}:${count}`);
-                        }
+                        if (itemDesc) rewardItems.push(`${itemDesc}:${count}`);
                     }
                     const rewardStr = rewardItems.length ? [...new Set(rewardItems)].join('，') : '奖励';
                     const actionVerb = statusText === '完成' ? '完成订单' : (statusText === '删除' ? '删除订单' : '操作订单');
                     return [`在${finalTime.replace(/-/g, '/')}提交${chessStr}${actionVerb}，获得${rewardStr}`];
                 }
 
+                // ==================== 解析：道具流水 ====================
                 function parseItemFlowLog(rawText) {
                     const lines = rawText.split(/\r?\n/).filter(l => l.trim());
                     const records = [];
-
                     for (let line of lines) {
                         if (shouldIgnoreLine(line)) continue;
-
                         const parts = line.split('\t');
                         if (parts.length < 9) continue;
-
                         const rawTime = parts[0]?.trim();
                         if (!rawTime) continue;
                         const time = formatTimeToStandard(rawTime);
-
                         const itemId = parts[2]?.trim() || '';
                         const itemName = parts[4]?.trim() || '';
                         const changeStr = parts[5]?.trim() || '0';
@@ -1126,29 +1454,22 @@
                         const after = parseInt(parts[7]?.trim() || '0', 10) || 0;
                         let source = parts[8]?.trim() || '';
                         source = applyAllConversions(source);
-
                         let displayName = itemName || itemId;
+                        displayName = resolveItemName(itemId, displayName);
                         displayName = applyChessNameConversion(displayName);
-
                         records.push({ time, itemId, itemName: displayName, change, before, after, source });
                     }
-
                     records.sort((a, b) => b.time.localeCompare(a.time));
-
-                    const sentences = records.map(rec => {
+                    return records.map(rec => {
                         const action = rec.change > 0 ? '获得' : (rec.change < 0 ? '消耗' : '操作');
                         const abs = Math.abs(rec.change);
                         if (abs === 0) return null;
-                        if (rec.source) {
-                            return `在${rec.time}，通过${rec.source}${action}${abs}个${rec.itemName}`;
-                        } else {
-                            return `在${rec.time}，${action}${abs}个${rec.itemName}`;
-                        }
+                        if (rec.source) return `在${rec.time}，通过${rec.source}${action}${abs}个${rec.itemName}`;
+                        return `在${rec.time}，${action}${abs}个${rec.itemName}`;
                     }).filter(s => s);
-
-                    return sentences;
                 }
 
+                // ==================== 解析：棋子流水 ====================
                 function parseChessLog(raw) {
                     const lines = raw.split(/\r?\n/);
                     const events = []; let cur = null;
@@ -1166,14 +1487,15 @@
                             const time = formatTimeToStandard(parts[0].trim());
                             if (!time) throw new Error('时间错误');
                             const chessRaw = (parts[2] || '').trim();
-                            let name = '棋子', level = 0;
+                            let name = '棋子', level = 0, chessId = '';
                             if (chessRaw.includes('/')) {
                                 const [id, nm] = chessRaw.split('/');
-                                name = nm || chessRaw;
+                                chessId = id; name = nm || chessRaw;
                                 const lm = id.match(/(\d{2})$/);
                                 if (lm) { level = parseInt(lm[1], 10); if (isNaN(level)) level = 0; }
-                            } else name = chessRaw;
-                            name = applyChessNameConversion(name);   // ★ 应用棋子名称转换规则
+                            } else { chessId = chessRaw; name = chessRaw; }
+                            name = resolveItemName(chessId, name);
+                            name = applyChessNameConversion(name);
                             const changeRaw = (parts[3] || '').split('\n')[0].trim();
                             const change = parseInt(changeRaw, 10) || 0;
                             let cmd = '';
@@ -1200,6 +1522,7 @@
                     });
                 }
 
+                // ==================== 智能解析入口 ====================
                 function smartParseAndFill() {
                     expandDebugConsole();
                     const mode = document.querySelector('input[name="parseMode"]:checked').value;
@@ -1208,8 +1531,9 @@
                     const sortOrder = document.getElementById('sortOrderSelect').value;
 
                     if (mode === 'order') {
-                        if (raw.includes('创建')) debugConsole.innerHTML += '\n⚠️ 检测到"创建"订单，可能无法提取完整奖励';
+                        // 修复：先写主标题，再追加警告，避免覆盖
                         debugConsole.innerHTML = '📦 订单日志解析...';
+                        if (raw.includes('创建')) debugConsole.innerHTML += '\n⚠️ 检测到"创建"订单，可能无法提取完整奖励';
                         const s = parseOrderLog(raw).map(sentence => applyAllConversions(sentence));
                         globalResultArea.value = s.join('\n\n');
                         globalResultCount.textContent = `${s.length} 条`;
@@ -1228,9 +1552,7 @@
                             resultSourceHint.textContent = '道具流水（上传）';
                             navigator.clipboard.writeText(globalResultArea.value);
                             debugConsole.innerHTML += '\n✅ 完成';
-                        } else {
-                            debugConsole.innerHTML += '\n❌ 无有效记录';
-                        }
+                        } else { debugConsole.innerHTML += '\n❌ 无有效记录'; }
                         return;
                     }
                     if (mode === 'review') {
@@ -1257,22 +1579,17 @@
                         debugConsole.innerHTML += '\n✅ 完成';
                         return;
                     }
-                    // 资源流水解析
+                    // 资源流水
                     debugConsole.innerHTML = '🔍 资源流水解析...';
                     const resourceType = document.getElementById('flowResourceSelect').value;
                     const includeSourcesRaw = document.getElementById('includeSourcesInput').value.trim();
                     const itemKeywordRaw = document.getElementById('itemKeywordInput').value.trim();
                     let records = [];
-                    try {
-                        records = parseSmartLog(raw);
-                    } catch (e) {
-                        debugConsole.innerHTML += `\n❌ 解析错误: ${e.message}`;
-                        return;
-                    }
+                    try { records = parseSmartLog(raw); }
+                    catch (e) { debugConsole.innerHTML += `\n❌ 解析错误: ${e.message}`; return; }
                     if (!records.length) { debugConsole.innerHTML += '\n❌ 无记录（请确认粘贴内容为资源流水格式）'; return; }
                     debugConsole.innerHTML += `\n📌 原始记录数: ${records.length}`;
 
-                    // 应用筛选（来源关键词、道具关键词）
                     if (resourceType === '道具' && itemKeywordRaw) {
                         const keywords = itemKeywordRaw.split(',').map(k => k.trim().toLowerCase()).filter(k => k);
                         records = records.filter(r => { const itemName = (r['道具名称'] || '').toLowerCase(); return keywords.some(k => itemName.includes(k)); });
@@ -1285,10 +1602,8 @@
                     }
                     if (records.length === 0) { debugConsole.innerHTML += '\n⚠️ 筛选后无记录，请放宽筛选条件'; return; }
 
-                    // ========== 生成话术 ==========
                     let sentences;
                     if (resourceType === '道具') {
-                        // 道具需要合并相同时间+来源+行为的记录
                         const groupMap = new Map();
                         for (const rec of records) {
                             const { change, action } = getChangeAndAction(rec);
@@ -1296,9 +1611,7 @@
                             const timeKey = (rec['时间'] || '').replace(/-/g, '/');
                             const source = rec['来源'] || '';
                             const groupKey = `${timeKey}|||${source}|||${action}`;
-                            if (!groupMap.has(groupKey)) {
-                                groupMap.set(groupKey, { time: timeKey, source, action, items: new Map() });
-                            }
+                            if (!groupMap.has(groupKey)) groupMap.set(groupKey, { time: timeKey, source, action, items: new Map() });
                             const group = groupMap.get(groupKey);
                             const itemName = rec['道具名称'] || resourceType;
                             const qty = Math.abs(change);
@@ -1307,27 +1620,16 @@
                         sentences = [];
                         for (const group of groupMap.values()) {
                             const itemParts = [];
-                            for (const [name, qty] of group.items) {
-                                itemParts.push(`${name}*${qty}`);
-                            }
+                            for (const [name, qty] of group.items) itemParts.push(`${name}*${qty}`);
                             const itemStr = itemParts.join('，');
                             const sourceStr = group.source ? `，通过【${group.source}】` : '';
                             sentences.push(`在${group.time}${sourceStr}${group.action}${itemStr}`);
                         }
                     } else {
-                        // 非道具资源（体力、红钻、金币、好评点）不合并，直接生成句子，保留前后变化
                         sentences = records.map(r => generateFlowSentence(r, resourceType, true)).filter(s => s);
                     }
-
-                    if (sentences.length === 0) {
-                        debugConsole.innerHTML += '\n⚠️ 无有效话术（可能缺少数量变化）';
-                        return;
-                    }
-
-                    // 应用全局转换（若存在）
-                    if (typeof applyAllConversions === 'function') {
-                        sentences = sentences.map(s => applyAllConversions(s));
-                    }
+                    if (sentences.length === 0) { debugConsole.innerHTML += '\n⚠️ 无有效话术（可能缺少数量变化）'; return; }
+                    sentences = sentences.map(s => applyAllConversions(s));
 
                     globalResultArea.value = sentences.join('\n\n');
                     globalResultCount.textContent = `${sentences.length} 条`;
@@ -1336,6 +1638,7 @@
                     debugConsole.innerHTML += `\n✨ 生成 ${sentences.length} 条`;
                 }
 
+                // ==================== CSV 流水解析 ====================
                 function parseFlowCSV(csvText) {
                     const lines = csvText.split(/\r?\n/).filter(l => l.trim());
                     if (lines.length < 2) return [];
@@ -1346,7 +1649,8 @@
                         '时间': ['创建时间', '时间', 'time'], '增减': ['0:减少;1:增加', '增减', 'type'],
                         '数量': ['数量', 'change'], '之前': ['数量(before)', 'before', '之前'],
                         '之后': ['数量(after)', 'after', '之后'], '来源': ['来源', 'source'],
-                        '道具名称': ['道具名称', '道具名', '名称', 'itemName']
+                        '道具名称': ['道具名称', '道具名', '名称', 'itemName'],
+                        '道具ID': ['道具ID', '道具id', 'itemId', 'item_id']
                     };
                     const colIdx = {};
                     for (let [k, arr] of Object.entries(colMap)) {
@@ -1359,6 +1663,8 @@
                     if (colIdx['之后'] === undefined) colIdx['之后'] = 5;
                     if (colIdx['来源'] === undefined) colIdx['来源'] = 6;
                     if (colIdx['道具名称'] === undefined) colIdx['道具名称'] = -1;
+                    if (colIdx['道具ID'] === undefined) colIdx['道具ID'] = -1;
+
                     const records = [];
                     const enableIgnore = document.getElementById('enableIgnoreRulesCheckbox')?.checked ?? true;
                     for (let i = 1; i < lines.length; i++) {
@@ -1374,40 +1680,42 @@
                         if (cleanVals.length <= Math.max(...Object.values(colIdx))) continue;
                         const rec = {
                             '时间': formatTimeToStandard(cleanVals[colIdx['时间']] || ''),
-                            '增减': cleanVals[colIdx['增减']] || '', '数量': cleanVals[colIdx['数量']] || '0',
-                            '之前': cleanVals[colIdx['之前']] || '0', '之后': cleanVals[colIdx['之后']] || '0',
+                            '增减': cleanVals[colIdx['增减']] || '',
+                            '数量': cleanVals[colIdx['数量']] || '0',
+                            '之前': cleanVals[colIdx['之前']] || '0',
+                            '之后': cleanVals[colIdx['之后']] || '0',
                             '来源': cleanVals[colIdx['来源']] || '',
-                            '道具名称': colIdx['道具名称'] >= 0 ? cleanVals[colIdx['道具名称']] : ''
+                            '道具名称': colIdx['道具名称'] >= 0 ? cleanVals[colIdx['道具名称']] : '',
+                            '道具ID': colIdx['道具ID'] >= 0 ? cleanVals[colIdx['道具ID']] : ''
                         };
-
-                        // ★ 新增：根据增减标记修正数量符号
                         let quantity = parseFloat(rec['数量']) || 0;
                         const incDec = (rec['增减'] || '').toString().toLowerCase();
-                        if (incDec.includes('减少') || incDec === '0' || incDec.includes('-1')) {
-                            quantity = -Math.abs(quantity);
-                        } else if (incDec.includes('增加') || incDec === '1' || incDec.includes('+1')) {
-                            quantity = Math.abs(quantity);
-                        }
+                        if (incDec.includes('减少') || incDec === '0' || incDec.includes('-1')) quantity = -Math.abs(quantity);
+                        else if (incDec.includes('增加') || incDec === '1' || incDec.includes('+1')) quantity = Math.abs(quantity);
                         rec['数量'] = quantity;
 
                         const userSelectedType = document.getElementById('flowResourceSelect').value;
                         if (['体力', '红钻', '金币', '好评点'].includes(userSelectedType)) {
                             rec['道具名称'] = userSelectedType;
-                        } else if (!rec['道具名称']) {
+                        } else if (!rec['道具名称'] && !rec['道具ID']) {
                             const possibleId = cleanVals[3]?.trim();
-                            if (possibleId && /^\d+$/.test(possibleId)) rec['道具名称'] = possibleId;
+                            if (possibleId && /^\d+$/.test(possibleId)) rec['道具ID'] = possibleId;
                         }
-                        if (rec['道具名称'] && !['体力', '红钻', '金币', '好评点'].includes(rec['道具名称'])) {
+                        // ★ 修复：只有存在道具名或ID时才解析，避免空值被转成"未知物品"
+                        if ((rec['道具名称'] || rec['道具ID']) && !['体力', '红钻', '金币', '好评点'].includes(rec['道具名称'])) {
+                            rec['道具名称'] = resolveItemName(rec['道具ID'], rec['道具名称']);
                             rec['道具名称'] = applyChessNameConversion(rec['道具名称']);
                         }
+                        if (/^\d+$/.test(rec['来源'])) rec['来源'] = resolveSource(rec['来源'], '');
+                        rec['来源'] = applySourceConversion(rec['来源']);
                         rec['资源类型'] = detectResourceType(line);
                         if (enableIgnore && ignoreKeywords.length) {
-                            const src = rec['来源'].toLowerCase(), item = rec['道具名称'].toLowerCase();
+                            const src = (rec['来源'] || '').toLowerCase();
+                            const item = (rec['道具名称'] || '').toLowerCase();
                             if (ignoreKeywords.some(k => src.includes(k.toLowerCase()) || item.includes(k.toLowerCase()))) {
                                 debugConsole.innerHTML += `\n⏭️ 行${i + 1} 忽略`; continue;
                             }
                         }
-                        rec['来源'] = applySourceConversion(rec['来源']);
                         const { change, action } = getChangeAndAction(rec);
                         if (!action) continue;
                         rec['行为'] = action; rec['变化量'] = change;
@@ -1529,13 +1837,10 @@
                         const group = cid.substring(3, 5);
                         const num = cid.substring(5, 7);
                         const rawStar = starsArray[idx] || 0;
-
-                        // 星级显示处理：霞光系列特殊星级映射
                         let starLabel = `${rawStar}星`;
                         if (rawStar === 23) starLabel = "霞光3星";
                         else if (rawStar === 24) starLabel = "霞光4星";
                         else if (rawStar === 25) starLabel = "霞光5星";
-
                         descs.push(`${group}组第${num}张（${starLabel}，${afterData[cid] === 1 ? '新卡' : '重复'}）`);
                     });
                     return `在${record["创建时间"].replace(/-/g, '/')}，开启【${packName}】获得${cardIds.length}张卡牌，分别为${descs.join('，')}`;
@@ -1543,29 +1848,25 @@
                 function filterRecordsByStar(records, star) {
                     if (star === 'all') return records;
                     const target = parseInt(star);
-                    // 建立星级到霞光星级的映射（3↔23, 4↔24, 5↔25）
-                    const extraStars = {
-                        3: 23,
-                        4: 24,
-                        5: 25
-                    };
+                    const extraStars = { 3: 23, 4: 24, 5: 25 };
                     const targetList = [target];
                     if (extraStars[target]) targetList.push(extraStars[target]);
-
                     return records.filter(r => {
                         const stars = parseStarsArray(r["卡包星级"]);
                         return targetList.some(t => stars.includes(t));
                     });
-                }                async function processCardCsv() {
+                }
+                async function processCardCsv() {
                     const f = document.getElementById('csvFileInput').files[0]; if (!f) return;
                     const text = await f.text(); currentCardRecords = parseCSVEnhanced(text);
-                    const star = document.getElementById('starFilterSelect').value; const filtered = filterRecordsByStar(currentCardRecords, star);
+                    const star = document.getElementById('starFilterSelect').value;
+                    const filtered = filterRecordsByStar(currentCardRecords, star);
                     const sentences = filtered.map(r => { try { return generateCardSentence(r); } catch { return '[解析失败]'; } });
                     document.getElementById('cardResultArea').value = sentences.join('\n\n');
                     document.getElementById('recordCount').textContent = sentences.length;
                 }
 
-                // ==================== 拼豆摸鱼小游戏 ====================
+                // ==================== 拼豆小游戏 ====================
                 const pixelCanvas = document.getElementById('pixelCanvas');
                 if (pixelCanvas) {
                     const ctx = pixelCanvas.getContext('2d');
@@ -1573,61 +1874,37 @@
                     const cellSize = 15;
                     let currentColor = '#ff0000';
                     let isEraser = false;
-                    let isDrawing = false;
                     let isMouseDown = false;
-                    const colorToLabel = {};   // 颜色 -> 色号 映射
-                    const paletteColors = ['#faf5cd', '#fcfed6', '#fcff92', '#f7ec5c', '#f0d83a', '#fda951',
-                        '#fa8c4f', '#fbda4d', '#f79d5f', '#f47e38', '#fedb99', '#fda276',
-                        '#fec667', '#f75842', '#fbf65e', '#feff97', '#fde173', '#fcbf80',
-                        '#fd7e77', '#f9d666', '#fae393', '#edf878', '#e4c8ba', '#f3f6a9',
-                        '#fdf785', '#ffc734',
-                        '#dff13b', '#64f343', '#a1f586', '#5fdf34', '#39e158', '#64e0a4',
-                        '#3eae7c', '#1d9b54', '#2a5037', '#9ad1ba', '#627032', '#1a6e3d',
-                        '#c8e87d', '#abe84f', '#305335', '#c0ed9c', '#9eb33e', '#e6ed4f',
-                        '#26b78e', '#cbeccf', '#18616a', '#0a4241', '#343b1a', '#e8faa6',
-                        '#4e846d', '#907c35', '#d0e0af', '#9ee5bb', '#c6df5f', '#e3fbb1',
-                        '#b4e691', '#92ad60',
-                        '#f0fee4', '#abf8fe', '#a2e0f7', '#44cdfb', '#06aadf', '#54a7e9',
-                        '#3977ca', '#0f52bd', '#3349c3', '#3cbce3', '#2aded3', '#1e334e',
-                        '#cde7fe', '#d5fcf7', '#21c5c4', '#1858a2', '#02d1f3', '#213244',
-                        '#18869d', '#1a70a9', '#bcddfc', '#6bb1bb', '#c8e2fd', '#7ec5f9',
-                        '#a9e8e0', '#42adcf', '#d0def9', '#bdcee8', '#364a89',
-                        '#acb7ef', '#868dd3', '#3554af', '#162d7b', '#b34ec6', '#b37bdc',
-                        '#8758a9', '#e3d2fe', '#d5b9f4', '#301a49', '#beb9e2', '#dc99ce',
-                        '#b5038d', '#862993', '#2f1f8c', '#e2e4f0', '#c7d3f9', '#9a64b8',
-                        '#d8c2d9', '#9a35ad', '#940595', '#38389a', '#eadbf8', '#768ae1',
-                        '#4950c2', '#d6c6eb',
-                        '#f6d4cb', '#fcc1dd', '#f6bde8', '#e8649e', '#f0569f', '#eb4172',
-                        '#c53674', '#fddbe9', '#e376c7', '#d13b95', '#f7dad4', '#f693bf',
-                        '#b5026a', '#fad4bf', '#f5c9ca', '#fbf4ec', '#f7e3ec', '#f9c8db',
-                        '#f6bbd1', '#d7c6ce', '#c09da4', '#b38c9f', '#937d8a', '#debee5',
-                        '#fe9381', '#f63d4b', '#ee4e3e', '#fb2a40', '#e10328', '#913635',
-                        '#911932', '#bb0126', '#e0677a', '#874628', '#592323', '#f3536b',
-                        '#f45c45', '#fcadb2', '#d50527', '#f8c0a9', '#e89b7d', '#d07f4a',
-                        '#be454a', '#c69495', '#f2b8c6', '#f7c3d0', '#ed806c', '#e09daf',
-                        '#e84854',
-                        '#ffe4d3', '#fcc6ac', '#f1c4a5', '#dcb387', '#e7b34e', '#e3a014',
-                        '#985c3a', '#713d2f', '#e4b685', '#da8c42', '#dac898', '#fec993',
-                        '#b2714b', '#8b684c', '#f6f8e3', '#f2d8c1', '#77544e', '#ffe3d5',
-                        '#dd7d41', '#a5452f', '#b38561',
-                        '#ffffff', '#fbfbfb', '#b4b4b4', '#878787', '#464648', '#2c2c2c',
-                        '#010101', '#e7d6dc', '#efedee', '#ebebeb', '#cdcdcd', '#fdf6ee',
-                        '#f4edf1', '#ced7d4', '#9aa6a6', '#1b1213', '#f0eeef', '#fcfff6',
-                        '#f2eee5', '#96a09f', '#f8fbe6', '#cacad2', '#9b9c94',
-                        '#bbc6b6', '#909994', '#697e81', '#e0d4bc', '#d1ccaf', '#b0aa86',
-                        '#b0a796', '#ae8082', '#a68862', '#c4b3bb', '#9d7693', '#644b51',
-                        '#c79266', '#c27563', '#747d7a'
+                    const colorToLabel = {};
+                    const paletteColors = [
+                        '#faf5cd', '#fcfed6', '#fcff92', '#f7ec5c', '#f0d83a', '#fda951', '#fa8c4f', '#fbda4d', '#f79d5f', '#f47e38',
+                        '#fedb99', '#fda276', '#fec667', '#f75842', '#fbf65e', '#feff97', '#fde173', '#fcbf80', '#fd7e77', '#f9d666',
+                        '#fae393', '#edf878', '#e4c8ba', '#f3f6a9', '#fdf785', '#ffc734', '#dff13b', '#64f343', '#a1f586', '#5fdf34',
+                        '#39e158', '#64e0a4', '#3eae7c', '#1d9b54', '#2a5037', '#9ad1ba', '#627032', '#1a6e3d', '#c8e87d', '#abe84f',
+                        '#305335', '#c0ed9c', '#9eb33e', '#e6ed4f', '#26b78e', '#cbeccf', '#18616a', '#0a4241', '#343b1a', '#e8faa6',
+                        '#4e846d', '#907c35', '#d0e0af', '#9ee5bb', '#c6df5f', '#e3fbb1', '#b4e691', '#92ad60', '#f0fee4', '#abf8fe',
+                        '#a2e0f7', '#44cdfb', '#06aadf', '#54a7e9', '#3977ca', '#0f52bd', '#3349c3', '#3cbce3', '#2aded3', '#1e334e',
+                        '#cde7fe', '#d5fcf7', '#21c5c4', '#1858a2', '#02d1f3', '#213244', '#18869d', '#1a70a9', '#bcddfc', '#6bb1bb',
+                        '#c8e2fd', '#7ec5f9', '#a9e8e0', '#42adcf', '#d0def9', '#bdcee8', '#364a89', '#acb7ef', '#868dd3', '#3554af',
+                        '#162d7b', '#b34ec6', '#b37bdc', '#8758a9', '#e3d2fe', '#d5b9f4', '#301a49', '#beb9e2', '#dc99ce', '#b5038d',
+                        '#862993', '#2f1f8c', '#e2e4f0', '#c7d3f9', '#9a64b8', '#d8c2d9', '#9a35ad', '#940595', '#38389a', '#eadbf8',
+                        '#768ae1', '#4950c2', '#d6c6eb', '#f6d4cb', '#fcc1dd', '#f6bde8', '#e8649e', '#f0569f', '#eb4172', '#c53674',
+                        '#fddbe9', '#e376c7', '#d13b95', '#f7dad4', '#f693bf', '#b5026a', '#fad4bf', '#f5c9ca', '#fbf4ec', '#f7e3ec',
+                        '#f9c8db', '#f6bbd1', '#d7c6ce', '#c09da4', '#b38c9f', '#937d8a', '#debee5', '#fe9381', '#f63d4b', '#ee4e3e',
+                        '#fb2a40', '#e10328', '#913635', '#911932', '#bb0126', '#e0677a', '#874628', '#592323', '#f3536b', '#f45c45',
+                        '#fcadb2', '#d50527', '#f8c0a9', '#e89b7d', '#d07f4a', '#be454a', '#c69495', '#f2b8c6', '#f7c3d0', '#ed806c',
+                        '#e09daf', '#e84854', '#ffe4d3', '#fcc6ac', '#f1c4a5', '#dcb387', '#e7b34e', '#e3a014', '#985c3a', '#713d2f',
+                        '#e4b685', '#da8c42', '#dac898', '#fec993', '#b2714b', '#8b684c', '#f6f8e3', '#f2d8c1', '#77544e', '#ffe3d5',
+                        '#dd7d41', '#a5452f', '#b38561', '#ffffff', '#fbfbfb', '#b4b4b4', '#878787', '#464648', '#2c2c2c', '#010101',
+                        '#e7d6dc', '#efedee', '#ebebeb', '#cdcdcd', '#fdf6ee', '#f4edf1', '#ced7d4', '#9aa6a6', '#1b1213', '#f0eeef',
+                        '#fcfff6', '#f2eee5', '#96a09f', '#f8fbe6', '#cacad2', '#9b9c94', '#bbc6b6', '#909994', '#697e81', '#e0d4bc',
+                        '#d1ccaf', '#b0aa86', '#b0a796', '#ae8082', '#a68862', '#c4b3bb', '#9d7693', '#644b51', '#c79266', '#c27563', '#747d7a'
                     ];
 
                     function hexToRgb(hex) {
                         hex = hex.replace('#', '');
-                        return [
-                            parseInt(hex.substr(0, 2), 16),
-                            parseInt(hex.substr(2, 2), 16),
-                            parseInt(hex.substr(4, 2), 16)
-                        ];
+                        return [parseInt(hex.substr(0, 2), 16), parseInt(hex.substr(2, 2), 16), parseInt(hex.substr(4, 2), 16)];
                     }
-
                     function colorDistance(c1, c2) {
                         const [r1, g1, b1] = hexToRgb(c1);
                         const [r2, g2, b2] = hexToRgb(c2);
@@ -1635,19 +1912,14 @@
                         const dr = r1 - r2, dg = g1 - g2, db = b1 - b2;
                         return (2 + rmean / 256) * dr * dr + 4 * dg * dg + (2 + (255 - rmean) / 256) * db * db;
                     }
-
                     function findClosestPaletteColor(hexColor) {
                         let minDist = Infinity, closest = paletteColors[0];
                         for (const pColor of paletteColors) {
                             const d = colorDistance(hexColor, pColor);
-                            if (d < minDist) {
-                                minDist = d;
-                                closest = pColor;
-                            }
+                            if (d < minDist) { minDist = d; closest = pColor; }
                         }
                         return closest;
                     }
-
                     function drawBoard() {
                         ctx.fillStyle = '#ffffff';
                         ctx.fillRect(0, 0, pixelCanvas.width, pixelCanvas.height);
@@ -1663,25 +1935,18 @@
                             ctx.stroke();
                         }
                     }
-
                     function updateLabelPositions() {
                         const rowLabels = document.getElementById('pixelRowLabels');
                         const colLabels = document.getElementById('pixelColLabels');
-
-                        // 清空旧标签
                         rowLabels.innerHTML = '';
                         colLabels.innerHTML = '';
-
-                        // 设置容器大小与画布实际像素尺寸一致
                         rowLabels.style.height = pixelCanvas.height + 'px';
                         colLabels.style.width = pixelCanvas.width + 'px';
-
-                        // 生成顶部列号（1~gridSize）
                         for (let col = 0; col < gridSize; col++) {
                             const span = document.createElement('span');
                             span.textContent = col + 1;
                             span.style.position = 'absolute';
-                            span.style.left = (col * cellSize + cellSize / 2) + 'px';  // 列号中心与格子中心对齐
+                            span.style.left = (col * cellSize + cellSize / 2) + 'px';
                             span.style.top = '0';
                             span.style.transform = 'translateX(-50%)';
                             span.style.fontSize = '10px';
@@ -1690,13 +1955,11 @@
                             span.style.pointerEvents = 'none';
                             colLabels.appendChild(span);
                         }
-
-                        // 生成左侧行号（1~gridSize）
                         for (let row = 0; row < gridSize; row++) {
                             const span = document.createElement('span');
                             span.textContent = row + 1;
                             span.style.position = 'absolute';
-                            span.style.top = (row * cellSize + cellSize / 2) + 'px';  // 行号中心与格子中心对齐
+                            span.style.top = (row * cellSize + cellSize / 2) + 'px';
                             span.style.left = '0';
                             span.style.transform = 'translateY(-50%)';
                             span.style.fontSize = '10px';
@@ -1708,7 +1971,6 @@
                             rowLabels.appendChild(span);
                         }
                     }
-
                     function resizeCanvas() {
                         const newSize = gridSize * cellSize;
                         pixelCanvas.width = newSize;
@@ -1716,13 +1978,11 @@
                         drawBoard();
                         updateLabelPositions();
                     }
-
                     function fillCell(col, row) {
                         if (col < 0 || col >= gridSize || row < 0 || row >= gridSize) return;
                         ctx.fillStyle = isEraser ? '#ffffff' : currentColor;
                         ctx.fillRect(col * cellSize + 1, row * cellSize + 1, cellSize - 2, cellSize - 2);
                     }
-
                     function initPixelCanvas() { drawBoard(); }
                     resizeCanvas();
                     updateLabelPositions();
@@ -1733,11 +1993,8 @@
                         const scaleY = pixelCanvas.height / rect.height;
                         const x = (e.clientX - rect.left) * scaleX;
                         const y = (e.clientY - rect.top) * scaleY;
-                        const col = Math.floor(x / cellSize);
-                        const row = Math.floor(y / cellSize);
-                        return { col, row };
+                        return { col: Math.floor(x / cellSize), row: Math.floor(y / cellSize) };
                     }
-
                     pixelCanvas.addEventListener('mousedown', (e) => {
                         isMouseDown = true;
                         const { col, row } = getGridPos(e);
@@ -1755,26 +2012,23 @@
                     colorInput.addEventListener('input', (e) => {
                         let chosen = e.target.value;
                         if (!paletteColors.includes(chosen)) {
-                            chosen = findClosestPaletteColor(chosen);   // 吸附到最近色卡颜色
-                            e.target.value = chosen;                    // 同步显示
+                            chosen = findClosestPaletteColor(chosen);
+                            e.target.value = chosen;
                         }
                         currentColor = chosen;
                         isEraser = false;
-                        document.getElementById('pixelEraserBtn').style.background = '#6c757d';
+                        document.getElementById('pixelEraserBtn').style.background = '';
                     });
 
                     document.getElementById('pixelPaletteToggleBtn').addEventListener('click', () => {
                         const palette = document.getElementById('pixelColorPalette');
                         palette.style.display = (palette.style.display === 'none') ? 'flex' : 'none';
                     });
-
                     document.getElementById('pixelEraserBtn').addEventListener('click', function () {
                         isEraser = !isEraser;
-                        this.style.background = isEraser ? '#dc3545' : '#6c757d';
+                        this.style.background = isEraser ? 'var(--ak-danger)' : '';
                     });
-
                     document.getElementById('pixelClearBtn').addEventListener('click', initPixelCanvas);
-
                     document.getElementById('pixelFileInput').addEventListener('change', (e) => {
                         const file = e.target.files[0];
                         if (file) importImageFromFile(file);
@@ -1794,60 +2048,42 @@
                                     tempCanvas.height = gridSize;
                                     const tempCtx = tempCanvas.getContext('2d');
                                     const fillMode = document.getElementById('pixelFillMode').value;
-
-                                    if (fillMode === 'stretch') {
-                                        tempCtx.drawImage(img, 0, 0, gridSize, gridSize);
-                                    } else if (fillMode === 'cover') {
+                                    if (fillMode === 'stretch') tempCtx.drawImage(img, 0, 0, gridSize, gridSize);
+                                    else if (fillMode === 'cover') {
                                         const scale = Math.max(gridSize / img.width, gridSize / img.height);
-                                        const srcW = gridSize / scale;
-                                        const srcH = gridSize / scale;
-                                        const srcX = (img.width - srcW) / 2;
-                                        const srcY = (img.height - srcH) / 2;
+                                        const srcW = gridSize / scale, srcH = gridSize / scale;
+                                        const srcX = (img.width - srcW) / 2, srcY = (img.height - srcH) / 2;
                                         tempCtx.drawImage(img, srcX, srcY, srcW, srcH, 0, 0, gridSize, gridSize);
                                     } else if (fillMode === 'contain') {
                                         tempCtx.fillStyle = '#ffffff';
                                         tempCtx.fillRect(0, 0, gridSize, gridSize);
                                         const scale = Math.min(gridSize / img.width, gridSize / img.height);
-                                        const drawW = img.width * scale;
-                                        const drawH = img.height * scale;
-                                        const offsetX = (gridSize - drawW) / 2;
-                                        const offsetY = (gridSize - drawH) / 2;
+                                        const drawW = img.width * scale, drawH = img.height * scale;
+                                        const offsetX = (gridSize - drawW) / 2, offsetY = (gridSize - drawH) / 2;
                                         tempCtx.drawImage(img, offsetX, offsetY, drawW, drawH);
                                     }
-
                                     const imageData = tempCtx.getImageData(0, 0, gridSize, gridSize).data;
                                     initPixelCanvas();
-
                                     const totalCells = gridSize * gridSize;
                                     const step = Math.max(1, Math.floor(totalCells / 200));
                                     let currentCell = 0;
-
                                     function fillNextBatch() {
                                         const end = Math.min(currentCell + step, totalCells);
                                         for (let i = currentCell; i < end; i++) {
                                             const row = Math.floor(i / gridSize);
                                             const col = i % gridSize;
                                             const pixelIndex = (row * gridSize + col) * 4;
-                                            const r = imageData[pixelIndex];
-                                            const g = imageData[pixelIndex + 1];
-                                            const b = imageData[pixelIndex + 2];
-                                            const a = imageData[pixelIndex + 3];
-                                            const origColor = (a > 128) ? `rgb(${r},${g},${b})` : '#ffffff';
+                                            const r = imageData[pixelIndex], g = imageData[pixelIndex + 1], b = imageData[pixelIndex + 2], a = imageData[pixelIndex + 3];
                                             const hex = '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('');
                                             const color = (a > 128) ? findClosestPaletteColor(hex) : '#ffffff';
                                             ctx.fillStyle = color;
                                             ctx.fillRect(col * cellSize + 1, row * cellSize + 1, cellSize - 2, cellSize - 2);
                                         }
                                         currentCell = end;
-                                        if (currentCell < totalCells) {
-                                            setTimeout(fillNextBatch, 10);
-                                        }
+                                        if (currentCell < totalCells) setTimeout(fillNextBatch, 10);
                                     }
                                     fillNextBatch();
-                                } catch (error) {
-                                    console.error(error);
-                                    alert('图片处理失败');
-                                }
+                                } catch (error) { console.error(error); alert('图片处理失败'); }
                             };
                             img.src = event.target.result;
                         };
@@ -1857,51 +2093,33 @@
 
                     document.getElementById('pixelResizeBtn').addEventListener('click', () => {
                         const newSize = parseInt(document.getElementById('pixelGridSize').value, 10);
-                        if (newSize >= 5 && newSize <= 100) {
-                            gridSize = newSize;
-                            resizeCanvas();
-                            updateLabelPositions();
-                        } else {
-                            alert('格子数需在 5-100 之间');
-                        }
+                        if (newSize >= 5 && newSize <= 100) { gridSize = newSize; resizeCanvas(); updateLabelPositions(); }
+                        else alert('格子数需在 5-100 之间');
                     });
 
                     document.addEventListener('paste', (e) => {
                         const activeTab = document.querySelector('.tab-content.active');
-                        console.log('粘贴事件触发，当前激活标签:', activeTab?.id);
                         if (!activeTab || activeTab.id !== 'tab-script') return;
                         const items = e.clipboardData && e.clipboardData.items;
-                        console.log('剪贴板项目:', items);
                         if (!items) return;
                         for (let i = 0; i < items.length; i++) {
-                            console.log('项目类型:', items[i].type);
                             if (items[i].type.startsWith('image/')) {
                                 const file = items[i].getAsFile();
-                                if (file) {
-                                    e.preventDefault();
-                                    importImageFromFile(file);
-                                    return;
-                                }
+                                if (file) { e.preventDefault(); importImageFromFile(file); return; }
                             }
                         }
                     });
-                    // ==================== 色卡生成 ====================
+
                     const paletteContainer = document.getElementById('pixelColorPalette');
                     paletteContainer.innerHTML = '';
                     const colorsPerRow = 10;
-                    let rowIndex = 0;
-                    let currentRowDiv = null;
-                    let colIndex = 0;
-
+                    let rowIndex = 0, currentRowDiv = null, colIndex = 0;
                     function getContrastYIQ(hexcolor) {
                         hexcolor = hexcolor.replace('#', '');
-                        const r = parseInt(hexcolor.substr(0, 2), 16);
-                        const g = parseInt(hexcolor.substr(2, 2), 16);
-                        const b = parseInt(hexcolor.substr(4, 2), 16);
+                        const r = parseInt(hexcolor.substr(0, 2), 16), g = parseInt(hexcolor.substr(2, 2), 16), b = parseInt(hexcolor.substr(4, 2), 16);
                         const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
                         return (yiq >= 128) ? '#000000' : '#ffffff';
                     }
-
                     paletteColors.forEach((color, index) => {
                         if (index % colorsPerRow === 0) {
                             const rowLetter = String.fromCharCode(65 + rowIndex);
@@ -1915,19 +2133,19 @@
                             rowLabel.style.fontWeight = 'bold';
                             rowLabel.style.width = '20px';
                             rowLabel.style.textAlign = 'center';
+                            rowLabel.style.color = 'var(--ak-primary)';
+                            rowLabel.style.fontFamily = 'var(--ak-mono)';
                             currentRowDiv.appendChild(rowLabel);
                             paletteContainer.appendChild(currentRowDiv);
                             rowIndex++;
                             colIndex = 0;
                         }
-
                         const colorBtn = document.createElement('button');
                         colorBtn.type = 'button';
                         const colorId = String.fromCharCode(65 + (rowIndex - 1)) + (colIndex + 1);
                         colorBtn.style.width = '24px';
                         colorBtn.style.height = '24px';
-                        colorBtn.style.borderRadius = '6px';
-                        colorBtn.style.border = '1px solid #999';
+                        colorBtn.style.border = '1px solid var(--ak-border)';
                         colorBtn.style.background = color;
                         colorBtn.style.cursor = 'pointer';
                         colorBtn.style.display = 'flex';
@@ -1935,240 +2153,519 @@
                         colorBtn.style.justifyContent = 'center';
                         colorBtn.style.fontSize = '7px';
                         colorBtn.style.fontWeight = 'bold';
+                        colorBtn.style.padding = '0';
+                        colorBtn.style.clipPath = 'none';
                         colorBtn.style.color = getContrastYIQ(color);
                         colorBtn.textContent = colorId;
                         colorBtn.title = `${colorId} ${color}`;
                         colorToLabel[color] = colorId;
-
                         colorBtn.addEventListener('click', () => {
                             currentColor = color;
                             isEraser = false;
                             colorInput.value = color;
-                            document.getElementById('pixelEraserBtn').style.background = '#6c757d';
-                            paletteContainer.querySelectorAll('button').forEach(b => b.style.border = '1px solid #999');
-                            colorBtn.style.border = '3px solid #333';
+                            document.getElementById('pixelEraserBtn').style.background = '';
+                            paletteContainer.querySelectorAll('button').forEach(b => b.style.outline = 'none');
+                            colorBtn.style.outline = '2px solid var(--ak-primary)';
                         });
-
                         currentRowDiv.appendChild(colorBtn);
                         colIndex++;
                     });
 
-                // ==================== 导出图纸 ====================
                     function exportBlueprint() {
                         const originalCanvas = pixelCanvas;
-                        const exportScale = 10;   // 高清倍数
-
-                        // 创建导出画布
+                        const exportScale = 10;
                         const exportCanvas = document.createElement('canvas');
                         exportCanvas.width = originalCanvas.width * exportScale;
                         exportCanvas.height = originalCanvas.height * exportScale;
                         const exportCtx = exportCanvas.getContext('2d');
-
-                        // 背景白色
                         exportCtx.fillStyle = '#ffffff';
                         exportCtx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
-
-                        // 绘制原画布（放大）
                         exportCtx.drawImage(originalCanvas, 0, 0, exportCanvas.width, exportCanvas.height);
-
-                        // 获取主画布像素数据（一次性）
                         const mainImageData = ctx.getImageData(0, 0, originalCanvas.width, originalCanvas.height).data;
                         const scaledCell = cellSize * exportScale;
-
-                        // 设置文字样式
                         const baseFontSize = Math.max(5, cellSize * 0.4);
                         exportCtx.font = `${baseFontSize * exportScale}px sans-serif`;
                         exportCtx.textAlign = 'center';
                         exportCtx.textBaseline = 'middle';
-
-                        // 遍历每个格子，标注色号
                         for (let row = 0; row < gridSize; row++) {
                             for (let col = 0; col < gridSize; col++) {
-                                // 计算在主画布上的像素索引
                                 const px = Math.floor(col * cellSize + cellSize / 2);
                                 const py = Math.floor(row * cellSize + cellSize / 2);
                                 const dataIndex = (py * originalCanvas.width + px) * 4;
-                                const r = mainImageData[dataIndex];
-                                const g = mainImageData[dataIndex + 1];
-                                const b = mainImageData[dataIndex + 2];
-                                const a = mainImageData[dataIndex + 3];
-
-                                // 跳过完全透明或白色背景
+                                const r = mainImageData[dataIndex], g = mainImageData[dataIndex + 1], b = mainImageData[dataIndex + 2], a = mainImageData[dataIndex + 3];
                                 if (a === 0 || (r === 255 && g === 255 && b === 255)) continue;
-
-                                // 转换为十六进制颜色
                                 const hex = '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('');
-
-                                // 查找色号，若找不到则尝试吸附后查找
                                 let label = colorToLabel[hex];
                                 if (!label) {
                                     const closest = findClosestPaletteColor(hex);
                                     label = colorToLabel[closest] || null;
                                 }
                                 if (!label) continue;
-
-                                // 文字颜色（黑或白）
                                 exportCtx.fillStyle = getContrastYIQ(hex);
-                                const centerX = col * scaledCell + scaledCell / 2;
-                                const centerY = row * scaledCell + scaledCell / 2;
-                                exportCtx.fillText(label, centerX, centerY);
+                                exportCtx.fillText(label, col * scaledCell + scaledCell / 2, row * scaledCell + scaledCell / 2);
                             }
                         }
-
-                        // 触发下载
                         const link = document.createElement('a');
                         link.download = '拼豆图纸.png';
                         link.href = exportCanvas.toDataURL('image/png');
                         link.click();
                     }
-
-                document.getElementById('pixelExportBtn').addEventListener('click', exportBlueprint);
+                    document.getElementById('pixelExportBtn').addEventListener('click', exportBlueprint);
                 }
 
                 // ==================== 规则管理 ====================
-                        let editingSourceIndex = -1;
-                    function renderSourceRuleList(filterType = 'all', searchTerm = '') {
-                        const c = document.getElementById('sourceRuleListContainer');
-                        let filtered = sourceRules;
-                        if (filterType !== 'all') filtered = filtered.filter(r => r.type === filterType);
-                        if (searchTerm) { const lower = searchTerm.toLowerCase(); filtered = filtered.filter(r => (getRulePattern(r) + getRuleReplacement(r)).toLowerCase().includes(lower)); }
-                        c.innerHTML = filtered.map((r, i) => {
-                            const idx = sourceRules.indexOf(r);
-                            const pattern = getRulePattern(r);
-                            const replacement = getRuleReplacement(r) || '(删除)';
-                            const typeLabel = r.type === 'source' ? '来源' : (r.type === 'reward' ? '奖励' : '棋子');
-                            return `<div class="rule-item" data-idx="${idx}">
-                                                        <span class="rule-pattern">${pattern}</span><span class="rule-type">[${typeLabel}]</span>
-                                                        <span>→</span><span class="rule-replacement">${replacement}</span>
-                                                        <div class="rule-actions"><button class="edit-source-btn" data-idx="${idx}">✏️</button><button class="delete-source-btn" data-idx="${idx}" style="background:#dc3545;">🗑️</button></div></div>`;
-                        }).join('') || '<div>暂无规则</div>';
-                        c.querySelectorAll('.delete-source-btn').forEach(b => b.onclick = e => { const idx = parseInt(b.dataset.idx); sourceRules.splice(idx, 1); saveData('sourceRules', sourceRules); renderSourceRuleList(filterType, searchTerm); });
-                        c.querySelectorAll('.edit-source-btn').forEach(b => b.onclick = e => {
-                            const idx = parseInt(b.dataset.idx); const r = sourceRules[idx];
-                            document.getElementById('newRulePattern').value = getRulePattern(r);
-                            document.getElementById('newRuleReplacement').value = getRuleReplacement(r) || '';
-                            document.getElementById('newRuleType').value = r.type || 'source';
-                            document.getElementById('addOrUpdateRuleBtn').textContent = '✏️ 更新';
-                            document.getElementById('cancelEditRuleBtn').style.display = 'inline-block';
-                            editingSourceIndex = idx;
-                        });
+                let editingSourceIndex = -1;
+                function renderSourceRuleList(filterType = 'all', searchTerm = '') {
+                    const c = document.getElementById('sourceRuleListContainer');
+                    let filtered = sourceRules;
+                    if (filterType !== 'all') filtered = filtered.filter(r => r.type === filterType);
+                    if (searchTerm) { const lower = searchTerm.toLowerCase(); filtered = filtered.filter(r => (getRulePattern(r) + getRuleReplacement(r)).toLowerCase().includes(lower)); }
+                    c.innerHTML = filtered.map((r) => {
+                        const idx = sourceRules.indexOf(r);
+                        const pattern = getRulePattern(r);
+                        const replacement = getRuleReplacement(r) || '(删除)';
+                        const typeLabel = r.type === 'source' ? '来源' : (r.type === 'reward' ? '奖励' : '棋子');
+                        return `<div class="rule-item" data-idx="${idx}">
+                                    <span class="rule-pattern">${pattern}</span>
+                                    <span style="color: var(--ak-text-mute); font-size:12px;">[${typeLabel}]</span>
+                                    <span style="color: var(--ak-primary);">→</span>
+                                    <span class="rule-replacement">${replacement}</span>
+                                    <div class="rule-actions">
+                                        <button class="edit-source-btn secondary" data-idx="${idx}">✏️</button>
+                                        <button class="delete-source-btn reset-btn" data-idx="${idx}">🗑️</button>
+                                    </div>
+                                </div>`;
+                    }).join('') || '<div style="padding:20px;text-align:center;color:var(--ak-text-mute);">暂无规则</div>';
+
+                    c.querySelectorAll('.delete-source-btn').forEach(b => b.onclick = () => {
+                        const idx = parseInt(b.dataset.idx);
+                        sourceRules.splice(idx, 1);
+                        saveData('sourceRules', sourceRules);
+                        renderSourceRuleList(filterType, searchTerm);
+                    });
+                    c.querySelectorAll('.edit-source-btn').forEach(b => b.onclick = () => {
+                        const idx = parseInt(b.dataset.idx); const r = sourceRules[idx];
+                        document.getElementById('newRulePattern').value = getRulePattern(r);
+                        document.getElementById('newRuleReplacement').value = getRuleReplacement(r) || '';
+                        document.getElementById('newRuleType').value = r.type || 'source';
+                        document.getElementById('addOrUpdateRuleBtn').textContent = '✏️ 更新';
+                        document.getElementById('cancelEditRuleBtn').style.display = 'inline-block';
+                        editingSourceIndex = idx;
+                    });
+                }
+
+                function resetSourceEditState() {
+                    document.getElementById('newRulePattern').value = '';
+                    document.getElementById('newRuleReplacement').value = '';
+                    document.getElementById('newRuleType').value = 'source';
+                    document.getElementById('addOrUpdateRuleBtn').textContent = '➕ 添加';
+                    document.getElementById('cancelEditRuleBtn').style.display = 'none';
+                    editingSourceIndex = -1;
+                }
+
+                function renderIgnoreRuleList() {
+                    const c = document.getElementById('ignoreRuleListContainer');
+                    c.innerHTML = ignoreKeywords.map((k, i) =>
+                        `<div class="rule-item">
+                                    <span class="rule-pattern">${k}</span>
+                                    <div class="rule-actions">
+                                        <button data-i="${i}" class="delete-ignore-btn reset-btn">🗑️</button>
+                                    </div>
+                                </div>`
+                    ).join('') || '<div style="padding:20px;text-align:center;color:var(--ak-text-mute);">暂无忽略关键词</div>';
+                    c.querySelectorAll('.delete-ignore-btn').forEach(b => b.onclick = e => {
+                        ignoreKeywords.splice(e.target.dataset.i, 1);
+                        saveData('ignoreKeywords', ignoreKeywords);
+                        renderIgnoreRuleList();
+                    });
+                }
+
+                // ==================== 映射管理 ====================
+                function getCurrentMap() {
+                    const type = document.getElementById('mappingTypeSelect').value;
+                    if (type === 'item') return itemNameMap;
+                    if (type === 'source') return sourceIdMap;
+                    if (type === 'activity') return activityTypeMap;
+                    return {};
+                }
+                function saveCurrentMap() {
+                    const type = document.getElementById('mappingTypeSelect').value;
+                    if (type === 'item') saveData('itemNameMap', itemNameMap);
+                    else if (type === 'source') saveData('sourceIdMap', sourceIdMap);
+                    else if (type === 'activity') saveData('activityTypeMap', activityTypeMap);
+                }
+                function renderMappingList(searchTerm = '') {
+                    const c = document.getElementById('mappingListContainer');
+                    const map = getCurrentMap();
+                    const lower = searchTerm.toLowerCase();
+                    const entries = Object.entries(map).filter(([k, v]) => {
+                        if (!lower) return true;
+                        return k.toLowerCase().includes(lower) || (v || '').toLowerCase().includes(lower);
+                    });
+                    if (!entries.length) {
+                        c.innerHTML = '<div style="padding:20px;text-align:center;color:var(--ak-text-mute);">暂无映射数据</div>';
+                        return;
                     }
-                    function resetSourceEditState() { document.getElementById('newRulePattern').value = ''; document.getElementById('newRuleReplacement').value = ''; document.getElementById('newRuleType').value = 'source'; document.getElementById('addOrUpdateRuleBtn').textContent = '➕ 添加'; document.getElementById('cancelEditRuleBtn').style.display = 'none'; editingSourceIndex = -1; }
-                    function renderIgnoreRuleList() { const c = document.getElementById('ignoreRuleListContainer'); c.innerHTML = ignoreKeywords.map((k, i) => `<div class="rule-item"><span class="rule-pattern">${k}</span><div class="rule-actions"><button data-i="${i}" class="delete-ignore-btn" style="background:#dc3545;">🗑️</button></div></div>`).join('') || '<div>暂无忽略关键词</div>'; c.querySelectorAll('.delete-ignore-btn').forEach(b => b.onclick = e => { ignoreKeywords.splice(e.target.dataset.i, 1); saveData('ignoreKeywords', ignoreKeywords); renderIgnoreRuleList(); }); }
+                    c.innerHTML = entries.map(([id, name]) =>
+                        `<div class="rule-item" data-id="${id}">
+                                    <span class="rule-pattern">${id}</span>
+                                    <span style="color: var(--ak-primary);">→</span>
+                                    <span class="rule-replacement" style="flex:1;">${name || '(空)'}</span>
+                                    <div class="rule-actions">
+                                        <button class="delete-mapping-btn reset-btn" data-id="${id}">🗑️</button>
+                                    </div>
+                                </div>`
+                    ).join('');
+                    c.querySelectorAll('.delete-mapping-btn').forEach(btn => {
+                        btn.onclick = () => {
+                            const id = btn.dataset.id;
+                            const map = getCurrentMap();
+                            delete map[id];
+                            saveCurrentMap();
+                            renderMappingList(searchTerm);
+                        };
+                    });
+                }
 
-                    function refreshVarEntries() { varContainer.innerHTML = ''; varInputs = {}; CORE_FIELDS.forEach(f => { const lab = document.createElement('label'); lab.textContent = f + '：'; const inp = document.createElement('input'); inp.value = ''; const btn = document.createElement('button'); btn.textContent = '📋'; btn.className = 'paste-btn'; btn.onclick = () => navigator.clipboard.readText().then(t => { const cl = cleanText(t); const tm = extractTime(cl); if (tm && varInputs['时间']) varInputs['时间'].value = tm; const val = parseInt(cl.match(/-?\d+/)?.[0]); if (!isNaN(val)) inp.value = val; }); varContainer.appendChild(lab); varContainer.appendChild(inp); varContainer.appendChild(btn); varInputs[f] = inp; }); }
-                    function refreshTemplateSelect() { templateSelect.innerHTML = ''; templates.forEach(t => { const o = document.createElement('option'); o.value = t; o.textContent = t.substring(0, 60); templateSelect.appendChild(o); }); }
-                    function renderTemplateList() {
-                        const c = document.getElementById('templateList');
-                        c.innerHTML = templates.map((t, i) => `<div class="rule-item"><span>${t.substring(0, 50)}</span><div class="rule-actions"><button data-i="${i}" class="edit-template-btn">✏️</button><button data-i="${i}" class="delete-template-btn" style="background:#dc3545;">🗑️</button></div></div>`).join('');
-                        c.querySelectorAll('.delete-template-btn').forEach(b => b.onclick = e => { templates.splice(e.target.dataset.i, 1); saveData('templates', templates); renderTemplateList(); refreshTemplateSelect(); });
-                    }
-
-                    function bindAll() {
-                        document.getElementById('smartParseBtn').onclick = smartParseAndFill;
-                        document.getElementById('clearSmartBtn').onclick = () => { smartPasteInput.value = ''; globalResultArea.value = ''; debugConsole.innerHTML = ''; };
-                        document.getElementById('sortOrderSelect').addEventListener('change', () => {
-                            const text = globalResultArea.value.trim();
-                            if (!text) return;
-                            const lines = text.split('\n\n').filter(l => l.trim());
-                            const sorted = sortSentencesByTime(lines, document.getElementById('sortOrderSelect').value);
-                            globalResultArea.value = sorted.join('\n\n');
+                // ==================== 变量 & 模板 ====================
+                function refreshVarEntries() {
+                    varContainer.innerHTML = '';
+                    varInputs = {};
+                    CORE_FIELDS.forEach(f => {
+                        const lab = document.createElement('label');
+                        lab.textContent = f + '：';
+                        const inp = document.createElement('input');
+                        inp.value = '';
+                        const btn = document.createElement('button');
+                        btn.textContent = '📋';
+                        btn.className = 'paste-btn';
+                        btn.style.padding = '4px 8px';
+                        btn.style.fontSize = '12px';
+                        btn.onclick = () => navigator.clipboard.readText().then(t => {
+                            const cl = cleanText(t);
+                            const tm = extractTime(cl);
+                            if (tm && varInputs['时间']) varInputs['时间'].value = tm;
+                            const val = parseInt(cl.match(/-?\d+/)?.[0]);
+                            if (!isNaN(val)) inp.value = val;
                         });
-                        document.getElementById('uploadFlowBtn').onclick = async () => {
-                            const mode = document.querySelector('input[name="parseMode"]:checked').value;
-                            const file = document.getElementById('flowFileInput').files[0];
-                            if (!file) return;
-                            expandDebugConsole();
-                            const text = await file.text();
-                            if (mode === 'itemFlow') {
-                                debugConsole.innerHTML = '🔍 道具流水（文件）解析...';
-                                let sentences = parseItemFlowLog(text);
-                                if (sentences.length) {
-                                    const sortOrder = document.getElementById('sortOrderSelect').value;
-                                    sentences = sortSentencesByTime(sentences, sortOrder);
-                                    sentences = sentences.map(s => applyAllConversions(s));
-                                    globalResultArea.value = sentences.join('\n\n');
-                                    globalResultCount.textContent = `${sentences.length} 条`;
-                                    resultSourceHint.textContent = '道具流水（上传）';
-                                    navigator.clipboard.writeText(globalResultArea.value);
-                                    debugConsole.innerHTML += '\n✅ 完成';
-                                } else { debugConsole.innerHTML += '\n❌ 无有效记录'; }
-                                return;
-                            } else { processFlowCsv(); }
-                        };
-                        document.getElementById('debugFlowBtn').onclick = async () => { const f = document.getElementById('flowFileInput').files[0]; if (!f) return; const text = await f.text(); expandDebugConsole(); debugConsole.innerHTML = `CSV前200字符:\n${text.substring(0, 200)}`; };
-                        document.getElementById('copyGlobalResultBtn').onclick = () => navigator.clipboard.writeText(globalResultArea.value);
-                        document.getElementById('exportGlobalResultBtn').onclick = () => { const blob = new Blob([globalResultArea.value], { type: 'text/plain' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'script.txt'; a.click(); };
-                        document.getElementById('generateFromTemplateBtn').onclick = () => {
-                            let tpl = templateSelect.value;
-                            for (let [k, v] of Object.entries(varInputs)) tpl = tpl.replace(new RegExp(`\\{${k}\\}`, 'g'), v.value);
-                            tpl = tpl.replace(/\{[^}]+\}/g, '');
-                            tpl = applyAllConversions(tpl);
-                            globalResultArea.value = tpl;
-                        };
+                        varContainer.appendChild(lab);
+                        varContainer.appendChild(inp);
+                        varContainer.appendChild(btn);
+                        varInputs[f] = inp;
+                    });
+                }
 
-                        const modals = {
-                            source: document.getElementById('sourceRuleModal'), ignore: document.getElementById('ignoreRuleModal'),
-                            template: document.getElementById('templateModal'), script: document.getElementById('scriptEditModal'),
-                            batch: document.getElementById('batchTagModal'), tags: document.getElementById('manageTagsModal'),
-                            import: document.getElementById('importScriptModal')
-                        };
-                        document.getElementById('manageSourceRulesBtn').onclick = () => { renderSourceRuleList(document.getElementById('ruleTypeFilter').value, document.getElementById('ruleSearchInput').value); modals.source.style.display = 'block'; };
-                        document.getElementById('manageIgnoreRulesBtn').onclick = () => { renderIgnoreRuleList(); modals.ignore.style.display = 'block'; };
-                        document.getElementById('manageTemplatesBtn').onclick = () => { renderTemplateList(); modals.template.style.display = 'block'; };
-                        document.getElementById('closeSourceRuleModal').onclick = () => modals.source.style.display = 'none';
-                        document.getElementById('closeIgnoreRuleModal').onclick = () => modals.ignore.style.display = 'none';
-                        document.getElementById('closeTemplateModal').onclick = () => modals.template.style.display = 'none';
-                        document.getElementById('modalAddTemplateBtn').onclick = () => { const t = prompt('输入新模板内容，可使用 {时间} {体力} 等变量'); if (t) { templates.push(t); saveData('templates', templates); renderTemplateList(); refreshTemplateSelect(); } };
-                        document.getElementById('addOrUpdateRuleBtn').addEventListener('click', () => {
-                            const p = document.getElementById('newRulePattern').value.trim();
-                            const r = document.getElementById('newRuleReplacement').value.trim();
-                            const t = document.getElementById('newRuleType').value;
-                            if (!p) return;
-                            if (editingSourceIndex >= 0) {
-                                sourceRules[editingSourceIndex] = { pattern: p, replacement: r, type: t };
-                            } else {
-                                sourceRules.push({ pattern: p, replacement: r, type: t });
+                function refreshTemplateSelect() {
+                    templateSelect.innerHTML = '';
+                    templates.forEach(t => {
+                        const o = document.createElement('option');
+                        o.value = t;
+                        o.textContent = t.substring(0, 60);
+                        templateSelect.appendChild(o);
+                    });
+                }
+
+                function renderTemplateList() {
+                    const c = document.getElementById('templateList');
+                    c.innerHTML = templates.map((t, i) =>
+                        `<div class="rule-item">
+                                    <span style="flex:1;">${t.substring(0, 50)}</span>
+                                    <div class="rule-actions">
+                                        <button data-i="${i}" class="edit-template-btn secondary">✏️</button>
+                                        <button data-i="${i}" class="delete-template-btn reset-btn">🗑️</button>
+                                    </div>
+                                </div>`
+                    ).join('');
+                    c.querySelectorAll('.delete-template-btn').forEach(b => b.onclick = e => {
+                        templates.splice(e.target.dataset.i, 1);
+                        saveData('templates', templates);
+                        renderTemplateList();
+                        refreshTemplateSelect();
+                    });
+                }
+
+                // ==================== 事件绑定 ====================
+                // 工具：安全绑定 onclick
+                function setClick(id, handler) {
+                    const el = document.getElementById(id);
+                    if (el) el.onclick = handler;
+                }
+                // 工具：安全绑定 addEventListener
+                function addEvent(id, event, handler) {
+                    const el = document.getElementById(id);
+                    if (el) el.addEventListener(event, handler);
+                }
+
+                function bindAll() {
+                    setClick('smartParseBtn', smartParseAndFill);
+                    setClick('clearSmartBtn', () => {
+                        smartPasteInput.value = '';
+                        globalResultArea.value = '';
+                        debugConsole.innerHTML = '';
+                    });
+                    addEvent('sortOrderSelect', 'change', () => {
+                        const text = globalResultArea.value.trim();
+                        if (!text) return;
+                        const lines = text.split('\n\n').filter(l => l.trim());
+                        const sorted = sortSentencesByTime(lines, document.getElementById('sortOrderSelect').value);
+                        globalResultArea.value = sorted.join('\n\n');
+                    });
+
+                    setClick('uploadFlowBtn', async () => {
+                        const mode = document.querySelector('input[name="parseMode"]:checked').value;
+                        const file = document.getElementById('flowFileInput').files[0];
+                        if (!file) return;
+                        expandDebugConsole();
+                        const text = await file.text();
+                        if (mode === 'itemFlow') {
+                            debugConsole.innerHTML = '🔍 道具流水（文件）解析...';
+                            let sentences = parseItemFlowLog(text);
+                            if (sentences.length) {
+                                const sortOrder = document.getElementById('sortOrderSelect').value;
+                                sentences = sortSentencesByTime(sentences, sortOrder);
+                                sentences = sentences.map(s => applyAllConversions(s));
+                                globalResultArea.value = sentences.join('\n\n');
+                                globalResultCount.textContent = `${sentences.length} 条`;
+                                resultSourceHint.textContent = '道具流水（上传）';
+                                navigator.clipboard.writeText(globalResultArea.value);
+                                debugConsole.innerHTML += '\n✅ 完成';
+                            } else { debugConsole.innerHTML += '\n❌ 无有效记录'; }
+                            return;
+                        } else { processFlowCsv(); }
+                    });
+
+                    setClick('debugFlowBtn', async () => {
+                        const f = document.getElementById('flowFileInput').files[0];
+                        if (!f) return;
+                        const text = await f.text();
+                        expandDebugConsole();
+                        debugConsole.innerHTML = `CSV前200字符:\n${text.substring(0, 200)}`;
+                    });
+
+                    setClick('copyGlobalResultBtn', () => navigator.clipboard.writeText(globalResultArea.value));
+                    setClick('exportGlobalResultBtn', () => {
+                        const blob = new Blob([globalResultArea.value], { type: 'text/plain' });
+                        const a = document.createElement('a');
+                        a.href = URL.createObjectURL(blob);
+                        a.download = 'script.txt';
+                        a.click();
+                    });
+
+                    setClick('generateFromTemplateBtn', () => {
+                        let tpl = templateSelect.value;
+                        for (let [k, v] of Object.entries(varInputs)) tpl = tpl.replace(new RegExp(`\\{${k}\\}`, 'g'), v.value);
+                        tpl = tpl.replace(/\{[^}]+\}/g, '');
+                        tpl = applyAllConversions(tpl);
+                        globalResultArea.value = tpl;
+                        globalResultCount.textContent = '1 条';
+                        resultSourceHint.textContent = '模板生成';
+                        navigator.clipboard.writeText(tpl);
+                    });
+
+                    const modals = {
+                        source: document.getElementById('sourceRuleModal'),
+                        ignore: document.getElementById('ignoreRuleModal'),
+                        template: document.getElementById('templateModal'),
+                        script: document.getElementById('scriptEditModal'),
+                        batch: document.getElementById('batchTagModal'),
+                        tags: document.getElementById('manageTagsModal'),
+                        import: document.getElementById('importScriptModal'),
+                        mapping: document.getElementById('mappingModal'),
+                        importMapping: document.getElementById('importMappingModal')
+                    };
+
+                    setClick('manageSourceRulesBtn', () => {
+                        renderSourceRuleList(document.getElementById('ruleTypeFilter').value, document.getElementById('ruleSearchInput').value);
+                        if (modals.source) modals.source.style.display = 'block';
+                    });
+                    setClick('manageIgnoreRulesBtn', () => {
+                        renderIgnoreRuleList();
+                        if (modals.ignore) modals.ignore.style.display = 'block';
+                    });
+                    setClick('manageTemplatesBtn', () => {
+                        renderTemplateList();
+                        if (modals.template) modals.template.style.display = 'block';
+                    });
+                    setClick('manageMappingBtn', () => {
+                        renderMappingList(document.getElementById('mappingSearchInput').value);
+                        if (modals.mapping) modals.mapping.style.display = 'block';
+                    });
+                    setClick('closeMappingModal', () => { if (modals.mapping) modals.mapping.style.display = 'none'; });
+                    addEvent('mappingTypeSelect', 'change', () => {
+                        document.getElementById('mappingSearchInput').value = '';
+                        renderMappingList('');
+                    });
+                    addEvent('mappingSearchInput', 'input', (e) => {
+                        renderMappingList(e.target.value);
+                    });
+                    setClick('addMappingBtn', () => {
+                        const id = document.getElementById('newMappingId').value.trim();
+                        const name = document.getElementById('newMappingName').value.trim();
+                        if (!id) return;
+                        const map = getCurrentMap();
+                        map[id] = name;
+                        saveCurrentMap();
+                        document.getElementById('newMappingId').value = '';
+                        document.getElementById('newMappingName').value = '';
+                        renderMappingList(document.getElementById('mappingSearchInput').value);
+                    });
+                    setClick('exportMappingBtn', () => {
+                        const data = { itemNameMap, sourceIdMap, activityTypeMap };
+                        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                        const a = document.createElement('a');
+                        a.href = URL.createObjectURL(blob);
+                        a.download = 'mapping.json';
+                        a.click();
+                    });
+                    setClick('resetMappingBtn', () => {
+                        if (!confirm('确认重置为默认映射？')) return;
+                        itemNameMap = { ...DEFAULT_ITEM_NAME_MAP };
+                        sourceIdMap = { ...DEFAULT_SOURCE_ID_MAP };
+                        activityTypeMap = { ...DEFAULT_ACTIVITY_TYPE_MAP };
+                        saveData('itemNameMap', itemNameMap);
+                        saveData('sourceIdMap', sourceIdMap);
+                        saveData('activityTypeMap', activityTypeMap);
+                        renderMappingList();
+                    });
+
+                    // ==================== 从源码导入映射 ====================
+                    addEvent('importMappingBtn', 'click', () => {
+                        document.getElementById('importMappingSource').value = '';
+                        document.getElementById('importMappingResult').style.display = 'none';
+                        if (modals.importMapping) modals.importMapping.style.display = 'block';
+                    });
+                    setClick('closeImportMappingModal', () => {
+                        if (modals.importMapping) modals.importMapping.style.display = 'none';
+                    });
+                    setClick('doImportMappingBtn', () => doImportMapping(true));
+                    setClick('previewImportMappingBtn', () => doImportMapping(false));
+                    setClick('clearImportMappingBtn', () => {
+                        document.getElementById('importMappingSource').value = '';
+                        document.getElementById('importMappingResult').style.display = 'none';
+                    });
+
+                    setClick('closeSourceRuleModal', () => { if (modals.source) modals.source.style.display = 'none'; });
+                    setClick('closeIgnoreRuleModal', () => { if (modals.ignore) modals.ignore.style.display = 'none'; });
+                    setClick('closeTemplateModal', () => { if (modals.template) modals.template.style.display = 'none'; });
+
+                    setClick('modalAddTemplateBtn', () => {
+                        const t = prompt('输入新模板内容，可使用 {时间} {体力} 等变量');
+                        if (t) { templates.push(t); saveData('templates', templates); renderTemplateList(); refreshTemplateSelect(); }
+                    });
+
+                    addEvent('addOrUpdateRuleBtn', 'click', () => {
+                        const p = document.getElementById('newRulePattern').value.trim();
+                        const r = document.getElementById('newRuleReplacement').value.trim();
+                        const t = document.getElementById('newRuleType').value;
+                        if (!p) return;
+                        if (editingSourceIndex >= 0) {
+                            sourceRules[editingSourceIndex] = { pattern: p, replacement: r, type: t };
+                        } else {
+                            sourceRules.push({ pattern: p, replacement: r, type: t });
+                        }
+                        saveData('sourceRules', sourceRules);
+                        renderSourceRuleList(document.getElementById('ruleTypeFilter').value, document.getElementById('ruleSearchInput').value);
+                        resetSourceEditState();
+                    });
+
+                    setClick('cancelEditRuleBtn', resetSourceEditState);
+                    setClick('resetDefaultSourceRulesBtn', () => {
+                        sourceRules = DEFAULT_SOURCE_RULES.map(r => ({ ...r }));
+                        saveData('sourceRules', sourceRules);
+                        renderSourceRuleList();
+                    });
+                    setClick('clearAllSourceRulesBtn', () => {
+                        if (confirm('清空所有转换规则？')) { sourceRules = []; saveData('sourceRules', sourceRules); renderSourceRuleList(); }
+                    });
+
+                    setClick('addIgnoreKeywordBtn', () => {
+                        const kw = document.getElementById('newIgnoreKeyword').value.trim();
+                        if (!kw) return;
+                        if (!ignoreKeywords.includes(kw)) {
+                            ignoreKeywords.push(kw);
+                            saveData('ignoreKeywords', ignoreKeywords);
+                            renderIgnoreRuleList();
+                            document.getElementById('newIgnoreKeyword').value = '';
+                        }
+                    });
+                    setClick('resetDefaultIgnoreRulesBtn', () => {
+                        ignoreKeywords = [...DEFAULT_IGNORE_KEYWORDS];
+                        saveData('ignoreKeywords', ignoreKeywords);
+                        renderIgnoreRuleList();
+                    });
+                    setClick('clearAllIgnoreRulesBtn', () => {
+                        if (confirm('清空所有忽略关键词？')) { ignoreKeywords = []; saveData('ignoreKeywords', ignoreKeywords); renderIgnoreRuleList(); }
+                    });
+
+                    setClick('uploadCsvBtn', processCardCsv);
+                    setClick('applyFilterBtn', processCardCsv);
+                    setClick('copyAllCardBtn', () => navigator.clipboard.writeText(document.getElementById('cardResultArea').value));
+                    setClick('exportCardBtn', () => {
+                        const blob = new Blob([document.getElementById('cardResultArea').value], { type: 'text/plain' });
+                        const a = document.createElement('a');
+                        a.href = URL.createObjectURL(blob);
+                        a.download = 'card.txt';
+                        a.click();
+                    });
+                    setClick('debugCardBtn', async () => {
+                        const f = document.getElementById('csvFileInput').files[0];
+                        if (!f) return;
+                        const text = await f.text();
+                        alert('CSV前500字符:\n' + text.substring(0, 500));
+                    });
+
+                    setClick('toggleTemplateHeader', () => {
+                        const c = document.getElementById('templateContent');
+                        c.classList.toggle('collapsed');
+                        document.getElementById('toggleArrow').textContent = c.classList.contains('collapsed') ? '▶' : '▼';
+                    });
+
+                    document.querySelectorAll('.tab-btn').forEach(btn => btn.onclick = function () {
+                        document.querySelectorAll('.tab-btn, .tab-content').forEach(el => el.classList.remove('active'));
+                        this.classList.add('active');
+                        document.getElementById(`tab-${this.dataset.tab}`).classList.add('active');
+                    });
+
+                    const typeFilter = document.getElementById('ruleTypeFilter');
+                    const searchInput = document.getElementById('ruleSearchInput');
+                    const clearSearch = document.getElementById('clearRuleSearch');
+                    typeFilter.onchange = () => renderSourceRuleList(typeFilter.value, searchInput.value);
+                    searchInput.oninput = () => {
+                        clearSearch.style.display = searchInput.value ? 'inline' : 'none';
+                        renderSourceRuleList(typeFilter.value, searchInput.value);
+                    };
+                    clearSearch.onclick = () => {
+                        searchInput.value = '';
+                        clearSearch.style.display = 'none';
+                        renderSourceRuleList(typeFilter.value, '');
+                    };
+                    searchInput.onkeypress = (e) => {
+                        if (e.key === 'Enter') {
+                            const term = searchInput.value.trim();
+                            if (!term) return;
+                            const items = document.querySelectorAll('#sourceRuleListContainer .rule-item');
+                            for (let item of items) {
+                                if (item.textContent.toLowerCase().includes(term.toLowerCase())) {
+                                    item.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                    break;
+                                }
                             }
-                            saveData('sourceRules', sourceRules);
-                            renderSourceRuleList(document.getElementById('ruleTypeFilter').value, document.getElementById('ruleSearchInput').value);
-                            resetSourceEditState();
-                        });
-                        document.getElementById('cancelEditRuleBtn').onclick = resetSourceEditState;
-                        document.getElementById('resetDefaultSourceRulesBtn').onclick = () => { sourceRules = DEFAULT_SOURCE_RULES.map(r => ({ ...r })); saveData('sourceRules', sourceRules); renderSourceRuleList(); };
-                        document.getElementById('clearAllSourceRulesBtn').onclick = () => { if (confirm('清空所有转换规则？')) { sourceRules = []; saveData('sourceRules', sourceRules); renderSourceRuleList(); } };
-                        document.getElementById('addIgnoreKeywordBtn').onclick = () => { const kw = document.getElementById('newIgnoreKeyword').value.trim(); if (!kw) return; if (!ignoreKeywords.includes(kw)) { ignoreKeywords.push(kw); saveData('ignoreKeywords', ignoreKeywords); renderIgnoreRuleList(); document.getElementById('newIgnoreKeyword').value = ''; } };
-                        document.getElementById('resetDefaultIgnoreRulesBtn').onclick = () => { ignoreKeywords = [...DEFAULT_IGNORE_KEYWORDS]; saveData('ignoreKeywords', ignoreKeywords); renderIgnoreRuleList(); };
-                        document.getElementById('clearAllIgnoreRulesBtn').onclick = () => { if (confirm('清空所有忽略关键词？')) { ignoreKeywords = []; saveData('ignoreKeywords', ignoreKeywords); renderIgnoreRuleList(); } };
+                        }
+                    };
 
-                        document.getElementById('uploadCsvBtn').onclick = processCardCsv;
-                        document.getElementById('applyFilterBtn').onclick = processCardCsv;
-                        document.getElementById('copyAllCardBtn').onclick = () => navigator.clipboard.writeText(document.getElementById('cardResultArea').value);
-                        document.getElementById('exportCardBtn').onclick = () => { const blob = new Blob([document.getElementById('cardResultArea').value], { type: 'text/plain' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'card.txt'; a.click(); };
-                        document.getElementById('debugCardBtn').onclick = async () => { const f = document.getElementById('csvFileInput').files[0]; if (!f) return; const text = await f.text(); alert('CSV前500字符:\n' + text.substring(0, 500)); };
-                        document.getElementById('toggleTemplateHeader').onclick = () => { const c = document.getElementById('templateContent'); c.classList.toggle('collapsed'); document.getElementById('toggleArrow').textContent = c.classList.contains('collapsed') ? '▶' : '▼'; };
-                        document.querySelectorAll('.tab-btn').forEach(btn => btn.onclick = function () {
-                            document.querySelectorAll('.tab-btn, .tab-content').forEach(el => el.classList.remove('active'));
-                            this.classList.add('active');
-                            document.getElementById(`tab-${this.dataset.tab}`).classList.add('active');
-                        });
+                    refreshVarEntries();
+                    refreshTemplateSelect();
+                }
 
-                        const typeFilter = document.getElementById('ruleTypeFilter');
-                        const searchInput = document.getElementById('ruleSearchInput');
-                        const clearSearch = document.getElementById('clearRuleSearch');
-                        typeFilter.onchange = () => renderSourceRuleList(typeFilter.value, searchInput.value);
-                        searchInput.oninput = () => { clearSearch.style.display = searchInput.value ? 'inline' : 'none'; renderSourceRuleList(typeFilter.value, searchInput.value); };
-                        clearSearch.onclick = () => { searchInput.value = ''; clearSearch.style.display = 'none'; renderSourceRuleList(typeFilter.value, ''); };
-                        searchInput.onkeypress = (e) => { if (e.key === 'Enter') { const term = searchInput.value.trim(); if (!term) return; const items = document.querySelectorAll('#sourceRuleListContainer .rule-item'); for (let item of items) { if (item.textContent.toLowerCase().includes(term.toLowerCase())) { item.scrollIntoView({ behavior: 'smooth', block: 'center' }); break; } } } };
-
-                        refreshVarEntries(); refreshTemplateSelect();
-                    }
-
-                    bindAll();
+                bindAll();
+                if (document.getElementById('tabsContainer') && window.Sortable) {
                     new Sortable(document.getElementById('tabsContainer'), { animation: 150 });
+                }
+                if (debugConsole) {
                     debugConsole.style.display = 'none';
-                    debugConsole.innerHTML = '🟢 工作台就绪 · 完整功能正常';
-                }) ();
+                    debugConsole.innerHTML = '🟢 工作台就绪 · AK-SYS ONLINE · 完整功能正常';
+                }
+            })();
         </script>
 </body>
 </html>
