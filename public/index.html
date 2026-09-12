@@ -1006,12 +1006,30 @@
                     <div class="upload-col"><label>道具关键词</label><input type="text" id="itemKeywordInput" placeholder="例如：百戏锦囊"></div>
                 </div>
             </div>
-            <div class="card" style="padding: 12px 16px;">
-                <div class="collapsible-header" id="toggleTemplateHeader"><span class="arrow" id="toggleArrow">▼</span><span>📌 手动自定义话术</span><div style="margin-left:auto; display:flex; gap:8px;"><button id="manageTemplatesBtn" class="secondary">管理模板</button><button id="resetRulesBtn" class="reset-btn">重置默认</button></div></div>
+            <div style="margin: 4px 0 16px;">
+                <button id="toggleCustomScriptCardBtn" class="secondary">📌 手动自定义话术</button>
+            </div>
+
+            <div class="card" id="customScriptCard" style="padding: 12px 16px; display: none;">
+                <div class="collapsible-header" id="toggleTemplateHeader">
+                    <span class="arrow" id="toggleArrow">▼</span>
+                    <span>📌 手动自定义话术</span>
+                    <div style="margin-left:auto; display:flex; gap:8px;">
+                        <button id="manageTemplatesBtn" class="secondary">管理模板</button>
+                        <button id="resetRulesBtn" class="reset-btn">重置默认</button>
+                        <button id="closeCustomScriptCardBtn" class="secondary">收起</button>
+                    </div>
+                </div>
                 <div class="collapsible-content" id="templateContent" style="max-height:500px;">
-                    <div class="form-group" style="margin-top:12px;"><label>选择模板：</label><select id="templateSelect" style="width:100%;"></select></div>
-                    <label>📝 变量值</label><div id="varContainer" class="var-grid"></div>
-                    <div class="flex-row"><button id="generateFromTemplateBtn" style="background:#28a745;">✨ 模板生成话术</button></div>
+                    <div class="form-group" style="margin-top:12px;">
+                        <label>选择模板：</label>
+                        <select id="templateSelect" style="width:100%;"></select>
+                    </div>
+                    <label>📝 变量值</label>
+                    <div id="varContainer" class="var-grid"></div>
+                    <div class="flex-row">
+                        <button id="generateFromTemplateBtn">✨ 模板生成话术</button>
+                    </div>
                 </div>
             </div>
             <div class="card" style="margin-top:20px;">
@@ -3043,6 +3061,22 @@
                         const c = document.getElementById('templateContent');
                         c.classList.toggle('collapsed');
                         document.getElementById('toggleArrow').textContent = c.classList.contains('collapsed') ? '▶' : '▼';
+                    });
+
+                    setClick('toggleCustomScriptCardBtn', () => {
+                        const card = document.getElementById('customScriptCard');
+                        const btn = document.getElementById('toggleCustomScriptCardBtn');
+                        if (!card) return;
+                        const isHidden = getComputedStyle(card).display === 'none';
+                        card.style.display = isHidden ? 'block' : 'none';
+                        if (btn) btn.textContent = isHidden ? '📌 收起自定义话术' : '📌 手动自定义话术';
+                    });
+
+                    setClick('closeCustomScriptCardBtn', () => {
+                        const card = document.getElementById('customScriptCard');
+                        const btn = document.getElementById('toggleCustomScriptCardBtn');
+                        if (card) card.style.display = 'none';
+                        if (btn) btn.textContent = '📌 手动自定义话术';
                     });
 
                     document.querySelectorAll('.tab-btn').forEach(btn => btn.onclick = function () {
