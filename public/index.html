@@ -1413,15 +1413,15 @@
 <body>
     <div class="container">
         <div class="tabs" id="tabsContainer">
-            <button class="tab-btn active" data-tab="gen">🎤 话术生成</button>
-            <button class="tab-btn" data-tab="card">📊 集卡分析</button>
-            <button class="tab-btn" data-tab="script">📚 小游戏</button>
+            <button class="tab-btn active" data-tab="gen"> 话术生成</button>
+            <button class="tab-btn" data-tab="card"> 集卡分析</button>
+            <button class="tab-btn" data-tab="script">小游戏</button>
         </div>
 
         <!-- 话术生成 gen -->
         <div id="tab-gen" class="tab-content active">
             <div class="inline-card" style="margin-bottom: 20px;">
-                <label style="font-size: 1.1rem; margin-bottom: 10px;">📋 智能粘贴识别（支持资源/棋子/订单）</label>
+                <label style="font-size: 1.1rem; margin-bottom: 10px;">智能粘贴识别（支持资源/棋子/订单）</label>
                 <textarea id="smartPasteInput" rows="5" placeholder="粘贴流水/订单日志，例如：&#10;2026-04-20 16:04:00	51b2bb98971c8d2323c225edd44a5512	体力	-1	326	325	棋盘操作-临时母棋生产	0-货币"></textarea>
                 <div class="flex-row" style="margin-top:8px;">
                     <button id="smartParseBtn">✨ 智能解析</button>
@@ -1437,9 +1437,9 @@
                 <div style="border-top: 1px solid #e0e0e0; margin: 16px 0;"></div>
                 <div class="rule-bar">
                     <div><label style="margin:0; font-weight:600;">资源类型</label><select id="flowResourceSelect" class="compact-select"><option value="体力">体力</option><option value="红钻">红钻</option><option value="金币">金币</option><option value="好评点" selected>好评点</option><option value="道具" selected>道具</option></select></div>
-                    <div><strong>🚫 忽略</strong><label class="checkbox-label"><input type="checkbox" id="enableIgnoreRulesCheckbox" checked> 启用</label><button id="manageIgnoreRulesBtn" class="secondary">管理</button></div>
-                    <div><strong>📌 转换</strong><label class="checkbox-label"><input type="checkbox" id="enableSourceConversionCheckbox" checked> 启用</label><button id="manageSourceRulesBtn" class="secondary">管理</button></div>
-                    <div><strong>🗂️ 映射</strong><button id="manageMappingBtn" class="secondary">管理</button></div>
+                    <div><strong> 忽略</strong><label class="checkbox-label"><input type="checkbox" id="enableIgnoreRulesCheckbox" checked> 启用</label><button id="manageIgnoreRulesBtn" class="secondary">管理</button></div>
+                    <div><strong> 转换</strong><label class="checkbox-label"><input type="checkbox" id="enableSourceConversionCheckbox" checked> 启用</label><button id="manageSourceRulesBtn" class="secondary">管理</button></div>
+                    <div><strong> 映射</strong><button id="manageMappingBtn" class="secondary">管理</button></div>
                 </div>
                 <div class="upload-row">
                     <div class="upload-col"><label>📁 上传流水CSV</label><div class="file-upload-wrapper"><input type="file" id="flowFileInput" accept=".csv,.txt" /><button id="uploadFlowBtn">上传解析</button><button id="debugFlowBtn" class="secondary">调试</button></div></div>
@@ -1448,13 +1448,13 @@
                 </div>
             </div>
             <div style="margin: 4px 0 16px;">
-                <button id="toggleCustomScriptCardBtn" class="secondary">📌 手动自定义话术</button>
+                <button id="toggleCustomScriptCardBtn" class="secondary"> 手动自定义话术</button>
             </div>
 
             <div class="card" id="customScriptCard" style="padding: 12px 16px; display: none;">
                 <div class="collapsible-header" id="toggleTemplateHeader">
                     <span class="arrow" id="toggleArrow">▼</span>
-                    <span>📌 手动自定义话术</span>
+                    <span> 手动自定义话术</span>
                     <div style="margin-left:auto; display:flex; gap:8px;">
                         <button id="manageTemplatesBtn" class="secondary">管理模板</button>
                         <button id="resetRulesBtn" class="reset-btn">重置默认</button>
@@ -1475,7 +1475,7 @@
             </div>
             <div class="card" style="margin-top:20px;">
                 <div class="result-header">
-                    <label>📄 生成话术 <span id="globalResultCount" class="badge">0 条/组</span></label>
+                    <label> 生成话术 <span id="globalResultCount" class="badge">0 条/组</span></label>
                     <div class="flex-row">
                         <div style="display:flex; align-items:center; gap:8px;">
                             <label style="margin:0;">🕒 排序：</label>
@@ -1484,8 +1484,8 @@
                                 <option value="asc">时间正序</option>
                             </select>
                         </div>
-                        <button id="copyGlobalResultBtn">📋 复制全部</button>
-                        <button id="exportGlobalResultBtn">💾 导出TXT</button>
+                        <button id="copyGlobalResultBtn"> 复制全部</button>
+                        <button id="exportGlobalResultBtn"> 导出TXT</button>
                     </div>
                 </div>                <textarea id="globalResultArea" rows="20" readonly style="background:#e9ecef;"></textarea>
                 <small>结果来源：<span id="resultSourceHint">等待操作</span></small>
@@ -1497,7 +1497,7 @@
         <div id="tab-card" class="tab-content">
             <div class="form-group"><label>上传集卡CSV文件</label><input type="file" id="csvFileInput" accept=".csv,.txt" /><button id="uploadCsvBtn" style="margin-top:8px;">📂 上传并解析</button><button id="debugCardBtn" class="secondary">🔍 调试</button></div>
             <div class="form-group"><label>按卡牌星级筛选：</label><select id="starFilterSelect"><option value="all">全部</option><option value="1">1星</option><option value="2">2星</option><option value="3">3星</option><option value="4">4星</option><option value="5">5星</option></select><button id="applyFilterBtn" style="margin-left:8px;">应用筛选</button></div>
-            <div class="card"><label>生成结果（共 <span id="recordCount">0</span> 条）</label><textarea id="cardResultArea" rows="20" readonly></textarea><div class="flex-row"><button id="copyAllCardBtn">📋 复制全部</button><button id="exportCardBtn">💾 导出TXT</button></div></div>
+            <div class="card"><label>生成结果（共 <span id="recordCount">0</span> 条）</label><textarea id="cardResultArea" rows="20" readonly></textarea><div class="flex-row"><button id="copyAllCardBtn">复制全部</button><button id="exportCardBtn">导出TXT</button></div></div>
         </div>
 
         <!-- 拼豆小游戏 -->
@@ -1521,7 +1521,7 @@
                             <option value="contain">留白填充</option>
                         </select>
                         <span style="font-size:12px;color:#6c757d;">支持Ctrl+V粘贴截图</span>
-                        <button id="pixelExportBtn" class="secondary" style="background:#007bff;">📤 导出图纸</button>
+                        <button id="pixelExportBtn" class="secondary" style="background:#007bff;">导出图纸</button>
                     </div>
                     <div id="pixelColorPalette" style="display:none; flex-wrap:wrap; gap:4px; margin-top:8px; padding:8px; border:1px solid #ccc; border-radius:8px; background:#f8f9fa; max-width:100%;"></div>
                     <div style="position: relative; display: inline-block; border: 2px solid #dee2e6; border-radius: 8px; padding: 4px; background: #f8f9fa; overflow: auto; max-width: 100%; max-height: 80vh;">
@@ -1535,9 +1535,9 @@
         </div>
 
         <!-- 模态框集合 -->
-        <div id="sourceRuleModal" class="modal"><div class="modal-content"><div class="modal-header"><h3>📌 文本转换规则管理</h3><span class="close" id="closeSourceRuleModal">&times;</span></div><p class="hint-text">✨ 按类型管理转换规则：来源、订单奖励、棋子名称。可搜索定位。</p><div class="flex-row" style="margin-bottom:12px;"><select id="ruleTypeFilter" style="width:140px;"><option value="all">全部类型</option><option value="source">来源</option><option value="reward">订单奖励</option><option value="chessName">棋子名称</option></select><div class="search-box" style="flex:1;"><input type="text" id="ruleSearchInput" placeholder="搜索关键词或替换内容..."><span class="clear-search" id="clearRuleSearch" style="display:none;">✕</span></div></div><div id="sourceRuleListContainer" style="max-height:250px; overflow:auto; border:1px solid #dee2e6; border-radius:8px; padding:8px;"></div><div class="flex-row" style="margin-top:12px;"><select id="newRuleType" style="width:120px;"><option value="source">来源</option><option value="reward">订单奖励</option><option value="chessName">棋子名称</option></select><input type="text" id="newRulePattern" placeholder="匹配关键词" style="flex:2;"><span>→</span><input type="text" id="newRuleReplacement" placeholder="替换为（留空删除）" style="flex:3;"><button id="addOrUpdateRuleBtn" style="background:#28a745;">➕ 添加</button><button id="cancelEditRuleBtn" class="secondary" style="display:none;">取消</button></div><div class="flex-row" style="margin-top:16px; justify-content:space-between;"><button id="resetDefaultSourceRulesBtn" class="secondary">重置推荐规则</button><button id="clearAllSourceRulesBtn" class="reset-btn">清空所有规则</button></div></div></div>
+        <div id="sourceRuleModal" class="modal"><div class="modal-content"><div class="modal-header"><h3> 文本转换规则管理</h3><span class="close" id="closeSourceRuleModal">&times;</span></div><p class="hint-text">✨ 按类型管理转换规则：来源、订单奖励、棋子名称。可搜索定位。</p><div class="flex-row" style="margin-bottom:12px;"><select id="ruleTypeFilter" style="width:140px;"><option value="all">全部类型</option><option value="source">来源</option><option value="reward">订单奖励</option><option value="chessName">棋子名称</option></select><div class="search-box" style="flex:1;"><input type="text" id="ruleSearchInput" placeholder="搜索关键词或替换内容..."><span class="clear-search" id="clearRuleSearch" style="display:none;">✕</span></div></div><div id="sourceRuleListContainer" style="max-height:250px; overflow:auto; border:1px solid #dee2e6; border-radius:8px; padding:8px;"></div><div class="flex-row" style="margin-top:12px;"><select id="newRuleType" style="width:120px;"><option value="source">来源</option><option value="reward">订单奖励</option><option value="chessName">棋子名称</option></select><input type="text" id="newRulePattern" placeholder="匹配关键词" style="flex:2;"><span>→</span><input type="text" id="newRuleReplacement" placeholder="替换为（留空删除）" style="flex:3;"><button id="addOrUpdateRuleBtn" style="background:#28a745;">➕ 添加</button><button id="cancelEditRuleBtn" class="secondary" style="display:none;">取消</button></div><div class="flex-row" style="margin-top:16px; justify-content:space-between;"><button id="resetDefaultSourceRulesBtn" class="secondary">重置推荐规则</button><button id="clearAllSourceRulesBtn" class="reset-btn">清空所有规则</button></div></div></div>
 
-        <div id="ignoreRuleModal" class="modal"><div class="modal-content"><div class="modal-header"><h3>🚫 忽略关键词管理</h3><span class="close" id="closeIgnoreRuleModal">&times;</span></div><div id="ignoreRuleListContainer" style="max-height:250px; overflow:auto; border:1px solid #dee2e6; border-radius:8px; padding:8px;"></div><div class="flex-row" style="margin-top:12px;"><input type="text" id="newIgnoreKeyword" placeholder="关键词"><button id="addIgnoreKeywordBtn" style="background:#28a745;">➕ 添加</button></div><div class="flex-row" style="margin-top:16px; justify-content:space-between;"><button id="resetDefaultIgnoreRulesBtn" class="secondary">重置推荐</button><button id="clearAllIgnoreRulesBtn" class="reset-btn">清空</button></div></div></div>
+        <div id="ignoreRuleModal" class="modal"><div class="modal-content"><div class="modal-header"><h3> 忽略关键词管理</h3><span class="close" id="closeIgnoreRuleModal">&times;</span></div><div id="ignoreRuleListContainer" style="max-height:250px; overflow:auto; border:1px solid #dee2e6; border-radius:8px; padding:8px;"></div><div class="flex-row" style="margin-top:12px;"><input type="text" id="newIgnoreKeyword" placeholder="关键词"><button id="addIgnoreKeywordBtn" style="background:#28a745;">➕ 添加</button></div><div class="flex-row" style="margin-top:16px; justify-content:space-between;"><button id="resetDefaultIgnoreRulesBtn" class="secondary">重置推荐</button><button id="clearAllIgnoreRulesBtn" class="reset-btn">清空</button></div></div></div>
 
         <div id="templateModal" class="modal"><div class="modal-content"><div class="modal-header"><h3>管理模板</h3><span class="close" id="closeTemplateModal">&times;</span></div><button id="modalAddTemplateBtn">➕ 新增模板</button><div id="templateList"></div></div></div>
 
@@ -1553,7 +1553,7 @@
         <div id="mappingModal" class="modal">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h3>🗂️ 映射管理</h3>
+                    <h3>映射管理</h3>
                     <span class="close" id="closeMappingModal">&times;</span>
                 </div>
                 <p class="hint-text">管理物品ID、来源ID、活动类型ID到名称的映射。支持从游戏源码一键导入。</p>
@@ -1566,8 +1566,8 @@
                     <div class="search-box" style="flex:1; min-width:180px;">
                         <input type="text" id="mappingSearchInput" placeholder="搜索ID或名称...">
                     </div>
-                    <button id="importMappingBtn" class="secondary">📥 从源码导入</button>
-                    <button id="exportMappingBtn" class="secondary">📤 导出JSON</button>
+                    <button id="importMappingBtn" class="secondary"> 从源码导入</button>
+                    <button id="exportMappingBtn" class="secondary"> 导出JSON</button>
                     <button id="resetMappingBtn" class="reset-btn">重置默认</button>
                 </div>
                 <div id="mappingListContainer" style="max-height:320px; overflow:auto; border:1px solid #dee2e6; border-radius:8px; padding:8px;"></div>
@@ -1595,8 +1595,8 @@
                     <label class="checkbox-label"><input type="checkbox" id="importAlsoActivity" checked> 同时导入活动映射</label>
                 </div>
                 <div class="flex-row" style="margin-top:12px;">
-                    <button id="doImportMappingBtn">✅ 解析并导入</button>
-                    <button id="previewImportMappingBtn" class="secondary">👁️ 预览</button>
+                    <button id="doImportMappingBtn"> 解析并导入</button>
+                    <button id="previewImportMappingBtn" class="secondary"> 预览</button>
                     <button id="clearImportMappingBtn" class="secondary">清空</button>
                 </div>
                 <div id="importMappingResult" style="display:none; margin-top:12px; padding:12px; background:#f8f9fa; border-radius:8px; font-family:monospace; font-size:12px; white-space:pre-wrap; max-height:300px; overflow:auto;"></div>
