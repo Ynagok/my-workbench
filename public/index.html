@@ -1410,7 +1410,7 @@
         /* ============================================================
            集卡结果 · 新卡高亮预览（记号笔效果）
            ============================================================ */
-        . .card-preview {
+        .card-preview {
             background: var(--bg-1);
             border: 1px solid var(--line-0);
             border-radius: var(--r-md);
@@ -1418,10 +1418,9 @@
             font-family: var(--font-mono);
             font-size: 12.5px;
             line-height: 1.9;
-            white-space: pre-wrap; /* ★ 关键：保留 \n 换行 */
-            word-break: break-word; /* ★ 长内容自动折行 */
-            min-height: 480px;
-            max-height: 480px;
+            white-space: pre-wrap;
+            word-break: break-word;
+            max-height: 400px;
             overflow: auto;
             margin-bottom: 10px;
             color: var(--ink-0);
