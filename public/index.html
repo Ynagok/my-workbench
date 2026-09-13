@@ -1428,9 +1428,13 @@
         }
 
             .card-preview:empty::before {
-                content: ;
+                content: '（解析后此处显示新卡高亮预览）';
                 color: var(--ink-3);
                 font-family: var(--font-sans);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                height: 100%;
             }
 
             /* 记号笔高亮：中段黄色粗，两端淡出 */
@@ -1441,6 +1445,125 @@
                 border-radius: 2px;
                 font-weight: 700;
             }
+        /* ============================================================
+           日报生成
+           ============================================================ */
+        .daily-tab-btn {
+            padding: 8px 18px;
+            background: var(--bg-1);
+            border: 1px solid var(--line-1);
+            color: var(--ink-2);
+            border-radius: var(--r-sm);
+            cursor: pointer;
+            font-family: var(--font-display);
+            font-weight: 600;
+            font-size: 13px;
+            letter-spacing: 0.06em;
+            transition: all 0.16s ease;
+        }
+
+            .daily-tab-btn.active {
+                background: var(--accent-dim);
+                border-color: var(--accent);
+                color: var(--accent-ink);
+                font-weight: 700;
+                box-shadow: 0 0 0 3px var(--accent-dim);
+            }
+
+            .daily-tab-btn:hover:not(.active) {
+                background: var(--surface);
+                color: var(--ink-0);
+                border-color: var(--ink-2);
+            }
+
+        .daily-form {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px 16px;
+            margin-top: 8px;
+        }
+
+        .daily-field {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+            .daily-field label {
+                font-size: 11px;
+                margin-bottom: 2px;
+                letter-spacing: 0.08em;
+            }
+
+            .daily-field input {
+                height: 34px;
+                font-size: 13px;
+            }
+
+            .daily-field.full-width {
+                grid-column: 1 / -1;
+            }
+
+            .daily-field textarea {
+                min-height: 80px;
+                font-size: 12.5px;
+            }
+
+        .daily-custom-section {
+            grid-column: 1 / -1;
+            margin-top: 16px;
+            padding-top: 14px;
+            border-top: 1px dashed var(--line-1);
+        }
+
+            .daily-custom-section h4 {
+                font-family: var(--font-display);
+                font-size: 12px;
+                letter-spacing: 0.12em;
+                text-transform: uppercase;
+                color: var(--ink-2);
+                margin-bottom: 10px;
+                font-weight: 700;
+            }
+
+        .daily-custom-item {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 8px;
+            align-items: center;
+        }
+
+            .daily-custom-item input {
+                height: 32px;
+                font-size: 13px;
+            }
+
+                .daily-custom-item input.custom-label {
+                    flex: 1;
+                }
+
+                .daily-custom-item input.custom-value {
+                    flex: 1.6;
+                }
+
+            .daily-custom-item .remove-custom {
+                padding: 4px 10px;
+                background: var(--surface);
+                border: 1px solid rgba(229,57,53,0.4);
+                color: var(--danger);
+                border-radius: var(--r-sm);
+                cursor: pointer;
+                font-size: 12px;
+                height: 32px;
+                font-family: var(--font-display);
+                font-weight: 700;
+            }
+
+                .daily-custom-item .remove-custom:hover {
+                    background: var(--danger);
+                    color: #fff;
+                    border-color: var(--danger);
+                }
     </style>
 </head>
 
@@ -1449,6 +1572,7 @@
         <div class="tabs" id="tabsContainer">
             <button class="tab-btn active" data-tab="gen"> 话术生成</button>
             <button class="tab-btn" data-tab="card"> 集卡分析</button>
+            <button class="tab-btn" data-tab="daily"> 每日日报</button>
             <button class="tab-btn" data-tab="script">小游戏</button>
         </div>
 
@@ -1539,6 +1663,36 @@
                     <button id="copyAllCardBtn">📋 复制全部</button>
                     <button id="exportCardBtn">💾 导出TXT</button>
                 </div>
+            </div>
+        </div>
+
+        <!-- 日报生成 daily -->
+        <div id="tab-daily" class="tab-content">
+            <div class="card">
+                <div class="flex-row" style="justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
+                    <div class="flex-row" style="gap: 8px;">
+                        <button id="dailyTabTicket" class="daily-tab-btn active">📋 工单日报</button>
+                        <button id="dailyTabOverseas" class="daily-tab-btn">🌐 海外日报</button>
+                    </div>
+                    <div class="flex-row" style="gap: 8px; align-items: center;">
+                        <span id="dailyDateHint" class="badge">--</span>
+                        <button id="resetDailyBtn" class="reset-btn">重置模板</button>
+                    </div>
+                </div>
+                <div id="dailyFormTicket" class="daily-form"></div>
+                <div id="dailyFormOverseas" class="daily-form" style="display: none;"></div>
+            </div>
+
+            <div class="card">
+                <div class="result-header">
+                    <label>📄 日报预览 <span class="hint-text" style="margin-left:8px;">（自动按北京时间逐日刷新）</span></label>
+                    <div class="flex-row">
+                        <button id="generateDailyBtn">✨ 生成日报</button>
+                        <button id="copyDailyBtn" class="secondary">📋 复制</button>
+                        <button id="exportDailyBtn" class="secondary">💾 导出TXT</button>
+                    </div>
+                </div>
+                <textarea id="dailyResultArea" rows="18" readonly></textarea>
             </div>
         </div>
 
@@ -3739,6 +3893,76 @@
                     "81": "体力排行榜"
                 };
 
+                // ==================== 日报生成 · 数据 ====================
+                const DAILY_DEFAULT_DATA = {
+                    ticket: {
+                        name: 'a', shift: 'H',
+                        sso: 0, kf53: 0, alipay: 0,
+                        ajs_cp: 0, fh_cp: 0, lb_cp: 0, bcq_cp: 0,
+                        g1_wx: 0, g1_dy: 0, g1_dyol: 0, g1_qq: 0,
+                        g2_wx: 0, g2_dy: 0, g2_dyol: 0,
+                        g3_wx: 0, g3_dy: 0, g3_dyol: 0,
+                        g4_wx: 0, g4_dy: 0, g4_dyol: 0,
+                        g5_wx: 0, g5_dy: 0, g5_alipay: 0,
+                        pending: ''
+                    },
+                    overseas: {
+                        name: 'b',
+                        ios: 0, google: 0,
+                        fb: 0, email: 0, sdk: 0,
+                        mute: 0, ban: 0
+                    },
+                    ticketCustom: [],
+                    overseasCustom: [],
+                    currentTab: 'ticket'
+                };
+
+                const DAILY_TICKET_FIELDS = [
+                    { key: 'name', label: '姓名', type: 'text', placeholder: '如：a' },
+                    { key: 'shift', label: '班次', type: 'text', placeholder: '如：H' },
+                    { key: 'sso', label: 'SSO工单', type: 'number' },
+                    { key: 'kf53', label: '53客服在线', type: 'number' },
+                    { key: 'alipay', label: '支付宝在线', type: 'number' },
+                    { key: 'ajs_cp', label: '爱江山CP后台', type: 'number' },
+                    { key: 'fh_cp', label: '繁花CP后台', type: 'number' },
+                    { key: 'lb_cp', label: '乐缤纷CP后台', type: 'number' },
+                    { key: 'bcq_cp', label: '不差钱CP后台', type: 'number' },
+                    { key: 'g1_wx', label: '①繁花·微信', type: 'number' },
+                    { key: 'g1_dy', label: '①繁花·抖音', type: 'number' },
+                    { key: 'g1_dyol', label: '①繁花·dy在线', type: 'number' },
+                    { key: 'g1_qq', label: '①繁花·手Q', type: 'number' },
+                    { key: 'g2_wx', label: '②乐缤纷·微信', type: 'number' },
+                    { key: 'g2_dy', label: '②乐缤纷·抖音', type: 'number' },
+                    { key: 'g2_dyol', label: '②乐缤纷·dy在线', type: 'number' },
+                    { key: 'g3_wx', label: '③不差钱·微信', type: 'number' },
+                    { key: 'g3_dy', label: '③不差钱·抖音', type: 'number' },
+                    { key: 'g3_dyol', label: '③不差钱·dy在线', type: 'number' },
+                    { key: 'g4_wx', label: '④你的江湖·微信', type: 'number' },
+                    { key: 'g4_dy', label: '④你的江湖·抖音', type: 'number' },
+                    { key: 'g4_dyol', label: '④你的江湖·dy在线', type: 'number' },
+                    { key: 'g5_wx', label: '⑤梦幻消除战·微信', type: 'number' },
+                    { key: 'g5_dy', label: '⑤梦幻消除战·抖音', type: 'number' },
+                    { key: 'g5_alipay', label: '⑤梦幻消除战·支付宝后台', type: 'number' },
+                    { key: 'pending', label: '待跟进', type: 'textarea', fullWidth: true, placeholder: '例：xxx问题需要跟进' }
+                ];
+
+                const DAILY_OVERSEAS_FIELDS = [
+                    { key: 'name', label: '姓名', type: 'text', placeholder: '如：b' },
+                    { key: 'ios', label: 'ios商店（评价）', type: 'number' },
+                    { key: 'google', label: 'Google Play（评价）', type: 'number' },
+                    { key: 'fb', label: 'FB（来访）', type: 'number' },
+                    { key: 'email', label: '邮箱（来访）', type: 'number' },
+                    { key: 'sdk', label: 'SDk工单（来访）', type: 'number' },
+                    { key: 'mute', label: '禁言', type: 'number' },
+                    { key: 'ban', label: '封号', type: 'number' }
+                ];
+
+                let dailyData = await loadData('dailyData', DAILY_DEFAULT_DATA);
+                // 兼容旧版数据：补齐缺失字段
+                if (!dailyData.ticketCustom) dailyData.ticketCustom = [];
+                if (!dailyData.overseasCustom) dailyData.overseasCustom = [];
+                if (!dailyData.currentTab) dailyData.currentTab = 'ticket';
+
                 // ==================== 数据读写 ====================
                 async function loadData(key, defaultValue) {
                     // ===== 本地优先模式 =====
@@ -5255,15 +5479,15 @@
                         const replacement = getRuleReplacement(r) || '(删除)';
                         const typeLabel = r.type === 'source' ? '来源' : (r.type === 'reward' ? '奖励' : '棋子');
                         return `<div class="rule-item" data-idx="${idx}">
-                                    <span class="rule-pattern">${pattern}</span>
-                                    <span style="color: var(--ak-text-mute); font-size:12px;">[${typeLabel}]</span>
-                                    <span style="color: var(--ak-primary);">→</span>
-                                    <span class="rule-replacement">${replacement}</span>
-                                    <div class="rule-actions">
-                                        <button class="edit-source-btn secondary" data-idx="${idx}">✏️</button>
-                                        <button class="delete-source-btn reset-btn" data-idx="${idx}">🗑️</button>
-                                    </div>
-                                </div>`;
+                                            <span class="rule-pattern">${pattern}</span>
+                                            <span style="color: var(--ak-text-mute); font-size:12px;">[${typeLabel}]</span>
+                                            <span style="color: var(--ak-primary);">→</span>
+                                            <span class="rule-replacement">${replacement}</span>
+                                            <div class="rule-actions">
+                                                <button class="edit-source-btn secondary" data-idx="${idx}">✏️</button>
+                                                <button class="delete-source-btn reset-btn" data-idx="${idx}">🗑️</button>
+                                            </div>
+                                        </div>`;
                     }).join('') || '<div style="padding:20px;text-align:center;color:var(--ak-text-mute);">暂无规则</div>';
 
                     c.querySelectorAll('.delete-source-btn').forEach(b => b.onclick = () => {
@@ -5296,11 +5520,11 @@
                     const c = document.getElementById('ignoreRuleListContainer');
                     c.innerHTML = ignoreKeywords.map((k, i) =>
                         `<div class="rule-item">
-                                    <span class="rule-pattern">${k}</span>
-                                    <div class="rule-actions">
-                                        <button data-i="${i}" class="delete-ignore-btn reset-btn">🗑️</button>
-                                    </div>
-                                </div>`
+                                            <span class="rule-pattern">${k}</span>
+                                            <div class="rule-actions">
+                                                <button data-i="${i}" class="delete-ignore-btn reset-btn">🗑️</button>
+                                            </div>
+                                        </div>`
                     ).join('') || '<div style="padding:20px;text-align:center;color:var(--ak-text-mute);">暂无忽略关键词</div>';
                     c.querySelectorAll('.delete-ignore-btn').forEach(b => b.onclick = e => {
                         ignoreKeywords.splice(e.target.dataset.i, 1);
@@ -5337,13 +5561,13 @@
                     }
                     c.innerHTML = entries.map(([id, name]) =>
                         `<div class="rule-item" data-id="${id}">
-                                    <span class="rule-pattern">${id}</span>
-                                    <span style="color: var(--ak-primary);">→</span>
-                                    <span class="rule-replacement" style="flex:1;">${name || '(空)'}</span>
-                                    <div class="rule-actions">
-                                        <button class="delete-mapping-btn reset-btn" data-id="${id}">🗑️</button>
-                                    </div>
-                                </div>`
+                                            <span class="rule-pattern">${id}</span>
+                                            <span style="color: var(--ak-primary);">→</span>
+                                            <span class="rule-replacement" style="flex:1;">${name || '(空)'}</span>
+                                            <div class="rule-actions">
+                                                <button class="delete-mapping-btn reset-btn" data-id="${id}">🗑️</button>
+                                            </div>
+                                        </div>`
                     ).join('');
                     c.querySelectorAll('.delete-mapping-btn').forEach(btn => {
                         btn.onclick = () => {
@@ -5398,12 +5622,12 @@
                     const c = document.getElementById('templateList');
                     c.innerHTML = templates.map((t, i) =>
                         `<div class="rule-item">
-                                    <span style="flex:1;">${t.substring(0, 50)}</span>
-                                    <div class="rule-actions">
-                                        <button data-i="${i}" class="edit-template-btn secondary">✏️</button>
-                                        <button data-i="${i}" class="delete-template-btn reset-btn">🗑️</button>
-                                    </div>
-                                </div>`
+                                            <span style="flex:1;">${t.substring(0, 50)}</span>
+                                            <div class="rule-actions">
+                                                <button data-i="${i}" class="edit-template-btn secondary">✏️</button>
+                                                <button data-i="${i}" class="delete-template-btn reset-btn">🗑️</button>
+                                            </div>
+                                        </div>`
                     ).join('');
                     c.querySelectorAll('.delete-template-btn').forEach(b => b.onclick = e => {
                         templates.splice(e.target.dataset.i, 1);
@@ -5411,6 +5635,197 @@
                         renderTemplateList();
                         refreshTemplateSelect();
                     });
+                }
+
+                // ==================== 日报生成 · 逻辑 ====================
+                function getBeijingDate() {
+                    const now = new Date();
+                    const utc = now.getTime() + now.getTimezoneOffset() * 60000;
+                    const bj = new Date(utc + 8 * 3600000);
+                    return { year: bj.getFullYear(), month: bj.getMonth() + 1, day: bj.getDate() };
+                }
+
+                function escapeHtml(str) {
+                    return String(str == null ? '' : str)
+                        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+                }
+
+                function renderDailyForm(tab) {
+                    const container = document.getElementById(tab === 'ticket' ? 'dailyFormTicket' : 'dailyFormOverseas');
+                    if (!container) return;
+                    const fields = tab === 'ticket' ? DAILY_TICKET_FIELDS : DAILY_OVERSEAS_FIELDS;
+                    const data = dailyData[tab];
+                    const customKey = tab === 'ticket' ? 'ticketCustom' : 'overseasCustom';
+                    const customs = dailyData[customKey] || [];
+
+                    let html = '';
+                    for (const f of fields) {
+                        const val = data[f.key] !== undefined ? data[f.key] : '';
+                        const fullWidth = f.fullWidth ? ' full-width' : '';
+                        const ph = escapeHtml(f.placeholder || '');
+                        if (f.type === 'textarea') {
+                            html += `<div class="daily-field${fullWidth}">
+                                <label>${escapeHtml(f.label)}</label>
+                                <textarea data-key="${f.key}" placeholder="${ph}">${escapeHtml(val)}</textarea>
+                            </div>`;
+                        } else {
+                            const inputType = f.type === 'number' ? 'number' : 'text';
+                            html += `<div class="daily-field${fullWidth}">
+                                <label>${escapeHtml(f.label)}</label>
+                                <input type="${inputType}" data-key="${f.key}" value="${escapeHtml(val)}" placeholder="${ph}">
+                            </div>`;
+                        }
+                    }
+
+                    // 自定义附加项
+                    html += `<div class="daily-custom-section">
+                        <h4>自定义附加项</h4>
+                        <div id="${tab}CustomList">`;
+                    customs.forEach((c, i) => {
+                        html += `<div class="daily-custom-item" data-idx="${i}">
+                            <input type="text" class="custom-label" value="${escapeHtml(c.label || '')}" placeholder="名称" data-idx="${i}">
+                            <input type="text" class="custom-value" value="${escapeHtml(c.value || '')}" placeholder="内容" data-idx="${i}">
+                            <button class="remove-custom" data-tab="${tab}" data-idx="${i}">删</button>
+                        </div>`;
+                    });
+                    html += `</div>
+                        <div style="margin-top:10px;">
+                            <button id="${tab}AddCustomBtn" class="secondary">＋ 添加自定义项</button>
+                        </div>
+                    </div>`;
+
+                    container.innerHTML = html;
+
+                    // 主字段输入
+                    container.querySelectorAll('input[data-key], textarea[data-key]').forEach(el => {
+                        el.addEventListener('input', () => {
+                            const key = el.dataset.key;
+                            if (el.type === 'number') {
+                                let v = parseFloat(el.value);
+                                if (isNaN(v)) v = 0;
+                                dailyData[tab][key] = v;
+                            } else {
+                                dailyData[tab][key] = el.value;
+                            }
+                            saveData('dailyData', dailyData);
+                        });
+                    });
+
+                    // 自定义项输入
+                    container.querySelectorAll('.daily-custom-item input').forEach(el => {
+                        el.addEventListener('input', () => {
+                            const idx = parseInt(el.dataset.idx);
+                            if (!dailyData[customKey][idx]) return;
+                            if (el.classList.contains('custom-label')) dailyData[customKey][idx].label = el.value;
+                            else dailyData[customKey][idx].value = el.value;
+                            saveData('dailyData', dailyData);
+                        });
+                    });
+
+                    // 删除自定义项
+                    container.querySelectorAll('.remove-custom').forEach(btn => {
+                        btn.addEventListener('click', () => {
+                            const idx = parseInt(btn.dataset.idx);
+                            dailyData[customKey].splice(idx, 1);
+                            saveData('dailyData', dailyData);
+                            renderDailyForm(tab);
+                        });
+                    });
+
+                    // 添加自定义项
+                    const addBtn = document.getElementById(`${tab}AddCustomBtn`);
+                    if (addBtn) {
+                        addBtn.addEventListener('click', () => {
+                            dailyData[customKey].push({ label: '', value: '' });
+                            saveData('dailyData', dailyData);
+                            renderDailyForm(tab);
+                        });
+                    }
+                }
+
+                function generateDailyReport() {
+                    const tab = dailyData.currentTab || 'ticket';
+                    const d = dailyData[tab];
+                    const date = getBeijingDate();
+                    let text = '';
+
+                    if (tab === 'ticket') {
+                        text += `${date.month}月${date.day}日工作日报（${d.shift || 'H'}班）：\n`;
+                        text += `${d.name || ''}：\n`;
+                        text += `1、SSO工单${d.sso || 0}，53客服在线${d.kf53 || 0}，支付宝在线${d.alipay || 0}\n`;
+                        text += `2、爱江山CP后台${d.ajs_cp || 0}，繁花CP后台${d.fh_cp || 0}\n`;
+                        text += `     乐缤纷CP后台${d.lb_cp || 0}，不差钱CP后台${d.bcq_cp || 0}\n`;
+                        text += `3、①繁花微信【${d.g1_wx || 0}】，抖音【${d.g1_dy || 0}】，dy在线【${d.g1_dyol || 0}】，手Q【${d.g1_qq || 0}】\n`;
+                        text += `      ②乐缤纷微信【${d.g2_wx || 0}】，抖音【${d.g2_dy || 0}】，dy在线【${d.g2_dyol || 0}】\n`;
+                        text += `      ③不差钱微信【${d.g3_wx || 0}】，抖音【${d.g3_dy || 0}】，dy在线【${d.g3_dyol || 0}】\n`;
+                        text += `      ④你的江湖微信【${d.g4_wx || 0}】，抖音【${d.g4_dy || 0}】，dy在线【${d.g4_dyol || 0}】\n`;
+                        text += `      ⑤梦幻消除战微信【${d.g5_wx || 0}】，抖音【${d.g5_dy || 0}】，支付宝后台【${d.g5_alipay || 0}】\n`;
+                        text += `\n${date.month}.${date.day}待跟进：\n`;
+                        text += `${d.pending || ''}\n`;
+
+                        const customs = dailyData.ticketCustom || [];
+                        const valid = customs.filter(c => (c.label || c.value));
+                        if (valid.length) {
+                            text += '\n';
+                            for (const c of valid) {
+                                text += `${c.label || ''}${c.value ? '：' + c.value : ''}\n`;
+                            }
+                        }
+                    } else {
+                        const ratingTotal = (parseFloat(d.ios) || 0) + (parseFloat(d.google) || 0);
+                        const visitTotal = (parseFloat(d.fb) || 0) + (parseFloat(d.email) || 0) + (parseFloat(d.sdk) || 0);
+                        text += `${d.name || ''}  ${date.month}月${date.day}日\n\n`;
+                        text += `评价，\n`;
+                        text += `ios商店：${d.ios || 0}\n`;
+                        text += `Google Play：${d.google || 0}\n`;
+                        text += `总计：${ratingTotal}\n\n`;
+                        text += `来访，\n`;
+                        text += `FB：${d.fb || 0}例\n`;
+                        text += `邮箱：${d.email || 0}例\n`;
+                        text += `SDk工单：${d.sdk || 0}例\n`;
+                        text += `总计：${visitTotal}例\n\n`;
+                        text += `禁言：${d.mute || 0}，封号：${d.ban || 0}\n`;
+
+                        const customs = dailyData.overseasCustom || [];
+                        const valid = customs.filter(c => (c.label || c.value));
+                        if (valid.length) {
+                            text += '\n';
+                            for (const c of valid) {
+                                text += `${c.label || ''}${c.value ? '：' + c.value : ''}\n`;
+                            }
+                        }
+                    }
+
+                    const area = document.getElementById('dailyResultArea');
+                    if (area) area.value = text;
+
+                    const hint = document.getElementById('dailyDateHint');
+                    if (hint) hint.textContent = `${date.month}月${date.day}日`;
+
+                    navigator.clipboard.writeText(text).catch(() => { });
+                }
+
+                function switchDailyTab(tab) {
+                    dailyData.currentTab = tab;
+                    saveData('dailyData', dailyData);
+                    const ticketBtn = document.getElementById('dailyTabTicket');
+                    const overseasBtn = document.getElementById('dailyTabOverseas');
+                    const ticketForm = document.getElementById('dailyFormTicket');
+                    const overseasForm = document.getElementById('dailyFormOverseas');
+                    if (!ticketBtn || !overseasBtn) return;
+                    if (tab === 'ticket') {
+                        ticketBtn.classList.add('active');
+                        overseasBtn.classList.remove('active');
+                        ticketForm.style.display = '';
+                        overseasForm.style.display = 'none';
+                    } else {
+                        overseasBtn.classList.add('active');
+                        ticketBtn.classList.remove('active');
+                        overseasForm.style.display = '';
+                        ticketForm.style.display = 'none';
+                    }
+                    renderDailyForm(tab);
                 }
 
                 // ==================== 事件绑定 ====================
@@ -5719,6 +6134,101 @@
                             }
                         }
                     };
+
+                    // ==================== 日报生成 ====================
+                    setClick('dailyTabTicket', () => switchDailyTab('ticket'));
+                    setClick('dailyTabOverseas', () => switchDailyTab('overseas'));
+                    setClick('generateDailyBtn', generateDailyReport);
+                    setClick('copyDailyBtn', () => {
+                        const area = document.getElementById('dailyResultArea');
+                        if (area) navigator.clipboard.writeText(area.value);
+                    });
+                    setClick('exportDailyBtn', () => {
+                        const area = document.getElementById('dailyResultArea');
+                        if (!area) return;
+                        const date = getBeijingDate();
+                        const tab = dailyData.currentTab || 'ticket';
+                        const fileName = `${tab === 'ticket' ? '工单' : '海外'}日报_${date.year}${String(date.month).padStart(2, '0')}${String(date.day).padStart(2, '0')}.txt`;
+                        const blob = new Blob([area.value], { type: 'text/plain' });
+                        const a = document.createElement('a');
+                        a.href = URL.createObjectURL(blob);
+                        a.download = fileName;
+                        a.click();
+                    });
+                    setClick('resetDailyBtn', () => {
+                        if (!confirm('确认重置模板？所有填写内容（含姓名）将被清空。')) return;
+                        const tab = dailyData.currentTab || 'ticket';
+                        if (tab === 'ticket') {
+                            dailyData.ticket = { ...DAILY_DEFAULT_DATA.ticket };
+                            dailyData.ticketCustom = [];
+                        } else {
+                            dailyData.overseas = { ...DAILY_DEFAULT_DATA.overseas };
+                            dailyData.overseasCustom = [];
+                        }
+                        saveData('dailyData', dailyData);
+                        renderDailyForm(tab);
+                        const area = document.getElementById('dailyResultArea');
+                        if (area) area.value = '';
+                    });
+
+                    // 初始化日报页面
+                    (function initDaily() {
+                        const tab = dailyData.currentTab || 'ticket';
+                        const ticketBtn = document.getElementById('dailyTabTicket');
+                        const overseasBtn = document.getElementById('dailyTabOverseas');
+                        const ticketForm = document.getElementById('dailyFormTicket');
+                        const overseasForm = document.getElementById('dailyFormOverseas');
+                        if (!ticketBtn) return;
+                        if (tab === 'ticket') {
+                            ticketBtn.classList.add('active');
+                            overseasBtn.classList.remove('active');
+                            ticketForm.style.display = '';
+                            overseasForm.style.display = 'none';
+                        } else {
+                            overseasBtn.classList.add('active');
+                            ticketBtn.classList.remove('active');
+                            overseasForm.style.display = '';
+                            ticketForm.style.display = 'none';
+                        }
+                        renderDailyForm(tab);
+                        const date = getBeijingDate();
+                        const hint = document.getElementById('dailyDateHint');
+                        if (hint) hint.textContent = `${date.month}月${date.day}日`;
+                    })();
+
+                    // ==================== 跨天自动刷新日期 ====================
+                    (function autoRefreshDate() {
+                        let lastKey = (function () {
+                            const d = getBeijingDate();
+                            return `${d.year}-${d.month}-${d.day}`;
+                        })();
+
+                        function checkDateChange() {
+                            const d = getBeijingDate();
+                            const key = `${d.year}-${d.month}-${d.day}`;
+                            if (key === lastKey) return;
+                            lastKey = key;
+
+                            // 更新徽章
+                            const hint = document.getElementById('dailyDateHint');
+                            if (hint) hint.textContent = `${d.month}月${d.day}日`;
+
+                            // 若日报结果框已有内容，用新日期重新生成一次
+                            const area = document.getElementById('dailyResultArea');
+                            if (area && area.value.trim()) {
+                                generateDailyReport();
+                            }
+                        }
+
+                        // 每 60 秒轮询一次，对性能几乎无影响
+                        setInterval(checkDateChange, 60000);
+
+                        // 标签页切回、窗口获得焦点时立即检查（午睡跨天回来必备）
+                        document.addEventListener('visibilitychange', () => {
+                            if (!document.hidden) checkDateChange();
+                        });
+                        window.addEventListener('focus', checkDateChange);
+                    })();
 
                     refreshVarEntries();
                     refreshTemplateSelect();
