@@ -3896,7 +3896,7 @@
                 // ==================== 日报生成 · 数据 ====================
                 const DAILY_DEFAULT_DATA = {
                     ticket: {
-                        name: 'a', shift: 'H',
+                        name: '客服', shift: 'A',
                         sso: 0, kf53: 0, alipay: 0,
                         ajs_cp: 0, fh_cp: 0, lb_cp: 0, bcq_cp: 0,
                         g1_wx: 0, g1_dy: 0, g1_dyol: 0, g1_qq: 0,
@@ -3918,8 +3918,8 @@
                 };
 
                 const DAILY_TICKET_FIELDS = [
-                    { key: 'name', label: '姓名', type: 'text', placeholder: '如：a' },
-                    { key: 'shift', label: '班次', type: 'text', placeholder: '如：H' },
+                    { key: 'name', label: '姓名', type: 'text', placeholder: '如：客服' },
+                    { key: 'shift', label: '班次', type: 'text', placeholder: '如：A' },
                     { key: 'sso', label: 'SSO工单', type: 'number' },
                     { key: 'kf53', label: '53客服在线', type: 'number' },
                     { key: 'alipay', label: '支付宝在线', type: 'number' },
@@ -3947,7 +3947,7 @@
                 ];
 
                 const DAILY_OVERSEAS_FIELDS = [
-                    { key: 'name', label: '姓名', type: 'text', placeholder: '如：b' },
+                    { key: 'shift', label: '班次', type: 'select', options: ['A', 'F'], default: 'A' },
                     { key: 'ios', label: 'ios商店（评价）', type: 'number' },
                     { key: 'google', label: 'Google Play（评价）', type: 'number' },
                     { key: 'fb', label: 'FB（来访）', type: 'number' },
@@ -5661,20 +5661,34 @@
 
                     let html = '';
                     for (const f of fields) {
-                        const val = data[f.key] !== undefined ? data[f.key] : '';
+                        // ★ select 类型：用默认值补空
+                        let val = data[f.key] !== undefined ? data[f.key] : '';
+                        if (f.type === 'select' && (val === '' || val === null || val === undefined)) {
+                            val = f.default || (f.options && f.options[0]) || '';
+                            data[f.key] = val;   // 同步回数据，保证日报输出正确
+                        }
                         const fullWidth = f.fullWidth ? ' full-width' : '';
                         const ph = escapeHtml(f.placeholder || '');
+
                         if (f.type === 'textarea') {
                             html += `<div class="daily-field${fullWidth}">
-                                <label>${escapeHtml(f.label)}</label>
-                                <textarea data-key="${f.key}" placeholder="${ph}">${escapeHtml(val)}</textarea>
-                            </div>`;
+            <label>${escapeHtml(f.label)}</label>
+            <textarea data-key="${f.key}" placeholder="${ph}">${escapeHtml(val)}</textarea>
+        </div>`;
+                        } else if (f.type === 'select') {
+                            const opts = (f.options || []).map(o =>
+                                `<option value="${escapeHtml(o)}"${String(o) === String(val) ? ' selected' : ''}>${escapeHtml(o)}</option>`
+                            ).join('');
+                            html += `<div class="daily-field${fullWidth}">
+            <label>${escapeHtml(f.label)}</label>
+            <select data-key="${f.key}">${opts}</select>
+        </div>`;
                         } else {
                             const inputType = f.type === 'number' ? 'number' : 'text';
                             html += `<div class="daily-field${fullWidth}">
-                                <label>${escapeHtml(f.label)}</label>
-                                <input type="${inputType}" data-key="${f.key}" value="${escapeHtml(val)}" placeholder="${ph}">
-                            </div>`;
+            <label>${escapeHtml(f.label)}</label>
+            <input type="${inputType}" data-key="${f.key}" value="${escapeHtml(val)}" placeholder="${ph}">
+        </div>`;
                         }
                     }
 
@@ -5698,8 +5712,9 @@
                     container.innerHTML = html;
 
                     // 主字段输入
-                    container.querySelectorAll('input[data-key], textarea[data-key]').forEach(el => {
-                        el.addEventListener('input', () => {
+                    container.querySelectorAll('input[data-key], textarea[data-key], select[data-key]').forEach(el => {
+                        const evt = el.tagName === 'SELECT' ? 'change' : 'input';
+                        el.addEventListener(evt, () => {
                             const key = el.dataset.key;
                             if (el.type === 'number') {
                                 let v = parseFloat(el.value);
@@ -5708,7 +5723,7 @@
                             } else {
                                 dailyData[tab][key] = el.value;
                             }
-                            saveData('dailyData', dailyData);
+                            debouncedSaveDaily();
                         });
                     });
 
@@ -5751,7 +5766,7 @@
                     let text = '';
 
                     if (tab === 'ticket') {
-                        text += `${date.month}月${date.day}日工作日报（${d.shift || 'H'}班）：\n`;
+                        text += `${date.month}月${date.day}日工作日报（${d.shift || 'A'}班）：\n`;
                         text += `${d.name || ''}：\n`;
                         text += `1、SSO工单${d.sso || 0}，53客服在线${d.kf53 || 0}，支付宝在线${d.alipay || 0}\n`;
                         text += `2、爱江山CP后台${d.ajs_cp || 0}，繁花CP后台${d.fh_cp || 0}\n`;
