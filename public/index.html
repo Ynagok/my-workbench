@@ -1594,7 +1594,7 @@
                 </div>
                 <div style="border-top: 1px solid #e0e0e0; margin: 16px 0;"></div>
                 <div class="rule-bar">
-                    <div><label style="margin:0; font-weight:600;">资源类型</label><select id="flowResourceSelect" class="compact-select"><option value="体力">体力</option><option value="红钻">红钻</option><option value="金币">金币</option><option value="好评点" selected>好评点</option><option value="道具" selected>道具</option></select></div>
+                    <div><label style="margin:0; font-weight:600;">资源类型</label><select id="flowResourceSelect" class="compact-select"><option value="体力">体力</option><option value="红钻">红钻</option><option value="金币">金币</option><option value="好评点">好评点</option><option value="道具">道具</option></select></div>
                     <div><strong> 忽略</strong><label class="checkbox-label"><input type="checkbox" id="enableIgnoreRulesCheckbox" checked> 启用</label><button id="manageIgnoreRulesBtn" class="secondary">管理</button></div>
                     <div><strong> 转换</strong><label class="checkbox-label"><input type="checkbox" id="enableSourceConversionCheckbox" checked> 启用</label><button id="manageSourceRulesBtn" class="secondary">管理</button></div>
                     <div><strong> 映射</strong><button id="manageMappingBtn" class="secondary">管理</button></div>
@@ -3907,7 +3907,7 @@
                         pending: ''
                     },
                     overseas: {
-                        name: 'b',
+                        name: '客服',
                         ios: 0, google: 0,
                         fb: 0, email: 0, sdk: 0,
                         mute: 0, ban: 0
@@ -3919,7 +3919,7 @@
 
                 const DAILY_TICKET_FIELDS = [
                     { key: 'name', label: '姓名', type: 'text', placeholder: '如：客服' },
-                    { key: 'shift', label: '班次', type: 'text', placeholder: '如：A' },
+                    { key: 'shift', label: '班次', type: 'select', options: ['A', 'F', 'H'], default: 'A' },
                     { key: 'sso', label: 'SSO工单', type: 'number' },
                     { key: 'kf53', label: '53客服在线', type: 'number' },
                     { key: 'alipay', label: '支付宝在线', type: 'number' },
@@ -3947,7 +3947,7 @@
                 ];
 
                 const DAILY_OVERSEAS_FIELDS = [
-                    { key: 'shift', label: '班次', type: 'select', options: ['A', 'F'], default: 'A' },
+                    { key: 'name', label: '姓名', type: 'text', placeholder: '如：客服' },
                     { key: 'ios', label: 'ios商店（评价）', type: 'number' },
                     { key: 'google', label: 'Google Play（评价）', type: 'number' },
                     { key: 'fb', label: 'FB（来访）', type: 'number' },
@@ -3958,6 +3958,16 @@
                 ];
 
                 let dailyData = await loadData('dailyData', DAILY_DEFAULT_DATA);
+                function debounce(fn, ms = 500) {
+                    let t;
+                    return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
+                }
+                const debouncedSaveDaily = debounce(() => saveData('dailyData', dailyData), 500);
+                const safeCopy = (text) => {
+                    if (!navigator.clipboard || !text) return;
+                    navigator.clipboard.writeText(text).catch(() => { });
+                };
+
                 // 兼容旧版数据：补齐缺失字段
                 if (!dailyData.ticketCustom) dailyData.ticketCustom = [];
                 if (!dailyData.overseasCustom) dailyData.overseasCustom = [];
@@ -4034,6 +4044,10 @@
                 let varInputs = {};
 
                 function expandDebugConsole() { if (debugConsole) debugConsole.style.display = 'block'; }
+                function appendDebug(text) {
+                    if (!debugConsole) return;
+                    debugConsole.insertAdjacentText('beforeend', text);
+                }
                 document.getElementById('debugToggleHeader')?.addEventListener('click', expandDebugConsole);
 
                 function cleanText(t) { return t.replace(/\ufeff/g, '').replace(/\s+/g, ' ').trim(); }
@@ -4446,9 +4460,9 @@
                     const records = [];
 
                     for (let line of lines) {
-                        if (shouldIgnoreLine(line)) { debugConsole.innerHTML += `\n⏭️ 忽略行: ${line.substring(0, 60)}`; continue; }
+                        if (shouldIgnoreLine(line)) { appendDebug(`\n⏭️ 忽略行: ${line.substring(0, 60)}`); continue; }
                         const rawTime = extractTime(line);
-                        if (!rawTime) { debugConsole.innerHTML += `\n⚠️ 无时间: ${line.substring(0, 60)}`; continue; }
+                        if (!rawTime) { appendDebug(`\n⚠️ 无时间: ${line.substring(0, 60)}`); continue; }
                         const time = formatTimeToStandard(rawTime);
                         const parts = line.split('\t');
                         if (parts.length < 6) continue;
@@ -4500,7 +4514,7 @@
                         }
 
                         const change = parseInt(changeRaw, 10);
-                        if (isNaN(change) || change === 0) { debugConsole.innerHTML += ` | 变化量为0或无效，跳过`; continue; }
+                        if (isNaN(change) || change === 0) { appendDebug(` | 变化量为0或无效，跳过`); continue; }
                         const before = parseFloat(beforeRaw) || 0;
                         const after = parseFloat(afterRaw) || 0;
                         sourceRaw = (sourceRaw || '').trim().replace(/^["']|["']$/g, '');
@@ -4511,7 +4525,8 @@
 
                         records.push({
                             '时间': time, '数量': change, '来源': resolvedSource,
-                            '道具名称': resolvedItemName, '之前': before, '之后': after
+                            '道具名称': resolvedItemName, '之前': before, '之后': after,
+                            '_资源类型': isNewFormat ? thirdCol : detectResourceType(line)
                         });
                     }
 
@@ -4595,7 +4610,7 @@
                 function parseOrderLog(rawText) {
                     let text = rawText.replace(/\r\n/g, '\n');
                     const parts = text.split('\t').map(p => p.trim());
-                    if (parts.length < 8) { debugConsole.innerHTML += '\n❌ 订单日志字段不足'; return []; }
+                    if (parts.length < 8) { appendDebug('\n❌ 订单日志字段不足'); return []; }
                     const fullText = rawText.toLowerCase();
                     const orderType = parts[3] || '未知订单';
                     const firstTime = extractTime(rawText) || '';
@@ -4664,40 +4679,6 @@
                     const rewardStr = rewardItems.length ? [...new Set(rewardItems)].join('，') : '奖励';
                     const actionVerb = statusText === '完成' ? '完成订单' : (statusText === '删除' ? '删除订单' : '操作订单');
                     return [`在${finalTime.replace(/-/g, '/')}提交${chessStr}${actionVerb}，获得${rewardStr}`];
-                }
-
-                // ==================== 解析：道具流水 ====================
-                function parseItemFlowLog(rawText) {
-                    const lines = rawText.split(/\r?\n/).filter(l => l.trim());
-                    const records = [];
-                    for (let line of lines) {
-                        if (shouldIgnoreLine(line)) continue;
-                        const parts = line.split('\t');
-                        if (parts.length < 9) continue;
-                        const rawTime = parts[0]?.trim();
-                        if (!rawTime) continue;
-                        const time = formatTimeToStandard(rawTime);
-                        const itemId = parts[2]?.trim() || '';
-                        const itemName = parts[4]?.trim() || '';
-                        const changeStr = parts[5]?.trim() || '0';
-                        const change = parseInt(changeStr, 10) || 0;
-                        const before = parseInt(parts[6]?.trim() || '0', 10) || 0;
-                        const after = parseInt(parts[7]?.trim() || '0', 10) || 0;
-                        let source = parts[8]?.trim() || '';
-                        source = applyAllConversions(source);
-                        let displayName = itemName || itemId;
-                        displayName = resolveItemName(itemId, displayName);
-                        displayName = applyChessNameConversion(displayName);
-                        records.push({ time, itemId, itemName: displayName, change, before, after, source });
-                    }
-                    records.sort((a, b) => b.time.localeCompare(a.time));
-                    return records.map(rec => {
-                        const action = rec.change > 0 ? '获得' : (rec.change < 0 ? '消耗' : '操作');
-                        const abs = Math.abs(rec.change);
-                        if (abs === 0) return null;
-                        if (rec.source) return `在${rec.time}，通过${rec.source}${action}${abs}个${rec.itemName}`;
-                        return `在${rec.time}，${action}${abs}个${rec.itemName}`;
-                    }).filter(s => s);
                 }
 
                 // ==================== 解析：棋子流水 ====================
@@ -4769,21 +4750,7 @@
                         globalResultArea.value = s.join('\n\n');
                         globalResultCount.textContent = `${s.length} 条`;
                         resultSourceHint.textContent = '订单日志解析';
-                        navigator.clipboard.writeText(globalResultArea.value);
-                        return;
-                    }
-                    if (mode === 'itemFlow') {
-                        debugConsole.innerHTML = '🔍 道具流水（文件）解析...';
-                        let sentences = parseItemFlowLog(raw);
-                        if (sentences.length) {
-                            sentences = sortSentencesByTime(sentences, sortOrder);
-                            sentences = sentences.map(s => applyAllConversions(s));
-                            globalResultArea.value = sentences.join('\n\n');
-                            globalResultCount.textContent = `${sentences.length} 条`;
-                            resultSourceHint.textContent = '道具流水（上传）';
-                            navigator.clipboard.writeText(globalResultArea.value);
-                            debugConsole.innerHTML += '\n✅ 完成';
-                        } else { debugConsole.innerHTML += '\n❌ 无有效记录'; }
+                        safeCopy(globalResultArea.value);
                         return;
                     }
                     if (mode === 'review') {
@@ -4792,7 +4759,7 @@
                         globalResultArea.value = s.join('\n\n');
                         globalResultCount.textContent = `${s.length} 条`;
                         resultSourceHint.textContent = '好评奖励解析';
-                        navigator.clipboard.writeText(globalResultArea.value);
+                        safeCopy(globalResultArea.value);
                         debugConsole.innerHTML += '\n✅ 完成';
                         return;
                     }
@@ -4806,7 +4773,7 @@
                         globalResultArea.value = out;
                         globalResultCount.textContent = `${r.length} 条`;
                         resultSourceHint.textContent = '棋子流水解析';
-                        navigator.clipboard.writeText(out);
+                        safeCopy(out);
                         debugConsole.innerHTML += '\n✅ 完成';
                         return;
                     }
@@ -4820,6 +4787,19 @@
                     catch (e) { debugConsole.innerHTML += `\n❌ 解析错误: ${e.message}`; return; }
                     if (!records.length) { debugConsole.innerHTML += '\n❌ 无记录（请确认粘贴内容为资源流水格式）'; return; }
                     debugConsole.innerHTML += `\n📌 原始记录数: ${records.length}`;
+
+                    // ★ 按资源类型过滤（道具走关键词筛选，不做此过滤）
+                    if (resourceType !== '道具') {
+                        records = records.filter(r =>
+                            (r['_资源类型'] || '').includes(resourceType) ||
+                            (r['道具名称'] || '').includes(resourceType)
+                        );
+                        debugConsole.innerHTML += `\n📌 资源类型「${resourceType}」筛选后: ${records.length} 条`;
+                        if (records.length === 0) {
+                            debugConsole.innerHTML += `\n⚠️ 未找到「${resourceType}」记录，请确认解析模式或来源选择`;
+                            return;
+                        }
+                    }
 
                     if (resourceType === '道具' && itemKeywordRaw) {
                         const keywords = itemKeywordRaw.split(',').map(k => k.trim().toLowerCase()).filter(k => k);
@@ -4860,12 +4840,13 @@
                         sentences = records.map(r => generateFlowSentence(r, resourceType, true)).filter(s => s);
                     }
                     if (sentences.length === 0) { debugConsole.innerHTML += '\n⚠️ 无有效话术（可能缺少数量变化）'; return; }
+                    sentences = sortSentencesByTime(sentences, sortOrder);   // ★ 应用排序
                     sentences = sentences.map(s => applyAllConversions(s));
 
                     globalResultArea.value = sentences.join('\n\n');
                     globalResultCount.textContent = `${sentences.length} 条`;
                     resultSourceHint.textContent = '智能解析';
-                    navigator.clipboard.writeText(globalResultArea.value);
+                    safeCopy(globalResultArea.value);
                     debugConsole.innerHTML += `\n✨ 生成 ${sentences.length} 条`;
                 }
 
@@ -4944,14 +4925,14 @@
                             const src = (rec['来源'] || '').toLowerCase();
                             const item = (rec['道具名称'] || '').toLowerCase();
                             if (ignoreKeywords.some(k => src.includes(k.toLowerCase()) || item.includes(k.toLowerCase()))) {
-                                debugConsole.innerHTML += `\n⏭️ 行${i + 1} 忽略`; continue;
+                                appendDebug(`\n⏭️ 行${i + 1} 忽略`); continue;
                             }
                         }
                         const { change, action } = getChangeAndAction(rec);
                         if (!action) continue;
                         rec['行为'] = action; rec['变化量'] = change;
                         records.push(rec);
-                        debugConsole.innerHTML += `\n📌 行${i + 1}: 道具=${rec['道具名称']}, 变化=${change}, 行为=${action}`;
+                        appendDebug(`\n📌 行${i + 1}: 道具=${rec['道具名称']}, 变化=${change}, 行为=${action}`);
                     }
                     records.sort((a, b) => (b['时间'] || '').localeCompare(a['时间'] || ''));
                     return records;
@@ -4992,15 +4973,16 @@
                     return '';
                 }
 
-                async function processFlowCsv() {
+                function processFlowCsv(text) {
                     expandDebugConsole();
                     const f = document.getElementById('flowFileInput').files[0];
-                    if (!f) return;
                     const selectedType = document.getElementById('flowResourceSelect').value;
-                    const fileName = f.name;
-                    const inferred = inferTypeFromFileName(fileName);
-                    if (inferred && inferred !== selectedType) { alert('文件类型与所选资源类型不一致，请检查'); return; }
-                    const text = await f.text();
+                    if (f) {
+                        const inferred = inferTypeFromFileName(f.name);
+                        if (inferred && inferred !== selectedType) {
+                            if (!confirm(`文件名为「${f.name}」，疑似「${inferred}」，与所选「${selectedType}」不一致。仍要继续吗？`)) return;
+                        }
+                    }
                     let records = parseFlowCSV(text);
                     if (!records.length) { debugConsole.innerHTML += '\n❌ 无有效记录'; return; }
                     const itemKeywordRaw = document.getElementById('itemKeywordInput').value.trim();
@@ -5023,7 +5005,7 @@
                         globalResultArea.value = sortedBlocks.join('\n\n');
                         globalResultCount.textContent = `${sortedBlocks.length} 组`;
                         resultSourceHint.textContent = `CSV合并 · 原始${records.length}条`;
-                        navigator.clipboard.writeText(globalResultArea.value);
+                        safeCopy(globalResultArea.value);
                     } else {
                         let sentences = filtered.map(r => generateFlowSentence(r, selectedType, true)).filter(s => s);
                         if (sentences.length) {
@@ -5045,6 +5027,14 @@
                     const colMap = { '卡包ID': ['卡包ID', 'pack_id'], '卡包星级': ['卡包星级', 'stars'], 'after': ['after'], '创建时间': ['创建时间', 'time'] };
                     const idx = {};
                     for (let [k, arr] of Object.entries(colMap)) for (let n of arr) { let i = headers.findIndex(h => h === n); if (i !== -1) { idx[k] = i; break; } }
+
+                    // ★ 新增：表头校验
+                    const missing = Object.keys(colMap).filter(k => idx[k] === undefined);
+                    if (missing.length) {
+                        alert(`集卡 CSV 缺少必要列：${missing.join('、')}\n实际表头：${headers.join('、')}`);
+                        return [];
+                    }
+
                     const records = [];
                     for (let i = 1; i < lines.length; i++) {
                         let line = lines[i]; const vals = [];
@@ -5426,10 +5416,15 @@
 
                     function exportBlueprint() {
                         const originalCanvas = pixelCanvas;
-                        const exportScale = 10;
+                        const MAX_EXPORT_PX = 4096;
+                        let exportScale = 10;
+                        const maxDim = Math.max(originalCanvas.width, originalCanvas.height);
+                        if (maxDim * exportScale > MAX_EXPORT_PX) {
+                            exportScale = Math.max(1, MAX_EXPORT_PX / maxDim);
+                        }
                         const exportCanvas = document.createElement('canvas');
-                        exportCanvas.width = originalCanvas.width * exportScale;
-                        exportCanvas.height = originalCanvas.height * exportScale;
+                        exportCanvas.width = Math.round(originalCanvas.width * exportScale);
+                        exportCanvas.height = Math.round(originalCanvas.height * exportScale);
                         const exportCtx = exportCanvas.getContext('2d');
                         exportCtx.fillStyle = '#ffffff';
                         exportCtx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
@@ -5479,10 +5474,10 @@
                         const replacement = getRuleReplacement(r) || '(删除)';
                         const typeLabel = r.type === 'source' ? '来源' : (r.type === 'reward' ? '奖励' : '棋子');
                         return `<div class="rule-item" data-idx="${idx}">
-                                            <span class="rule-pattern">${pattern}</span>
-                                            <span style="color: var(--ak-text-mute); font-size:12px;">[${typeLabel}]</span>
+                                            <span class="rule-pattern">${escapeHtml(pattern)}</span>
+                                            <span style="color: var(--ak-text-mute); font-size:12px;">[${escapeHtml(typeLabel)}]</span>
                                             <span style="color: var(--ak-primary);">→</span>
-                                            <span class="rule-replacement">${replacement}</span>
+                                            <span class="rule-replacement">${escapeHtml(replacement)}</span>
                                             <div class="rule-actions">
                                                 <button class="edit-source-btn secondary" data-idx="${idx}">✏️</button>
                                                 <button class="delete-source-btn reset-btn" data-idx="${idx}">🗑️</button>
@@ -5520,7 +5515,7 @@
                     const c = document.getElementById('ignoreRuleListContainer');
                     c.innerHTML = ignoreKeywords.map((k, i) =>
                         `<div class="rule-item">
-                                            <span class="rule-pattern">${k}</span>
+                                            <span class="rule-pattern">${escapeHtml(k)}</span>
                                             <div class="rule-actions">
                                                 <button data-i="${i}" class="delete-ignore-btn reset-btn">🗑️</button>
                                             </div>
@@ -5560,12 +5555,12 @@
                         return;
                     }
                     c.innerHTML = entries.map(([id, name]) =>
-                        `<div class="rule-item" data-id="${id}">
-                                            <span class="rule-pattern">${id}</span>
+                        `<div class="rule-item" data-id="${escapeHtml(id)}">
+                                            <span class="rule-pattern">${escapeHtml(id)}</span>
                                             <span style="color: var(--ak-primary);">→</span>
-                                            <span class="rule-replacement" style="flex:1;">${name || '(空)'}</span>
+                                            <span class="rule-replacement" style="flex:1;">${escapeHtml(name || '(空)')}</span>
                                             <div class="rule-actions">
-                                                <button class="delete-mapping-btn reset-btn" data-id="${id}">🗑️</button>
+                                                <button class="delete-mapping-btn reset-btn" data-id="${escapeHtml(id)}">🗑️</button>
                                             </div>
                                         </div>`
                     ).join('');
@@ -5600,7 +5595,7 @@
                             if (tm && varInputs['时间']) varInputs['时间'].value = tm;
                             const val = parseInt(cl.match(/-?\d+/)?.[0]);
                             if (!isNaN(val)) inp.value = val;
-                        });
+                        }).catch(() => { });
                         varContainer.appendChild(lab);
                         varContainer.appendChild(inp);
                         varContainer.appendChild(btn);
@@ -5622,7 +5617,7 @@
                     const c = document.getElementById('templateList');
                     c.innerHTML = templates.map((t, i) =>
                         `<div class="rule-item">
-                                            <span style="flex:1;">${t.substring(0, 50)}</span>
+                                            <span style="flex:1;">${escapeHtml(t.substring(0, 50))}</span>
                                             <div class="rule-actions">
                                                 <button data-i="${i}" class="edit-template-btn secondary">✏️</button>
                                                 <button data-i="${i}" class="delete-template-btn reset-btn">🗑️</button>
@@ -5665,7 +5660,8 @@
                         let val = data[f.key] !== undefined ? data[f.key] : '';
                         if (f.type === 'select' && (val === '' || val === null || val === undefined)) {
                             val = f.default || (f.options && f.options[0]) || '';
-                            data[f.key] = val;   // 同步回数据，保证日报输出正确
+                            data[f.key] = val;
+                            debouncedSaveDaily();   // ★ 落盘
                         }
                         const fullWidth = f.fullWidth ? ' full-width' : '';
                         const ph = escapeHtml(f.placeholder || '');
@@ -5713,19 +5709,19 @@
 
                     // 主字段输入
                     container.querySelectorAll('input[data-key], textarea[data-key], select[data-key]').forEach(el => {
-                        const evt = el.tagName === 'SELECT' ? 'change' : 'input';
-                        el.addEventListener(evt, () => {
-                            const key = el.dataset.key;
-                            if (el.type === 'number') {
-                                let v = parseFloat(el.value);
-                                if (isNaN(v)) v = 0;
-                                dailyData[tab][key] = v;
-                            } else {
-                                dailyData[tab][key] = el.value;
-                            }
-                            debouncedSaveDaily();
-                        });
-                    });
+    const evt = el.tagName === 'SELECT' ? 'change' : 'input';
+    el.addEventListener(evt, () => {
+        const key = el.dataset.key;
+        if (el.type === 'number') {
+            let v = parseFloat(el.value);
+            if (isNaN(v)) v = 0;
+            dailyData[tab][key] = v;
+        } else {
+            dailyData[tab][key] = el.value;
+        }
+        debouncedSaveDaily();
+    });
+});
 
                     // 自定义项输入
                     container.querySelectorAll('.daily-custom-item input').forEach(el => {
@@ -5873,24 +5869,47 @@
                     setClick('uploadFlowBtn', async () => {
                         const mode = document.querySelector('input[name="parseMode"]:checked').value;
                         const file = document.getElementById('flowFileInput').files[0];
-                        if (!file) return;
+                        if (!file) { alert('请先选择文件'); return; }
                         expandDebugConsole();
                         const text = await file.text();
-                        if (mode === 'itemFlow') {
-                            debugConsole.innerHTML = '🔍 道具流水（文件）解析...';
-                            let sentences = parseItemFlowLog(text);
-                            if (sentences.length) {
-                                const sortOrder = document.getElementById('sortOrderSelect').value;
-                                sentences = sortSentencesByTime(sentences, sortOrder);
-                                sentences = sentences.map(s => applyAllConversions(s));
-                                globalResultArea.value = sentences.join('\n\n');
-                                globalResultCount.textContent = `${sentences.length} 条`;
-                                resultSourceHint.textContent = '道具流水（上传）';
-                                navigator.clipboard.writeText(globalResultArea.value);
-                                debugConsole.innerHTML += '\n✅ 完成';
-                            } else { debugConsole.innerHTML += '\n❌ 无有效记录'; }
+                        const sortOrder = document.getElementById('sortOrderSelect').value;
+
+                        if (mode === 'resource') {
+                            processFlowCsv(text);
                             return;
-                        } else { processFlowCsv(); }
+                        }
+                        if (mode === 'chess') {
+                            debugConsole.innerHTML = '🔍 棋子流水（文件）解析...';
+                            const r = parseChessLog(text).filter(x => !x.error);
+                            if (!r.length) { debugConsole.innerHTML += '\n❌ 无有效棋子记录'; return; }
+                            r.sort((a, b) => (b.time || '').localeCompare(a.time || ''));
+                            if (sortOrder === 'asc') r.reverse();
+                            const out = r.map(x => applyAllConversions(x.finalDesc)).join('\n\n');
+                            globalResultArea.value = out;
+                            globalResultCount.textContent = `${r.length} 条`;
+                            resultSourceHint.textContent = '棋子流水（上传）';
+                            safeCopy(out);
+                            debugConsole.innerHTML += '\n✅ 完成';
+                            return;
+                        }
+                        if (mode === 'order') {
+                            debugConsole.innerHTML = '📦 订单日志（文件）解析...';
+                            const s = parseOrderLog(text).map(x => applyAllConversions(x));
+                            globalResultArea.value = s.join('\n\n');
+                            globalResultCount.textContent = `${s.length} 条`;
+                            resultSourceHint.textContent = '订单日志（上传）';
+                            safeCopy(globalResultArea.value);
+                            return;
+                        }
+                        if (mode === 'review') {
+                            debugConsole.innerHTML = '🌟 好评奖励（文件）解析...';
+                            const s = parseReviewLog(text).map(x => applyAllConversions(x));
+                            globalResultArea.value = s.join('\n\n');
+                            globalResultCount.textContent = `${s.length} 条`;
+                            resultSourceHint.textContent = '好评奖励（上传）';
+                            safeCopy(globalResultArea.value);
+                            return;
+                        }
                     });
 
                     setClick('debugFlowBtn', async () => {
@@ -5901,7 +5920,7 @@
                         debugConsole.innerHTML = `CSV前200字符:\n${text.substring(0, 200)}`;
                     });
 
-                    setClick('copyGlobalResultBtn', () => navigator.clipboard.writeText(globalResultArea.value));
+                    setClick('copyGlobalResultBtn', () => safeCopy(globalResultArea.value));
                     setClick('exportGlobalResultBtn', () => {
                         const blob = new Blob([globalResultArea.value], { type: 'text/plain' });
                         const a = document.createElement('a');
@@ -5918,7 +5937,7 @@
                         globalResultArea.value = tpl;
                         globalResultCount.textContent = '1 条';
                         resultSourceHint.textContent = '模板生成';
-                        navigator.clipboard.writeText(tpl);
+                        safeCopy(tpl);
                     });
 
                     const modals = {
@@ -6080,7 +6099,7 @@
 
                     setClick('uploadCsvBtn', processCardCsv);
                     setClick('applyFilterBtn', processCardCsv);
-                    setClick('copyAllCardBtn', () => navigator.clipboard.writeText(document.getElementById('cardResultArea').value));
+                    setClick('copyAllCardBtn', () => safeCopy(document.getElementById('cardResultArea').value));
                     setClick('exportCardBtn', () => {
                         const blob = new Blob([document.getElementById('cardResultArea').value], { type: 'text/plain' });
                         const a = document.createElement('a');
@@ -6156,7 +6175,7 @@
                     setClick('generateDailyBtn', generateDailyReport);
                     setClick('copyDailyBtn', () => {
                         const area = document.getElementById('dailyResultArea');
-                        if (area) navigator.clipboard.writeText(area.value);
+                        if (area) safeCopy(area.value);
                     });
                     setClick('exportDailyBtn', () => {
                         const area = document.getElementById('dailyResultArea');
