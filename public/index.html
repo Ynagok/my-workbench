@@ -4523,10 +4523,18 @@
                         let resolvedItemName = resolveItemName(itemId, itemName);
                         resolvedItemName = applyAllConversions?.(resolvedItemName) || resolvedItemName;
 
+                        // ★ 用户选了「体力/红钻/金币/好评点」时，强制覆盖道具名和资源类型
+                        const userSelectedType = document.getElementById('flowResourceSelect')?.value || '';
+                        let resourceTag = isNewFormat ? thirdCol : detectResourceType(line);
+                        if (['体力', '红钻', '金币', '好评点'].includes(userSelectedType)) {
+                            resolvedItemName = userSelectedType;
+                            resourceTag = userSelectedType;
+                        }
+
                         records.push({
                             '时间': time, '数量': change, '来源': resolvedSource,
                             '道具名称': resolvedItemName, '之前': before, '之后': after,
-                            '_资源类型': isNewFormat ? thirdCol : detectResourceType(line)
+                            '_资源类型': resourceTag
                         });
                     }
 
@@ -4788,16 +4796,23 @@
                     if (!records.length) { debugConsole.innerHTML += '\n❌ 无记录（请确认粘贴内容为资源流水格式）'; return; }
                     debugConsole.innerHTML += `\n📌 原始记录数: ${records.length}`;
 
-                    // ★ 按资源类型过滤（道具走关键词筛选，不做此过滤）
+                    // ★ 按资源类型过滤
+                    // 逻辑：先按日志内容筛；若一条没匹配，则认为用户选的是通用类型，全部保留并按该类型输出
                     if (resourceType !== '道具') {
-                        records = records.filter(r =>
+                        const matched = records.filter(r =>
                             (r['_资源类型'] || '').includes(resourceType) ||
                             (r['道具名称'] || '').includes(resourceType)
                         );
-                        debugConsole.innerHTML += `\n📌 资源类型「${resourceType}」筛选后: ${records.length} 条`;
-                        if (records.length === 0) {
-                            debugConsole.innerHTML += `\n⚠️ 未找到「${resourceType}」记录，请确认解析模式或来源选择`;
-                            return;
+                        if (matched.length > 0) {
+                            records = matched;
+                            debugConsole.innerHTML += `\n📌 资源类型「${resourceType}」筛选后: ${records.length} 条`;
+                        } else {
+                            records = records.map(r => ({
+                                ...r,
+                                '道具名称': resourceType,
+                                '_资源类型': resourceType
+                            }));
+                            debugConsole.innerHTML += `\n📌 日志无「${resourceType}」字样，按用户选择「${resourceType}」处理全部 ${records.length} 条`;
                         }
                     }
 
