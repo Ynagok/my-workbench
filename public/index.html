@@ -1655,6 +1655,38 @@
                          font-size: 11px;
                          letter-spacing: 0;
                      }
+
+        /* ============================================================
+   工单回复 · 预设标签
+   ============================================================ */
+        .preset-tags {
+            display: inline-flex;
+            gap: 4px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .preset-tag {
+            display: inline-block;
+            background: var(--accent-dim);
+            color: var(--accent-ink);
+            border: 1px solid var(--accent-line);
+            border-radius: var(--r-pill);
+            padding: 1px 8px;
+            font-size: 10.5px;
+            font-weight: 600;
+            font-family: var(--font-display);
+            letter-spacing: 0.04em;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            white-space: nowrap;
+        }
+
+            .preset-tag:hover {
+                background: var(--accent);
+                color: var(--dark);
+                border-color: var(--accent);
+            }
     </style>
 </head>
 
@@ -1771,13 +1803,25 @@
                 </div>
                 <textarea id="replyResultArea" rows="12" readonly></textarea>
                 <div class="flex-row" style="margin-top:10px;">
-                    <input type="text" id="newReplyPresetName" placeholder="给这条回复起个名字，例如：棋子无法删除 / 账号注销" style="flex:1; min-width:200px;">
+                    <input type="text" id="newReplyPresetName" placeholder="预设名称，例如：棋子无法删除 / 账号注销" style="flex:1; min-width:180px;">
+                    <input type="text" id="newReplyPresetTags" placeholder="标签（逗号分隔，如：棋子,活动）" style="flex:1; min-width:180px;">
                     <button id="saveReplyPresetBtn">💾 保存为预设</button>
                 </div>
             </div>
 
             <div class="card">
-                <label>📚 已保存的回复预设</label>
+                <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:12px;">
+                    <label style="margin:0;">📚 已保存的回复预设 <span id="replyPresetCount" class="badge">0</span></label>
+                    <div class="flex-row" style="gap:8px;">
+                        <div class="search-box" style="min-width:200px;">
+                            <input type="text" id="replyPresetSearchInput" placeholder="搜索预设名称或内容...">
+                            <span class="clear-search" id="clearReplyPresetSearch" style="display:none;">✕</span>
+                        </div>
+                        <select id="replyPresetTagFilter" style="min-width:140px;">
+                            <option value="">全部标签</option>
+                        </select>
+                    </div>
+                </div>
                 <div id="replyPresetList" style="margin-top:12px;"></div>
             </div>
         </div>
@@ -5744,21 +5788,71 @@
             function renderReplyPresetList() {
                 const c = document.getElementById('replyPresetList');
                 if (!c) return;
-                if (!replyPresets.length) {
-                    c.innerHTML = '<div style="padding:20px;text-align:center;color:var(--ak-text-mute);">暂无预设，编辑好回复后点击「保存为预设」</div>';
+
+                // ===== 收集所有标签，刷新标签下拉 =====
+                const allTags = new Set();
+                replyPresets.forEach(p => (p.tags || []).forEach(t => allTags.add(t)));
+                const tagFilter = document.getElementById('replyPresetTagFilter');
+                if (tagFilter) {
+                    const cur = tagFilter.value;
+                    tagFilter.innerHTML = '<option value="">全部标签</option>' +
+                        Array.from(allTags).sort().map(t =>
+                            `<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`
+                        ).join('');
+                    if (cur && allTags.has(cur)) tagFilter.value = cur;
+                }
+
+                // ===== 搜索 + 标签筛选 =====
+                const searchTerm = (document.getElementById('replyPresetSearchInput')?.value || '').trim().toLowerCase();
+                const activeTag = tagFilter ? tagFilter.value : '';
+
+                let filtered = replyPresets;
+                if (searchTerm) {
+                    filtered = filtered.filter(p =>
+                        (p.name || '').toLowerCase().includes(searchTerm) ||
+                        (p.text || '').toLowerCase().includes(searchTerm)
+                    );
+                }
+                if (activeTag) {
+                    filtered = filtered.filter(p => (p.tags || []).includes(activeTag));
+                }
+
+                // 计数徽章
+                const countEl = document.getElementById('replyPresetCount');
+                if (countEl) countEl.textContent = `${filtered.length} / ${replyPresets.length}`;
+
+                if (!filtered.length) {
+                    c.innerHTML = '<div style="padding:20px;text-align:center;color:var(--ak-text-mute);">' +
+                        (replyPresets.length ? '没有匹配的预设' : '暂无预设，编辑好回复后点击「保存为预设」') + '</div>';
                     return;
                 }
-                c.innerHTML = replyPresets.map((p, i) => `
+
+                // ===== 渲染列表 =====
+                c.innerHTML = filtered.map((p) => {
+                    const i = replyPresets.indexOf(p);
+                    const tagsHtml = (p.tags || []).length
+                        ? `<div class="preset-tags">${p.tags.map(t =>
+                            `<span class="preset-tag" data-tag="${escapeHtml(t)}">${escapeHtml(t)}</span>`
+                        ).join('')}</div>`
+                        : '';
+                    return `
                         <div class="reply-preset-item" data-i="${i}">
-                            <span class="preset-name">${escapeHtml(p.name || '未命名')}</span>
-                            <div class="preset-body">${escapeHtml((p.text || '').substring(0, 120))}${(p.text || '').length > 120 ? '…' : ''}</div>
+                            <div style="flex:1; min-width:0; display:flex; flex-direction:column; gap:6px;">
+                                <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                                    <span class="preset-name">${escapeHtml(p.name || '未命名')}</span>
+                                    ${tagsHtml}
+                                </div>
+                                <div class="preset-body">${escapeHtml((p.text || '').substring(0, 120))}${(p.text || '').length > 120 ? '…' : ''}</div>
+                            </div>
                             <div class="preset-actions">
                                 <button class="secondary load-preset-btn" data-i="${i}">载入</button>
                                 <button class="reset-btn delete-preset-btn" data-i="${i}">🗑️</button>
                             </div>
                         </div>
-                    `).join('');
+                    `;
+                }).join('');
 
+                // ===== 载入 =====
                 c.querySelectorAll('.load-preset-btn').forEach(b => b.onclick = () => {
                     const p = replyPresets[parseInt(b.dataset.i)];
                     if (!p) return;
@@ -5766,14 +5860,24 @@
                     document.getElementById('replyContentInput').value = p.content || '';
                     document.getElementById('closingInput').value = p.closing || '';
                     document.getElementById('replyResultArea').value = p.text || '';
+                    const tagsInput = document.getElementById('newReplyPresetTags');
+                    if (tagsInput) tagsInput.value = (p.tags || []).join(',');
                 });
 
+                // ===== 删除 =====
                 c.querySelectorAll('.delete-preset-btn').forEach(b => b.onclick = () => {
                     const i = parseInt(b.dataset.i);
                     if (!confirm(`确认删除预设「${replyPresets[i]?.name || ''}」？`)) return;
                     replyPresets.splice(i, 1);
                     saveData('replyPresets', replyPresets);
                     renderReplyPresetList();
+                });
+
+                // ===== 点击标签 → 快速筛选 =====
+                c.querySelectorAll('.preset-tag').forEach(el => el.onclick = () => {
+                    const tag = el.dataset.tag;
+                    const tf = document.getElementById('replyPresetTagFilter');
+                    if (tf) { tf.value = tag; renderReplyPresetList(); }
                 });
             }
 
@@ -6416,6 +6520,8 @@
                     document.getElementById('closingInput').value = '';
                     document.getElementById('replyResultArea').value = '';
                     document.getElementById('newReplyPresetName').value = '';
+                    const tagsInput = document.getElementById('newReplyPresetTags');
+                    if (tagsInput) tagsInput.value = '';
                 });
 
                 setClick('copyReplyBtn', () => safeCopy(document.getElementById('replyResultArea').value));
@@ -6435,16 +6541,43 @@
                     if (!name) { alert('请先给这条回复起个名字'); return; }
                     const text = (document.getElementById('replyResultArea').value || '').trim();
                     if (!text) { alert('回复内容为空，先点「生成回复」'); return; }
+
+                    const tagsRaw = (document.getElementById('newReplyPresetTags')?.value || '').trim();
+                    const tags = tagsRaw
+                        ? [...new Set(tagsRaw.split(/[,，\s]+/).map(t => t.trim()).filter(t => t))]
+                        : [];
+
                     replyPresets.push({
                         name,
                         text,
+                        tags,
                         opening: document.getElementById('openingInput').value || '',
                         content: document.getElementById('replyContentInput').value || '',
                         closing: document.getElementById('closingInput').value || ''
                     });
                     saveData('replyPresets', replyPresets);
                     renderReplyPresetList();
+
                     document.getElementById('newReplyPresetName').value = '';
+                    const tagsInput = document.getElementById('newReplyPresetTags');
+                    if (tagsInput) tagsInput.value = '';
+                });
+
+                // ==================== 预设搜索 / 标签筛选 ====================
+                addEvent('replyPresetSearchInput', 'input', (e) => {
+                    const clr = document.getElementById('clearReplyPresetSearch');
+                    if (clr) clr.style.display = e.target.value ? 'inline' : 'none';
+                    renderReplyPresetList();
+                });
+                setClick('clearReplyPresetSearch', () => {
+                    const inp = document.getElementById('replyPresetSearchInput');
+                    if (inp) inp.value = '';
+                    const clr = document.getElementById('clearReplyPresetSearch');
+                    if (clr) clr.style.display = 'none';
+                    renderReplyPresetList();
+                });
+                addEvent('replyPresetTagFilter', 'change', () => {
+                    renderReplyPresetList();
                 });
             }
 
