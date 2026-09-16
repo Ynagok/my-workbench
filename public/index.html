@@ -1774,7 +1774,7 @@
 
                 <div class="reply-section">
                     <label>② 内容</label>
-                    <textarea id="replyContentInput" rows="8" placeholder="例：目前核实【发芽的竹笋】棋子无法删除处理，后续完成该订单后棋子会全部回收处理。"></textarea>
+                    <textarea id="replyContentInput" rows="4" placeholder="例：目前核实【发芽的竹笋】棋子无法删除处理，后续完成该订单后棋子会全部回收处理。"></textarea>
                 </div>
 
                 <div class="reply-section">
@@ -1801,10 +1801,11 @@
                         <button id="exportReplyBtn" class="secondary">💾 导出TXT</button>
                     </div>
                 </div>
-                <textarea id="replyResultArea" rows="12" readonly></textarea>
+                <textarea id="replyResultArea" rows="4" readonly></textarea>
                 <div class="flex-row" style="margin-top:10px;">
-                    <input type="text" id="newReplyPresetName" placeholder="预设名称，例如：棋子无法删除 / 账号注销" style="flex:1; min-width:180px;">
-                    <input type="text" id="newReplyPresetTags" placeholder="标签（逗号分隔，如：棋子,活动）" style="flex:1; min-width:180px;">
+                    <input type="text" id="newReplyPresetTags" list="presetTagsList" placeholder="标签（下拉选择或输入新标签）" style="flex:1; min-width:180px;" autocomplete="off">
+                    <datalist id="presetTagsList"></datalist>
+                    <input type="text" id="newReplyPresetName" placeholder="具体问题，例如：棋子无法删除 / 账号注销" style="flex:1; min-width:180px;">
                     <button id="saveReplyPresetBtn">💾 保存为预设</button>
                 </div>
             </div>
@@ -5766,6 +5767,17 @@
                 "感谢您的理解与支持。愿您的心情如春日阳光般温暖，愿您的生活如春花般绚烂。"
             ];
 
+            // ==================== 工单回复 · 预设默认标签 ====================
+            const DEFAULT_PRESET_TAGS = [
+                "梦幻消除站",
+                "唱舞全明星",
+                "唱舞星计划",
+                "账号问题",
+                "充值问题",
+                "道具问题",
+                "投诉"
+            ];
+
             let replyOpenings = await loadData('replyOpenings', DEFAULT_OPENING_PHRASES);
             let replyClosings = await loadData('replyClosings', DEFAULT_CLOSING_PHRASES);
             let replyPresets = await loadData('replyPresets', []);
@@ -5789,14 +5801,25 @@
                 const c = document.getElementById('replyPresetList');
                 if (!c) return;
 
-                // ===== 收集所有标签，刷新标签下拉 =====
-                const allTags = new Set();
+                // ===== 收集所有标签（默认标签 + 用户已保存标签） =====
+                const allTags = new Set(DEFAULT_PRESET_TAGS);
                 replyPresets.forEach(p => (p.tags || []).forEach(t => allTags.add(t)));
+                const sortedTags = Array.from(allTags).sort();
+
+                // 更新保存输入框的 datalist（下拉候选）
+                const dl = document.getElementById('presetTagsList');
+                if (dl) {
+                    dl.innerHTML = sortedTags.map(t =>
+                        `<option value="${escapeHtml(t)}"></option>`
+                    ).join('');
+                }
+
+                // 更新筛选下拉
                 const tagFilter = document.getElementById('replyPresetTagFilter');
                 if (tagFilter) {
                     const cur = tagFilter.value;
                     tagFilter.innerHTML = '<option value="">全部标签</option>' +
-                        Array.from(allTags).sort().map(t =>
+                        sortedTags.map(t =>
                             `<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`
                         ).join('');
                     if (cur && allTags.has(cur)) tagFilter.value = cur;
