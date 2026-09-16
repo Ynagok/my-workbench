@@ -5804,7 +5804,9 @@
                 // ===== 收集所有标签（默认标签 + 用户已保存标签） =====
                 const allTags = new Set(DEFAULT_PRESET_TAGS);
                 replyPresets.forEach(p => (p.tags || []).forEach(t => allTags.add(t)));
-                const sortedTags = Array.from(allTags).sort();
+                const defaultSet = new Set(DEFAULT_PRESET_TAGS);
+                const customTags = Array.from(allTags).filter(t => !defaultSet.has(t)).sort();
+                const sortedTags = [...DEFAULT_PRESET_TAGS, ...customTags];
 
                 // 更新保存输入框的 datalist（下拉候选）
                 const dl = document.getElementById('presetTagsList');
