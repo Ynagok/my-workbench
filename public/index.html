@@ -5778,10 +5778,10 @@
             }
 
             function generateReply() {
-                const op = (document.getElementById('openingInput').value || '').trim();
-                const ct = (document.getElementById('replyContentInput').value || '').trim();
-                const cl = (document.getElementById('closingInput').value || '').trim();
-                const text = [op, ct, cl].filter(s => s).join('\n');
+                const op = (document.getElementById('openingInput').value || '').replace(/\s+/g, ' ').trim();
+                const ct = (document.getElementById('replyContentInput').value || '').replace(/\s+/g, ' ').trim();
+                const cl = (document.getElementById('closingInput').value || '').replace(/\s+/g, ' ').trim();
+                const text = [op, ct, cl].filter(s => s).join('');
                 document.getElementById('replyResultArea').value = text;
             }
 
