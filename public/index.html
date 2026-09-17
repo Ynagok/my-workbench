@@ -7465,110 +7465,203 @@
                             fryCtx.restore();
                         }
 
-                        // ===== 绘制生菜 =====
+                        // ===== 绘制生菜（真实卷曲叶片版）=====
                         function fryDrawLettuce() {
-                            const cx = PLATE_CX, cy = PLATE_CY + 6;
+                            const cx = PLATE_CX;
+                            const cy = PLATE_CY + 6;
 
+                            // 6 片叶子，从底到顶依次绘制（越靠前越亮 → 立体堆叠感）
                             const leaves = [
-                                { x: -55, y: 28, size: 62, angle: -0.5, c1: '#7cc23c', c2: '#2e6b18' },
-                                { x: 55, y: 28, size: 62, angle: 0.5, c1: '#7cc23c', c2: '#2e6b18' },
-                                { x: -20, y: 45, size: 70, angle: -0.15, c1: '#93d54f', c2: '#3a7a20' },
-                                { x: 22, y: 45, size: 70, angle: 0.15, c1: '#93d54f', c2: '#3a7a20' },
-                                { x: 0, y: 20, size: 82, angle: 0, c1: '#a5e065', c2: '#4a9b2a' }
+                                // ---- 底层（暗，铺底）----
+                                { x: -58, y: 24, rx: 60, ry: 40, angle: -0.38, bright: 0.78, seed: 1.0 },
+                                { x: 58, y: 24, rx: 60, ry: 40, angle: 0.38, bright: 0.78, seed: 2.3 },
+                                { x: 0, y: 36, rx: 74, ry: 46, angle: 0.05, bright: 0.82, seed: 4.1 },
+                                // ---- 中层 ----
+                                { x: -38, y: -8, rx: 64, ry: 43, angle: -0.52, bright: 0.90, seed: 5.7 },
+                                { x: 42, y: -5, rx: 64, ry: 43, angle: 0.55, bright: 0.90, seed: 7.2 },
+                                // ---- 顶层（亮，中心收尾）----
+                                { x: 0, y: -18, rx: 56, ry: 37, angle: 0.10, bright: 1.00, seed: 9.4 }
                             ];
 
-                            leaves.forEach(leaf => {
+                            // 生成带褶皱的椭圆点集（多层正弦叠加 → 自然卷边）
+                            function makeRufflePoints(rx, ry, seed, segs) {
+                                const pts = [];
+                                for (let i = 0; i < segs; i++) {
+                                    const a = i / segs * Math.PI * 2;
+                                    const r1 = Math.sin(a * 5 + seed) * 0.06;
+                                    const r2 = Math.sin(a * 9 + seed * 1.7) * 0.035;
+                                    const r3 = Math.sin(a * 14 + seed * 2.4) * 0.018;
+                                    const ruffle = 1 + r1 + r2 + r3;
+                                    pts.push({
+                                        x: Math.cos(a) * rx * ruffle,
+                                        y: Math.sin(a) * ry * ruffle
+                                    });
+                                }
+                                return pts;
+                            }
+
+                            // Catmull-Rom 样条 → 平滑曲线
+                            function traceSmooth(ctx, pts) {
+                                const n = pts.length;
+                                ctx.beginPath();
+                                ctx.moveTo(pts[0].x, pts[0].y);
+                                for (let i = 0; i < n; i++) {
+                                    const p0 = pts[(i - 1 + n) % n];
+                                    const p1 = pts[i];
+                                    const p2 = pts[(i + 1) % n];
+                                    const p3 = pts[(i + 2) % n];
+                                    const cp1x = p1.x + (p2.x - p0.x) / 6;
+                                    const cp1y = p1.y + (p2.y - p0.y) / 6;
+                                    const cp2x = p2.x - (p3.x - p1.x) / 6;
+                                    const cp2y = p2.y - (p3.y - p1.y) / 6;
+                                    ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, p2.x, p2.y);
+                                }
+                                ctx.closePath();
+                            }
+
+                            leaves.forEach((leaf, idx) => {
+                                const pts = makeRufflePoints(leaf.rx, leaf.ry, leaf.seed, 56);
+                                const b = leaf.bright;
+
                                 fryCtx.save();
                                 fryCtx.translate(cx + leaf.x, cy + leaf.y);
                                 fryCtx.rotate(leaf.angle);
-                                const s = leaf.size;
 
-                                fryCtx.beginPath();
-                                fryCtx.moveTo(0, s * 0.45);
-
-                                const waveCount = 4;
-                                for (let i = 0; i < waveCount; i++) {
-                                    const tStart = 0.42 - i * 0.14;
-                                    const tEnd = tStart - 0.14;
-                                    const bulge = (i % 2 === 0) ? -1 : -1.15;
-                                    fryCtx.bezierCurveTo(
-                                        -s * 0.55 * bulge, s * tStart,
-                                        -s * 0.68 * bulge, s * (tStart + tEnd) / 2,
-                                        -s * 0.42, s * tEnd
-                                    );
+                                // ---- 中/上层叶片投影到下层 ----
+                                if (idx >= 3) {
+                                    fryCtx.save();
+                                    fryCtx.shadowColor = 'rgba(20, 50, 10, 0.42)';
+                                    fryCtx.shadowBlur = 9;
+                                    fryCtx.shadowOffsetY = 4;
+                                    traceSmooth(fryCtx, pts);
+                                    fryCtx.fillStyle = 'rgba(0,0,0,0.02)';
+                                    fryCtx.fill();
+                                    fryCtx.restore();
                                 }
 
-                                fryCtx.bezierCurveTo(
-                                    -s * 0.35, -s * 0.48,
-                                    -s * 0.15, -s * 0.58,
-                                    0, -s * 0.6
+                                // ---- 主体渐变（中心浅黄绿 → 边缘深绿）----
+                                traceSmooth(fryCtx, pts);
+                                const grad = fryCtx.createRadialGradient(
+                                    -leaf.rx * 0.15, -leaf.ry * 0.20, leaf.ry * 0.08,
+                                    0, 0, leaf.ry * 1.10
                                 );
-                                fryCtx.bezierCurveTo(
-                                    s * 0.15, -s * 0.58,
-                                    s * 0.35, -s * 0.48,
-                                    s * 0.42, -s * 0.32
-                                );
-
-                                for (let i = 0; i < waveCount; i++) {
-                                    const tStart = -0.18 + i * 0.14;
-                                    const tEnd = tStart + 0.14;
-                                    const bulge = (i % 2 === 0) ? 1 : 1.15;
-                                    fryCtx.bezierCurveTo(
-                                        s * 0.68 * bulge, s * (tStart + tEnd) / 2,
-                                        s * 0.55 * bulge, s * tEnd,
-                                        s * 0.42, s * tEnd
-                                    );
-                                }
-
-                                fryCtx.closePath();
-
-                                const grad = fryCtx.createRadialGradient(0, 5, s * 0.05, 0, 0, s * 0.85);
-                                grad.addColorStop(0, leaf.c1);
-                                grad.addColorStop(0.55, leaf.c1);
-                                grad.addColorStop(1, leaf.c2);
+                                grad.addColorStop(0.00, `hsl(75,  ${Math.round(68 * b)}%, ${Math.round(76 * b)}%)`);
+                                grad.addColorStop(0.35, `hsl(88,  ${Math.round(62 * b)}%, ${Math.round(62 * b)}%)`);
+                                grad.addColorStop(0.75, `hsl(105, ${Math.round(55 * b)}%, ${Math.round(42 * b)}%)`);
+                                grad.addColorStop(1.00, `hsl(115, ${Math.round(50 * b)}%, ${Math.round(30 * b)}%)`);
                                 fryCtx.fillStyle = grad;
                                 fryCtx.fill();
 
-                                fryCtx.strokeStyle = 'rgba(35, 85, 18, 0.55)';
+                                // ---- 深色轮廓 ----
+                                fryCtx.strokeStyle = `hsl(115, ${Math.round(55 * b)}%, ${Math.round(18 * b)}%)`;
                                 fryCtx.lineWidth = 1.1;
                                 fryCtx.stroke();
 
-                                fryCtx.strokeStyle = 'rgba(230, 250, 200, 0.75)';
-                                fryCtx.lineWidth = 1.5;
+                                // ---- 内层高光轮廓（叶片厚度感）----
+                                fryCtx.save();
+                                fryCtx.strokeStyle = `rgba(235, 250, 200, ${0.32 * b})`;
+                                fryCtx.lineWidth = 1.2;
+                                fryCtx.beginPath();
+                                for (let i = 0; i < pts.length; i++) {
+                                    const p = pts[i];
+                                    const ix = p.x * 0.80;
+                                    const iy = p.y * 0.80;
+                                    if (i === 0) fryCtx.moveTo(ix, iy);
+                                    else fryCtx.lineTo(ix, iy);
+                                }
+                                fryCtx.closePath();
+                                fryCtx.stroke();
+                                fryCtx.restore();
+
+                                // ---- 主脉（叶柄→叶尖）----
+                                fryCtx.strokeStyle = `rgba(240, 252, 210, ${0.72 * b})`;
+                                fryCtx.lineWidth = 2;
                                 fryCtx.lineCap = 'round';
                                 fryCtx.beginPath();
-                                fryCtx.moveTo(0, s * 0.42);
-                                fryCtx.lineTo(0, -s * 0.5);
+                                fryCtx.moveTo(0, leaf.ry * 0.72);
+                                fryCtx.quadraticCurveTo(leaf.rx * 0.08, 0, 0, -leaf.ry * 0.78);
                                 fryCtx.stroke();
 
-                                fryCtx.strokeStyle = 'rgba(230, 250, 200, 0.5)';
-                                fryCtx.lineWidth = 0.9;
-                                const veinCount = 5;
-                                for (let i = 0; i < veinCount; i++) {
-                                    const y = s * 0.3 - i * s * 0.18;
+                                // ---- 侧脉（从主脉向两侧羽状分支）----
+                                fryCtx.strokeStyle = `rgba(235, 250, 205, ${0.40 * b})`;
+                                fryCtx.lineWidth = 0.85;
+                                for (let i = 0; i < 5; i++) {
+                                    const t = -0.5 + i * 0.26;
+                                    const y = t * leaf.ry;
+                                    const len = (1 - Math.abs(t)) * 0.72;
+                                    // 左侧
                                     fryCtx.beginPath();
                                     fryCtx.moveTo(0, y);
-                                    fryCtx.quadraticCurveTo(-s * 0.2, y - s * 0.04, -s * 0.34, y - s * 0.13);
+                                    fryCtx.quadraticCurveTo(
+                                        -leaf.rx * 0.35 * len, y - leaf.ry * 0.12,
+                                        -leaf.rx * 0.70 * len, y - leaf.ry * 0.30
+                                    );
                                     fryCtx.stroke();
+                                    // 右侧
                                     fryCtx.beginPath();
                                     fryCtx.moveTo(0, y);
-                                    fryCtx.quadraticCurveTo(s * 0.2, y - s * 0.04, s * 0.34, y - s * 0.13);
+                                    fryCtx.quadraticCurveTo(
+                                        leaf.rx * 0.35 * len, y - leaf.ry * 0.12,
+                                        leaf.rx * 0.70 * len, y - leaf.ry * 0.30
+                                    );
                                     fryCtx.stroke();
                                 }
 
-                                fryCtx.strokeStyle = 'rgba(30, 70, 15, 0.28)';
-                                fryCtx.lineWidth = 2;
-                                fryCtx.beginPath();
-                                fryCtx.moveTo(-s * 0.25, s * 0.4);
-                                fryCtx.quadraticCurveTo(-s * 0.05, 0, -s * 0.15, -s * 0.35);
-                                fryCtx.stroke();
+                                // ---- 内部明暗（上亮下暗 → 卷曲立体感）----
+                                fryCtx.save();
+                                traceSmooth(fryCtx, pts);
+                                fryCtx.clip();
 
-                                fryCtx.fillStyle = 'rgba(255, 255, 255, 0.28)';
+                                const shadeGrad = fryCtx.createLinearGradient(0, -leaf.ry, 0, leaf.ry);
+                                shadeGrad.addColorStop(0.00, `rgba(255, 255, 230, ${0.25 * b})`);
+                                shadeGrad.addColorStop(0.50, 'rgba(0, 0, 0, 0)');
+                                shadeGrad.addColorStop(1.00, `rgba(15, 40, 5, ${0.35 * b})`);
+                                fryCtx.fillStyle = shadeGrad;
+                                fryCtx.fillRect(-leaf.rx * 1.2, -leaf.ry * 1.2, leaf.rx * 2.4, leaf.ry * 2.4);
+
+                                // 边缘暗化（褶皱阴影）
+                                const edgeShade = fryCtx.createRadialGradient(
+                                    0, 0, leaf.ry * 0.62,
+                                    0, 0, leaf.ry * 1.08
+                                );
+                                edgeShade.addColorStop(0, 'rgba(0,0,0,0)');
+                                edgeShade.addColorStop(1, `rgba(20, 50, 10, ${0.40 * b})`);
+                                fryCtx.fillStyle = edgeShade;
+                                fryCtx.fillRect(-leaf.rx * 1.2, -leaf.ry * 1.2, leaf.rx * 2.4, leaf.ry * 2.4);
+                                fryCtx.restore();
+
+                                // ---- 卷边内侧一圈微亮（褶皱被照亮）----
+                                fryCtx.save();
+                                traceSmooth(fryCtx, pts);
+                                fryCtx.clip();
+                                const rimGrad = fryCtx.createRadialGradient(
+                                    0, 0, leaf.ry * 0.55,
+                                    0, 0, leaf.ry * 0.98
+                                );
+                                rimGrad.addColorStop(0, 'rgba(255,255,220,0)');
+                                rimGrad.addColorStop(0.6, `rgba(255,255,220, ${0.15 * b})`);
+                                rimGrad.addColorStop(1, 'rgba(255,255,220,0)');
+                                fryCtx.fillStyle = rimGrad;
+                                fryCtx.fillRect(-leaf.rx * 1.2, -leaf.ry * 1.2, leaf.rx * 2.4, leaf.ry * 2.4);
+                                fryCtx.restore();
+
+                                // ---- 主高光斑点（生菜油亮感）----
+                                fryCtx.fillStyle = `rgba(255, 255, 245, ${0.40 * b})`;
                                 fryCtx.beginPath();
-                                fryCtx.ellipse(-s * 0.13, -s * 0.22, s * 0.2, s * 0.06, -0.4, 0, Math.PI * 2);
+                                fryCtx.ellipse(
+                                    -leaf.rx * 0.30, -leaf.ry * 0.35,
+                                    leaf.rx * 0.22, leaf.ry * 0.09,
+                                    -0.55, 0, Math.PI * 2
+                                );
                                 fryCtx.fill();
+
+                                fryCtx.fillStyle = `rgba(255, 255, 245, ${0.22 * b})`;
                                 fryCtx.beginPath();
-                                fryCtx.ellipse(s * 0.15, -s * 0.05, s * 0.14, s * 0.04, 0.3, 0, Math.PI * 2);
+                                fryCtx.ellipse(
+                                    leaf.rx * 0.22, -leaf.ry * 0.05,
+                                    leaf.rx * 0.12, leaf.ry * 0.05,
+                                    0.30, 0, Math.PI * 2
+                                );
                                 fryCtx.fill();
 
                                 fryCtx.restore();
