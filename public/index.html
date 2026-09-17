@@ -7835,18 +7835,53 @@
                 let replyClosings = await loadData('replyClosings', DEFAULT_CLOSING_PHRASES);
                 let replyPresets = await loadData('replyPresets', []);
 
+                // ★ 校验：如果数据丢失为空（或不是数组），自动回填默认值并保存
+                if (!Array.isArray(replyOpenings) || replyOpenings.filter(t => t && String(t).trim()).length === 0) {
+                    replyOpenings = [...DEFAULT_OPENING_PHRASES];
+                    saveData('replyOpenings', replyOpenings);
+                    console.log('[修复] 开头语为空，已回填默认 4 条');
+                }
+                if (!Array.isArray(replyClosings) || replyClosings.filter(t => t && String(t).trim()).length === 0) {
+                    replyClosings = [...DEFAULT_CLOSING_PHRASES];
+                    saveData('replyClosings', replyClosings);
+                    console.log('[修复] 结束语为空，已回填默认 4 条');
+                }
+                if (!Array.isArray(replyPresets)) {
+                    replyPresets = [];
+                }
+
                 function renderReplySelects() {
                     const oSel = document.getElementById('openingSelect');
                     const cSel = document.getElementById('closingSelect');
+
+                    // ★ 兜底：渲染前再检查一次
+                    if (!Array.isArray(replyOpenings) || replyOpenings.filter(t => t && String(t).trim()).length === 0) {
+                        replyOpenings = [...DEFAULT_OPENING_PHRASES];
+                    }
+                    if (!Array.isArray(replyClosings) || replyClosings.filter(t => t && String(t).trim()).length === 0) {
+                        replyClosings = [...DEFAULT_CLOSING_PHRASES];
+                    }
+
                     if (oSel) {
                         oSel.innerHTML = replyOpenings.map((t, i) =>
-                            `<option value="${i}">${escapeHtml(t.substring(0, 40))}${t.length > 40 ? '…' : ''}</option>`
+                            `<option value="${i}">${escapeHtml((t || '').substring(0, 40))}${(t || '').length > 40 ? '…' : ''}</option>`
                         ).join('') || '<option value="">（暂无开头语）</option>';
+
+                        // ★ 输入框为空时，自动载入第一条
+                        const openingInput = document.getElementById('openingInput');
+                        if (openingInput && !openingInput.value.trim() && replyOpenings[0]) {
+                            openingInput.value = replyOpenings[0];
+                        }
                     }
                     if (cSel) {
                         cSel.innerHTML = replyClosings.map((t, i) =>
-                            `<option value="${i}">${escapeHtml(t.substring(0, 40))}${t.length > 40 ? '…' : ''}</option>`
+                            `<option value="${i}">${escapeHtml((t || '').substring(0, 40))}${(t || '').length > 40 ? '…' : ''}</option>`
                         ).join('') || '<option value="">（暂无结束语）</option>';
+
+                        const closingInput = document.getElementById('closingInput');
+                        if (closingInput && !closingInput.value.trim() && replyClosings[0]) {
+                            closingInput.value = replyClosings[0];
+                        }
                     }
                 }
 
@@ -8587,8 +8622,15 @@
                         if (isNaN(i) || !replyOpenings[i]) return;
                         if (!confirm('确认删除该开头语？')) return;
                         replyOpenings.splice(i, 1);
+                        // ★ 删空了就恢复默认，避免下拉框变空白
+                        if (replyOpenings.length === 0) {
+                            replyOpenings = [...DEFAULT_OPENING_PHRASES];
+                        }
                         saveData('replyOpenings', replyOpenings);
                         renderReplySelects();
+                        document.getElementById('openingSelect').value = 0;
+                        const input = document.getElementById('openingInput');
+                        if (input) input.value = replyOpenings[0] || '';
                     });
 
                     setClick('saveClosingBtn', () => {
@@ -8605,8 +8647,15 @@
                         if (isNaN(i) || !replyClosings[i]) return;
                         if (!confirm('确认删除该结束语？')) return;
                         replyClosings.splice(i, 1);
+                        // ★ 删空了就恢复默认
+                        if (replyClosings.length === 0) {
+                            replyClosings = [...DEFAULT_CLOSING_PHRASES];
+                        }
                         saveData('replyClosings', replyClosings);
                         renderReplySelects();
+                        document.getElementById('closingSelect').value = 0;
+                        const input = document.getElementById('closingInput');
+                        if (input) input.value = replyClosings[0] || '';
                     });
 
                     setClick('generateReplyBtn', generateReply);
