@@ -2455,6 +2455,49 @@
             color: #b71c1c;
             cursor: not-allowed;
         }
+
+        /* ============================================================
+                油炸 · 摆盘面板
+                ============================================================ */
+        #fryPlateWrap {
+            display: none;
+            margin-top: 12px;
+        }
+
+            #fryPlateWrap.active {
+                display: block;
+            }
+
+        #fryPlateCanvas {
+            display: block;
+            width: 100%;
+            max-width: 540px;
+            height: auto;
+            background: #f6f7f9;
+            border: 1px solid var(--line-1);
+            border-radius: var(--r-md);
+            box-shadow: 0 4px 16px rgba(15,20,25,0.08);
+            touch-action: none;
+            cursor: grab;
+        }
+
+            #fryPlateCanvas:active {
+                cursor: grabbing;
+            }
+
+        .fry-plate-toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+            .fry-plate-toolbar .fry-plate-tip {
+                font-size: 11.5px;
+                color: var(--ink-3);
+                margin-left: 4px;
+            }
     </style>
 </head>
 
@@ -2825,6 +2868,17 @@
                                border-radius: var(--r-md); cursor: crosshair;
                                touch-action: none; outline: none;
                                box-shadow: 0 4px 16px rgba(15,20,25,0.08);"></canvas>
+                        <div id="fryPlateWrap">
+                            <div class="fry-plate-toolbar">
+                                <button id="fryPlateLemonBtn" class="secondary">🍋 加柠檬</button>
+                                <button id="fryPlateLeafBtn" class="secondary">🥬 加生菜</button>
+                                <button id="fryPlateResetBtn" class="secondary">重置摆盘</button>
+                                <button id="fryPlateSaveBtn">💾 保存摆盘</button>
+                                <button id="fryPlateBackBtn" class="reset-btn">↩ 返回油锅</button>
+                                <span class="fry-plate-tip">拖动食物调整位置</span>
+                            </div>
+                            <canvas id="fryPlateCanvas" width="540" height="540" tabindex="0"></canvas>
+                        </div>
                     </div>
                 </div>
             </div><!-- /sub-panel-fry -->
@@ -6860,126 +6914,316 @@
                         c.putImageData(out, 0, 0);
                     }
 
+                    // ===== 日式厨房背景 =====
+                    function fryDrawKitchen() {
+                        const wallBottom = FH * 0.56;
+
+                        // ---------- 1. 墙面 ----------
+                        const wallGrad = fryCtx.createLinearGradient(0, 0, 0, wallBottom);
+                        wallGrad.addColorStop(0, '#f8edd6');
+                        wallGrad.addColorStop(0.6, '#f0e0be');
+                        wallGrad.addColorStop(1, '#e2cfa4');
+                        fryCtx.fillStyle = wallGrad;
+                        fryCtx.fillRect(0, 0, FW, wallBottom);
+
+                        // 瓷砖网格
+                        fryCtx.strokeStyle = 'rgba(160,120,80,0.10)';
+                        fryCtx.lineWidth = 1;
+                        for (let y = 70; y < wallBottom; y += 70) {
+                            fryCtx.beginPath(); fryCtx.moveTo(0, y + 0.5); fryCtx.lineTo(FW, y + 0.5); fryCtx.stroke();
+                        }
+                        for (let x = 90; x < FW; x += 90) {
+                            fryCtx.beginPath(); fryCtx.moveTo(x + 0.5, 0); fryCtx.lineTo(x + 0.5, wallBottom); fryCtx.stroke();
+                        }
+
+                        // ---------- 2. 顶部暖光 ----------
+                        const lightGrad = fryCtx.createRadialGradient(FW / 2, 40, 40, FW / 2, 220, 500);
+                        lightGrad.addColorStop(0, 'rgba(255,220,150,0.50)');
+                        lightGrad.addColorStop(1, 'rgba(255,220,150,0)');
+                        fryCtx.fillStyle = lightGrad;
+                        fryCtx.fillRect(0, 0, FW, wallBottom);
+
+                        // ---------- 3. 左侧木架 + 调料瓶 ----------
+                        fryCtx.fillStyle = '#a4764a';
+                        fryCtx.fillRect(30, 132, 130, 6);
+                        fryCtx.fillStyle = '#7a5230';
+                        fryCtx.fillRect(30, 138, 130, 4);
+
+                        fryCtx.fillStyle = '#3a2418';
+                        fryCtx.beginPath();
+                        fryCtx.moveTo(45, 132);
+                        fryCtx.lineTo(45, 95);
+                        fryCtx.lineTo(48, 84);
+                        fryCtx.lineTo(58, 84);
+                        fryCtx.lineTo(61, 95);
+                        fryCtx.lineTo(61, 132);
+                        fryCtx.closePath();
+                        fryCtx.fill();
+                        fryCtx.fillStyle = '#6b4a20';
+                        fryCtx.fillRect(48, 76, 12, 8);
+
+                        fryCtx.fillStyle = '#e6d5b3';
+                        fryCtx.beginPath();
+                        fryCtx.ellipse(85, 118, 14, 16, 0, 0, Math.PI * 2);
+                        fryCtx.fill();
+                        fryCtx.fillStyle = '#c9b48a';
+                        fryCtx.beginPath();
+                        fryCtx.ellipse(85, 103, 14, 5, 0, 0, Math.PI * 2);
+                        fryCtx.fill();
+
+                        fryCtx.fillStyle = '#8b2a3a';
+                        fryCtx.fillRect(115, 96, 18, 36);
+                        fryCtx.fillStyle = '#3a1520';
+                        fryCtx.fillRect(118, 88, 12, 8);
+
+                        fryCtx.fillStyle = '#6b4a2a';
+                        fryCtx.fillRect(142, 110, 14, 22);
+                        fryCtx.strokeStyle = '#d4b88a';
+                        fryCtx.lineWidth = 2;
+                        for (let i = 0; i < 3; i++) {
+                            fryCtx.beginPath();
+                            fryCtx.moveTo(145 + i * 3, 110);
+                            fryCtx.lineTo(148 + i * 3, 80);
+                            fryCtx.stroke();
+                        }
+
+                        // ---------- 4. 右侧暖帘 ----------
+                        fryCtx.fillStyle = '#8b2a3a';
+                        fryCtx.beginPath();
+                        fryCtx.moveTo(FW - 130, 0);
+                        fryCtx.lineTo(FW, 0);
+                        fryCtx.lineTo(FW, 145);
+                        fryCtx.quadraticCurveTo(FW - 65, 160, FW - 130, 145);
+                        fryCtx.closePath();
+                        fryCtx.fill();
+                        fryCtx.fillStyle = 'rgba(255,180,140,0.16)';
+                        fryCtx.fillRect(FW - 118, 0, 14, 145);
+                        fryCtx.fillRect(FW - 40, 0, 10, 148);
+                        fryCtx.fillStyle = 'rgba(255,255,255,0.92)';
+                        fryCtx.font = 'bold 34px "Noto Serif SC", "Songti SC", serif';
+                        fryCtx.textAlign = 'center';
+                        fryCtx.textBaseline = 'middle';
+                        fryCtx.fillText('油', FW - 65, 55);
+                        fryCtx.fillText('処', FW - 65, 100);
+
+                        // ---------- 5. 台面 ----------
+                        const counterY = wallBottom;
+                        const counterGrad = fryCtx.createLinearGradient(0, counterY, 0, FH);
+                        counterGrad.addColorStop(0, '#d4b689');
+                        counterGrad.addColorStop(0.06, '#b89268');
+                        counterGrad.addColorStop(1, '#7a5a38');
+                        fryCtx.fillStyle = counterGrad;
+                        fryCtx.fillRect(0, counterY, FW, FH - counterY);
+
+                        fryCtx.strokeStyle = 'rgba(70,45,20,0.18)';
+                        fryCtx.lineWidth = 1;
+                        for (let y = counterY + 25; y < FH; y += 22) {
+                            fryCtx.beginPath();
+                            fryCtx.moveTo(0, y + 0.5);
+                            fryCtx.lineTo(FW, y + 0.5);
+                            fryCtx.stroke();
+                        }
+                        fryCtx.strokeStyle = 'rgba(70,45,20,0.10)';
+                        for (let i = 0; i < 6; i++) {
+                            const x = 40 + i * 90;
+                            fryCtx.beginPath();
+                            fryCtx.moveTo(x, counterY + 15);
+                            fryCtx.quadraticCurveTo(x + 20, counterY + 80, x + 5, FH);
+                            fryCtx.stroke();
+                        }
+                        fryCtx.fillStyle = 'rgba(255,235,200,0.45)';
+                        fryCtx.fillRect(0, counterY, FW, 3);
+                    }
+
                     // ===== 绘制 =====
                     function fryDrawPan() {
                         const py = fryPanY();
                         const cx = FW / 2;
 
-                        // ===== 手柄：两个白色小圆 + 深色描边 =====
+                        // ---------- 1. 炉灶底圈（圆环） ----------
+                        // 下方阴影
                         fryCtx.save();
-                        fryCtx.lineWidth = 2.5;
-                        fryCtx.strokeStyle = '#0f1419';
-                        fryCtx.fillStyle = '#ffffff';
-                        [-1, 1].forEach(side => {
+                        fryCtx.fillStyle = 'rgba(20,10,5,0.35)';
+                        fryCtx.beginPath();
+                        fryCtx.ellipse(cx, py + 130, 245, 55, 0, 0, Math.PI * 2);
+                        fryCtx.fill();
+                        fryCtx.restore();
+
+                        // 炉灶外圈（铸铁深色）
+                        const stoveOuter = fryCtx.createRadialGradient(cx, py + 90, 50, cx, py + 90, 230);
+                        stoveOuter.addColorStop(0, '#3a322a');
+                        stoveOuter.addColorStop(1, '#0a0806');
+                        fryCtx.fillStyle = stoveOuter;
+                        fryCtx.beginPath();
+                        fryCtx.ellipse(cx, py + 90, 222, 122, 0, 0, Math.PI * 2);
+                        fryCtx.fill();
+
+                        // 灶眼纹路
+                        fryCtx.strokeStyle = 'rgba(0,0,0,0.65)';
+                        fryCtx.lineWidth = 3;
+                        for (let r = 25; r <= 90; r += 15) {
                             fryCtx.beginPath();
-                            fryCtx.ellipse(cx + side * 218, py - 6, 24, 24, 0, 0, Math.PI * 2);
-                            fryCtx.fill();
+                            fryCtx.ellipse(cx, py + 90, r, r * 0.55, 0, 0, Math.PI * 2);
                             fryCtx.stroke();
+                        }
+                        // 灶眼高光
+                        fryCtx.strokeStyle = 'rgba(160,120,80,0.35)';
+                        fryCtx.lineWidth = 1.5;
+                        for (let r = 32; r <= 88; r += 15) {
+                            fryCtx.beginPath();
+                            fryCtx.ellipse(cx - 3, py + 87, r, r * 0.55, 0, -0.3, Math.PI * 0.7);
+                            fryCtx.stroke();
+                        }
+
+                        // ---------- 2. 锅身（铸铁） ----------
+                        const bodyGrad = fryCtx.createLinearGradient(0, py, 0, py + 200);
+                        bodyGrad.addColorStop(0, '#3f342c');
+                        bodyGrad.addColorStop(0.4, '#211a14');
+                        bodyGrad.addColorStop(1, '#0a0605');
+                        fryCtx.fillStyle = bodyGrad;
+                        fryCtx.beginPath();
+                        fryCtx.moveTo(cx - 220, py);
+                        fryCtx.lineTo(cx - 205, py + 85);
+                        fryCtx.ellipse(cx, py + 85, 205, 100, 0, Math.PI, 0, true);
+                        fryCtx.lineTo(cx + 220, py);
+                        fryCtx.closePath();
+                        fryCtx.fill();
+
+                        // 锅身底描边
+                        fryCtx.strokeStyle = '#050302';
+                        fryCtx.lineWidth = 2;
+                        fryCtx.stroke();
+
+                        // 锅身侧高光（左）
+                        fryCtx.save();
+                        fryCtx.strokeStyle = 'rgba(200,170,120,0.25)';
+                        fryCtx.lineWidth = 7;
+                        fryCtx.lineCap = 'round';
+                        fryCtx.beginPath();
+                        fryCtx.moveTo(cx - 198, py + 25);
+                        fryCtx.quadraticCurveTo(cx - 188, py + 95, cx - 155, py + 158);
+                        fryCtx.stroke();
+                        fryCtx.restore();
+
+                        // 锅身侧反光（右，淡）
+                        fryCtx.save();
+                        fryCtx.strokeStyle = 'rgba(120,90,60,0.18)';
+                        fryCtx.lineWidth = 5;
+                        fryCtx.beginPath();
+                        fryCtx.moveTo(cx + 195, py + 30);
+                        fryCtx.quadraticCurveTo(cx + 185, py + 95, cx + 152, py + 155);
+                        fryCtx.stroke();
+                        fryCtx.restore();
+
+                        // ---------- 3. 双侧耳手柄 ----------
+                        fryCtx.save();
+                        fryCtx.lineCap = 'round';
+                        [-1, 1].forEach(side => {
+                            // 手柄主体
+                            const handleGrad = fryCtx.createLinearGradient(
+                                cx + side * 218, py - 20,
+                                cx + side * 240, py + 20
+                            );
+                            handleGrad.addColorStop(0, '#4a4038');
+                            handleGrad.addColorStop(0.5, '#221b15');
+                            handleGrad.addColorStop(1, '#0a0605');
+                            fryCtx.fillStyle = handleGrad;
+                            fryCtx.beginPath();
+                            fryCtx.ellipse(cx + side * 226, py - 8, 18, 30, side * 0.15, 0, Math.PI * 2);
+                            fryCtx.fill();
+                            fryCtx.strokeStyle = '#050302';
+                            fryCtx.lineWidth = 2;
+                            fryCtx.stroke();
+                            // 手柄高光
+                            fryCtx.fillStyle = 'rgba(200,170,120,0.30)';
+                            fryCtx.beginPath();
+                            fryCtx.ellipse(cx + side * 222, py - 15, 4, 12, side * 0.15, 0, Math.PI * 2);
+                            fryCtx.fill();
                         });
                         fryCtx.restore();
 
-                        // ===== 锅身：白底 + 深色描边 + 淡阴影 =====
-                        fryCtx.save();
-                        fryCtx.shadowColor = 'rgba(15,20,25,0.10)';
-                        fryCtx.shadowBlur = 18;
-                        fryCtx.shadowOffsetY = 6;
-                        fryCtx.beginPath();
-                        fryCtx.moveTo(cx - 220, py);
-                        fryCtx.lineTo(cx - 205, py + 85);
-                        fryCtx.ellipse(cx, py + 85, 205, 100, 0, Math.PI, 0, true);
-                        fryCtx.lineTo(cx + 220, py);
-                        fryCtx.closePath();
-                        const bodyGrad = fryCtx.createLinearGradient(cx, py, cx, py + 185);
-                        bodyGrad.addColorStop(0, '#ffffff');
-                        bodyGrad.addColorStop(1, '#eef0f3');
-                        fryCtx.fillStyle = bodyGrad;
-                        fryCtx.fill();
-                        fryCtx.restore();
-
-                        // 锅身描边（在阴影之外单独画，避免阴影跟着描边）
-                        fryCtx.save();
-                        fryCtx.beginPath();
-                        fryCtx.moveTo(cx - 220, py);
-                        fryCtx.lineTo(cx - 205, py + 85);
-                        fryCtx.ellipse(cx, py + 85, 205, 100, 0, Math.PI, 0, true);
-                        fryCtx.lineTo(cx + 220, py);
-                        fryCtx.closePath();
-                        fryCtx.lineWidth = 2.5;
-                        fryCtx.strokeStyle = '#0f1419';
-                        fryCtx.stroke();
-                        fryCtx.restore();
-
-                        // ===== 锅口：深色 → 白 → 浅灰（三层扁平） =====
-                        // 外圈深色（代表锅沿）
+                        // ---------- 4. 锅沿（外→内三圈） ----------
+                        // 外圈深色铸铁
+                        const rimGrad = fryCtx.createLinearGradient(0, py - 122, 0, py + 122);
+                        rimGrad.addColorStop(0, '#4a4038');
+                        rimGrad.addColorStop(0.5, '#2a2420');
+                        rimGrad.addColorStop(1, '#4a4038');
                         fryCtx.beginPath();
                         fryCtx.ellipse(cx, py, 220, 122, 0, 0, Math.PI * 2);
-                        fryCtx.fillStyle = '#0f1419';
+                        fryCtx.fillStyle = rimGrad;
                         fryCtx.fill();
-                        // 中层白
+                        fryCtx.strokeStyle = '#050302';
+                        fryCtx.lineWidth = 2;
+                        fryCtx.stroke();
+
+                        // 中圈（内壁）
                         fryCtx.beginPath();
-                        fryCtx.ellipse(cx, py - 2, 214, 116, 0, 0, Math.PI * 2);
-                        fryCtx.fillStyle = '#ffffff';
-                        fryCtx.fill();
-                        // 内层浅灰（锅内侧）
-                        fryCtx.beginPath();
-                        fryCtx.ellipse(cx, py - 4, 208, 110, 0, 0, Math.PI * 2);
-                        fryCtx.fillStyle = '#f6f7f9';
+                        fryCtx.ellipse(cx, py - 4, 210, 112, 0, 0, Math.PI * 2);
+                        fryCtx.fillStyle = '#1a1410';
                         fryCtx.fill();
 
-                        // ===== 油面：明黄 accent 径向渐变 + 深黄描边 =====
-                        fryCtx.save();
-                        const oilGrad = fryCtx.createRadialGradient(
-                            cx - 30, py - 50, 20,
-                            cx, py, 210
-                        );
-                        oilGrad.addColorStop(0, '#ffe066');  // accent-hi
-                        oilGrad.addColorStop(0.55, '#ffcc00'); // accent
-                        oilGrad.addColorStop(1, '#e6a800');   // 深黄
+                        // 内圈（油面下方的暗部）
+                        const innerGrad = fryCtx.createRadialGradient(cx, py - 6, 30, cx, py - 6, 205);
+                        innerGrad.addColorStop(0, '#3a1e08');
+                        innerGrad.addColorStop(1, '#0a0604');
                         fryCtx.beginPath();
-                        fryCtx.ellipse(cx, py - 4, 197, 104, 0, 0, Math.PI * 2);
+                        fryCtx.ellipse(cx, py - 6, 205, 108, 0, 0, Math.PI * 2);
+                        fryCtx.fillStyle = innerGrad;
+                        fryCtx.fill();
+
+                        // ---------- 5. 油面 ----------
+                        // 主油面渐变
+                        const oilGrad = fryCtx.createRadialGradient(
+                            cx - 45, py - 65, 20,
+                            cx + 10, py - 6, 210
+                        );
+                        oilGrad.addColorStop(0, '#f5c050');
+                        oilGrad.addColorStop(0.35, '#d8952a');
+                        oilGrad.addColorStop(0.7, '#a46516');
+                        oilGrad.addColorStop(1, '#6e3a10');
+                        fryCtx.beginPath();
+                        fryCtx.ellipse(cx, py - 6, 200, 104, 0, 0, Math.PI * 2);
                         fryCtx.fillStyle = oilGrad;
                         fryCtx.fill();
-                        fryCtx.lineWidth = 2;
-                        fryCtx.strokeStyle = 'rgba(166,124,0,0.55)';
-                        fryCtx.stroke();
-                        fryCtx.restore();
-                    }
 
-                    function fryDrawFood(image, x, y, size, angle) {
+                        // 油面高光弧
                         fryCtx.save();
-                        fryCtx.translate(x, y);
-                        fryCtx.rotate(angle || 0);
-                        const k = size / Math.max(image.width, image.height);
-                        fryCtx.shadowColor = 'rgba(60, 30, 5, 0.26)';
-                        fryCtx.shadowBlur = 14;
-                        fryCtx.shadowOffsetY = 8;
-                        fryCtx.drawImage(image,
-                            -image.width * k / 2, -image.height * k / 2,
-                            image.width * k, image.height * k);
+                        fryCtx.beginPath();
+                        fryCtx.ellipse(cx, py - 6, 200, 104, 0, 0, Math.PI * 2);
+                        fryCtx.clip();
+                        const hlGrad = fryCtx.createLinearGradient(cx - 180, py - 80, cx + 80, py + 40);
+                        hlGrad.addColorStop(0, 'rgba(255,245,200,0.55)');
+                        hlGrad.addColorStop(0.7, 'rgba(255,245,200,0)');
+                        fryCtx.fillStyle = hlGrad;
+                        fryCtx.beginPath();
+                        fryCtx.ellipse(cx - 70, py - 40, 140, 62, -0.22, 0, Math.PI * 2);
+                        fryCtx.fill();
                         fryCtx.restore();
+
+                        // 油面边缘描边
+                        fryCtx.strokeStyle = 'rgba(50,25,5,0.55)';
+                        fryCtx.lineWidth = 2;
+                        fryCtx.beginPath();
+                        fryCtx.ellipse(cx, py - 6, 200, 104, 0, 0, Math.PI * 2);
+                        fryCtx.stroke();
+
+                        // 油面细微波纹（3 道横线）
+                        fryCtx.strokeStyle = 'rgba(255,220,150,0.18)';
+                        fryCtx.lineWidth = 1;
+                        for (let i = 0; i < 3; i++) {
+                            const ry = py - 30 + i * 30;
+                            const rx = 130 - i * 20;
+                            fryCtx.beginPath();
+                            fryCtx.moveTo(cx - rx, ry);
+                            fryCtx.quadraticCurveTo(cx, ry + 6, cx + rx, ry);
+                            fryCtx.stroke();
+                        }
                     }
 
                     function fryDraw() {
                         fryCtx.clearRect(0, 0, FW, FH);
 
-                        // ===== 工作台风格背景：浅灰 + 40px 网格 =====
-                        fryCtx.fillStyle = '#f6f7f9';
-                        fryCtx.fillRect(0, 0, FW, FH);
-                        fryCtx.strokeStyle = 'rgba(15,20,25,0.028)';
-                        fryCtx.lineWidth = 1;
-                        for (let gx = 0; gx <= FW; gx += 40) {
-                            fryCtx.beginPath();
-                            fryCtx.moveTo(gx + 0.5, 0);
-                            fryCtx.lineTo(gx + 0.5, FH);
-                            fryCtx.stroke();
-                        }
-                        for (let gy = 0; gy <= FH; gy += 40) {
-                            fryCtx.beginPath();
-                            fryCtx.moveTo(0, gy + 0.5);
-                            fryCtx.lineTo(FW, gy + 0.5);
-                            fryCtx.stroke();
-                        }
-
+                        fryDrawKitchen();
                         fryDrawPan();
 
                         if (!fryState.ready) {
@@ -7469,7 +7713,6 @@
                             frySetDefaultImage();
                         }
                     });
-                    document.getElementById('frySaveBtn').addEventListener('click', fryExport);
 
                     // 粘贴支持（只在油炸画布获得焦点时响应，避免和拼豆抢图）
                     document.addEventListener('paste', e => {
@@ -7501,6 +7744,300 @@
                             fryDraw();
                         }
                         requestAnimationFrame(fryLoop);
+                    }
+
+                    // ==================== 摆盘模式 ====================
+                    const fryPlateCanvas = document.getElementById('fryPlateCanvas');
+                    const fryPlateWrap = document.getElementById('fryPlateWrap');
+                    let fryPlateCtx = null;
+                    const fryPlate = {
+                        active: false,
+                        plateW: 540, plateH: 540,
+                        food: { x: 270, y: 250, size: 220 },
+                        drag: { active: false, pid: null, dx: 0, dy: 0 },
+                        lemon: false,
+                        leaf: false,
+                        angle: -0.12
+                    };
+
+                    if (fryPlateCanvas) {
+                        fryPlateCtx = fryPlateCanvas.getContext('2d');
+
+                        const FRY_PLATE_DPR = Math.min(window.devicePixelRatio || 1, 2);
+                        fryPlateCanvas.width = fryPlate.plateW * FRY_PLATE_DPR;
+                        fryPlateCanvas.height = fryPlate.plateH * FRY_PLATE_DPR;
+                        fryPlateCtx.setTransform(FRY_PLATE_DPR, 0, 0, FRY_PLATE_DPR, 0, 0);
+
+                        function fryPlatePos(e) {
+                            const r = fryPlateCanvas.getBoundingClientRect();
+                            return {
+                                x: (e.clientX - r.left) / r.width * fryPlate.plateW,
+                                y: (e.clientY - r.top) / r.height * fryPlate.plateH
+                            };
+                        }
+
+                        function fryPlateDraw() {
+                            const W = fryPlate.plateW, H = fryPlate.plateH;
+                            const c = fryPlateCtx;
+                            c.clearRect(0, 0, W, H);
+
+                            // --- 木质桌面 ---
+                            const bg = c.createLinearGradient(0, 0, 0, H);
+                            bg.addColorStop(0, '#3a2a1a');
+                            bg.addColorStop(1, '#1e1408');
+                            c.fillStyle = bg;
+                            c.fillRect(0, 0, W, H);
+                            // 木纹
+                            c.strokeStyle = 'rgba(120,80,40,0.10)';
+                            c.lineWidth = 1;
+                            for (let y = 20; y < H; y += 28) {
+                                c.beginPath();
+                                c.moveTo(0, y + 0.5);
+                                c.lineTo(W, y + 0.5);
+                                c.stroke();
+                            }
+
+                            // --- 桌布（米色小方巾） ---
+                            c.save();
+                            c.translate(W / 2, H / 2 + 20);
+                            c.fillStyle = 'rgba(230,215,180,0.85)';
+                            c.beginPath();
+                            c.moveTo(-260, -230);
+                            c.lineTo(260, -230);
+                            c.lineTo(260, 230);
+                            c.lineTo(-260, 230);
+                            c.closePath();
+                            c.fill();
+                            // 桌布格纹
+                            c.strokeStyle = 'rgba(180,120,60,0.18)';
+                            c.lineWidth = 1.5;
+                            for (let i = -240; i <= 240; i += 32) {
+                                c.beginPath();
+                                c.moveTo(i, -230);
+                                c.lineTo(i, 230);
+                                c.stroke();
+                                c.beginPath();
+                                c.moveTo(-260, i);
+                                c.lineTo(260, i);
+                                c.stroke();
+                            }
+                            c.restore();
+
+                            // --- 陶瓷盘子 ---
+                            const cx = W / 2, cy = H / 2 + 10;
+                            // 盘子阴影
+                            c.save();
+                            c.shadowColor = 'rgba(0,0,0,0.4)';
+                            c.shadowBlur = 20;
+                            c.shadowOffsetY = 10;
+                            // 外盘
+                            const plateGrad = c.createRadialGradient(cx - 40, cy - 40, 30, cx, cy, 230);
+                            plateGrad.addColorStop(0, '#ffffff');
+                            plateGrad.addColorStop(0.7, '#f0ebe0');
+                            plateGrad.addColorStop(1, '#d8d0bf');
+                            c.beginPath();
+                            c.ellipse(cx, cy, 220, 200, 0, 0, Math.PI * 2);
+                            c.fillStyle = plateGrad;
+                            c.fill();
+                            c.restore();
+
+                            // 盘缘描边
+                            c.strokeStyle = 'rgba(140,120,90,0.45)';
+                            c.lineWidth = 2;
+                            c.beginPath();
+                            c.ellipse(cx, cy, 220, 200, 0, 0, Math.PI * 2);
+                            c.stroke();
+
+                            // 盘内圈
+                            c.strokeStyle = 'rgba(160,140,110,0.28)';
+                            c.lineWidth = 1.5;
+                            c.beginPath();
+                            c.ellipse(cx, cy, 185, 168, 0, 0, Math.PI * 2);
+                            c.stroke();
+
+                            // 盘面反光
+                            c.save();
+                            c.beginPath();
+                            c.ellipse(cx, cy, 220, 200, 0, 0, Math.PI * 2);
+                            c.clip();
+                            const plateHl = c.createRadialGradient(cx - 90, cy - 100, 10, cx - 90, cy - 100, 180);
+                            plateHl.addColorStop(0, 'rgba(255,255,255,0.55)');
+                            plateHl.addColorStop(1, 'rgba(255,255,255,0)');
+                            c.fillStyle = plateHl;
+                            c.fillRect(cx - 220, cy - 200, 440, 400);
+                            c.restore();
+
+                            // --- 生菜底（若开启） ---
+                            if (fryPlate.leaf) {
+                                c.save();
+                                c.translate(cx, cy + 20);
+                                for (let i = 0; i < 5; i++) {
+                                    const a = -Math.PI * 0.9 + i * (Math.PI * 1.8 / 4);
+                                    const rx = Math.cos(a) * 100;
+                                    const ry = Math.sin(a) * 65;
+                                    c.beginPath();
+                                    c.ellipse(rx, ry, 60, 40, a + 0.3, 0, Math.PI * 2);
+                                    const g = c.createRadialGradient(rx, ry, 5, rx, ry, 60);
+                                    g.addColorStop(0, '#7cc23c');
+                                    g.addColorStop(0.6, '#4a9b2a');
+                                    g.addColorStop(1, '#2e6b18');
+                                    c.fillStyle = g;
+                                    c.fill();
+                                    c.strokeStyle = 'rgba(30,80,15,0.5)';
+                                    c.lineWidth = 1.5;
+                                    c.stroke();
+                                }
+                                c.restore();
+                            }
+
+                            // --- 炸好的食物 ---
+                            const f = fryPlate.food;
+                            const img = fryFried.width ? fryFried : fryOriginal;
+                            if (img && img.width) {
+                                const k = f.size / Math.max(img.width, img.height);
+                                c.save();
+                                c.translate(f.x, f.y);
+                                c.rotate(fryPlate.angle);
+                                c.shadowColor = 'rgba(0,0,0,0.5)';
+                                c.shadowBlur = 22;
+                                c.shadowOffsetY = 12;
+                                c.drawImage(img,
+                                    -img.width * k / 2, -img.height * k / 2,
+                                    img.width * k, img.height * k);
+                                c.restore();
+                            }
+
+                            // --- 柠檬角（若开启） ---
+                            if (fryPlate.lemon) {
+                                c.save();
+                                c.translate(cx + 130, cy + 130);
+                                c.rotate(-0.5);
+                                // 柠檬本体
+                                c.beginPath();
+                                c.moveTo(0, 0);
+                                c.arc(0, 0, 60, Math.PI, Math.PI * 1.5);
+                                c.closePath();
+                                c.fillStyle = '#f5d64a';
+                                c.fill();
+                                c.strokeStyle = '#c9a720';
+                                c.lineWidth = 2;
+                                c.stroke();
+                                // 果肉
+                                c.beginPath();
+                                c.moveTo(0, 0);
+                                c.arc(0, 0, 48, Math.PI, Math.PI * 1.5);
+                                c.closePath();
+                                c.fillStyle = '#fae98a';
+                                c.fill();
+                                // 果瓣线
+                                c.strokeStyle = '#e8c840';
+                                c.lineWidth = 2;
+                                for (let i = 0; i < 4; i++) {
+                                    const a = Math.PI + i * (Math.PI * 0.5 / 4) + 0.1;
+                                    c.beginPath();
+                                    c.moveTo(0, 0);
+                                    c.lineTo(Math.cos(a) * 46, Math.sin(a) * 46);
+                                    c.stroke();
+                                }
+                                c.restore();
+                            }
+
+                            // --- 顶部提示 ---
+                            c.save();
+                            c.fillStyle = 'rgba(255,255,255,0.85)';
+                            c.font = 'bold 14px sans-serif';
+                            c.textAlign = 'center';
+                            c.textBaseline = 'top';
+                            c.fillText('拖动食物调整位置', W / 2, 16);
+                            c.restore();
+                        }
+
+                        // 指针事件：拖动食物
+                        fryPlateCanvas.addEventListener('pointerdown', e => {
+                            if (fryPlate.drag.active) return;
+                            fryPlateCanvas.focus();
+                            fryPlate.drag.active = true;
+                            fryPlate.drag.pid = e.pointerId;
+                            const p = fryPlatePos(e);
+                            fryPlate.drag.dx = p.x - fryPlate.food.x;
+                            fryPlate.drag.dy = p.y - fryPlate.food.y;
+                            fryPlateCanvas.setPointerCapture(e.pointerId);
+                        });
+                        fryPlateCanvas.addEventListener('pointermove', e => {
+                            if (!fryPlate.drag.active || fryPlate.drag.pid !== e.pointerId) return;
+                            e.preventDefault();
+                            const p = fryPlatePos(e);
+                            fryPlate.food.x = Math.max(100, Math.min(fryPlate.plateW - 100, p.x - fryPlate.drag.dx));
+                            fryPlate.food.y = Math.max(80, Math.min(fryPlate.plateH - 80, p.y - fryPlate.drag.dy));
+                            fryPlateDraw();
+                        });
+                        fryPlateCanvas.addEventListener('pointerup', e => {
+                            if (fryPlate.drag.pid !== e.pointerId) return;
+                            fryPlate.drag.active = false;
+                            fryPlate.drag.pid = null;
+                        });
+                        fryPlateCanvas.addEventListener('pointercancel', e => {
+                            if (fryPlate.drag.pid === e.pointerId) {
+                                fryPlate.drag.active = false;
+                                fryPlate.drag.pid = null;
+                            }
+                        });
+
+                        // 工具条按钮
+                        document.getElementById('fryPlateLemonBtn')?.addEventListener('click', () => {
+                            fryPlate.lemon = !fryPlate.lemon;
+                            fryPlateDraw();
+                        });
+                        document.getElementById('fryPlateLeafBtn')?.addEventListener('click', () => {
+                            fryPlate.leaf = !fryPlate.leaf;
+                            fryPlateDraw();
+                        });
+                        document.getElementById('fryPlateResetBtn')?.addEventListener('click', () => {
+                            fryPlate.food.x = 270;
+                            fryPlate.food.y = 250;
+                            fryPlate.food.size = 220;
+                            fryPlate.angle = -0.12;
+                            fryPlate.lemon = false;
+                            fryPlate.leaf = false;
+                            fryPlateDraw();
+                        });
+                        document.getElementById('fryPlateSaveBtn')?.addEventListener('click', () => {
+                            const link = document.createElement('a');
+                            link.download = `摆盘_${Date.now()}.png`;
+                            link.href = fryPlateCanvas.toDataURL('image/png');
+                            link.click();
+                        });
+                        document.getElementById('fryPlateBackBtn')?.addEventListener('click', () => {
+                            fryPlate.active = false;
+                            if (fryPlateWrap) fryPlateWrap.classList.remove('active');
+                            fryCanvas.style.display = '';
+                            if (frySaveBtn) frySaveBtn.textContent = '🍽 摆盘';
+                        });
+                    }
+
+                    // ★ 改造「保存成品」按钮 → 切换为「摆盘」
+                    let frySaveBtn = document.getElementById('frySaveBtn');
+                    if (frySaveBtn) {
+                        // 替换旧监听：先移除（新加的都在后面，直接用新 handler 覆盖）
+                        const newSaveHandler = () => {
+                            if (!fryState.ready) { alert('先上传一张图片或等待生肉就绪'); return; }
+                            // 若尚未炸过 → 先炸一下取当前状态
+                            fryBake(fryState.elapsed);
+                            // 打开摆盘面板
+                            fryPlate.active = true;
+                            fryPlate.food.size = 220;
+                            if (fryPlateWrap) fryPlateWrap.classList.add('active');
+                            fryCanvas.style.display = 'none';
+                            frySaveBtn.textContent = '🍽 已在摆盘';
+                            setTimeout(() => { if (fryPlateCanvas) { fryPlateDraw(); fryPlateCanvas.focus(); } }, 30);
+                        };
+                        // 用新 handler 覆盖旧的（旧的是 addEventListener，需要 remove 才能覆盖。
+                        // 简单做法：克隆节点替换，把旧监听全部丢掉）
+                        const clone = frySaveBtn.cloneNode(true);
+                        frySaveBtn.parentNode.replaceChild(clone, frySaveBtn);
+                        clone.textContent = '🍽 摆盘';
+                        clone.addEventListener('click', newSaveHandler);
+                        frySaveBtn = clone;  // ★ 让后续引用都指向新节点
                     }
 
                     frySetDefaultImage();      // ★ 首次进入就装一块生肉
