@@ -2242,6 +2242,78 @@
             .mother-box-deprecated .mother-box-item input {
                 pointer-events: auto;
             }
+
+        /* ============================================================
+                母棋计算器 · 说明框 + 底部双栏
+                ============================================================ */
+        .mother-bottom-row {
+            display: flex;
+            gap: 22px;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            margin-top: 24px;
+        }
+
+            .mother-bottom-row .mother-box-wrapper {
+                flex: 0 1 auto;
+                min-width: 340px;
+                margin-top: 0;
+            }
+
+        /* ---------- 说明框（和 Excel 里的黑框一致） ---------- */
+        .mother-note-box {
+            flex: 1 1 280px;
+            min-width: 240px;
+            align-self: flex-start;
+            background: var(--surface);
+            border: 1.5px solid var(--ink-0);
+            border-radius: var(--r-sm);
+            padding: 14px 18px;
+            font-size: 12.5px;
+            line-height: 1.85;
+            color: var(--ink-1);
+            font-weight: 500;
+        }
+
+            .mother-note-box p {
+                margin: 0 0 6px;
+            }
+
+                .mother-note-box p:last-child {
+                    margin-bottom: 0;
+                }
+
+            .mother-note-box .note-warning {
+                margin-top: 10px;
+                padding-top: 10px;
+                border-top: 1px dashed var(--line-1);
+                color: var(--ink-2);
+            }
+
+                .mother-note-box .note-warning b {
+                    color: var(--danger);
+                }
+
+        /* ---------- 结果区（红色系） ---------- */
+        .mother-table .result-total {
+            font-family: var(--font-mono);
+            font-weight: 700;
+            color: #b71c1c;
+            padding: 0 8px;
+            white-space: nowrap;
+        }
+
+        .mother-table .result-cells {
+            font-family: var(--font-mono);
+            font-weight: 700;
+            color: #b71c1c;
+            background: rgba(229,57,53,0.10);
+            border-radius: var(--r-sm);
+            padding: 4px 12px;
+            white-space: nowrap;
+            min-width: 56px;
+            display: inline-block;
+        }
     </style>
 </head>
 
@@ -2403,49 +2475,14 @@
         <!-- 母棋计算器 mother -->
         <div id="tab-mother" class="tab-content">
 
-            <!-- ① 操作引导 -->
-            <div class="card mother-guide">
-                <label style="font-size:1.1rem; margin-bottom:6px;">🧮 母棋占格子数计算器</label>
-                <p class="hint-text">按下面 3 步操作即可，绿色区手动填，红色区自动算，无需改。</p>
-
-                <div class="mother-guide-body">
-                    <div class="mother-guide-step">
-                        <span class="step-num">①</span>
-                        <div>
-                            <strong>抄数量 · 打开游戏的「母棋仓库」面板</strong>
-                            <p>面板里每个母棋图标下方都有一个数字（例如 0/8、0/32），把它抄到下面表格对应位置：</p>
-                            <ul>
-                                <li>🟢 <b>母棋仓库（一级 ~ 三级）</b> → 抄面板上显示的数量</li>
-                                <li>🔴 <b>棋盘上（四级 ~ 十级）</b> → 抄棋盘上已摆着的高等级母棋数量</li>
-                            </ul>
-                        </div>
-                    </div>
-
-                    <div class="mother-guide-step">
-                        <span class="step-num">②</span>
-                        <div>
-                            <strong>看结果 · 下方自动算出「占格子数」</strong>
-                            <p>每抄一个数字，结果区立刻刷新，告诉你在当前库存下最少占多少格。</p>
-                        </div>
-                    </div>
-
-                    <div class="mother-guide-step">
-                        <span class="step-num">③</span>
-                        <div>
-                            <strong>补齐 · 用现成材料或红/绿问号箱把数量凑整</strong>
-                            <p>目标是让「占格子数」尽量小。参考下方 <b>使用后分布</b> 的推荐等级，用仓库里的材料或 <code>红问号箱</code> / <code>绿问号箱</code> 补齐即可。</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- ② 输入区 -->
+            <!-- ① 现有母棋数 -->
             <div class="card">
-                <div class="mother-section-title">
-                    <span>📥 现有母棋数</span>
-                    <span class="mother-tag mother-tag-green">绿色区 = 手动填写</span>
-                </div>
+                <label style="font-size:1.1rem; margin-bottom:6px;">🧮 母棋占格子数计算器</label>
+                <p class="hint-text" style="margin-bottom:18px;">
+                    绿色区域填写母棋数，红色区域自动计算，请勿修改红色区域。
+                </p>
 
+                <label style="margin-bottom:10px;">📥 现有母棋数</label>
                 <div style="overflow-x:auto;">
                     <table class="mother-table">
                         <thead>
@@ -2473,37 +2510,45 @@
                     </table>
                 </div>
 
-                <div class="mother-box-wrapper mother-box-deprecated">
-                    <label style="margin-bottom:10px;">🎁 计划使用漆盒 <span class="mother-tag mother-tag-gray">暂时淘汰</span></label>
-                    <div class="flex-row">
-                        <div class="mother-box-item">
-                            <span>二级红漆盒</span>
-                            <input type="number" id="boxRed2" min="0" value="0">
-                        </div>
-                        <div class="mother-box-item">
-                            <span>二级绿漆盒</span>
-                            <input type="number" id="boxGreen2" min="0" value="0">
-                        </div>
-                        <div class="mother-box-item">
-                            <span>一级红漆盒</span>
-                            <input type="number" id="boxRed1" min="0" value="0">
-                        </div>
-                        <div class="mother-box-item">
-                            <span>一级绿漆盒</span>
-                            <input type="number" id="boxGreen1" min="0" value="0">
+                <!-- 底部双栏：漆盒 + 说明 -->
+                <div class="mother-bottom-row">
+
+                    <div class="mother-box-wrapper">
+                        <label style="margin-bottom:10px;">🎁 计划使用漆盒</label>
+                        <div class="flex-row">
+                            <div class="mother-box-item">
+                                <span>二级红漆盒</span>
+                                <input type="number" id="boxRed2" min="0" value="0">
+                            </div>
+                            <div class="mother-box-item">
+                                <span>二级绿漆盒</span>
+                                <input type="number" id="boxGreen2" min="0" value="0">
+                            </div>
+                            <div class="mother-box-item">
+                                <span>一级红漆盒</span>
+                                <input type="number" id="boxRed1" min="0" value="0">
+                            </div>
+                            <div class="mother-box-item">
+                                <span>一级绿漆盒</span>
+                                <input type="number" id="boxGreen1" min="0" value="0">
+                            </div>
                         </div>
                     </div>
+
+                    <div class="mother-note-box">
+                        <p>1. 输入现有母棋数，随便点开一个母棋即能看到。</p>
+                        <p>2. 输入计划使用漆盒数。</p>
+                        <p>3. 根据占格子数的结果，用现成的材料或者红绿色的问号箱补，尽量凑整让占格子数最少。</p>
+                        <p class="note-warning"><b>注意：</b>绿色区域输入内容，红色区域不要动。</p>
+                    </div>
+
                 </div>
             </div>
 
-            <!-- ③ 结果区 -->
+            <!-- ② 使用后母棋数 -->
             <div class="card">
-                <div class="mother-section-title">
-                    <span>📊 使用后母棋数</span>
-                    <span class="mother-tag mother-tag-red">红色区 = 自动计算</span>
-                </div>
-                <div class="result-header" style="border-bottom:none; padding-bottom:0; margin-bottom:8px;">
-                    <span class="hint-text" style="margin:0;">把「使用后分布」里的等级补齐，就能让占格子数最小</span>
+                <div class="result-header">
+                    <label style="margin:0;">📊 使用后母棋数</label>
                     <div class="flex-row">
                         <button id="motherResetBtn" class="reset-btn">重置</button>
                     </div>
@@ -2515,7 +2560,7 @@
                                 <th>类型</th>
                                 <th>母棋总数</th>
                                 <th>占格子数</th>
-                                <th style="text-align:left; padding-left:12px;">使用后分布（推荐补齐到这些等级）</th>
+                                <th style="text-align:left; padding-left:12px;">使用后分布</th>
                             </tr>
                         </thead>
                         <tbody id="motherResultBody"></tbody>
@@ -7322,15 +7367,15 @@
                         const replacement = getRuleReplacement(r) || '(删除)';
                         const typeLabel = r.type === 'source' ? '来源' : (r.type === 'reward' ? '奖励' : '棋子');
                         return `<div class="rule-item" data-idx="${idx}">
-                                                                    <span class="rule-pattern">${escapeHtml(pattern)}</span>
-                                                                    <span style="color: var(--ak-text-mute); font-size:12px;">[${escapeHtml(typeLabel)}]</span>
-                                                                    <span style="color: var(--ak-primary);">→</span>
-                                                                    <span class="rule-replacement">${escapeHtml(replacement)}</span>
-                                                                    <div class="rule-actions">
-                                                                        <button class="edit-source-btn secondary" data-idx="${idx}">✏️</button>
-                                                                        <button class="delete-source-btn reset-btn" data-idx="${idx}">🗑️</button>
-                                                                    </div>
-                                                                </div>`;
+                                                                            <span class="rule-pattern">${escapeHtml(pattern)}</span>
+                                                                            <span style="color: var(--ak-text-mute); font-size:12px;">[${escapeHtml(typeLabel)}]</span>
+                                                                            <span style="color: var(--ak-primary);">→</span>
+                                                                            <span class="rule-replacement">${escapeHtml(replacement)}</span>
+                                                                            <div class="rule-actions">
+                                                                                <button class="edit-source-btn secondary" data-idx="${idx}">✏️</button>
+                                                                                <button class="delete-source-btn reset-btn" data-idx="${idx}">🗑️</button>
+                                                                            </div>
+                                                                        </div>`;
                     }).join('') || '<div style="padding:20px;text-align:center;color:var(--ak-text-mute);">暂无规则</div>';
 
                     c.querySelectorAll('.delete-source-btn').forEach(b => b.onclick = () => {
@@ -7363,11 +7408,11 @@
                     const c = document.getElementById('ignoreRuleListContainer');
                     c.innerHTML = ignoreKeywords.map((k, i) =>
                         `<div class="rule-item">
-                                                                    <span class="rule-pattern">${escapeHtml(k)}</span>
-                                                                    <div class="rule-actions">
-                                                                        <button data-i="${i}" class="delete-ignore-btn reset-btn">🗑️</button>
-                                                                    </div>
-                                                                </div>`
+                                                                            <span class="rule-pattern">${escapeHtml(k)}</span>
+                                                                            <div class="rule-actions">
+                                                                                <button data-i="${i}" class="delete-ignore-btn reset-btn">🗑️</button>
+                                                                            </div>
+                                                                        </div>`
                     ).join('') || '<div style="padding:20px;text-align:center;color:var(--ak-text-mute);">暂无忽略关键词</div>';
                     c.querySelectorAll('.delete-ignore-btn').forEach(b => b.onclick = e => {
                         ignoreKeywords.splice(e.target.dataset.i, 1);
@@ -7404,13 +7449,13 @@
                     }
                     c.innerHTML = entries.map(([id, name]) =>
                         `<div class="rule-item" data-id="${escapeHtml(id)}">
-                                                                    <span class="rule-pattern">${escapeHtml(id)}</span>
-                                                                    <span style="color: var(--ak-primary);">→</span>
-                                                                    <span class="rule-replacement" style="flex:1;">${escapeHtml(name || '(空)')}</span>
-                                                                    <div class="rule-actions">
-                                                                        <button class="delete-mapping-btn reset-btn" data-id="${escapeHtml(id)}">🗑️</button>
-                                                                    </div>
-                                                                </div>`
+                                                                            <span class="rule-pattern">${escapeHtml(id)}</span>
+                                                                            <span style="color: var(--ak-primary);">→</span>
+                                                                            <span class="rule-replacement" style="flex:1;">${escapeHtml(name || '(空)')}</span>
+                                                                            <div class="rule-actions">
+                                                                                <button class="delete-mapping-btn reset-btn" data-id="${escapeHtml(id)}">🗑️</button>
+                                                                            </div>
+                                                                        </div>`
                     ).join('');
                     c.querySelectorAll('.delete-mapping-btn').forEach(btn => {
                         btn.onclick = () => {
@@ -7510,11 +7555,13 @@
                         ).join('');
 
                         return `<tr>
-                                                            <td class="type-name">${type}</td>
-                                                            ${inputs}
-                                                            <td class="total-cell">${total}</td>
-                                                            <td class="cells-cell">${cells}</td>
-                                                        </tr>`;
+                                                <td class="type-name">${type}</td>
+                                                <td class="result-total">${total}</td>
+                                                <td><span class="result-cells">${cells}</span></td>
+                                                <td style="text-align:left;">
+                                                    <div class="mother-dist-list">${distHtml}</div>
+                                                </td>
+                                            </tr>`;
                     }).join('');
 
                     // 绑定输入事件
@@ -7559,13 +7606,13 @@
                             `<span style="color:var(--ink-3); font-size:11px; margin-left:8px;">（保持 ${cells} 格最小）</span>`;
 
                         return `<tr>
-                                                            <td class="type-name">${type}</td>
-                                                            <td class="total-cell">${total}</td>
-                                                            <td class="cells-cell">${cells}</td>
-                                                            <td style="text-align:left;">
-                                                                <div class="mother-dist-list">${distHtml}</div>
-                                                            </td>
-                                                        </tr>`;
+                                                                    <td class="type-name">${type}</td>
+                                                                    <td class="total-cell">${total}</td>
+                                                                    <td class="cells-cell">${cells}</td>
+                                                                    <td style="text-align:left;">
+                                                                        <div class="mother-dist-list">${distHtml}</div>
+                                                                    </td>
+                                                                </tr>`;
                     }).join('');
 
                     const gt = document.getElementById('motherGrandTotal');
@@ -7714,20 +7761,20 @@
                             ).join('')}</div>`
                             : '';
                         return `
-                                                                <div class="reply-preset-item" data-i="${i}">
-                                                                    <div style="flex:1; min-width:0; display:flex; flex-direction:column; gap:6px;">
-                                                                        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-                                                                            <span class="preset-name">${escapeHtml(p.name || '未命名')}</span>
-                                                                            ${tagsHtml}
+                                                                        <div class="reply-preset-item" data-i="${i}">
+                                                                            <div style="flex:1; min-width:0; display:flex; flex-direction:column; gap:6px;">
+                                                                                <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                                                                                    <span class="preset-name">${escapeHtml(p.name || '未命名')}</span>
+                                                                                    ${tagsHtml}
+                                                                                </div>
+                                                                                <div class="preset-body">${escapeHtml((p.text || '').substring(0, 120))}${(p.text || '').length > 120 ? '…' : ''}</div>
+                                                                            </div>
+                                                                            <div class="preset-actions">
+                                                                                <button class="secondary load-preset-btn" data-i="${i}">载入</button>
+                                                                                <button class="reset-btn delete-preset-btn" data-i="${i}">🗑️</button>
+                                                                            </div>
                                                                         </div>
-                                                                        <div class="preset-body">${escapeHtml((p.text || '').substring(0, 120))}${(p.text || '').length > 120 ? '…' : ''}</div>
-                                                                    </div>
-                                                                    <div class="preset-actions">
-                                                                        <button class="secondary load-preset-btn" data-i="${i}">载入</button>
-                                                                        <button class="reset-btn delete-preset-btn" data-i="${i}">🗑️</button>
-                                                                    </div>
-                                                                </div>
-                                                            `;
+                                                                    `;
                     }).join('');
 
                     // ===== 载入 =====
@@ -7802,41 +7849,41 @@
 
                         if (f.type === 'textarea') {
                             html += `<div class="daily-field${fullWidth}">
-                                                                        <label>${escapeHtml(f.label)}</label>
-                                                                        <textarea data-key="${f.key}" placeholder="${ph}">${escapeHtml(val)}</textarea>
-                                                                    </div>`;
+                                                                                <label>${escapeHtml(f.label)}</label>
+                                                                                <textarea data-key="${f.key}" placeholder="${ph}">${escapeHtml(val)}</textarea>
+                                                                            </div>`;
                         } else if (f.type === 'select') {
                             const opts = (f.options || []).map(o =>
                                 `<option value="${escapeHtml(o)}"${String(o) === String(val) ? ' selected' : ''}>${escapeHtml(o)}</option>`
                             ).join('');
                             html += `<div class="daily-field${fullWidth}">
-                                                                        <label>${escapeHtml(f.label)}</label>
-                                                                        <select data-key="${f.key}">${opts}</select>
-                                                                    </div>`;
+                                                                                <label>${escapeHtml(f.label)}</label>
+                                                                                <select data-key="${f.key}">${opts}</select>
+                                                                            </div>`;
                         } else {
                             const inputType = f.type === 'number' ? 'number' : 'text';
                             html += `<div class="daily-field${fullWidth}">
-                                                                        <label>${escapeHtml(f.label)}</label>
-                                                                        <input type="${inputType}" data-key="${f.key}" value="${escapeHtml(val)}" placeholder="${ph}">
-                                                                    </div>`;
+                                                                                <label>${escapeHtml(f.label)}</label>
+                                                                                <input type="${inputType}" data-key="${f.key}" value="${escapeHtml(val)}" placeholder="${ph}">
+                                                                            </div>`;
                         }
                     }
 
                     html += `<div class="daily-custom-section">
-                                                                <h4>自定义附加项</h4>
-                                                                <div id="${tab}CustomList">`;
+                                                                        <h4>自定义附加项</h4>
+                                                                        <div id="${tab}CustomList">`;
                     customs.forEach((c, i) => {
                         html += `<div class="daily-custom-item" data-idx="${i}">
-                                                                    <input type="text" class="custom-label" value="${escapeHtml(c.label || '')}" placeholder="名称" data-idx="${i}">
-                                                                    <input type="text" class="custom-value" value="${escapeHtml(c.value || '')}" placeholder="内容" data-idx="${i}">
-                                                                    <button class="remove-custom" data-tab="${tab}" data-idx="${i}">删</button>
-                                                                </div>`;
+                                                                            <input type="text" class="custom-label" value="${escapeHtml(c.label || '')}" placeholder="名称" data-idx="${i}">
+                                                                            <input type="text" class="custom-value" value="${escapeHtml(c.value || '')}" placeholder="内容" data-idx="${i}">
+                                                                            <button class="remove-custom" data-tab="${tab}" data-idx="${i}">删</button>
+                                                                        </div>`;
                     });
                     html += `</div>
-                                                                <div style="margin-top:10px;">
-                                                                    <button id="${tab}AddCustomBtn" class="secondary">＋ 添加自定义项</button>
-                                                                </div>
-                                                            </div>`;
+                                                                        <div style="margin-top:10px;">
+                                                                            <button id="${tab}AddCustomBtn" class="secondary">＋ 添加自定义项</button>
+                                                                        </div>
+                                                                    </div>`;
 
                     container.innerHTML = html;
 
