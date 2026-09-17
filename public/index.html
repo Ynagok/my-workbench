@@ -7703,17 +7703,16 @@
                         const total = calcMotherTotal(dist);
                         const cells = countOnes(total);
 
+                        // 一~十级共 10 个输入框
                         const inputs = dist.map((v, i) =>
                             `<td><input type="number" min="0" value="${v}" data-type="${type}" data-level="${i}"></td>`
                         ).join('');
 
                         return `<tr>
                                                 <td class="type-name">${type}</td>
-                                                <td class="result-total">${total}</td>
-                                                <td><span class="result-cells">${cells}</span></td>
-                                                <td style="text-align:left;">
-                                                    <div class="mother-dist-list">${distHtml}</div>
-                                                </td>
+                                                ${inputs}
+                                                <td class="total-cell">${total}</td>
+                                                <td class="cells-cell">${cells}</td>
                                             </tr>`;
                     }).join('');
 
@@ -8591,9 +8590,7 @@
                     })();
 
                     // ==================== 母棋计算器 ====================
-                    console.log('即将调用 bindMotherEvents');   // ← 加这行
                     bindMotherEvents();
-                    console.log('bindMotherEvents 执行完成');   // ← 加这行
 
                     // ==================== 工单回复 ====================
                     renderReplySelects();
