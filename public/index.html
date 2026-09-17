@@ -2174,6 +2174,34 @@
                         <div id="pixelColLabels" style="position: absolute; top: 0; left: 20px; right: 0; height: 20px; pointer-events: none; z-index: 2;"></div>
                         <canvas id="pixelCanvas" width="600" height="600" style="display:block; margin-left:20px; margin-top:20px; cursor:crosshair; image-rendering:pixelated; position: relative; z-index: 1;"></canvas>
                     </div>
+
+                    <!-- ============ 炸小人 ============ -->
+                    <div style="display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap; margin-top: 28px;">
+                        <div style="flex: 1; min-width: 300px; display: flex; flex-direction: column; gap: 12px;">
+                            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                                <label for="fryFileInput"
+                                       style="background: var(--accent-dim); color: var(--accent-ink);
+            border: 1px solid var(--accent-line); padding: 7px 12px;
+            border-radius: var(--r-sm); cursor: pointer; font-size: 11.5px;
+            font-family: var(--font-display); font-weight: 700;
+            letter-spacing: 0.12em; text-transform: uppercase;">🍗 选择图片</label>
+                                <input type="file" id="fryFileInput" accept="image/*" style="display: none;">
+                                <button id="fryResetBtn" class="reset-btn" style="margin-left: 0;">重新下锅</button>
+                                <label style="margin: 0;">模式：</label>
+                                <select id="fryModeSelect" style="width: 110px;">
+                                    <option value="karaage" selected>唐扬</option>
+                                    <option value="tempura">天妇罗</option>
+                                </select>
+                                <span style="font-size: 11.5px; color: var(--ink-3);">支持 Ctrl+V 粘贴</span>
+                                <button id="frySaveBtn">💾 保存成品</button>
+                            </div>
+                            <canvas id="fryCanvas" width="540" height="820" tabindex="0"
+                                    style="display: block; width: 100%; max-width: 540px; height: auto;
+           background: #e0d6c5; border: 1px solid var(--line-1);
+           border-radius: var(--r-md); cursor: crosshair;
+           touch-action: none; outline: none;"></canvas>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -5782,6 +5810,9 @@
                 document.addEventListener('paste', (e) => {
                     const activeTab = document.querySelector('.tab-content.active');
                     if (!activeTab || activeTab.id !== 'tab-script') return;
+                    // ★ 新增：焦点在油炸画布上时，让油炸那边接管
+                    const fryCanvasEl = document.getElementById('fryCanvas');
+                    if (fryCanvasEl && document.activeElement === fryCanvasEl) return;
                     const items = e.clipboardData && e.clipboardData.items;
                     if (!items) return;
                     for (let i = 0; i < items.length; i++) {
@@ -5898,6 +5929,718 @@
                     link.click();
                 }
                 document.getElementById('pixelExportBtn').addEventListener('click', exportBlueprint);
+            }
+
+            // ==================== 油炸小游戏 ====================
+            const fryCanvas = document.getElementById('fryCanvas');
+            if (fryCanvas) {
+                const fryCtx = fryCanvas.getContext('2d');
+                const FW = 540, FH = 820;
+                const FRY_DPR = Math.min(window.devicePixelRatio || 1, 2);
+                fryCanvas.width = FW * FRY_DPR;
+                fryCanvas.height = FH * FRY_DPR;
+                fryCtx.setTransform(FRY_DPR, 0, 0, FRY_DPR, 0, 0);
+
+                // ===== 噪音 =====
+                function fHash(x, y) {
+                    const v = Math.sin(x * 127.1 + y * 311.7 + 43.2) * 43758.5453;
+                    return v - Math.floor(v);
+                }
+                function fNoise(x, y) {
+                    const i = Math.floor(x), j = Math.floor(y);
+                    const u = x - i, v = y - j;
+                    const su = u * u * (3 - 2 * u);
+                    const sv = v * v * (3 - 2 * v);
+                    return (fHash(i, j) * (1 - su) + fHash(i + 1, j) * su) * (1 - sv) +
+                        (fHash(i, j + 1) * (1 - su) + fHash(i + 1, j + 1) * su) * sv;
+                }
+                function fClamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+
+                // ===== 距离场（BFS）=====
+                function fryDist(seedMask, allowMask, w, h, maxD) {
+                    const n = w * h;
+                    const dist = new Int16Array(n); dist.fill(-1);
+                    const q = new Int32Array(n);
+                    let head = 0, tail = 0;
+                    for (let i = 0; i < n; i++) if (seedMask[i]) { dist[i] = 0; q[tail++] = i; }
+                    while (head < tail) {
+                        const p = q[head++];
+                        const d = dist[p] + 1;
+                        if (d > maxD) continue;
+                        const x = p % w, y = (p - x) / w;
+                        if (x > 0 && dist[p - 1] < 0 && allowMask[p - 1]) { dist[p - 1] = d; q[tail++] = p - 1; }
+                        if (x < w - 1 && dist[p + 1] < 0 && allowMask[p + 1]) { dist[p + 1] = d; q[tail++] = p + 1; }
+                        if (y > 0 && dist[p - w] < 0 && allowMask[p - w]) { dist[p - w] = d; q[tail++] = p - w; }
+                        if (y < h - 1 && dist[p + w] < 0 && allowMask[p + w]) { dist[p + w] = d; q[tail++] = p + w; }
+                    }
+                    return dist;
+                }
+
+                // ===== 状态 =====
+                const fryState = {
+                    state: 'idle',           // idle | ready | frying
+                    mode: 'karaage',
+                    elapsed: 0,
+                    clock: 0,
+                    food: { x: FW / 2, y: 260, size: 210 },
+                    drag: { active: false, pid: null, dx: 0, dy: 0 },
+                    oilTouch: false,
+                    steam: 0,
+                    pops: [],
+                    nextPop: 0,
+                    lastBucket: -1,
+                    ready: false
+                };
+                const fryOriginal = document.createElement('canvas');
+                const fryFried = document.createElement('canvas');
+                let fryPixels = null, fryRelief = null, fryGrain = null, fryCoat = null;
+                let frySeeds = [];
+
+                // ===== 音频 =====
+                let fryAC = null, fryHissGain = null, fryPopBuf = null;
+                function fryInitAudio() {
+                    if (fryAC) {
+                        if (fryAC.state !== 'running' && fryAC.state !== 'closed') fryAC.resume().catch(() => { });
+                        return;
+                    }
+                    try {
+                        const C = window.AudioContext || window.webkitAudioContext;
+                        if (!C) return;
+                        fryAC = new C();
+                        const buf = fryAC.createBuffer(1, fryAC.sampleRate * 2, fryAC.sampleRate);
+                        const d = buf.getChannelData(0);
+                        for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+                        const hiss = fryAC.createBufferSource();
+                        hiss.buffer = buf; hiss.loop = true;
+                        const hp = fryAC.createBiquadFilter();
+                        hp.type = 'highpass'; hp.frequency.value = 1700;
+                        fryHissGain = fryAC.createGain(); fryHissGain.gain.value = 0;
+                        hiss.connect(hp); hp.connect(fryHissGain); fryHissGain.connect(fryAC.destination);
+                        hiss.start();
+                        const p = fryAC.createBuffer(1, fryAC.sampleRate, fryAC.sampleRate);
+                        const dp = p.getChannelData(0);
+                        for (let i = 0; i < dp.length; i++) dp[i] = Math.random() * 2 - 1;
+                        fryPopBuf = p;
+                        if (fryAC.state !== 'running') fryAC.resume().catch(() => { });
+                    } catch (e) { }
+                }
+                function frySetHiss(v) {
+                    if (!fryHissGain || !fryAC) return;
+                    fryHissGain.gain.setTargetAtTime(v, fryAC.currentTime, 0.1);
+                }
+                function fryPop() {
+                    if (!fryAC || !fryPopBuf) return;
+                    const sharp = fHash(fryState.clock, 17) > 0.72;
+                    const s = fryAC.createBufferSource();
+                    s.buffer = fryPopBuf;
+                    s.playbackRate.value = 1.1 + fHash(fryState.clock, 2) * 1.1;
+                    const f = fryAC.createBiquadFilter();
+                    f.type = 'highpass';
+                    f.frequency.value = sharp ? 4200 : 2600;
+                    const g = fryAC.createGain();
+                    const now = fryAC.currentTime;
+                    g.gain.setValueAtTime(0.0001, now);
+                    g.gain.exponentialRampToValueAtTime(sharp ? 0.28 : 0.09, now + 0.002);
+                    g.gain.exponentialRampToValueAtTime(0.0001, now + 0.085);
+                    s.connect(f); f.connect(g); g.connect(fryAC.destination);
+                    s.start(now); s.stop(now + 0.09);
+                    s.onended = () => { s.disconnect(); f.disconnect(); g.disconnect(); };
+                }
+
+                // ===== 面板几何 =====
+                const fryPanY = () => FH * 0.66;
+                const fryPlateY = () => Math.max(220, FH * 0.29);
+                function fryInOil(x, y, size) {
+                    const cy = fryPanY() - 8;
+                    const rx = 195 * (size / 250);
+                    const ry = 92 * (size / 250);
+                    const dx = x - FW / 2;
+                    const dy = y - cy;
+                    if (dy < -25 || dy > ry + 25) return false;
+                    return (dx * dx) / (rx * rx) + (dy * dy) / ((ry + 25) * (ry + 25)) <= 1;
+                }
+
+                // ===== 准备图层 =====
+                function fryPrepare() {
+                    const w = fryOriginal.width, h = fryOriginal.height;
+                    const c = fryOriginal.getContext('2d');
+                    fryPixels = c.getImageData(0, 0, w, h);
+                    const a = fryPixels.data;
+                    const n = w * h;
+                    const alpha = new Uint8Array(n);
+                    for (let i = 0; i < n; i++) alpha[i] = a[i * 4 + 3] > 10 ? 1 : 0;
+
+                    fryFried.width = w; fryFried.height = h;
+                    fryRelief = new Float32Array(n);
+                    fryGrain = new Float32Array(n);
+                    fryCoat = new Float32Array(n);
+
+                    const outside = new Uint8Array(n);
+                    for (let i = 0; i < n; i++) outside[i] = alpha[i] ? 0 : 1;
+                    const allowAll = new Uint8Array(n); allowAll.fill(1);
+                    const distIn = fryDist(outside, allowAll, w, h, 40);  // 内部像素到外部的距离
+                    const distOut = fryDist(alpha, allowAll, w, h, 40);   // 外部像素到内部的距离
+
+                    for (let y = 0; y < h; y++) {
+                        for (let x = 0; x < w; x++) {
+                            const p = y * w + x;
+                            fryRelief[p] = fNoise(x * 0.04, y * 0.04) * 0.7 +
+                                fNoise(x * 0.11, y * 0.11) * 0.25 +
+                                fNoise(x * 0.28, y * 0.28) * 0.05;
+                            fryGrain[p] = fNoise(x * 0.4, y * 0.4);
+                            if (alpha[p]) {
+                                const dIn = distIn[p];
+                                fryCoat[p] = dIn > 0
+                                    ? Math.max(0, Math.min(1, (20 + fNoise(x * 0.055, y * 0.055) * 16 - dIn) / 12))
+                                    : 1;
+                            } else {
+                                const dOut = distOut[p];
+                                if (dOut > 0) {
+                                    const spread = 5 + fNoise(x * 0.075, y * 0.075) * 19 +
+                                        fNoise(x * 0.27, y * 0.27) * 5;
+                                    fryCoat[p] = Math.max(0, Math.min(1, (spread - dOut) * 1.5));
+                                }
+                            }
+                        }
+                    }
+
+                    // 泡的种子点
+                    frySeeds = [];
+                    const surface = [], edge = [];
+                    for (let p = 0; p < n; p++) if (alpha[p]) {
+                        surface.push(p);
+                        if (fryCoat[p] > 0.5) edge.push(p);
+                    }
+                    for (let j = 0; j < 120 && surface.length; j++) {
+                        const pool = (j % 2 && edge.length) ? edge : surface;
+                        const p = pool[Math.floor(fHash(j, 81) * pool.length)];
+                        const px = p % w, py = (p - px) / w;
+                        frySeeds.push({ x: px - w / 2, y: py - h / 2 });
+                    }
+                    fryState.lastBucket = -1;
+                }
+
+                // ===== 炸色 =====
+                function fryBake(sec) {
+                    const bucket = Math.floor(sec * 6);
+                    if (bucket === fryState.lastBucket) return;
+                    fryState.lastBucket = bucket;
+
+                    const w = fryOriginal.width, h = fryOriginal.height;
+                    const c = fryFried.getContext('2d');
+                    if (sec <= 0) { c.putImageData(fryPixels, 0, 0); return; }
+
+                    const out = c.getImageData(0, 0, w, h);
+                    const src = fryPixels.data, dst = out.data;
+                    const isTempura = fryState.mode === 'tempura';
+
+                    const t = fClamp((sec - 2) / 8, 0, 1);
+                    const pale = fClamp(sec / 3, 0, 1);
+                    const golden = fClamp((sec - (isTempura ? 4 : 3)) / (isTempura ? 10 : 9), 0, 1);
+                    const burn = fClamp((sec - (isTempura ? 14 : 12)) / 6, 0, 1);
+
+                    for (let p = 0; p < w * h; p++) {
+                        const i = p * 4;
+                        const n = fryRelief[p], grain = fryGrain[p], coat = fryCoat[p];
+
+                        // —— 透明区：只画面衣 ——
+                        if (!src[i + 3]) {
+                            if (coat > 0) {
+                                const rough = (n - 0.5) * 90 + (grain - 0.5) * 25;
+                                if (isTempura) {
+                                    dst[i] = (248 + rough) * (1 - burn * 0.5);
+                                    dst[i + 1] = (243 - golden * 30 + rough * 0.8) * (1 - burn * 0.6);
+                                    dst[i + 2] = (220 - golden * 40 + rough * 0.4) * (1 - burn * 0.7);
+                                } else {
+                                    dst[i] = (216 + rough) * (1 - burn * 0.7);
+                                    dst[i + 1] = (158 - golden * 40 + rough * 0.8) * (1 - burn * 0.85);
+                                    dst[i + 2] = (78 - golden * 40 + rough * 0.4) * (1 - burn * 0.9);
+                                }
+                                dst[i + 3] = Math.round(255 * coat * fClamp(sec * 1.5, 0, 1));
+                            } else {
+                                dst[i + 3] = 0;
+                            }
+                            continue;
+                        }
+
+                        // —— 不透明区：从生肉 → 上色 → 焦 ——
+                        const lum = (src[i] * 0.2126 + src[i + 1] * 0.7152 + src[i + 2] * 0.0722) / 255;
+                        const rough = (n - 0.5) * 60 + (grain - 0.5) * 20 + (lum - 0.5) * 40;
+
+                        let paleR = src[i] * (1 - pale) + (isTempura ? 245 : 238 + rough * 0.4) * pale;
+                        let paleG = src[i + 1] * (1 - pale) + (isTempura ? 238 : 224 + rough * 0.4) * pale;
+                        let paleB = src[i + 2] * (1 - pale) + (isTempura ? 210 : 200 + rough * 0.4) * pale;
+
+                        let goldR, goldG, goldB;
+                        if (isTempura) {
+                            goldR = 250 + rough * 0.9;
+                            goldG = 240 - t * 20 + rough * 0.8;
+                            goldB = 200 - t * 45 + rough * 0.5;
+                        } else {
+                            goldR = 215 + rough;
+                            goldG = 158 - t * 25 + rough * 0.8;
+                            goldB = 82 - t * 35 + rough * 0.4;
+                        }
+
+                        let r = paleR * (1 - golden) + goldR * golden;
+                        let g = paleG * (1 - golden) + goldG * golden;
+                        let b = paleB * (1 - golden) + goldB * golden;
+
+                        if (coat > 0) {
+                            const rim = (n - 0.5) * 95 + (grain - 0.5) * 25;
+                            let rimR, rimG, rimB;
+                            if (isTempura) {
+                                rimR = 248 + rim;
+                                rimG = 240 - t * 25 + rim * 0.8;
+                                rimB = 210 - t * 50 + rim * 0.4;
+                            } else {
+                                rimR = 218 + rim;
+                                rimG = 156 - t * 40 + rim * 0.78;
+                                rimB = 76 - t * 40 + rim * 0.4;
+                            }
+                            r = r * (1 - coat) + rimR * coat;
+                            g = g * (1 - coat) + rimG * coat;
+                            b = b * (1 - coat) + rimB * coat;
+                        }
+
+                        r *= (1 - burn * 0.65);
+                        g *= (1 - burn * 0.78);
+                        b *= (1 - burn * 0.82);
+
+                        dst[i] = r; dst[i + 1] = g; dst[i + 2] = b;
+                        dst[i + 3] = Math.max(src[i + 3], 255 * coat);
+                    }
+                    c.putImageData(out, 0, 0);
+                }
+
+                // ===== 绘制 =====
+                function fryDrawPan() {
+                    const py = fryPanY();
+                    // 手柄
+                    fryCtx.save();
+                    fryCtx.lineWidth = 12;
+                    fryCtx.strokeStyle = '#2a2d2e';
+                    [-1, 1].forEach(side => {
+                        fryCtx.beginPath();
+                        fryCtx.ellipse(FW / 2 + side * 220, py + 5, 30, 24, side * 0.25, 0, Math.PI * 2);
+                        fryCtx.stroke();
+                    });
+                    fryCtx.restore();
+
+                    // 锅体
+                    const grad = fryCtx.createLinearGradient(FW / 2 - 220, 0, FW / 2 + 220, 0);
+                    grad.addColorStop(0, '#191c1e');
+                    grad.addColorStop(0.22, '#484b4b');
+                    grad.addColorStop(0.5, '#353839');
+                    grad.addColorStop(0.85, '#252829');
+                    grad.addColorStop(1, '#131617');
+                    fryCtx.beginPath();
+                    fryCtx.moveTo(FW / 2 - 220, py);
+                    fryCtx.lineTo(FW / 2 - 205, py + 85);
+                    fryCtx.ellipse(FW / 2, py + 85, 205, 100, 0, Math.PI, 0, true);
+                    fryCtx.lineTo(FW / 2 + 220, py);
+                    fryCtx.closePath();
+                    fryCtx.fillStyle = grad; fryCtx.fill();
+
+                    // 锅边
+                    fryCtx.beginPath();
+                    fryCtx.ellipse(FW / 2, py, 220, 122, 0, 0, Math.PI * 2);
+                    fryCtx.fillStyle = '#626765'; fryCtx.fill();
+                    fryCtx.beginPath();
+                    fryCtx.ellipse(FW / 2, py - 2, 215, 117, 0, 0, Math.PI * 2);
+                    fryCtx.fillStyle = '#303536'; fryCtx.fill();
+                    fryCtx.beginPath();
+                    fryCtx.ellipse(FW / 2, py - 4, 207, 110, 0, 0, Math.PI * 2);
+                    fryCtx.fillStyle = '#111617'; fryCtx.fill();
+
+                    // 油
+                    const oilGrad = fryCtx.createRadialGradient(FW / 2 - 30, py - 50, 20, FW / 2, py, 210);
+                    oilGrad.addColorStop(0, '#e3b94d');
+                    oilGrad.addColorStop(0.65, '#bd7e20');
+                    oilGrad.addColorStop(1, '#764015');
+                    fryCtx.beginPath();
+                    fryCtx.ellipse(FW / 2, py - 4, 197, 104, 0, 0, Math.PI * 2);
+                    fryCtx.fillStyle = oilGrad; fryCtx.fill();
+                }
+
+                function fryDrawFood(image, x, y, size, angle) {
+                    fryCtx.save();
+                    fryCtx.translate(x, y);
+                    fryCtx.rotate(angle || 0);
+                    const k = size / Math.max(image.width, image.height);
+                    fryCtx.shadowColor = 'rgba(60, 30, 5, 0.26)';
+                    fryCtx.shadowBlur = 14;
+                    fryCtx.shadowOffsetY = 8;
+                    fryCtx.drawImage(image,
+                        -image.width * k / 2, -image.height * k / 2,
+                        image.width * k, image.height * k);
+                    fryCtx.restore();
+                }
+
+                function fryDraw() {
+                    fryCtx.clearRect(0, 0, FW, FH);
+                    fryCtx.fillStyle = '#e0d6c5';
+                    fryCtx.fillRect(0, 0, FW, FH);
+
+                    fryDrawPan();
+
+                    if (!fryState.ready) {
+                        fryCtx.save();
+                        fryCtx.fillStyle = '#5f6673';
+                        fryCtx.font = '18px sans-serif';
+                        fryCtx.textAlign = 'center';
+                        fryCtx.textBaseline = 'middle';
+                        fryCtx.fillText('点「选择图片」上传一张图', FW / 2, fryPlateY());
+                        fryCtx.fillText('再拖进油锅开炸', FW / 2, fryPlateY() + 32);
+                        fryCtx.restore();
+                        return;
+                    }
+
+                    const size = fryState.elapsed > 0 ? fryState.food.size * 0.84 : fryState.food.size;
+                    const active = fryState.state === 'frying' && fryState.oilTouch;
+                    const image = fryState.elapsed > 0 ? fryFried : fryOriginal;
+                    const px = fClamp(fryState.food.x, 70, FW - 70);
+                    const py = fClamp(fryState.food.y, 80, FH - 110);
+                    const jiggle = (active && fryState.drag.active) ? Math.sin(fryState.clock * 16) * 0.014 : 0;
+
+                    // 食材（入油时裁剪到油面以下）
+                    fryCtx.save();
+                    if (fryState.oilTouch) {
+                        fryCtx.beginPath();
+                        fryCtx.moveTo(0, 0); fryCtx.lineTo(FW, 0);
+                        fryCtx.lineTo(FW, fryPanY() - 4);
+                        fryCtx.ellipse(FW / 2, fryPanY() - 4, 197, 104, 0, 0, Math.PI);
+                        fryCtx.lineTo(0, fryPanY() - 4);
+                        fryCtx.closePath();
+                        fryCtx.clip();
+                    }
+                    fryDrawFood(image, px, py, size, jiggle - (active ? 0.07 : 0));
+                    fryCtx.restore();
+
+                    // 油面膜
+                    if (fryState.oilTouch) {
+                        fryCtx.save();
+                        fryCtx.beginPath();
+                        fryCtx.ellipse(FW / 2, fryPanY() - 4, 197, 104, 0, 0, Math.PI * 2);
+                        fryCtx.clip();
+                        const surf = fryCtx.createLinearGradient(0, fryPanY() - 108, 0, fryPanY() + 100);
+                        surf.addColorStop(0, 'rgba(238,191,68,0.20)');
+                        surf.addColorStop(0.5, 'rgba(207,139,27,0.40)');
+                        surf.addColorStop(1, 'rgba(124,69,15,0.60)');
+                        fryCtx.fillStyle = surf;
+                        fryCtx.fillRect(FW / 2 - 197, fryPanY() - 108, 394, 208);
+                        fryCtx.restore();
+                    }
+
+                    // 蒸汽
+                    if (fryState.steam > 0) {
+                        fryCtx.save();
+                        for (let j = 0; j < 24; j++) {
+                            const age = (4.2 - fryState.steam) - j * 0.06;
+                            if (age < 0) continue;
+                            const fade = fClamp(age / 0.15, 0, 1) * fClamp((4.2 - age) / 2.4, 0, 1);
+                            const sx = px + (fHash(j, 31) - 0.5) * size * 0.7 + Math.sin(age * 2 + j) * 16;
+                            const sy = py - size * 0.2 - age * (40 + fHash(j, 42) * 25);
+                            const radius = 13 + age * 19;
+                            const mist = fryCtx.createRadialGradient(sx, sy, 0, sx, sy, radius);
+                            mist.addColorStop(0, 'rgba(255,255,245,' + (0.46 * fade) + ')');
+                            mist.addColorStop(1, 'rgba(255,255,245,0)');
+                            fryCtx.beginPath();
+                            fryCtx.ellipse(sx, sy, radius, radius, 0, 0, Math.PI * 2);
+                            fryCtx.fillStyle = mist; fryCtx.fill();
+                        }
+                        fryCtx.restore();
+                    }
+
+                    // 气泡
+                    if (active) {
+                        fryCtx.save();
+                        fryCtx.beginPath();
+                        fryCtx.ellipse(FW / 2, fryPanY() - 4, 197, 104, 0, 0, Math.PI * 2);
+                        fryCtx.clip();
+
+                        // 油面泡
+                        fryCtx.fillStyle = 'rgba(255,220,140,0.24)';
+                        for (let j = 0; j < 30; j++) {
+                            const a = fHash(j, 9) * Math.PI * 2;
+                            const r = 35 + fHash(j, 7) * 130;
+                            const life = (fryState.clock * (0.5 + fHash(j, 2)) + fHash(j, 3)) % 1;
+                            const bx = FW / 2 + Math.cos(a) * r;
+                            const by = fryPanY() - 6 + Math.sin(a) * r * 0.52 - life * 23;
+                            const br = (2 + fHash(j, 4) * 7) * Math.sin(life * Math.PI);
+                            fryCtx.beginPath();
+                            fryCtx.ellipse(bx, by, br, br * 0.8, 0, 0, Math.PI * 2);
+                            fryCtx.fill();
+                        }
+
+                        // 食材上的泡
+                        const k = size / Math.max(image.width, image.height);
+                        const angle = jiggle + 0.07;
+                        const cs = Math.cos(angle), sn = Math.sin(angle);
+                        for (let i = 0; i < frySeeds.length; i++) {
+                            const seed = frySeeds[i];
+                            const life = (fryState.clock * (1.1 + fHash(i, 2) * 0.9) + fHash(i, 3)) % 1;
+                            const bx = px + (seed.x * cs - seed.y * sn) * k + Math.sin(life * 5 + i) * life * 7;
+                            const by = py + (seed.x * sn + seed.y * cs) * k - life * (12 + fHash(i, 5) * 18);
+                            const br = (1.8 + fHash(i, 4) * 4) * Math.sin(life * Math.PI);
+                            fryCtx.globalAlpha = Math.sin(life * Math.PI);
+                            fryCtx.fillStyle = 'rgba(255,223,139,0.38)';
+                            fryCtx.strokeStyle = 'rgba(255,246,196,0.75)';
+                            fryCtx.lineWidth = 1;
+                            fryCtx.beginPath();
+                            fryCtx.ellipse(bx, by, br, br * 0.8, 0, 0, Math.PI * 2);
+                            fryCtx.fill(); fryCtx.stroke();
+                        }
+                        fryCtx.restore();
+                    }
+
+                    // 飞溅
+                    fryCtx.save();
+                    fryState.pops.forEach(p => {
+                        fryCtx.globalAlpha = Math.min(1, p.life * 4);
+                        fryCtx.beginPath();
+                        fryCtx.ellipse(p.x, p.y, p.size, p.size * 1.7, 0, 0, Math.PI * 2);
+                        fryCtx.fillStyle = '#f5ca62'; fryCtx.fill();
+                    });
+                    fryCtx.restore();
+
+                    // 顶部进度提示
+                    if (fryState.state === 'frying' && fryState.oilTouch && fryState.elapsed > 0) {
+                        fryCtx.save();
+                        fryCtx.fillStyle = 'rgba(39,59,56,0.9)';
+                        fryCtx.font = 'bold 16px sans-serif';
+                        fryCtx.textAlign = 'center';
+                        const sec = fryState.elapsed;
+                        const txt = sec > 12 ? '🍳 快焦了！'
+                            : sec > 8 ? '🔥 快好了'
+                                : `炸制中… ${sec.toFixed(1)}s`;
+                        fryCtx.fillText(txt, FW / 2, 40);
+                        fryCtx.restore();
+                    }
+                }
+
+                // ===== 更新 =====
+                function fryUpdate(dt) {
+                    fryState.clock += dt;
+                    fryState.pops = fryState.pops.filter(p => {
+                        p.life -= dt;
+                        p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 420 * dt;
+                        return p.life > 0;
+                    });
+                    fryState.steam = Math.max(0, fryState.steam - dt);
+
+                    const inOil = fryState.ready && fryInOil(
+                        fryState.food.x, fryState.food.y,
+                        fryState.elapsed > 0 ? fryState.food.size * 0.84 : fryState.food.size
+                    );
+                    const wasInOil = fryState.oilTouch;
+                    fryState.oilTouch = inOil;
+
+                    if (wasInOil && !inOil && fryState.state === 'frying' && fryState.elapsed > 0) {
+                        fryState.steam = 4.2;
+                    }
+
+                    if (!fryState.ready) { frySetHiss(0); return; }
+
+                    if (fryState.state !== 'frying' && inOil && fryState.drag.active) {
+                        fryState.state = 'frying';
+                    }
+
+                    if (fryState.state === 'frying' && inOil) {
+                        fryState.elapsed = Math.min(18, fryState.elapsed + dt);
+                        if (fryState.elapsed > 0) fryBake(fryState.elapsed);
+
+                        if (fryState.clock > fryState.nextPop) {
+                            fryPop();
+                            for (let j = 0; j < 11; j++) {
+                                const x = fryState.food.x + (fHash(fryState.clock, j) - 0.5) * 100;
+                                const y = fryState.food.y + (fHash(j, fryState.clock) - 0.5) * 45;
+                                if (fryInOil(x, y, fryState.food.size * 0.84)) {
+                                    fryState.pops.push({
+                                        x, y,
+                                        vx: (fHash(j, fryState.clock + 1) - 0.5) * 260,
+                                        vy: -260 - fHash(fryState.clock, j + 2) * 220,
+                                        life: 1.0 + fHash(j, fryState.clock + 3) * 0.6,
+                                        size: 2 + fHash(j, fryState.clock + 4) * 2.5
+                                    });
+                                }
+                            }
+                            fryState.nextPop = fryState.clock +
+                                (fryState.drag.active ? 0.12 : 0.3) + fHash(fryState.clock, 9) * 0.22;
+                        }
+                        frySetHiss(fryState.drag.active ? 0.12 : 0.05);
+                    } else {
+                        frySetHiss(0);
+                    }
+                }
+
+                // ===== 图片加载 =====
+                function fryLoadImage(file) {
+                    if (!file) return;
+                    fryInitAudio();
+                    if (file.size > 20 * 1024 * 1024) { alert('图片太大（>20MB）'); return; }
+                    const url = URL.createObjectURL(file);
+                    const im = new Image();
+                    im.onload = () => {
+                        try {
+                            const scale = Math.min(1, 480 / Math.max(im.naturalWidth, im.naturalHeight));
+                            const tmp = document.createElement('canvas');
+                            tmp.width = Math.max(1, Math.round(im.naturalWidth * scale));
+                            tmp.height = Math.max(1, Math.round(im.naturalHeight * scale));
+                            tmp.getContext('2d').drawImage(im, 0, 0, tmp.width, tmp.height);
+
+                            // 加 padding（让面衣能张出原图边缘）
+                            fryOriginal.width = tmp.width + 56;
+                            fryOriginal.height = tmp.height + 56;
+                            fryOriginal.getContext('2d').drawImage(tmp, 28, 28);
+
+                            fryPrepare();
+                            fryState.ready = true;
+                            fryState.state = 'ready';
+                            fryState.elapsed = 0;
+                            fryState.lastBucket = -1;
+                            fryState.food.x = FW / 2;
+                            fryState.food.y = fryPlateY();
+                            fryState.pops = [];
+                            fryState.steam = 0;
+                            fryState.oilTouch = false;
+                            fryDraw();
+                        } catch (e) {
+                            alert('图片处理失败');
+                        } finally {
+                            URL.revokeObjectURL(url);
+                        }
+                    };
+                    im.onerror = () => { URL.revokeObjectURL(url); alert('图片加载失败'); };
+                    im.src = url;
+                }
+
+                function fryResetGame() {
+                    fryState.elapsed = 0;
+                    fryState.lastBucket = -1;
+                    fryState.state = 'ready';
+                    fryState.steam = 0;
+                    fryState.oilTouch = false;
+                    fryState.pops = [];
+                    fryState.food.x = FW / 2;
+                    fryState.food.y = fryPlateY();
+                    if (fryState.ready) fryBake(0);
+                    frySetHiss(0);
+                    fryDraw();
+                }
+
+                // ===== 导出 =====
+                function fryExport() {
+                    if (!fryState.ready) { alert('先上传一张图片'); return; }
+                    fryBake(fryState.elapsed);
+                    const out = document.createElement('canvas');
+                    out.width = 1080; out.height = 1080;
+                    const c = out.getContext('2d');
+                    c.fillStyle = '#f5ead6';
+                    c.fillRect(0, 0, 1080, 1080);
+                    const k = 760 / Math.max(fryFried.width, fryFried.height);
+                    c.save();
+                    c.translate(540, 540);
+                    c.rotate(-0.07);
+                    c.shadowColor = 'rgba(60, 30, 5, 0.24)';
+                    c.shadowBlur = 25;
+                    c.shadowOffsetY = 16;
+                    c.drawImage(fryFried,
+                        -fryFried.width * k / 2, -fryFried.height * k / 2,
+                        fryFried.width * k, fryFried.height * k);
+                    c.restore();
+                    const tag = fryState.mode === 'tempura' ? '天妇罗' : '唐扬';
+                    const link = document.createElement('a');
+                    link.download = `${tag}_${Date.now()}.png`;
+                    link.href = out.toDataURL('image/png');
+                    link.click();
+                }
+
+                // ===== 事件 =====
+                function fryPointerPos(e) {
+                    const r = fryCanvas.getBoundingClientRect();
+                    return {
+                        x: (e.clientX - r.left) / r.width * FW,
+                        y: (e.clientY - r.top) / r.height * FH
+                    };
+                }
+
+                fryCanvas.addEventListener('pointerdown', e => {
+                    if (!fryState.ready || fryState.drag.active) return;
+                    fryInitAudio();
+                    fryCanvas.focus();
+                    fryState.drag.active = true;
+                    fryState.drag.pid = e.pointerId;
+                    const p = fryPointerPos(e);
+                    fryState.drag.dx = p.x - fryState.food.x;
+                    fryState.drag.dy = p.y - fryState.food.y;
+                    fryCanvas.setPointerCapture(e.pointerId);
+                    if (fryState.state === 'ready') fryState.state = 'frying';
+                });
+                fryCanvas.addEventListener('pointermove', e => {
+                    if (!fryState.drag.active || fryState.drag.pid !== e.pointerId) return;
+                    e.preventDefault();
+                    const p = fryPointerPos(e);
+                    fryState.food.x = fClamp(p.x - fryState.drag.dx, 70, FW - 70);
+                    fryState.food.y = fClamp(p.y - fryState.drag.dy, 80, FH - 110);
+                });
+                fryCanvas.addEventListener('pointerup', e => {
+                    if (fryState.drag.pid !== e.pointerId) return;
+                    fryState.drag.active = false;
+                    fryState.drag.pid = null;
+                    frySetHiss(0);
+                });
+                fryCanvas.addEventListener('pointercancel', e => {
+                    if (fryState.drag.pid === e.pointerId) {
+                        fryState.drag.active = false;
+                        fryState.drag.pid = null;
+                        frySetHiss(0);
+                    }
+                });
+
+                document.getElementById('fryFileInput').addEventListener('change', e => {
+                    fryLoadImage(e.target.files[0]);
+                    e.target.value = '';
+                });
+                document.getElementById('fryResetBtn').addEventListener('click', fryResetGame);
+                document.getElementById('fryModeSelect').addEventListener('change', e => {
+                    fryState.mode = e.target.value;
+                    fryState.lastBucket = -1;
+                    if (fryState.ready) fryBake(fryState.elapsed);
+                    fryDraw();
+                });
+                document.getElementById('frySaveBtn').addEventListener('click', fryExport);
+
+                // 粘贴支持（只在油炸画布获得焦点时响应，避免和拼豆抢图）
+                document.addEventListener('paste', e => {
+                    const activeTab = document.querySelector('.tab-content.active');
+                    if (!activeTab || activeTab.id !== 'tab-script') return;
+                    if (document.activeElement !== fryCanvas) return;
+                    const items = e.clipboardData && e.clipboardData.items;
+                    if (!items) return;
+                    for (let i = 0; i < items.length; i++) {
+                        if (items[i].type.startsWith('image/')) {
+                            const file = items[i].getAsFile();
+                            if (file) { e.preventDefault(); fryLoadImage(file); return; }
+                        }
+                    }
+                });
+
+                // ===== 主循环 =====
+                let fryLast = performance.now();
+                const tabScriptEl = document.getElementById('tab-script');
+                function fryLoop(now) {
+                    const dt = Math.min(0.033, (now - fryLast) / 1000);
+                    fryLast = now;
+                    if (tabScriptEl && tabScriptEl.classList.contains('active')) {
+                        fryUpdate(dt);
+                        fryDraw();
+                    }
+                    requestAnimationFrame(fryLoop);
+                }
+}
+                fryDraw();
+                requestAnimationFrame(fryLoop);
             }
 
             // ==================== 规则管理 ====================
