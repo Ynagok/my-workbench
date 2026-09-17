@@ -1687,15 +1687,205 @@
                 color: var(--dark);
                 border-color: var(--accent);
             }
+
+        /* ============================================================
+   侧边栏分组
+   ============================================================ */
+        .tab-group-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 18px 22px 8px 24px;
+            font-family: var(--font-display);
+            font-size: 10.5px;
+            font-weight: 700;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: var(--ink-3);
+            user-select: none;
+            position: relative;
+        }
+
+            .tab-group-title::after {
+                content: '';
+                flex: 1;
+                height: 1px;
+                background: linear-gradient(90deg, var(--line-0) 0%, transparent 100%);
+            }
+
+        .tab-btn.tab-btn-sub {
+            padding-left: 34px;
+            font-size: 13px;
+        }
+
+            .tab-btn.tab-btn-sub::before {
+                content: '';
+                position: absolute;
+                left: 22px;
+                top: 50%;
+                transform: translateY(-50%);
+                width: 4px;
+                height: 4px;
+                border-radius: 50%;
+                background: var(--line-2);
+                transition: background 0.18s ease;
+            }
+
+            .tab-btn.tab-btn-sub.active::before {
+                background: var(--accent);
+                box-shadow: 0 0 6px var(--accent-glow);
+            }
+
+        /* ============================================================
+   母棋计算器
+   ============================================================ */
+        .mother-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 4px;
+            font-size: 13px;
+        }
+
+            .mother-table th {
+                font-family: var(--font-display);
+                font-size: 11px;
+                font-weight: 700;
+                letter-spacing: 0.08em;
+                color: var(--ink-2);
+                text-transform: uppercase;
+                padding: 8px 6px;
+                text-align: center;
+                background: var(--bg-1);
+                border-radius: var(--r-sm);
+                border: 1px solid var(--line-0);
+                white-space: nowrap;
+            }
+
+            .mother-table td {
+                padding: 4px;
+                text-align: center;
+                vertical-align: middle;
+            }
+
+            .mother-table input[type="number"] {
+                width: 100%;
+                min-width: 42px;
+                height: 32px;
+                padding: 0 4px;
+                text-align: center;
+                font-size: 13px;
+                font-family: var(--font-mono);
+            }
+
+            .mother-table .type-name {
+                font-family: var(--font-display);
+                font-weight: 700;
+                color: var(--ink-0);
+                letter-spacing: 0.06em;
+                text-align: left;
+                padding-left: 12px;
+                white-space: nowrap;
+                min-width: 60px;
+            }
+
+            .mother-table .total-cell {
+                font-family: var(--font-mono);
+                font-weight: 700;
+                color: var(--accent-ink);
+                padding: 0 8px;
+                white-space: nowrap;
+            }
+
+            .mother-table .cells-cell {
+                font-family: var(--font-mono);
+                font-weight: 700;
+                color: var(--dark);
+                background: var(--accent-dim);
+                border-radius: var(--r-sm);
+                padding: 4px 10px;
+                white-space: nowrap;
+            }
+
+        .mother-box-wrapper {
+            margin-top: 8px;
+        }
+
+        .mother-box-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            flex: 1;
+            min-width: 130px;
+        }
+
+            .mother-box-item span {
+                font-size: 12px;
+                color: var(--ink-2);
+                font-weight: 600;
+                letter-spacing: 0.06em;
+                font-family: var(--font-display);
+                text-transform: uppercase;
+            }
+
+            .mother-box-item input {
+                height: 36px;
+                text-align: center;
+                font-family: var(--font-mono);
+                font-size: 14px;
+                font-weight: 600;
+            }
+
+        .mother-dist-list {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            font-size: 12px;
+        }
+
+        .mother-dist-badge {
+            background: var(--accent-dim);
+            color: var(--accent-ink);
+            border: 1px solid var(--accent-line);
+            border-radius: var(--r-pill);
+            padding: 2px 10px;
+            font-size: 11px;
+            font-weight: 700;
+            font-family: var(--font-display);
+            letter-spacing: 0.04em;
+        }
+
+        .mother-grand-total {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 18px;
+            background: var(--dark);
+            color: #fff;
+            border-radius: var(--r-md);
+            font-family: var(--font-display);
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            margin-top: 14px;
+        }
+
+            .mother-grand-total .num {
+                font-family: var(--font-mono);
+                font-size: 22px;
+                color: var(--accent);
+                font-weight: 700;
+            }
     </style>
 </head>
 
 <body>
     <div class="container">
         <div class="tabs" id="tabsContainer">
-            <button class="tab-btn active" data-tab="gen"> 话术生成</button>
+            <div class="tab-group-title">梦幻消除站</div>
+            <button class="tab-btn tab-btn-sub active" data-tab="gen"> 话术生成</button>
+            <button class="tab-btn tab-btn-sub" data-tab="card"> 集卡分析</button>
+            <button class="tab-btn tab-btn-sub" data-tab="mother"> 母棋计算器</button>
+
             <button class="tab-btn" data-tab="reply"> 工单回复</button>
-            <button class="tab-btn" data-tab="card"> 集卡分析</button>
             <button class="tab-btn" data-tab="daily"> 每日日报</button>
             <button class="tab-btn" data-tab="script">小游戏</button>
         </div>
@@ -1838,6 +2028,88 @@
                 <div class="flex-row" style="margin-top:10px;">
                     <button id="copyAllCardBtn">📋 复制全部</button>
                     <button id="exportCardBtn">💾 导出TXT</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 母棋计算器 mother -->
+        <div id="tab-mother" class="tab-content">
+            <div class="card">
+                <label style="font-size:1.1rem; margin-bottom:6px;">🧮 母棋占格子数计算器</label>
+                <p class="hint-text" style="margin-bottom:18px;">
+                    输入现有母棋数（一级 ~ 十级的数量），以及计划使用的漆盒数。工具会算出使用后母棋的最少占格子数。
+                </p>
+
+                <label style="margin-bottom:10px;">📥 现有母棋数</label>
+                <div style="overflow-x:auto;">
+                    <table class="mother-table">
+                        <thead>
+                            <tr>
+                                <th>类型</th>
+                                <th>一级</th>
+                                <th>二级</th>
+                                <th>三级</th>
+                                <th>四级</th>
+                                <th>五级</th>
+                                <th>六级</th>
+                                <th>七级</th>
+                                <th>八级</th>
+                                <th>九级</th>
+                                <th>十级</th>
+                                <th>总数</th>
+                                <th>占格</th>
+                            </tr>
+                        </thead>
+                        <tbody id="motherTableBody"></tbody>
+                    </table>
+                </div>
+
+                <div class="mother-box-wrapper" style="margin-top:24px;">
+                    <label style="margin-bottom:10px;">🎁 计划使用漆盒</label>
+                    <div class="flex-row">
+                        <div class="mother-box-item">
+                            <span>二级红漆盒</span>
+                            <input type="number" id="boxRed2" min="0" value="0">
+                        </div>
+                        <div class="mother-box-item">
+                            <span>二级绿漆盒</span>
+                            <input type="number" id="boxGreen2" min="0" value="0">
+                        </div>
+                        <div class="mother-box-item">
+                            <span>一级红漆盒</span>
+                            <input type="number" id="boxRed1" min="0" value="0">
+                        </div>
+                        <div class="mother-box-item">
+                            <span>一级绿漆盒</span>
+                            <input type="number" id="boxGreen1" min="0" value="0">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="result-header">
+                    <label>📊 使用后母棋数</label>
+                    <div class="flex-row">
+                        <button id="motherResetBtn" class="reset-btn">重置</button>
+                    </div>
+                </div>
+                <div style="overflow-x:auto;">
+                    <table class="mother-table">
+                        <thead>
+                            <tr>
+                                <th>类型</th>
+                                <th>总数</th>
+                                <th>占格</th>
+                                <th style="text-align:left; padding-left:12px;">使用后分布</th>
+                            </tr>
+                        </thead>
+                        <tbody id="motherResultBody"></tbody>
+                    </table>
+                </div>
+                <div class="mother-grand-total">
+                    <span>总计占格子数</span>
+                    <span class="num" id="motherGrandTotal">0</span>
                 </div>
             </div>
         </div>
@@ -4144,19 +4416,17 @@
             if (!dailyData.overseasCustom) dailyData.overseasCustom = [];
             if (!dailyData.currentTab) dailyData.currentTab = 'ticket';
 
+            // ★ 关键：补齐 ticket / overseas 主对象，避免旧版本数据缺字段直接崩溃
+            dailyData.ticket = { ...DAILY_DEFAULT_DATA.ticket, ...(dailyData.ticket || {}) };
+            dailyData.overseas = { ...DAILY_DEFAULT_DATA.overseas, ...(dailyData.overseas || {}) };
+
             // ==================== 数据读写 ====================
             async function loadData(key, defaultValue) {
                 // ===== 本地优先模式 =====
                 const cached = localStorage.getItem(key);
                 if (cached !== null) {
                     try {
-                        const parsed = JSON.parse(cached);
-                        fetch(`${SERVER_URL}/api/data/${key}`).then(r => r.ok ? r.json() : null).then(j => {
-                            if (j && j.value !== undefined) {
-                                // 服务器上有数据，但保持本地优先
-                            }
-                        }).catch(() => { });
-                        return parsed;
+                        return JSON.parse(cached);
                     } catch (e) {
                         console.warn(`解析 localStorage[${key}] 失败，将尝试服务器`, e);
                     }
@@ -4176,17 +4446,6 @@
                 }
 
                 return defaultValue;
-            }
-
-            async function saveData(key, data) {
-                localStorage.setItem(key, JSON.stringify(data));
-                try {
-                    await fetch(`${SERVER_URL}/api/data/${key}`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ value: data })
-                    });
-                } catch (e) { console.warn('同步云端失败', e); }
             }
 
             // ★ 改动：删除了 templates 变量
@@ -5427,7 +5686,11 @@
                 window.addEventListener('mouseup', () => { isMouseDown = false; });
 
                 const colorInput = document.getElementById('pixelColor');
-                colorInput.addEventListener('click', () => { isEraser = false; });
+                colorInput.addEventListener('click', () => {
+                    isEraser = false;
+                    const eraserBtn = document.getElementById('pixelEraserBtn');
+                    if (eraserBtn) eraserBtn.style.background = '';
+                });
                 colorInput.addEventListener('input', (e) => {
                     let chosen = e.target.value;
                     if (!paletteColors.includes(chosen)) {
@@ -5650,15 +5913,15 @@
                     const replacement = getRuleReplacement(r) || '(删除)';
                     const typeLabel = r.type === 'source' ? '来源' : (r.type === 'reward' ? '奖励' : '棋子');
                     return `<div class="rule-item" data-idx="${idx}">
-                            <span class="rule-pattern">${escapeHtml(pattern)}</span>
-                            <span style="color: var(--ak-text-mute); font-size:12px;">[${escapeHtml(typeLabel)}]</span>
-                            <span style="color: var(--ak-primary);">→</span>
-                            <span class="rule-replacement">${escapeHtml(replacement)}</span>
-                            <div class="rule-actions">
-                                <button class="edit-source-btn secondary" data-idx="${idx}">✏️</button>
-                                <button class="delete-source-btn reset-btn" data-idx="${idx}">🗑️</button>
-                            </div>
-                        </div>`;
+                                            <span class="rule-pattern">${escapeHtml(pattern)}</span>
+                                            <span style="color: var(--ak-text-mute); font-size:12px;">[${escapeHtml(typeLabel)}]</span>
+                                            <span style="color: var(--ak-primary);">→</span>
+                                            <span class="rule-replacement">${escapeHtml(replacement)}</span>
+                                            <div class="rule-actions">
+                                                <button class="edit-source-btn secondary" data-idx="${idx}">✏️</button>
+                                                <button class="delete-source-btn reset-btn" data-idx="${idx}">🗑️</button>
+                                            </div>
+                                        </div>`;
                 }).join('') || '<div style="padding:20px;text-align:center;color:var(--ak-text-mute);">暂无规则</div>';
 
                 c.querySelectorAll('.delete-source-btn').forEach(b => b.onclick = () => {
@@ -5691,11 +5954,11 @@
                 const c = document.getElementById('ignoreRuleListContainer');
                 c.innerHTML = ignoreKeywords.map((k, i) =>
                     `<div class="rule-item">
-                            <span class="rule-pattern">${escapeHtml(k)}</span>
-                            <div class="rule-actions">
-                                <button data-i="${i}" class="delete-ignore-btn reset-btn">🗑️</button>
-                            </div>
-                        </div>`
+                                            <span class="rule-pattern">${escapeHtml(k)}</span>
+                                            <div class="rule-actions">
+                                                <button data-i="${i}" class="delete-ignore-btn reset-btn">🗑️</button>
+                                            </div>
+                                        </div>`
                 ).join('') || '<div style="padding:20px;text-align:center;color:var(--ak-text-mute);">暂无忽略关键词</div>';
                 c.querySelectorAll('.delete-ignore-btn').forEach(b => b.onclick = e => {
                     ignoreKeywords.splice(e.target.dataset.i, 1);
@@ -5732,13 +5995,13 @@
                 }
                 c.innerHTML = entries.map(([id, name]) =>
                     `<div class="rule-item" data-id="${escapeHtml(id)}">
-                            <span class="rule-pattern">${escapeHtml(id)}</span>
-                            <span style="color: var(--ak-primary);">→</span>
-                            <span class="rule-replacement" style="flex:1;">${escapeHtml(name || '(空)')}</span>
-                            <div class="rule-actions">
-                                <button class="delete-mapping-btn reset-btn" data-id="${escapeHtml(id)}">🗑️</button>
-                            </div>
-                        </div>`
+                                            <span class="rule-pattern">${escapeHtml(id)}</span>
+                                            <span style="color: var(--ak-primary);">→</span>
+                                            <span class="rule-replacement" style="flex:1;">${escapeHtml(name || '(空)')}</span>
+                                            <div class="rule-actions">
+                                                <button class="delete-mapping-btn reset-btn" data-id="${escapeHtml(id)}">🗑️</button>
+                                            </div>
+                                        </div>`
                 ).join('');
                 c.querySelectorAll('.delete-mapping-btn').forEach(btn => {
                     btn.onclick = () => {
@@ -5751,7 +6014,187 @@
                 });
             }
 
-            // ★ 改动：删除了 refreshVarEntries() / refreshTemplateSelect() / renderTemplateList()
+            // ==================== 母棋计算器 ====================
+            const MOTHER_TYPES = ['糕点', '茶叶', '布匹', '首饰', '灯笼', '鸡蛋'];
+            const MOTHER_LEVELS = 10;
+
+            // 漆盒加成表（每种漆盒对每种母棋贡献多少"等价一级"）
+            const MOTHER_BOX_EFFECTS = {
+                boxRed2: { '糕点': 4, '茶叶': 2, '布匹': 2 },
+                boxGreen2: { '首饰': 4, '灯笼': 2, '鸡蛋': 2 },
+                boxRed1: { '糕点': 2, '茶叶': 1, '布匹': 1 },
+                boxGreen1: { '首饰': 2, '灯笼': 1, '鸡蛋': 1 }
+            };
+
+            const MOTHER_BOX_LABELS = {
+                boxRed2: '二级红漆盒',
+                boxGreen2: '二级绿漆盒',
+                boxRed1: '一级红漆盒',
+                boxGreen1: '一级绿漆盒'
+            };
+
+            // 状态（内存中，不持久化）
+            const motherState = {
+                mothers: {},
+                boxes: { boxRed2: 0, boxGreen2: 0, boxRed1: 0, boxGreen1: 0 }
+            };
+            MOTHER_TYPES.forEach(t => {
+                motherState.mothers[t] = new Array(MOTHER_LEVELS).fill(0);
+            });
+
+            // 现有分布 → 十进制总数（一级权重 1，二级权重 2，三级权重 4，…）
+            function calcMotherTotal(dist) {
+                let total = 0;
+                for (let i = 0; i < dist.length; i++) {
+                    total += (dist[i] || 0) * Math.pow(2, i);
+                }
+                return total;
+            }
+
+            // 十进制总数 → 加上漆盒后的最终总数
+            function calcMotherFinalTotal(type) {
+                let total = calcMotherTotal(motherState.mothers[type]);
+                for (const [boxId, effect] of Object.entries(MOTHER_BOX_EFFECTS)) {
+                    if (effect[type] !== undefined) {
+                        total += (motherState.boxes[boxId] || 0) * effect[type];
+                    }
+                }
+                return total;
+            }
+
+            // 计算数字的二进制中 1 的个数（即占格子数）
+            function countOnes(n) {
+                n = Math.floor(Math.abs(n));
+                let c = 0;
+                while (n > 0) {
+                    if (n & 1) c++;
+                    n = Math.floor(n / 2);
+                }
+                return c;
+            }
+
+            // 拆解成"最少格子"的分布：返回 [{level, count}, ...]
+            function decomposeToBits(n) {
+                const bits = [];
+                let m = Math.floor(Math.abs(n));
+                let i = 0;
+                while (m > 0) {
+                    if (m & 1) bits.push(i + 1);   // i=0 → 1级；i=1 → 2级…
+                    m = Math.floor(m / 2);
+                    i++;
+                }
+                return bits;
+            }
+
+            // 渲染"现有母棋数"输入表
+            function renderMotherTable() {
+                const tbody = document.getElementById('motherTableBody');
+                if (!tbody) return;
+
+                tbody.innerHTML = MOTHER_TYPES.map(type => {
+                    const dist = motherState.mothers[type];
+                    const total = calcMotherTotal(dist);
+                    const cells = countOnes(total);
+
+                    const inputs = dist.map((v, i) =>
+                        `<td><input type="number" min="0" value="${v}" data-type="${type}" data-level="${i}"></td>`
+                    ).join('');
+
+                    return `<tr>
+                                    <td class="type-name">${type}</td>
+                                    ${inputs}
+                                    <td class="total-cell">${total}</td>
+                                    <td class="cells-cell">${cells}</td>
+                                </tr>`;
+                }).join('');
+
+                // 绑定输入事件
+                tbody.querySelectorAll('input[type="number"]').forEach(input => {
+                    input.addEventListener('input', (e) => {
+                        const type = e.target.dataset.type;
+                        const level = parseInt(e.target.dataset.level);
+                        let v = parseInt(e.target.value) || 0;
+                        if (v < 0) v = 0;
+                        motherState.mothers[type][level] = v;
+
+                        // 只更新当前行的总数 / 占格显示，不重建表格（保持输入焦点）
+                        const row = e.target.closest('tr');
+                        const dist = motherState.mothers[type];
+                        const total = calcMotherTotal(dist);
+                        const cells = countOnes(total);
+                        row.querySelector('.total-cell').textContent = total;
+                        row.querySelector('.cells-cell').textContent = cells;
+
+                        // 刷新下方结果
+                        renderMotherResult();
+                    });
+                });
+            }
+
+            // 渲染"使用后母棋数"结果表
+            function renderMotherResult() {
+                const tbody = document.getElementById('motherResultBody');
+                if (!tbody) return;
+
+                let grandTotal = 0;
+
+                tbody.innerHTML = MOTHER_TYPES.map(type => {
+                    const total = calcMotherFinalTotal(type);
+                    const cells = countOnes(total);
+                    grandTotal += cells;
+
+                    const bits = decomposeToBits(total);
+                    const distHtml = bits.length === 0
+                        ? '<span style="color:var(--ink-3);">—</span>'
+                        : bits.map(b => `<span class="mother-dist-badge">${b}级×1</span>`).join('');
+
+                    return `<tr>
+                                    <td class="type-name">${type}</td>
+                                    <td class="total-cell">${total}</td>
+                                    <td class="cells-cell">${cells}</td>
+                                    <td style="text-align:left;">
+                                        <div class="mother-dist-list">${distHtml}</div>
+                                    </td>
+                                </tr>`;
+                }).join('');
+
+                const gt = document.getElementById('motherGrandTotal');
+                if (gt) gt.textContent = grandTotal;
+            }
+
+            // 绑定母棋计算器全部事件
+            function bindMotherEvents() {
+                // 漆盒输入
+                Object.keys(MOTHER_BOX_EFFECTS).forEach(id => {
+                    const el = document.getElementById(id);
+                    if (!el) return;
+                    el.addEventListener('input', (e) => {
+                        let v = parseInt(e.target.value) || 0;
+                        if (v < 0) v = 0;
+                        motherState.boxes[id] = v;
+                        renderMotherResult();
+                    });
+                });
+
+                // 重置
+                setClick('motherResetBtn', () => {
+                    if (!confirm('确认清空所有母棋输入与漆盒数？')) return;
+                    MOTHER_TYPES.forEach(t => {
+                        motherState.mothers[t] = new Array(MOTHER_LEVELS).fill(0);
+                    });
+                    Object.keys(MOTHER_BOX_EFFECTS).forEach(id => {
+                        motherState.boxes[id] = 0;
+                        const el = document.getElementById(id);
+                        if (el) el.value = '0';
+                    });
+                    renderMotherTable();
+                    renderMotherResult();
+                });
+
+                // 首次渲染
+                renderMotherTable();
+                renderMotherResult();
+            }
 
             // ==================== 工单回复 ====================
             const DEFAULT_OPENING_PHRASES = [
@@ -5861,20 +6304,20 @@
                         ).join('')}</div>`
                         : '';
                     return `
-                        <div class="reply-preset-item" data-i="${i}">
-                            <div style="flex:1; min-width:0; display:flex; flex-direction:column; gap:6px;">
-                                <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-                                    <span class="preset-name">${escapeHtml(p.name || '未命名')}</span>
-                                    ${tagsHtml}
-                                </div>
-                                <div class="preset-body">${escapeHtml((p.text || '').substring(0, 120))}${(p.text || '').length > 120 ? '…' : ''}</div>
-                            </div>
-                            <div class="preset-actions">
-                                <button class="secondary load-preset-btn" data-i="${i}">载入</button>
-                                <button class="reset-btn delete-preset-btn" data-i="${i}">🗑️</button>
-                            </div>
-                        </div>
-                    `;
+                                        <div class="reply-preset-item" data-i="${i}">
+                                            <div style="flex:1; min-width:0; display:flex; flex-direction:column; gap:6px;">
+                                                <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                                                    <span class="preset-name">${escapeHtml(p.name || '未命名')}</span>
+                                                    ${tagsHtml}
+                                                </div>
+                                                <div class="preset-body">${escapeHtml((p.text || '').substring(0, 120))}${(p.text || '').length > 120 ? '…' : ''}</div>
+                                            </div>
+                                            <div class="preset-actions">
+                                                <button class="secondary load-preset-btn" data-i="${i}">载入</button>
+                                                <button class="reset-btn delete-preset-btn" data-i="${i}">🗑️</button>
+                                            </div>
+                                        </div>
+                                    `;
                 }).join('');
 
                 // ===== 载入 =====
@@ -5949,41 +6392,41 @@
 
                     if (f.type === 'textarea') {
                         html += `<div class="daily-field${fullWidth}">
-                                <label>${escapeHtml(f.label)}</label>
-                                <textarea data-key="${f.key}" placeholder="${ph}">${escapeHtml(val)}</textarea>
-                            </div>`;
+                                                <label>${escapeHtml(f.label)}</label>
+                                                <textarea data-key="${f.key}" placeholder="${ph}">${escapeHtml(val)}</textarea>
+                                            </div>`;
                     } else if (f.type === 'select') {
                         const opts = (f.options || []).map(o =>
                             `<option value="${escapeHtml(o)}"${String(o) === String(val) ? ' selected' : ''}>${escapeHtml(o)}</option>`
                         ).join('');
                         html += `<div class="daily-field${fullWidth}">
-                                <label>${escapeHtml(f.label)}</label>
-                                <select data-key="${f.key}">${opts}</select>
-                            </div>`;
+                                                <label>${escapeHtml(f.label)}</label>
+                                                <select data-key="${f.key}">${opts}</select>
+                                            </div>`;
                     } else {
                         const inputType = f.type === 'number' ? 'number' : 'text';
                         html += `<div class="daily-field${fullWidth}">
-                                <label>${escapeHtml(f.label)}</label>
-                                <input type="${inputType}" data-key="${f.key}" value="${escapeHtml(val)}" placeholder="${ph}">
-                            </div>`;
+                                                <label>${escapeHtml(f.label)}</label>
+                                                <input type="${inputType}" data-key="${f.key}" value="${escapeHtml(val)}" placeholder="${ph}">
+                                            </div>`;
                     }
                 }
 
                 html += `<div class="daily-custom-section">
-                        <h4>自定义附加项</h4>
-                        <div id="${tab}CustomList">`;
+                                        <h4>自定义附加项</h4>
+                                        <div id="${tab}CustomList">`;
                 customs.forEach((c, i) => {
                     html += `<div class="daily-custom-item" data-idx="${i}">
-                            <input type="text" class="custom-label" value="${escapeHtml(c.label || '')}" placeholder="名称" data-idx="${i}">
-                            <input type="text" class="custom-value" value="${escapeHtml(c.value || '')}" placeholder="内容" data-idx="${i}">
-                            <button class="remove-custom" data-tab="${tab}" data-idx="${i}">删</button>
-                        </div>`;
+                                            <input type="text" class="custom-label" value="${escapeHtml(c.label || '')}" placeholder="名称" data-idx="${i}">
+                                            <input type="text" class="custom-value" value="${escapeHtml(c.value || '')}" placeholder="内容" data-idx="${i}">
+                                            <button class="remove-custom" data-tab="${tab}" data-idx="${i}">删</button>
+                                        </div>`;
                 });
                 html += `</div>
-                        <div style="margin-top:10px;">
-                            <button id="${tab}AddCustomBtn" class="secondary">＋ 添加自定义项</button>
-                        </div>
-                    </div>`;
+                                        <div style="margin-top:10px;">
+                                            <button id="${tab}AddCustomBtn" class="secondary">＋ 添加自定义项</button>
+                                        </div>
+                                    </div>`;
 
                 container.innerHTML = html;
 
@@ -6488,6 +6931,9 @@
                     window.addEventListener('focus', checkDateChange);
                 })();
 
+                // ==================== 母棋计算器 ====================
+                bindMotherEvents();
+
                 // ==================== 工单回复 ====================
                 renderReplySelects();
                 renderReplyPresetList();
@@ -6607,8 +7053,9 @@
             }
 
             bindAll();
-            if (document.getElementById('tabsContainer') && window.Sortable) {
-                new Sortable(document.getElementById('tabsContainer'), { animation: 150 });
+            const tabsEl = document.getElementById('tabsContainer');
+            if (tabsEl && window.Sortable) {
+                new Sortable(tabsEl, { animation: 150 });
             }
             if (debugConsole) {
                 debugConsole.style.display = 'none';
