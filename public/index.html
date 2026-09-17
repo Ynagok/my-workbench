@@ -1923,6 +1923,139 @@
                 color: var(--accent);
                 font-weight: 700;
             }
+
+        /* ============================================================
+                油炸工具栏 · 与拼豆统一高度 36px
+                ============================================================ */
+
+        /* ---------- 主控件统一：label / button / select ---------- */
+        #sub-panel-fry label[for="fryFileInput"],
+        #sub-panel-fry #fryResetBtn,
+        #sub-panel-fry #fryModeSelect,
+        #sub-panel-fry #frySaveBtn {
+            height: 36px !important;
+            min-height: 36px !important;
+            max-height: 36px !important;
+            box-sizing: border-box !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            line-height: 1 !important;
+            font-size: 12px !important;
+            font-family: var(--font-display) !important;
+            font-weight: 700 !important;
+            letter-spacing: 0.12em !important;
+            text-transform: uppercase !important;
+            padding: 0 14px !important;
+            margin: 0 !important;
+            border-radius: var(--r-sm) !important;
+            vertical-align: middle !important;
+            transition: all 0.16s ease !important;
+        }
+
+        /* ---------- 🍗 选择图片（label）---------- */
+        #sub-panel-fry label[for="fryFileInput"] {
+            background: var(--accent-dim) !important;
+            color: var(--accent-ink) !important;
+            border: 1px solid var(--accent-line) !important;
+            cursor: pointer !important;
+        }
+
+            #sub-panel-fry label[for="fryFileInput"]:hover {
+                background: var(--accent) !important;
+                color: var(--dark) !important;
+                border-color: var(--accent) !important;
+                box-shadow: 0 0 0 3px var(--accent-dim), 0 4px 12px var(--accent-glow) !important;
+            }
+
+        /* ---------- 重新下锅（reset 风格）---------- */
+        #sub-panel-fry #fryResetBtn {
+            background: var(--surface) !important;
+            color: var(--danger) !important;
+            border: 1px solid rgba(229,57,53,0.4) !important;
+            margin-left: 0 !important;
+        }
+
+            #sub-panel-fry #fryResetBtn:hover {
+                background: var(--danger) !important;
+                color: #fff !important;
+                border-color: var(--danger) !important;
+                box-shadow: 0 4px 12px rgba(229,57,53,0.25) !important;
+            }
+
+        /* ---------- 模式 select ---------- */
+        #sub-panel-fry #fryModeSelect {
+            width: auto !important;
+            min-width: 100px !important;
+            justify-content: flex-start !important;
+            text-align: left !important;
+            padding: 0 30px 0 12px !important;
+            background-color: var(--bg-1) !important;
+            background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'><path fill='%23a67c00' d='M2 4l4 4 4-4z'/></svg>") !important;
+            background-repeat: no-repeat !important;
+            background-position: right 10px center !important;
+            background-size: 10px !important;
+            border: 1px solid var(--line-0) !important;
+            color: var(--ink-0) !important;
+            cursor: pointer !important;
+            appearance: none !important;
+            -webkit-appearance: none !important;
+        }
+
+            #sub-panel-fry #fryModeSelect:focus {
+                border-color: var(--accent) !important;
+                background-color: var(--surface) !important;
+                box-shadow: 0 0 0 3px var(--accent-dim) !important;
+            }
+
+            #sub-panel-fry #fryModeSelect option {
+                background: var(--surface);
+                color: var(--ink-0);
+                letter-spacing: 0;
+                text-transform: none;
+            }
+
+        /* ---------- 💾 保存成品 ---------- */
+        #sub-panel-fry #frySaveBtn {
+            background: var(--dark) !important;
+            color: #fff !important;
+            border: 1px solid var(--dark) !important;
+        }
+
+            #sub-panel-fry #frySaveBtn:hover {
+                background: var(--accent) !important;
+                color: var(--dark) !important;
+                border-color: var(--accent) !important;
+                box-shadow: 0 0 0 3px var(--accent-dim), 0 4px 12px var(--accent-glow) !important;
+            }
+
+        /* ---------- "模式：" 标签（无 for，走内联 margin:0）---------- */
+        #sub-panel-fry > div > div:first-child > label[style*="margin: 0"],
+        #sub-panel-fry > div > div:first-child > label[style*="margin:0"] {
+            height: 36px !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            margin: 0 !important;
+            padding: 0 4px 0 6px !important;
+            font-size: 12px !important;
+            font-weight: 700 !important;
+            color: var(--ink-2) !important;
+            letter-spacing: 0.12em !important;
+            text-transform: uppercase !important;
+            font-family: var(--font-display) !important;
+        }
+
+        /* ---------- "支持 Ctrl+V 粘贴" 提示 ---------- */
+        #sub-panel-fry > div > div:first-child > span {
+            display: inline-flex !important;
+            align-items: center !important;
+            height: 36px !important;
+            font-size: 11.5px !important;
+            color: var(--ink-3) !important;
+            margin: 0 !important;
+            padding: 0 4px !important;
+            letter-spacing: 0.02em !important;
+        }
     </style>
 </head>
 
@@ -2258,9 +2391,10 @@
                     </div>
                     <canvas id="fryCanvas" width="540" height="820" tabindex="0"
                             style="display: block; width: 100%; max-width: 540px; height: auto;
-                               background: #e0d6c5; border: 1px solid var(--line-1);
+                               background: #f6f7f9; border: 1px solid var(--line-1);
                                border-radius: var(--r-md); cursor: crosshair;
-                               touch-action: none; outline: none;"></canvas>
+                               touch-action: none; outline: none;
+                               box-shadow: 0 4px 16px rgba(15,20,25,0.08);"></canvas>
                 </div>
             </div>
         </div><!-- /sub-panel-fry -->
@@ -6299,51 +6433,86 @@
                 // ===== 绘制 =====
                 function fryDrawPan() {
                     const py = fryPanY();
-                    // 手柄
+                    const cx = FW / 2;
+
+                    // ===== 手柄：两个白色小圆 + 深色描边 =====
                     fryCtx.save();
-                    fryCtx.lineWidth = 12;
-                    fryCtx.strokeStyle = '#2a2d2e';
+                    fryCtx.lineWidth = 2.5;
+                    fryCtx.strokeStyle = '#0f1419';
+                    fryCtx.fillStyle = '#ffffff';
                     [-1, 1].forEach(side => {
                         fryCtx.beginPath();
-                        fryCtx.ellipse(FW / 2 + side * 220, py + 5, 30, 24, side * 0.25, 0, Math.PI * 2);
+                        fryCtx.ellipse(cx + side * 218, py - 6, 24, 24, 0, 0, Math.PI * 2);
+                        fryCtx.fill();
                         fryCtx.stroke();
                     });
                     fryCtx.restore();
 
-                    // 锅体
-                    const grad = fryCtx.createLinearGradient(FW / 2 - 220, 0, FW / 2 + 220, 0);
-                    grad.addColorStop(0, '#191c1e');
-                    grad.addColorStop(0.22, '#484b4b');
-                    grad.addColorStop(0.5, '#353839');
-                    grad.addColorStop(0.85, '#252829');
-                    grad.addColorStop(1, '#131617');
+                    // ===== 锅身：白底 + 深色描边 + 淡阴影 =====
+                    fryCtx.save();
+                    fryCtx.shadowColor = 'rgba(15,20,25,0.10)';
+                    fryCtx.shadowBlur = 18;
+                    fryCtx.shadowOffsetY = 6;
                     fryCtx.beginPath();
-                    fryCtx.moveTo(FW / 2 - 220, py);
-                    fryCtx.lineTo(FW / 2 - 205, py + 85);
-                    fryCtx.ellipse(FW / 2, py + 85, 205, 100, 0, Math.PI, 0, true);
-                    fryCtx.lineTo(FW / 2 + 220, py);
+                    fryCtx.moveTo(cx - 220, py);
+                    fryCtx.lineTo(cx - 205, py + 85);
+                    fryCtx.ellipse(cx, py + 85, 205, 100, 0, Math.PI, 0, true);
+                    fryCtx.lineTo(cx + 220, py);
                     fryCtx.closePath();
-                    fryCtx.fillStyle = grad; fryCtx.fill();
+                    const bodyGrad = fryCtx.createLinearGradient(cx, py, cx, py + 185);
+                    bodyGrad.addColorStop(0, '#ffffff');
+                    bodyGrad.addColorStop(1, '#eef0f3');
+                    fryCtx.fillStyle = bodyGrad;
+                    fryCtx.fill();
+                    fryCtx.restore();
 
-                    // 锅边
+                    // 锅身描边（在阴影之外单独画，避免阴影跟着描边）
+                    fryCtx.save();
                     fryCtx.beginPath();
-                    fryCtx.ellipse(FW / 2, py, 220, 122, 0, 0, Math.PI * 2);
-                    fryCtx.fillStyle = '#626765'; fryCtx.fill();
-                    fryCtx.beginPath();
-                    fryCtx.ellipse(FW / 2, py - 2, 215, 117, 0, 0, Math.PI * 2);
-                    fryCtx.fillStyle = '#303536'; fryCtx.fill();
-                    fryCtx.beginPath();
-                    fryCtx.ellipse(FW / 2, py - 4, 207, 110, 0, 0, Math.PI * 2);
-                    fryCtx.fillStyle = '#111617'; fryCtx.fill();
+                    fryCtx.moveTo(cx - 220, py);
+                    fryCtx.lineTo(cx - 205, py + 85);
+                    fryCtx.ellipse(cx, py + 85, 205, 100, 0, Math.PI, 0, true);
+                    fryCtx.lineTo(cx + 220, py);
+                    fryCtx.closePath();
+                    fryCtx.lineWidth = 2.5;
+                    fryCtx.strokeStyle = '#0f1419';
+                    fryCtx.stroke();
+                    fryCtx.restore();
 
-                    // 油
-                    const oilGrad = fryCtx.createRadialGradient(FW / 2 - 30, py - 50, 20, FW / 2, py, 210);
-                    oilGrad.addColorStop(0, '#e3b94d');
-                    oilGrad.addColorStop(0.65, '#bd7e20');
-                    oilGrad.addColorStop(1, '#764015');
+                    // ===== 锅口：深色 → 白 → 浅灰（三层扁平） =====
+                    // 外圈深色（代表锅沿）
                     fryCtx.beginPath();
-                    fryCtx.ellipse(FW / 2, py - 4, 197, 104, 0, 0, Math.PI * 2);
-                    fryCtx.fillStyle = oilGrad; fryCtx.fill();
+                    fryCtx.ellipse(cx, py, 220, 122, 0, 0, Math.PI * 2);
+                    fryCtx.fillStyle = '#0f1419';
+                    fryCtx.fill();
+                    // 中层白
+                    fryCtx.beginPath();
+                    fryCtx.ellipse(cx, py - 2, 214, 116, 0, 0, Math.PI * 2);
+                    fryCtx.fillStyle = '#ffffff';
+                    fryCtx.fill();
+                    // 内层浅灰（锅内侧）
+                    fryCtx.beginPath();
+                    fryCtx.ellipse(cx, py - 4, 208, 110, 0, 0, Math.PI * 2);
+                    fryCtx.fillStyle = '#f6f7f9';
+                    fryCtx.fill();
+
+                    // ===== 油面：明黄 accent 径向渐变 + 深黄描边 =====
+                    fryCtx.save();
+                    const oilGrad = fryCtx.createRadialGradient(
+                        cx - 30, py - 50, 20,
+                        cx, py, 210
+                    );
+                    oilGrad.addColorStop(0, '#ffe066');  // accent-hi
+                    oilGrad.addColorStop(0.55, '#ffcc00'); // accent
+                    oilGrad.addColorStop(1, '#e6a800');   // 深黄
+                    fryCtx.beginPath();
+                    fryCtx.ellipse(cx, py - 4, 197, 104, 0, 0, Math.PI * 2);
+                    fryCtx.fillStyle = oilGrad;
+                    fryCtx.fill();
+                    fryCtx.lineWidth = 2;
+                    fryCtx.strokeStyle = 'rgba(166,124,0,0.55)';
+                    fryCtx.stroke();
+                    fryCtx.restore();
                 }
 
                 function fryDrawFood(image, x, y, size, angle) {
@@ -6362,8 +6531,24 @@
 
                 function fryDraw() {
                     fryCtx.clearRect(0, 0, FW, FH);
-                    fryCtx.fillStyle = '#e0d6c5';
+
+                    // ===== 工作台风格背景：浅灰 + 40px 网格 =====
+                    fryCtx.fillStyle = '#f6f7f9';
                     fryCtx.fillRect(0, 0, FW, FH);
+                    fryCtx.strokeStyle = 'rgba(15,20,25,0.028)';
+                    fryCtx.lineWidth = 1;
+                    for (let gx = 0; gx <= FW; gx += 40) {
+                        fryCtx.beginPath();
+                        fryCtx.moveTo(gx + 0.5, 0);
+                        fryCtx.lineTo(gx + 0.5, FH);
+                        fryCtx.stroke();
+                    }
+                    for (let gy = 0; gy <= FH; gy += 40) {
+                        fryCtx.beginPath();
+                        fryCtx.moveTo(0, gy + 0.5);
+                        fryCtx.lineTo(FW, gy + 0.5);
+                        fryCtx.stroke();
+                    }
 
                     fryDrawPan();
 
