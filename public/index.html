@@ -5372,7 +5372,7 @@
                         if (itemCount.size === 0) return ['未解析到有效奖励数据'];
 
                         const statsList = [];
-                        for (let [name, count] of itemCount) statsList.push(count > 1 ? `${name}*${count}` : name);
+                        for (let [name, count] of itemCount) statsList.push(`${name}*${count}`);
                         let result;
                         if (rawText.includes('当前轮次: 超级')) result = `在${timeStr}，获得超级好评点全部奖励：${statsList.join('，')}`;
                         else result = `在${timeStr}，获得好评奖励：${statsList.join('，')}`;
