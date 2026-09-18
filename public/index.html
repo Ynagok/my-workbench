@@ -5,14 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>客服冷静演绎工作台</title>
     <link rel="icon" type="image/gif" href="/my-icon.gif">
-    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" media="print" onload="this.media='all'" href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap"></noscript>
+    <!-- [优化] 锁版本 + defer：CDN 不可用时不再阻塞解析与首屏 -->
+    <script defer src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
     <style>
         /* ============================================================
         明日方舟：终末地 官网风格 · 浅色工作台主题（黄色强调版）
         风格：白色侧边栏 + 浅灰底 + 明黄强调 + 黑底日期标签 + 斜线纹理
         [优化] 保留原视觉，仅做可维护性微调
         ============================================================ */
-        @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap');
 
         :root {
             --bg-0: #eef0f3;
@@ -988,25 +992,6 @@
             border-radius: var(--r-sm);
         }
 
-        #tab-script label[for="pixelFileInput"] {
-            background: var(--accent-dim);
-            color: var(--accent-ink);
-            border: 1px solid var(--accent-line);
-            cursor: pointer;
-            display: inline-block;
-            font-family: var(--font-display);
-            font-weight: 700;
-            letter-spacing: 0.12em;
-            text-transform: uppercase;
-            transition: all 0.16s ease;
-        }
-
-            #tab-script label[for="pixelFileInput"]:hover {
-                background: var(--accent);
-                color: var(--dark);
-                border-color: var(--accent);
-                box-shadow: 0 0 0 3px var(--accent-dim), 0 4px 12px var(--accent-glow);
-            }
 
         #pixelColorPalette {
             background: var(--bg-1);
@@ -1917,30 +1902,6 @@
                 text-transform: none;
             }
 
-        /* ---------- 🍋 加柠檬 / 🥬 加生菜 ---------- */
-        #sub-panel-fry #fryLemonBtn,
-        #sub-panel-fry #fryLettuceBtn {
-            background: var(--surface) !important;
-            color: var(--ink-1) !important;
-            border: 1px solid var(--line-1) !important;
-            letter-spacing: 0.08em !important;
-        }
-
-            #sub-panel-fry #fryLemonBtn:hover,
-            #sub-panel-fry #fryLettuceBtn:hover {
-                background: var(--dark) !important;
-                color: #fff !important;
-                border-color: var(--dark) !important;
-                box-shadow: none !important;
-            }
-
-            #sub-panel-fry #fryLemonBtn.active,
-            #sub-panel-fry #fryLettuceBtn.active {
-                background: var(--accent) !important;
-                color: var(--dark) !important;
-                border-color: var(--accent) !important;
-                box-shadow: 0 0 0 3px var(--accent-dim), 0 4px 12px var(--accent-glow) !important;
-            }
 
         #sub-panel-fry > div > div:first-child > label[style*="margin: 0"],
         #sub-panel-fry > div > div:first-child > label[style*="margin:0"] {
@@ -2282,11 +2243,11 @@
         </div><!-- /tab-script -->
     </div><!-- /container -->
     <!-- ==================== 模态框集合（移出 tab-content，避免父级 display:none 导致无法弹出） ==================== -->
-    <div id="sourceRuleModal" class="modal">
+    <div id="sourceRuleModal" class="modal" role="dialog" aria-modal="true">
         <div class="modal-content">
             <div class="modal-header">
                 <h3> 文本转换规则管理</h3>
-                <span class="close" id="closeSourceRuleModal">&times;</span>
+                <span class="close" id="closeSourceRuleModal" role="button" tabindex="0" aria-label="关闭">&times;</span>
             </div>
             <p class="hint-text">✨ 按类型管理转换规则：来源、订单奖励、棋子名称。可搜索定位。</p>
             <div class="flex-row" style="margin-bottom:12px;">
@@ -2321,11 +2282,11 @@
         </div>
     </div>
 
-    <div id="ignoreRuleModal" class="modal">
+    <div id="ignoreRuleModal" class="modal" role="dialog" aria-modal="true">
         <div class="modal-content">
             <div class="modal-header">
                 <h3> 忽略关键词管理</h3>
-                <span class="close" id="closeIgnoreRuleModal">&times;</span>
+                <span class="close" id="closeIgnoreRuleModal" role="button" tabindex="0" aria-label="关闭">&times;</span>
             </div>
             <div id="ignoreRuleListContainer" style="max-height:250px; overflow:auto; border:1px solid #dee2e6; border-radius:8px; padding:8px;"></div>
             <div class="flex-row" style="margin-top:12px;">
@@ -2339,11 +2300,11 @@
         </div>
     </div>
 
-    <div id="scriptEditModal" class="modal">
+    <div id="scriptEditModal" class="modal" role="dialog" aria-modal="true">
         <div class="modal-content" style="max-width:600px;">
             <div class="modal-header">
                 <h3 id="scriptEditTitle">编辑话术</h3>
-                <span class="close" id="closeScriptModal">&times;</span>
+                <span class="close" id="closeScriptModal" role="button" tabindex="0" aria-label="关闭">&times;</span>
             </div>
             <textarea id="scriptEditText" rows="4" style="width:100%; margin-bottom:12px;"></textarea>
             <label>标签（可多个，用逗号或空格分隔）</label>
@@ -2355,11 +2316,11 @@
         </div>
     </div>
 
-    <div id="batchTagModal" class="modal">
+    <div id="batchTagModal" class="modal" role="dialog" aria-modal="true">
         <div class="modal-content" style="max-width:500px;">
             <div class="modal-header">
                 <h3>批量添加标签</h3>
-                <span class="close" id="closeBatchModal">&times;</span>
+                <span class="close" id="closeBatchModal" role="button" tabindex="0" aria-label="关闭">&times;</span>
             </div>
             <input type="text" id="batchTagInput" placeholder="标签名（逗号分隔）" style="width:100%; margin-bottom:12px;">
             <div class="flex-row">
@@ -2369,11 +2330,11 @@
         </div>
     </div>
 
-    <div id="manageTagsModal" class="modal">
+    <div id="manageTagsModal" class="modal" role="dialog" aria-modal="true">
         <div class="modal-content" style="max-width:500px;">
             <div class="modal-header">
                 <h3>管理所有标签</h3>
-                <span class="close" id="closeManageTags">&times;</span>
+                <span class="close" id="closeManageTags" role="button" tabindex="0" aria-label="关闭">&times;</span>
             </div>
             <div id="allTagsList" style="margin-bottom:16px;"></div>
             <div class="flex-row">
@@ -2383,11 +2344,11 @@
         </div>
     </div>
 
-    <div id="importScriptModal" class="modal">
+    <div id="importScriptModal" class="modal" role="dialog" aria-modal="true">
         <div class="modal-content" style="max-width:500px;">
             <div class="modal-header">
                 <h3>导入话术文本</h3>
-                <span class="close" id="closeImportModal">&times;</span>
+                <span class="close" id="closeImportModal" role="button" tabindex="0" aria-label="关闭">&times;</span>
             </div>
             <div class="checkbox-label">
                 <input type="checkbox" id="skipDuplicateCheckbox" checked> 跳过重复
@@ -2402,11 +2363,11 @@
     </div>
 
     <!-- 映射管理模态框 -->
-    <div id="mappingModal" class="modal">
+    <div id="mappingModal" class="modal" role="dialog" aria-modal="true">
         <div class="modal-content">
             <div class="modal-header">
                 <h3>映射管理</h3>
-                <span class="close" id="closeMappingModal">&times;</span>
+                <span class="close" id="closeMappingModal" role="button" tabindex="0" aria-label="关闭">&times;</span>
             </div>
             <p class="hint-text">管理物品ID、来源ID、活动类型ID到名称的映射。支持从游戏源码一键导入。</p>
             <div class="flex-row" style="margin-bottom:12px;">
@@ -2433,11 +2394,11 @@
     </div>
 
     <!-- 从源码导入映射模态框 -->
-    <div id="importMappingModal" class="modal">
+    <div id="importMappingModal" class="modal" role="dialog" aria-modal="true">
         <div class="modal-content">
             <div class="modal-header">
                 <h3>📥 从源码导入映射</h3>
-                <span class="close" id="closeImportMappingModal">&times;</span>
+                <span class="close" id="closeImportMappingModal" role="button" tabindex="0" aria-label="关闭">&times;</span>
             </div>
             <p class="hint-text">粘贴包含 <code>var allPresentGoods = {...}</code> 或 <code>&lt;option&gt;</code> 标签的 HTML/JS 源码。会自动提取物品、来源、活动映射。</p>
             <textarea id="importMappingSource" rows="10" placeholder="粘贴源码..." style="width:100%; font-family:monospace; font-size:12px;"></textarea>
@@ -2456,10 +2417,25 @@
     </div>
 
     <script>
-                                (async function () {
-                                    "use strict";
+                                    (async function () {
+                                        "use strict";
 
-                                    const SERVER_URL = window.location.origin;
+                                        // [修复] 初始化异常不再静默吞掉：给出可见提示，便于定位
+                                        function reportFatal(err) {
+                                            try {
+                                                console.error('[工作台] 初始化异常', err);
+                                                const banner = document.createElement('div');
+                                                banner.style.cssText = 'position:fixed;left:0;right:0;bottom:0;z-index:9999;background:#e53935;color:#fff;padding:10px 16px;font:13px/1.6 sans-serif;';
+                                                banner.textContent = '⚠️ 界面初始化异常：' + (err && err.message ? err.message : err) + '（功能可能不完整，按 F12 查看控制台）';
+                                                document.body.appendChild(banner);
+                                            } catch (_) { }
+                                        }
+                                        window.addEventListener('unhandledrejection', (e) => console.error('[工作台] 未处理的 Promise 异常', e.reason));
+
+                                        try {
+
+                                    // [修复] 改用相对地址：原来用 origin 拼绝对路径，部署在子目录时会请求错位置
+                                    const API_BASE = 'api/data/';
                                     const FETCH_TIMEOUT_MS = 4000;
 
                                     // ==================== 常量：转换规则 / 忽略词 ====================
@@ -4559,6 +4535,8 @@
                                             g3_wx: 0, g3_dy: 0, g3_dyol: 0,
                                             g4_wx: 0, g4_dy: 0, g4_dyol: 0,
                                             g5_wx: 0, g5_dy: 0, g5_alipay: 0,
+                                            g6_wx: 0, g6_dy: 0, g6_dyol: 0,
+                                            g7_wx: 0, g7_dy: 0, g7_dyol: 0,
                                             pending: ''
                                         },
                                         overseas: {
@@ -4598,6 +4576,12 @@
                                         { key: 'g5_wx', label: '⑤梦幻消除战·微信', type: 'number' },
                                         { key: 'g5_dy', label: '⑤梦幻消除战·抖音', type: 'number' },
                                         { key: 'g5_alipay', label: '⑤梦幻消除战·支付宝后台', type: 'number' },
+                                        { key: 'g6_wx', label: '⑥伙伴弹途·微信', type: 'number' },
+                                        { key: 'g6_dy', label: '⑥伙伴弹途·抖音', type: 'number' },
+                                        { key: 'g6_dyol', label: '⑥伙伴弹途·dy在线', type: 'number' },
+                                        { key: 'g7_wx', label: '⑦异世界勇者·微信', type: 'number' },
+                                        { key: 'g7_dy', label: '⑦异世界勇者·抖音', type: 'number' },
+                                        { key: 'g7_dyol', label: '⑦异世界勇者·dy在线', type: 'number' },
                                         { key: 'pending', label: '待跟进', type: 'textarea', fullWidth: true, placeholder: '例：xxx问题需要跟进' }
                                     ];
 
@@ -4624,12 +4608,39 @@
                                         return String(str).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
                                     }
 
+                                    // [优化] 正则缓存：规则不变时复用同一个 RegExp 实例
+                                    // （原来每次替换都 new RegExp，批量解析会构造上千次）
+                                    const __reCache = new Map();
+                                    function getCachedRegExp(pattern, flags = 'gi') {
+                                        const key = flags + '\u0000' + pattern;
+                                        let re = __reCache.get(key);
+                                        if (!re) {
+                                            re = new RegExp(escapeRegExp(pattern), flags);
+                                            __reCache.set(key, re);
+                                        }
+                                        return re;
+                                    }
+
+                                    // [优化] 元素引用缓存：热路径里反复 getElementById 很贵
+                                    const __elCache = new Map();
+                                    function $el(id) {
+                                        let el = __elCache.get(id);
+                                        if (!el || !el.isConnected) {
+                                            el = document.getElementById(id);
+                                            if (el) __elCache.set(id, el);
+                                        }
+                                        return el;
+                                    }
+                                    function isChecked(id, dflt = true) {
+                                        const el = $el(id);
+                                        return el ? !!el.checked : dflt;
+                                    }
+
                                     // [优化] 安全替换：替换文本中的 $&、$1 等不会被特殊解释
                                     function safeReplaceAll(text, pattern, replacement, flags = 'gi') {
                                         if (!pattern) return text;
                                         try {
-                                            const re = new RegExp(escapeRegExp(pattern), flags);
-                                            return text.replace(re, () => replacement == null ? '' : replacement);
+                                            return text.replace(getCachedRegExp(pattern, flags), () => replacement == null ? '' : replacement);
                                         } catch (e) {
                                             return text;
                                         }
@@ -4667,7 +4678,7 @@
                                         }
                                         // 服务器兜底
                                         try {
-                                            const resp = await fetchWithTimeout(`${SERVER_URL}/api/data/${key}`);
+                                            const resp = await fetchWithTimeout(API_BASE + encodeURIComponent(key));
                                             if (resp.ok) {
                                                 const json = await resp.json();
                                                 const value = json && json.value;
@@ -4682,77 +4693,93 @@
                                         return defaultValue;
                                     }
 
+                                    // [修复] 同一 key 的写入串行化，避免多个 POST 并发时服务器被旧值覆盖
+                                    const __saveChain = new Map();
                                     async function saveData(key, value) {
+                                        if (key === 'sourceRules') __reCache.clear();   // 规则变了，正则缓存作废
                                         try {
                                             localStorage.setItem(key, JSON.stringify(value));
                                         } catch (e) {
-                                            console.warn(`写入 localStorage[${key}] 失败`, e);
+                                            console.warn('写入 localStorage[' + key + '] 失败', e);
                                         }
-                                        try {
-                                            await fetchWithTimeout(`${SERVER_URL}/api/data/${key}`, {
-                                                method: 'POST',
-                                                headers: { 'Content-Type': 'application/json' },
-                                                body: JSON.stringify({ value })
-                                            });
-                                        } catch (e) {
-                                            console.warn(`同步服务器数据失败 [${key}]`, e);
-                                        }
+                                        const prev = __saveChain.get(key) || Promise.resolve();
+                                        const next = prev
+                                            .catch(() => { })
+                                            .then(async () => {
+                                                const resp = await fetchWithTimeout(API_BASE + encodeURIComponent(key), {
+                                                    method: 'POST',
+                                                    headers: { 'Content-Type': 'application/json' },
+                                                    body: JSON.stringify({ value })
+                                                });
+                                                if (!resp.ok) throw new Error('HTTP ' + resp.status);
+                                            })
+                                            .catch(e => { console.warn('同步服务器数据失败 [' + key + ']', e); });
+                                        __saveChain.set(key, next);
+                                        return next;
                                     }
 
-                                    // ==================== 关键数据并行加载 ====================
-                                    // [优化] 从串行 await 改为并行，缩短首屏时间
-                                    const [
-                                        _dailyData,
-                                        _sourceRules,
-                                        _ignoreKeywords,
-                                        _itemNameMap,
-                                        _sourceIdMap,
-                                        _activityTypeMap,
-                                        _replyOpenings,
-                                        _replyClosings,
-                                        _replyPresets
-                                    ] = await Promise.all([
-                                        loadData('dailyData', DAILY_DEFAULT_DATA),
-                                        loadData('sourceRules', DEFAULT_SOURCE_RULES),
-                                        loadData('ignoreKeywords', DEFAULT_IGNORE_KEYWORDS),
-                                        loadData('itemNameMap', DEFAULT_ITEM_NAME_MAP),
-                                        loadData('sourceIdMap', DEFAULT_SOURCE_ID_MAP),
-                                        loadData('activityTypeMap', DEFAULT_ACTIVITY_TYPE_MAP),
-                                        loadData('replyOpenings', []),
-                                        loadData('replyClosings', []),
-                                        loadData('replyPresets', [])
-                                    ]);
+                                    // ==================== 数据状态 ====================
+                                    // [优化] 首屏不再 await 网络：先用内置默认值把界面渲染出来，
+                                    //        持久化数据加载完成后由 applyState() + refreshDataViews() 覆盖刷新。
+                                    // [修复] 默认值一律深拷贝，避免内置常量被就地改写（此前导致「重置模板/重置默认映射」失效）。
+                                    const cloneDefault = (v) => {
+                                        try {
+                                            return (typeof structuredClone === 'function') ? structuredClone(v) : JSON.parse(JSON.stringify(v));
+                                        } catch (_) {
+                                            return v;
+                                        }
+                                    };
+                                    const asArray = (v) => Array.isArray(v) ? v : [];
+                                    const asObject = (v) => (v && typeof v === 'object' && !Array.isArray(v)) ? v : null;
 
-                                    let dailyData = _dailyData;
-                                    let sourceRules = Array.isArray(_sourceRules) ? _sourceRules : [];
-                                    let ignoreKeywords = Array.isArray(_ignoreKeywords) ? _ignoreKeywords : [];
-                                    let itemNameMap = _itemNameMap || {};
-                                    let sourceIdMap = _sourceIdMap || {};
-                                    let activityTypeMap = _activityTypeMap || {};
-                                    let replyOpenings = Array.isArray(_replyOpenings) ? _replyOpenings : [];
-                                    let replyClosings = Array.isArray(_replyClosings) ? _replyClosings : [];
-                                    let replyPresets = Array.isArray(_replyPresets) ? _replyPresets : [];
+                                    let dailyData = cloneDefault(DAILY_DEFAULT_DATA);
+                                    let sourceRules = [];
+                                    let ignoreKeywords = [];
+                                    let itemNameMap = {};
+                                    let sourceIdMap = {};
+                                    let activityTypeMap = {};
+                                    let replyOpenings = [];
+                                    let replyClosings = [];
+                                    let replyPresets = [];
+                                    let dailyTouched = false;   // 用户是否已开始编辑日报（避免异步数据覆盖输入）
 
-                                    // [优化] 旧数据迁移：为缺失 type 的规则补默认值
-                                    sourceRules = sourceRules.map(r => {
-                                        if (!r || typeof r !== 'object') return { pattern: '', replacement: '', type: 'source' };
-                                        return { type: 'source', ...r };
-                                    });
+                                    // [修复] 开头语/结束语兜底（这里不再写盘，由加载流程决定是否回填保存）
+                                    function backfillDefaultPhrases() {
+                                        if (replyOpenings.filter(t => t && String(t).trim()).length === 0) replyOpenings = [...DEFAULT_OPENING_PHRASES];
+                                        if (replyClosings.filter(t => t && String(t).trim()).length === 0) replyClosings = [...DEFAULT_CLOSING_PHRASES];
+                                    }
+
+                                    // 统一的状态归一化：默认值 / localStorage / 服务器 三条入口共用
+                                    function applyState(bundle) {
+                                        const b = bundle || {};
+                                        dailyData = asObject(b.dailyData) || cloneDefault(DAILY_DEFAULT_DATA);
+                                        sourceRules = (Array.isArray(b.sourceRules) ? b.sourceRules : DEFAULT_SOURCE_RULES).map(r =>
+                                            (!r || typeof r !== 'object') ? { pattern: '', replacement: '', type: 'source' } : { type: 'source', ...r });
+                                        ignoreKeywords = (Array.isArray(b.ignoreKeywords) ? b.ignoreKeywords : DEFAULT_IGNORE_KEYWORDS).filter(k => k != null);
+                                        itemNameMap = asObject(b.itemNameMap) || cloneDefault(DEFAULT_ITEM_NAME_MAP);
+                                        sourceIdMap = asObject(b.sourceIdMap) || cloneDefault(DEFAULT_SOURCE_ID_MAP);
+                                        activityTypeMap = asObject(b.activityTypeMap) || cloneDefault(DEFAULT_ACTIVITY_TYPE_MAP);
+                                        replyOpenings = asArray(b.replyOpenings);
+                                        replyClosings = asArray(b.replyClosings);
+                                        replyPresets = asArray(b.replyPresets).filter(p => p && typeof p === 'object');
+
+                                        // 兼容旧版数据：补齐缺失字段
+                                        if (!Array.isArray(dailyData.ticketCustom)) dailyData.ticketCustom = [];
+                                        if (!Array.isArray(dailyData.overseasCustom)) dailyData.overseasCustom = [];
+                                        if (!dailyData.currentTab) dailyData.currentTab = 'ticket';
+                                        // 关键：补齐 ticket / overseas 主对象，避免旧版本数据缺字段直接崩溃
+                                        dailyData.ticket = { ...cloneDefault(DAILY_DEFAULT_DATA.ticket), ...(asObject(dailyData.ticket) || {}) };
+                                        dailyData.overseas = { ...cloneDefault(DAILY_DEFAULT_DATA.overseas), ...(asObject(dailyData.overseas) || {}) };
+
+                                        __reCache.clear();   // 规则可能变了，正则缓存作废
+                                        backfillDefaultPhrases();
+                                    }
 
                                     const debouncedSaveDaily = debounce(() => saveData('dailyData', dailyData), 500);
                                     const safeCopy = (text) => {
                                         if (!navigator.clipboard || !text) return;
                                         navigator.clipboard.writeText(text).catch(() => { });
                                     };
-
-                                    // 兼容旧版数据：补齐缺失字段
-                                    if (!Array.isArray(dailyData.ticketCustom)) dailyData.ticketCustom = [];
-                                    if (!Array.isArray(dailyData.overseasCustom)) dailyData.overseasCustom = [];
-                                    if (!dailyData.currentTab) dailyData.currentTab = 'ticket';
-
-                                    // 关键：补齐 ticket / overseas 主对象，避免旧版本数据缺字段直接崩溃
-                                    dailyData.ticket = { ...DAILY_DEFAULT_DATA.ticket, ...(dailyData.ticket || {}) };
-                                    dailyData.overseas = { ...DAILY_DEFAULT_DATA.overseas, ...(dailyData.overseas || {}) };
 
                                     // ==================== 工单回复 · 默认短语（含兜底） ====================
                                     const DEFAULT_OPENING_PHRASES = [
@@ -4777,17 +4804,8 @@
                                         "投诉"
                                     ];
 
-                                    // 校验：如果数据丢失为空（或不是数组），自动回填默认值并保存
-                                    if (replyOpenings.filter(t => t && String(t).trim()).length === 0) {
-                                        replyOpenings = [...DEFAULT_OPENING_PHRASES];
-                                        saveData('replyOpenings', replyOpenings);
-                                        console.log('[修复] 开头语为空，已回填默认 4 条');
-                                    }
-                                    if (replyClosings.filter(t => t && String(t).trim()).length === 0) {
-                                        replyClosings = [...DEFAULT_CLOSING_PHRASES];
-                                        saveData('replyClosings', replyClosings);
-                                        console.log('[修复] 结束语为空，已回填默认 4 条');
-                                    }
+                                    // 校验：数据为空时回填默认短语（启动即生效；是否写盘由加载流程决定）
+                                    applyState(null);
 
                                     // ==================== DOM 引用 ====================
                                     const globalResultArea = document.getElementById('globalResultArea');
@@ -4801,24 +4819,32 @@
                                         if (!debugConsole) return;
                                         debugConsole.style.display = (debugConsole.style.display === 'block') ? 'none' : 'block';
                                     }
-                                    // [优化] 使用数组缓冲，批量渲染，避免逐行 innerHTML 拼接卡顿
+                                    // [优化] 使用数组缓冲，批量渲染，避免逐行拼接卡顿
                                     const __debugBuffer = [];
                                     let __debugFlushTimer = null;
+                                    const __DEBUG_MAX_CHARS = 200000;   // 日志上限，避免长时间使用后无限增长
+                                    function __flushDebug() {
+                                        if (__debugFlushTimer) { clearTimeout(__debugFlushTimer); __debugFlushTimer = null; }
+                                        if (!debugConsole || !__debugBuffer.length) { __debugBuffer.length = 0; return; }
+                                        debugConsole.appendChild(document.createTextNode(__debugBuffer.join('')));
+                                        __debugBuffer.length = 0;
+                                        const full = debugConsole.textContent || '';
+                                        if (full.length > __DEBUG_MAX_CHARS) debugConsole.textContent = full.slice(-Math.floor(__DEBUG_MAX_CHARS / 2));
+                                    }
                                     function appendDebug(text) {
                                         if (!debugConsole) return;
                                         __debugBuffer.push(String(text));
                                         if (__debugFlushTimer) return;
-                                        __debugFlushTimer = setTimeout(() => {
-                                            if (__debugBuffer.length) {
-                                                debugConsole.textContent += __debugBuffer.join('');
-                                                __debugBuffer.length = 0;
-                                            }
-                                            __debugFlushTimer = null;
-                                        }, 30);
+                                        __debugFlushTimer = setTimeout(__flushDebug, 30);
+                                    }
+                                    // [修复] 重置日志时同步丢弃未 flush 的缓冲，避免上一轮日志串到新一轮
+                                    function resetDebug(text = '') {
+                                        __debugBuffer.length = 0;
+                                        if (__debugFlushTimer) { clearTimeout(__debugFlushTimer); __debugFlushTimer = null; }
+                                        if (debugConsole) debugConsole.textContent = text;
                                     }
                                     document.getElementById('debugToggleHeader')?.addEventListener('click', toggleDebugConsole);
 
-                                    function cleanText(t) { return String(t).replace(/\ufeff/g, '').replace(/\s+/g, ' ').trim(); }
 
                                     function extractTime(t) {
                                         const p = [
@@ -4849,7 +4875,7 @@
                                     // ==================== 转换 & 映射 ====================
                                     function applyConversionByType(src, type) {
                                         if (!src) return src;
-                                        if (!(document.getElementById('enableSourceConversionCheckbox')?.checked ?? true)) return src;
+                                        if (!(isChecked('enableSourceConversionCheckbox'))) return src;
                                         const lower = src.toLowerCase();
                                         for (let r of sourceRules.filter(r => r.type === type)) {
                                             if (r.pattern && lower.includes(String(r.pattern).toLowerCase())) return r.replacement || src;
@@ -4861,7 +4887,7 @@
 
                                     function applyRewardConversion(str) {
                                         if (!str) return str;
-                                        if (!(document.getElementById('enableSourceConversionCheckbox')?.checked ?? true)) return str;
+                                        if (!(isChecked('enableSourceConversionCheckbox'))) return str;
                                         let result = str;
                                         for (let r of sourceRules.filter(r => r.type === 'reward')) {
                                             if (!r.pattern) continue;
@@ -4877,7 +4903,7 @@
 
                                     function applyAllConversions(text) {
                                         if (!text) return text;
-                                        if (!(document.getElementById('enableSourceConversionCheckbox')?.checked ?? true)) return text;
+                                        if (!(isChecked('enableSourceConversionCheckbox'))) return text;
                                         let result = text;
                                         for (let r of sourceRules) {
                                             if (!r.pattern) continue;
@@ -4907,14 +4933,9 @@
                                         return name || id || '';
                                     }
 
-                                    // 活动类型解析
-                                    function resolveActivityType(id) {
-                                        id = String(id || '').trim();
-                                        return activityTypeMap[id] || id || '';
-                                    }
 
                                     function shouldIgnoreLine(line) {
-                                        if (!(document.getElementById('enableIgnoreRulesCheckbox')?.checked ?? true) || !ignoreKeywords.length) return false;
+                                        if (!(isChecked('enableIgnoreRulesCheckbox')) || !ignoreKeywords.length) return false;
                                         return ignoreKeywords.some(kw => line.toLowerCase().includes(String(kw).toLowerCase()));
                                     }
 
@@ -4923,16 +4944,17 @@
                                     function sortSentencesByTime(sentences, order = 'desc') {
                                         if (!sentences || sentences.length < 2) return sentences;
                                         const timeRegex = /\d{4}[-\/]\d{2}[-\/]\d{2}\s+\d{2}:\d{2}:\d{2}/;
-                                        return sentences.slice().sort((a, b) => {
-                                            const timeA = (a.match(timeRegex) || [])[0];
-                                            const timeB = (b.match(timeRegex) || [])[0];
-                                            if (!timeA && !timeB) return 0;
-                                            if (!timeA) return 1;
-                                            if (!timeB) return -1;
-                                            const dateA = new Date(timeA.replace(/-/g, '/'));
-                                            const dateB = new Date(timeB.replace(/-/g, '/'));
-                                            return order === 'asc' ? dateA - dateB : dateB - dateA;
-                                        });
+                                        const dir = order === 'asc' ? 1 : -1;
+                                        // [优化] 排序键只提取一次（原来是 O(n log n) 次正则匹配 + Date 解析）
+                                        return sentences
+                                            .map((text, i) => ({ text, i, key: (text.match(timeRegex) || [''])[0].replace(/-/g, '/') }))
+                                            .sort((a, b) => {
+                                                if (a.key === b.key) return a.i - b.i;   // 稳定排序
+                                                if (!a.key) return 1;                    // 没有时间的排最后
+                                                if (!b.key) return -1;
+                                                return a.key < b.key ? -dir : dir;
+                                            })
+                                            .map(o => o.text);
                                     }
 
                                     function applyResourceClickReplace(text, resourceType) {
@@ -5290,7 +5312,7 @@
                                             let resolvedItemName = resolveItemName(itemId, itemName);
                                             resolvedItemName = applyAllConversions(resolvedItemName);
 
-                                            const userSelectedType = document.getElementById('flowResourceSelect')?.value || '';
+                                            const userSelectedType = $el('flowResourceSelect')?.value || '';
                                             let resourceTag = isNewFormat ? thirdCol : detectResourceType(line);
                                             if (['体力', '红钻', '金币', '好评点'].includes(userSelectedType)) {
                                                 resolvedItemName = userSelectedType;
@@ -5518,14 +5540,14 @@
                                         expandDebugConsole();
                                         // [优化] 空值保护
                                         const checkedRadio = document.querySelector('input[name="parseMode"]:checked');
-                                        if (!checkedRadio) { debugConsole.textContent = '❌ 请选择解析模式'; return; }
+                                        if (!checkedRadio) { resetDebug('❌ 请选择解析模式'); return; }
                                         const mode = checkedRadio.value;
                                         const raw = smartPasteInput.value.trim();
-                                        if (!raw) { debugConsole.textContent = '❌ 请输入文本'; return; }
+                                        if (!raw) { resetDebug('❌ 请输入文本'); return; }
                                         const sortOrder = document.getElementById('sortOrderSelect').value;
 
                                         if (mode === 'order') {
-                                            debugConsole.textContent = '📦 订单日志解析...';
+                                            resetDebug('📦 订单日志解析...');
                                             if (raw.includes('创建')) debugConsole.textContent += '\n⚠️ 检测到"创建"订单，可能无法提取完整奖励';
                                             const s = parseOrderLog(raw).map(sentence => applyAllConversions(sentence));
                                             globalResultArea.value = s.join('\n\n');
@@ -5535,7 +5557,7 @@
                                             return;
                                         }
                                         if (mode === 'review') {
-                                            debugConsole.textContent = '🌟 好评奖励解析...';
+                                            resetDebug('🌟 好评奖励解析...');
                                             const s = parseReviewLog(raw).map(sentence => applyAllConversions(sentence));
                                             globalResultArea.value = s.join('\n\n');
                                             globalResultCount.textContent = `${s.length} 条`;
@@ -5545,7 +5567,7 @@
                                             return;
                                         }
                                         if (mode === 'chess') {
-                                            debugConsole.textContent = '🔍 棋子流水解析...';
+                                            resetDebug('🔍 棋子流水解析...');
                                             const r = parseChessLog(raw).filter(r => !r.error);
                                             if (!r.length) { debugConsole.textContent += '\n❌ 没有解析到有效棋子记录'; return; }
                                             r.sort((a, b) => (b.time || '').localeCompare(a.time || ''));
@@ -5559,8 +5581,8 @@
                                             return;
                                         }
                                         // 资源流水
-                                        debugConsole.textContent = '🔍 资源流水解析...';
-                                        const resourceType = document.getElementById('flowResourceSelect').value;
+                                        resetDebug('🔍 资源流水解析...');
+                                        const resourceType = $el('flowResourceSelect').value;
                                         const includeSourcesRaw = document.getElementById('includeSourcesInput').value.trim();
                                         const itemKeywordRaw = document.getElementById('itemKeywordInput').value.trim();
                                         let records = [];
@@ -5642,7 +5664,7 @@
                                         if (lines.length < 2) return [];
                                         let delim = lines[0].includes('\t') ? '\t' : (lines[0].includes(';') ? ';' : ',');
                                         const rawHeaders = lines[0].split(delim).map(h => cleanHeader(h));
-                                        debugConsole.textContent = `📋 列名: ${rawHeaders.join(' | ')}`;
+                                        resetDebug(`📋 列名: ${rawHeaders.join(' | ')}`);
                                         const colMap = {
                                             '时间': ['创建时间', '时间', 'time'], '增减': ['0:减少;1:增加', '增减', 'type'],
                                             '数量': ['数量', 'change'], '之前': ['数量(before)', 'before', '之前'],
@@ -5664,7 +5686,7 @@
                                         if (colIdx['道具ID'] === undefined) colIdx['道具ID'] = -1;
 
                                         const records = [];
-                                        const enableIgnore = document.getElementById('enableIgnoreRulesCheckbox')?.checked ?? true;
+                                        const enableIgnore = isChecked('enableIgnoreRulesCheckbox');
                                         const debugLines = [];
                                         for (let i = 1; i < lines.length; i++) {
                                             let line = lines[i];
@@ -5693,7 +5715,7 @@
                                             else if (incDec.includes('增加') || incDec === '1' || incDec.includes('+1')) quantity = Math.abs(quantity);
                                             rec['数量'] = quantity;
 
-                                            const userSelectedType = document.getElementById('flowResourceSelect').value;
+                                            const userSelectedType = $el('flowResourceSelect').value;
                                             if (['体力', '红钻', '金币', '好评点'].includes(userSelectedType)) {
                                                 rec['道具名称'] = userSelectedType;
                                             } else if (!rec['道具名称'] && !rec['道具ID']) {
@@ -5765,7 +5787,7 @@
                                     function processFlowCsv(text) {
                                         expandDebugConsole();
                                         const f = document.getElementById('flowFileInput').files[0];
-                                        const selectedType = document.getElementById('flowResourceSelect').value;
+                                        const selectedType = $el('flowResourceSelect').value;
                                         if (f) {
                                             const inferred = inferTypeFromFileName(f.name);
                                             if (inferred && inferred !== selectedType) {
@@ -5928,7 +5950,7 @@
 
                                     // ==================== 拼豆小游戏 ====================
                                     const pixelCanvas = document.getElementById('pixelCanvas');
-                                    if (pixelCanvas) {
+                                    if (pixelCanvas) { try {
                                         const ctx = pixelCanvas.getContext('2d');
                                         let gridSize = parseInt(document.getElementById('pixelGridSize').value, 10) || 40;
                                         const cellSize = 15;
@@ -6282,12 +6304,15 @@
                                             link.click();
                                         }
                                         document.getElementById('pixelExportBtn').addEventListener('click', exportBlueprint);
+                                        } catch (pixelErr) {
+                                            console.warn('拼豆模块初始化失败（已跳过）', pixelErr);
+                                        }
                                     }
 
                                     // ==================== 油炸小游戏 ====================
                                     const fryCanvas = document.getElementById('fryCanvas');
                                     let frySaveBtn = document.getElementById('frySaveBtn');
-                                    if (fryCanvas) {
+                                    if (fryCanvas) { try {
                                         const fryCtx = fryCanvas.getContext('2d');
                                         const FW = 540, FH = 820;
                                         const FRY_DPR = Math.min(window.devicePixelRatio || 1, 2);
@@ -6358,7 +6383,8 @@
                                         };
                                         const fryOriginal = document.createElement('canvas');
                                         const fryFried = document.createElement('canvas');
-                                        let fryPixels = null, fryRelief = null, fryGrain = null, fryCoat = null;
+                                                                    let fryPixels = null, fryRelief = null, fryGrain = null, fryCoat = null;
+                                    let fryOut = null;   // [优化] 复用的输出 ImageData
                                         let frySeeds = [];
 
                                         // ===== 音频 =====
@@ -6501,7 +6527,9 @@
                                             const c = fryFried.getContext('2d');
                                             if (sec <= 0) { c.putImageData(fryPixels, 0, 0); return; }
 
-                                            const out = c.getImageData(0, 0, w, h);
+                                            // [优化] 复用同一份 ImageData，避免每个 bucket 都从画布整张回读
+                                            if (!fryOut || fryOut.width !== w || fryOut.height !== h) fryOut = c.createImageData(w, h);
+                                            const out = fryOut;
                                             const src = fryPixels.data, dst = out.data;
                                             const isTempura = fryState.mode === 'tempura';
 
@@ -7468,6 +7496,8 @@
                                             snap.getContext('2d').drawImage(fryFried, 0, 0);
 
                                             const renderSize = fryState.food.size * 0.84;
+                                            // [优化] 盘子上限，避免狂拖时无限累积 canvas 造成内存增长
+                                            if (fryState.plateFoods.length >= 30) fryState.plateFoods.shift();
                                             fryState.plateFoods.push({
                                                 x: fryState.food.x,
                                                 y: fryState.food.y,
@@ -7877,6 +7907,7 @@
 
                                         // ===== 主循环 =====
                                         let fryLast = performance.now();
+                                        let fryRAF = 0;
                                         const tabScriptEl = document.getElementById('tab-script');
                                         const subPanelFryEl = document.getElementById('sub-panel-fry');
                                         function fryLoop(now) {
@@ -7889,8 +7920,22 @@
                                                 fryUpdate(dt);
                                                 fryDraw();
                                             }
-                                            requestAnimationFrame(fryLoop);
+                                            fryRAF = requestAnimationFrame(fryLoop);
                                         }
+                                        function fryStartLoop() {
+                                            if (fryRAF) return;
+                                            fryLast = performance.now();
+                                            fryRAF = requestAnimationFrame(fryLoop);
+                                        }
+                                        function fryStopLoop() {
+                                            if (!fryRAF) return;
+                                            cancelAnimationFrame(fryRAF);
+                                            fryRAF = 0;
+                                        }
+                                        // [优化] 页面不可见时停掉 rAF，别在后台空转 60fps
+                                        document.addEventListener('visibilitychange', () => {
+                                            if (document.hidden) fryStopLoop(); else fryStartLoop();
+                                        });
 
                                         // ===== 「保存摆盘」按钮 =====
                                         if (frySaveBtn) {
@@ -7906,7 +7951,10 @@
                                         }
 
                                         frySetDefaultImage();
-                                        requestAnimationFrame(fryLoop);
+                                        fryStartLoop();
+                                        } catch (fryErr) {
+                                            console.warn('油炸模块初始化失败（已跳过）', fryErr);
+                                        }
                                     }
 
                                     // ==================== 规则管理 ====================
@@ -7932,8 +7980,8 @@
                                                                                                                             <span style="color: var(--ak-primary);">→</span>
                                                                                                                             <span class="rule-replacement">${escapeHtml(replacement)}</span>
                                                                                                                             <div class="rule-actions">
-                                                                                                                                <button class="edit-source-btn secondary" data-idx="${idx}">✏️</button>
-                                                                                                                                <button class="delete-source-btn reset-btn" data-idx="${idx}">🗑️</button>
+                                                                                                                                <button class="edit-source-btn secondary" data-idx="${idx}" title="编辑" aria-label="编辑">✏️</button>
+                                                                                                                                <button class="delete-source-btn reset-btn" data-idx="${idx}" title="删除" aria-label="删除">🗑️</button>
                                                                                                                             </div>
                                                                                                                         </div>`;
                                         }).join('') || '<div style="padding:20px;text-align:center;color:var(--ak-text-mute);">暂无规则</div>';
@@ -7979,7 +8027,7 @@
                                             `<div class="rule-item">
                                                                                                                             <span class="rule-pattern">${escapeHtml(k)}</span>
                                                                                                                             <div class="rule-actions">
-                                                                                                                                <button data-i="${i}" class="delete-ignore-btn reset-btn">🗑️</button>
+                                                                                                                                <button data-i="${i}" class="delete-ignore-btn reset-btn" title="删除" aria-label="删除">🗑️</button>
                                                                                                                             </div>
                                                                                                                         </div>`
                                         ).join('') || '<div style="padding:20px;text-align:center;color:var(--ak-text-mute);">暂无忽略关键词</div>';
@@ -8028,7 +8076,7 @@
                                                                                                                             <span style="color: var(--ak-primary);">→</span>
                                                                                                                             <span class="rule-replacement" style="flex:1;">${escapeHtml(name || '(空)')}</span>
                                                                                                                             <div class="rule-actions">
-                                                                                                                                <button class="delete-mapping-btn reset-btn" data-id="${escapeHtml(id)}">🗑️</button>
+                                                                                                                                <button class="delete-mapping-btn reset-btn" data-id="${escapeHtml(id)}" title="删除" aria-label="删除">🗑️</button>
                                                                                                                             </div>
                                                                                                                         </div>`
                                         ).join('');
@@ -8145,7 +8193,7 @@
                                                                                                                             </div>
                                                                                                                             <div class="preset-actions">
                                                                                                                                 <button class="secondary load-preset-btn" data-i="${i}">载入</button>
-                                                                                                                                <button class="reset-btn delete-preset-btn" data-i="${i}">🗑️</button>
+                                                                                                                                <button class="reset-btn delete-preset-btn" data-i="${i}" title="删除" aria-label="删除">🗑️</button>
                                                                                                                             </div>
                                                                                                                         </div>
                                                                                                                     `;
@@ -8264,30 +8312,33 @@
 
                                         container.innerHTML = html;
 
-                                        container.querySelectorAll('input[data-key], textarea[data-key], select[data-key]').forEach(el => {
-                                            const evt = el.tagName === 'SELECT' ? 'change' : 'input';
-                                            el.addEventListener(evt, () => {
-                                                const key = el.dataset.key;
-                                                if (el.type === 'number') {
-                                                    let v = parseFloat(el.value);
-                                                    if (isNaN(v)) v = 0;
-                                                    dailyData[tab][key] = v;
-                                                } else {
-                                                    dailyData[tab][key] = el.value;
-                                                }
-                                                debouncedSaveDaily();
-                                            });
+                                    container.querySelectorAll('input[data-key], textarea[data-key], select[data-key]').forEach(el => {
+                                        const evt = el.tagName === 'SELECT' ? 'change' : 'input';
+                                        el.addEventListener(evt, () => {
+                                            const key = el.dataset.key;
+                                            if (el.type === 'number') {
+                                                let v = parseFloat(el.value);
+                                                if (isNaN(v)) v = 0;
+                                                dailyData[tab][key] = v;
+                                            } else {
+                                                dailyData[tab][key] = el.value;
+                                            }
+                                            dailyTouched = true;
+                                            debouncedSaveDaily();
                                         });
+                                    });
 
-                                        container.querySelectorAll('.daily-custom-item input').forEach(el => {
-                                            el.addEventListener('input', () => {
-                                                const idx = parseInt(el.dataset.idx);
-                                                if (!dailyData[customKey][idx]) return;
-                                                if (el.classList.contains('custom-label')) dailyData[customKey][idx].label = el.value;
-                                                else dailyData[customKey][idx].value = el.value;
-                                                saveData('dailyData', dailyData);
-                                            });
+                                    container.querySelectorAll('.daily-custom-item input').forEach(el => {
+                                        el.addEventListener('input', () => {
+                                            const idx = parseInt(el.dataset.idx);
+                                            if (!dailyData[customKey][idx]) return;
+                                            if (el.classList.contains('custom-label')) dailyData[customKey][idx].label = el.value;
+                                            else dailyData[customKey][idx].value = el.value;
+                                            dailyTouched = true;
+                                            // [修复] 原来这里是 saveData()，每敲一个字符就发一次 POST
+                                            debouncedSaveDaily();
                                         });
+                                    });
 
                                         container.querySelectorAll('.remove-custom').forEach(btn => {
                                             btn.addEventListener('click', () => {
@@ -8347,6 +8398,8 @@
                                             text += `      ③不差钱微信【${d.g3_wx || 0}】，抖音【${d.g3_dy || 0}】，dy在线【${d.g3_dyol || 0}】\n`;
                                             text += `      ④你的江湖微信【${d.g4_wx || 0}】，抖音【${d.g4_dy || 0}】，dy在线【${d.g4_dyol || 0}】\n`;
                                             text += `      ⑤梦幻消除战微信【${d.g5_wx || 0}】，抖音【${d.g5_dy || 0}】，支付宝后台【${d.g5_alipay || 0}】\n`;
+                                            text += `      ⑥伙伴弹途微信【${d.g6_wx || 0}】，抖音【${d.g6_dy || 0}】，dy在线【${d.g6_dyol || 0}】\n`;
+                                            text += `      ⑦异世界勇者微信【${d.g7_wx || 0}】，抖音【${d.g7_dy || 0}】，dy在线【${d.g7_dyol || 0}】\n`;
                                             text += `\n${date.month}.${date.day}待跟进：\n`;
                                             text += `${d.pending || ''}\n`;
 
@@ -8389,7 +8442,7 @@
                                         const hint = document.getElementById('dailyDateHint');
                                         if (hint) hint.textContent = `${date.month}月${date.day}日`;
 
-                                        navigator.clipboard.writeText(text).catch(() => { });
+                                        safeCopy(text);   // [修复] 非安全上下文下 navigator.clipboard 可能不存在
                                     }
 
                                     function switchDailyTab(tab) {
@@ -8429,7 +8482,7 @@
                                         setClick('clearSmartBtn', () => {
                                             smartPasteInput.value = '';
                                             globalResultArea.value = '';
-                                            debugConsole.textContent = '';
+                                            resetDebug('');
                                         });
                                         addEvent('sortOrderSelect', 'change', () => {
                                             const text = globalResultArea.value.trim();
@@ -8454,7 +8507,7 @@
                                                 return;
                                             }
                                             if (mode === 'chess') {
-                                                debugConsole.textContent = '🔍 棋子流水（文件）解析...';
+                                                resetDebug('🔍 棋子流水（文件）解析...');
                                                 const r = parseChessLog(text).filter(x => !x.error);
                                                 if (!r.length) { debugConsole.textContent += '\n❌ 无有效棋子记录'; return; }
                                                 r.sort((a, b) => (b.time || '').localeCompare(a.time || ''));
@@ -8468,7 +8521,7 @@
                                                 return;
                                             }
                                             if (mode === 'order') {
-                                                debugConsole.textContent = '📦 订单日志（文件）解析...';
+                                                resetDebug('📦 订单日志（文件）解析...');
                                                 const s = parseOrderLog(text).map(x => applyAllConversions(x));
                                                 globalResultArea.value = s.join('\n\n');
                                                 globalResultCount.textContent = `${s.length} 条`;
@@ -8477,7 +8530,7 @@
                                                 return;
                                             }
                                             if (mode === 'review') {
-                                                debugConsole.textContent = '🌟 好评奖励（文件）解析...';
+                                                resetDebug('🌟 好评奖励（文件）解析...');
                                                 const s = parseReviewLog(text).map(x => applyAllConversions(x));
                                                 globalResultArea.value = s.join('\n\n');
                                                 globalResultCount.textContent = `${s.length} 条`;
@@ -8492,7 +8545,7 @@
                                             if (!f) return;
                                             const text = await f.text();
                                             expandDebugConsole();
-                                            debugConsole.textContent = `CSV前200字符:\n${text.substring(0, 200)}`;
+                                            resetDebug(`CSV前200字符:\n${text.substring(0, 200)}`);
                                         });
 
                                         setClick('copyGlobalResultBtn', () => safeCopy(globalResultArea.value));
@@ -8694,7 +8747,7 @@
                                                 clearSearch.style.display = 'none';
                                                 renderSourceRuleList(typeFilter.value, '');
                                             };
-                                            searchInput.onkeypress = (e) => {
+                                            searchInput.onkeydown = (e) => {
                                                 if (e.key === 'Enter') {
                                                     const term = searchInput.value.trim();
                                                     if (!term) return;
@@ -8945,22 +8998,121 @@
                                     // ==================== 启动 ====================
                                     bindAll();
 
-                                    // 侧边栏可拖拽排序
+                                    // 侧边栏可拖拽排序（顺序持久化；Sortable 改为 defer 加载，可能在 DOMContentLoaded 后才就绪）
                                     const tabsEl = document.getElementById('tabsContainer');
-                                    if (tabsEl && window.Sortable) {
+                                    const TAB_ORDER_KEY = 'tabsOrder';
+                                    function restoreTabOrder() {
+                                        if (!tabsEl) return;
+                                        try {
+                                            const order = JSON.parse(localStorage.getItem(TAB_ORDER_KEY) || 'null');
+                                            if (!Array.isArray(order) || !order.length) return;
+                                            order.forEach(tab => {
+                                                const btn = tabsEl.querySelector('.tab-btn[data-tab="' + tab + '"]');
+                                                if (btn) tabsEl.appendChild(btn);
+                                            });
+                                        } catch (_) { }
+                                    }
+                                    function initSortable() {
+                                        if (!tabsEl || !window.Sortable || tabsEl.__sortableReady) return;
+                                        tabsEl.__sortableReady = true;
                                         new Sortable(tabsEl, {
                                             animation: 150,
                                             draggable: '.tab-btn',
                                             filter: '.tab-group-title',
-                                            onMove: (evt) => !evt.related.classList.contains('tab-group-title')
+                                            onMove: (evt) => !evt.related.classList.contains('tab-group-title'),
+                                            onEnd: () => {
+                                                try {
+                                                    const order = [...tabsEl.querySelectorAll('.tab-btn')].map(b => b.dataset.tab);
+                                                    localStorage.setItem(TAB_ORDER_KEY, JSON.stringify(order));
+                                                } catch (_) { }
+                                            }
                                         });
                                     }
+                                    restoreTabOrder();
+                                    initSortable();
+                                    document.addEventListener('DOMContentLoaded', initSortable);
+
+                                    // [优化] 模态框支持 Esc / 点击遮罩关闭（原来只能点右上角 ✕）
+                                    document.addEventListener('keydown', (e) => {
+                                        if (e.key !== 'Escape') return;
+                                        document.querySelectorAll('.modal').forEach(m => { if (m.style.display === 'block') m.style.display = 'none'; });
+                                    });
+                                    document.querySelectorAll('.modal').forEach(m => {
+                                        m.addEventListener('mousedown', (e) => { if (e.target === m) m.style.display = 'none'; });
+                                    });
 
                                     if (debugConsole) {
                                         debugConsole.style.display = 'none';
-                                        debugConsole.textContent = '🟢 工作台就绪 · AK-SYS ONLINE · 完整功能正常';
+                                        resetDebug('🟢 工作台就绪 · AK-SYS ONLINE · 完整功能正常');
                                     }
-                                })();
+
+                                    // ==================== 后台加载持久化数据（不阻塞首屏） ====================
+                                    function refreshDataViews() {
+                                        try {
+                                            if (!dailyTouched) {
+                                                const tab = dailyData.currentTab || 'ticket';
+                                                const ticketBtn = document.getElementById('dailyTabTicket');
+                                                const overseasBtn = document.getElementById('dailyTabOverseas');
+                                                const ticketForm = document.getElementById('dailyFormTicket');
+                                                const overseasForm = document.getElementById('dailyFormOverseas');
+                                                if (ticketBtn && overseasBtn && ticketForm && overseasForm) {
+                                                    const isTicket = tab === 'ticket';
+                                                    ticketBtn.classList.toggle('active', isTicket);
+                                                    overseasBtn.classList.toggle('active', !isTicket);
+                                                    ticketForm.style.display = isTicket ? '' : 'none';
+                                                    overseasForm.style.display = isTicket ? 'none' : '';
+                                                    renderDailyForm(tab);
+                                                }
+                                                const hint = document.getElementById('dailyDateHint');
+                                                if (hint) {
+                                                    const d = getBeijingDate();
+                                                    hint.textContent = d.month + '月' + d.day + '日';
+                                                }
+                                            }
+                                            renderReplySelects();
+                                            renderReplyPresetList();
+                                        } catch (e) {
+                                            console.warn('刷新界面数据失败', e);
+                                        }
+                                    }
+
+                                    (async function bootstrapData() {
+                                        let raw = null;
+                                        try {
+                                            const [vDaily, vRules, vIgnore, vItem, vSource, vActivity, vOpen, vClose, vPresets] = await Promise.all([
+                                                loadData('dailyData', null),
+                                                loadData('sourceRules', null),
+                                                loadData('ignoreKeywords', null),
+                                                loadData('itemNameMap', null),
+                                                loadData('sourceIdMap', null),
+                                                loadData('activityTypeMap', null),
+                                                loadData('replyOpenings', null),
+                                                loadData('replyClosings', null),
+                                                loadData('replyPresets', null)
+                                            ]);
+                                            raw = {
+                                                dailyData: vDaily, sourceRules: vRules, ignoreKeywords: vIgnore,
+                                                itemNameMap: vItem, sourceIdMap: vSource, activityTypeMap: vActivity,
+                                                replyOpenings: vOpen, replyClosings: vClose, replyPresets: vPresets
+                                            };
+                                        } catch (e) {
+                                            console.warn('加载持久化数据失败，继续使用默认值', e);
+                                            return;
+                                        }
+                                        // 原「数据为空则回填默认短语并保存」的行为保留：只在确实缺失时补写一次
+                                        const needOpening = !Array.isArray(raw.replyOpenings) || raw.replyOpenings.filter(t => t && String(t).trim()).length === 0;
+                                        const needClosing = !Array.isArray(raw.replyClosings) || raw.replyClosings.filter(t => t && String(t).trim()).length === 0;
+                                        applyState(raw);
+                                        // 首屏是拿默认短语渲染的，清空一次让下面的渲染填入真实数据
+                                        ['openingInput', 'closingInput'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+                                        refreshDataViews();
+                                        if (needOpening) saveData('replyOpenings', replyOpenings);
+                                        if (needClosing) saveData('replyClosings', replyClosings);
+                                    })();
+                                        } catch (err) {
+                                            reportFatal(err);
+                                        }
+                                    })();
     </script>
 </body>
 </html>
