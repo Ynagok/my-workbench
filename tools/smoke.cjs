@@ -183,6 +183,33 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
   check($('mappingListContainer').textContent.includes('1星百戏锦囊'), '重置后仍含内置默认项');
   $('closeMappingModal').click();
 
+  // 锁定 resolveItemName 的既有语义（AGENTS.md「已定语义」①：日志名优先，映射表被绕过）。
+  // 这两条断言是防漂移用的：若要改成「映射优先」，必须先确认预期并同步改这里。
+  console.log('--- 6b. resolveItemName 语义：日志带名字时绕过映射表；只有纯数字 ID 才查映射 ---');
+  $('manageMappingBtn').click();
+  $('newMappingId').value = '888888';
+  $('newMappingName').value = 'ZZ映射名乙';
+  $('addMappingBtn').click();
+  await sleep(40);
+  check($('mappingListContainer').textContent.includes('ZZ映射名乙'), '测试映射 888888 已加入映射表');
+  $('closeMappingModal').click();
+
+  doc.querySelector('input[name="parseMode"][value="chess"]').checked = true;
+  // A：日志里已带非数字名字 → 直接用日志名，不查映射表
+  $('smartPasteInput').value = '2026-04-20 16:04:00\tx\t888888/ZZ日志名甲\t1\t0\t1\t棋盘操作-常规母棋生产';
+  $('smartParseBtn').click();
+  await sleep(40);
+  const outA = $('globalResultArea').value;
+  check(outA.includes('ZZ日志名甲'), 'A 日志自带名字时用日志名', outA.slice(0, 80));
+  check(!outA.includes('ZZ映射名乙'), 'A 日志自带名字时不查映射表（映射管理改名对它不生效）', outA.slice(0, 80));
+  // B：日志只有纯数字 ID → 查映射表
+  $('smartPasteInput').value = '2026-04-20 16:04:00\tx\t888888\t1\t0\t1\t棋盘操作-常规母棋生产';
+  $('smartParseBtn').click();
+  await sleep(40);
+  const outB = $('globalResultArea').value;
+  check(outB.includes('ZZ映射名乙'), 'B 日志只有纯数字 ID 时查映射表', outB.slice(0, 80));
+  check(!outB.includes('888888'), 'B 输出中的 ID 已被映射名替换', outB.slice(0, 80));
+
   console.log('--- 7. 日报自定义项：输入应防抖（5 次输入只发 1 次 POST） ---');
   $('dailyTabTicket').click();
   $('ticketAddCustomBtn').click();
