@@ -4,6 +4,10 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "start": "node server.js",
+    "verify": "node tools/verify.mjs public/index.html && node --check tools/_extracted.js && node tools/smoke.cjs public/index.html && node tools/smoke-nonblocking.cjs public/index.html",
+    "verify:static": "node tools/verify.mjs public/index.html && node --check tools/_extracted.js",
+    "report": "node tools/print-report.cjs public/index.html",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -15,6 +19,7 @@
     "express": "^5.2.1"
   },
   "devDependencies": {
-    "eslint": "^10.2.1"
+    "eslint": "^10.2.1",
+    "jsdom": "^29.1.1"
   }
 }

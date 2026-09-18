@@ -9,3 +9,6 @@ node_modules/
 # 构建产物 / 日志
 dist/
 *.log
+
+# 自检脚本的临时产物
+/tools/_extracted.js
