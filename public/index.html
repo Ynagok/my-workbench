@@ -5257,7 +5257,7 @@
                                             // [优化] 更稳健的新格式判断
                                             const RESOURCE_HINTS = ['体力', '红钻', '金币', '好评点', '道具', '货币'];
                                             const looksLikeResource = RESOURCE_HINTS.some(k => thirdCol && thirdCol.includes(k));
-                                            const isNewFormat = !/^[+-]?\d+$/.test(thirdCol) && (parts.length >= 10 || looksLikeResource);
+                                            const isNewFormat = !/^[+-]?\d+$/.test(thirdCol) && (parts.length >= 10 || (looksLikeResource && !/^[+-]?\d+$/.test((parts[4] || '').trim()))); // [修复] 短格式(col4=变化量、col5=之前,是数字)不能再被 looksLikeResource 误判成新格式；9列新格式(col5=道具名,非数字)仍走新格式
 
                                             let changeRaw, beforeRaw, afterRaw, sourceRaw, itemName = '', itemId = '', sourceId = '';
 

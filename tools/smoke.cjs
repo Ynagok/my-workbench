@@ -135,6 +135,38 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
   check($('globalResultCount').textContent.includes('1'), '计数已更新', $('globalResultCount').textContent);
   check(/资源流水解析/.test($('flowDebugConsole').textContent), '调试日志累积正常');
 
+  console.log('--- 2b. 资源流水格式兼容（短格式回归防护） ---');
+  // 背景：b6141ff 给 isNewFormat 加了 `|| looksLikeResource`，使「col3 是资源名但列数 < 10」的短格式
+  // 日志被误判成新格式 → 变化量取到来源文字 → parseInt 得 NaN → 整条被丢弃。
+  // 后果：输入框占位符里的那个范例格式（8 列）连同 6 列简格式全部解析不出来（5 种资源类型全中招）。
+  const flowCases = [
+    ['短格式8列(输入框占位符范例)', '2026-04-20 16:04:00\tx\t体力\t-1\t326\t325\t棋盘操作-临时母棋生产\t0-货币', '体力', /消耗1点体力，从326变为325/],
+    ['短格式6列', '2026-04-20 16:04:00\tx\t体力\t-1\t326\t325', '体力', /消耗1点体力，从326变为325/],
+    ['短格式8列(金币)', '2026-04-20 16:05:00\tx\t金币\t-20\t500\t480\t棋盘操作-使用消耗棋子\t0-货币', '金币', /消耗20点金币，从500变为480/],
+    ['新格式9列(只靠 looksLikeResource 才能识别)', '2026-04-20 16:04:00\tx\t体力\t101\t体力\t货币\t-1\t326\t325', '体力', /消耗1点体力，从326变为325/],
+  ];
+  for (const [label, sample, type, expect] of flowCases) {
+    $('flowResourceSelect').value = type;
+    $('smartPasteInput').value = sample;
+    $('globalResultArea').value = '';
+    $('smartParseBtn').click();
+    await sleep(30);
+    const got = $('globalResultArea').value;
+    check(expect.test(got), `资源流水 ${label} 可生成话术`, got ? got.slice(0, 80) : '(空)');
+  }
+  $('flowResourceSelect').value = '体力';
+
+  console.log('--- 2c. 好评奖励：合法输入应真的生成话术（原来只验证「不抛错」） ---');
+  doc.querySelector('input[name="parseMode"][value="review"]').checked = true;
+  $('smartPasteInput').value = '当前轮次: 普通\n2026-04-20 16:04:00\n竹子\n竹片\n竹子';
+  $('globalResultArea').value = '';
+  $('smartParseBtn').click();
+  await sleep(30);
+  const reviewOut = $('globalResultArea').value;
+  check(/获得好评奖励/.test(reviewOut), '好评奖励生成话术', reviewOut.slice(0, 90));
+  check(/竹子\*2/.test(reviewOut) && /竹片\*1/.test(reviewOut), '好评奖励数量统计正确', reviewOut.slice(0, 90));
+  doc.querySelector('input[name="parseMode"][value="resource"]').checked = true;
+
   console.log('--- 3. 其他三种解析模式 ---');
   for (const [mode, sample, label] of [
     ['order', '创建\t完成\t2026-04-20 16:04:00\t普通订单\t是\t2026-04-20 16:04:00\t10101\t竹子\t10', '订单日志'],
