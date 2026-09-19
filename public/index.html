@@ -1928,25 +1928,6 @@
             padding: 0 4px !important;
             letter-spacing: 0.02em !important;
         }
-        /* ===================== 游戏活动攻略速查 ===================== */
-        .act-head { margin-bottom: 16px; }
-        .act-title { font-size: 1.15rem; font-weight: 700; color: var(--ink-0); letter-spacing: 0.02em; }
-        .act-sub { font-size: 12px; color: var(--ink-3); margin-top: 4px; }
-        .act-warn { margin-top: 10px; padding: 8px 12px; border-radius: var(--r-sm); background: var(--accent-dim); border-left: 3px solid var(--accent); font-size: 12px; line-height: 1.6; color: var(--ink-2); }
-        .act-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 16px; align-items: start; }
-        .act-card { background: var(--surface); border: 1px solid var(--line-0); border-radius: var(--r-md); box-shadow: var(--shadow-1); padding: 14px 16px 16px; }
-        .act-card > h4 { margin: 0; font-size: 1rem; color: var(--ink-0); }
-        .act-card > .act-meta { font-size: 11.5px; color: var(--ink-3); margin: 3px 0 10px; }
-        .act-table-wrap { max-height: 460px; overflow-y: auto; border: 1px solid var(--line-0); border-radius: var(--r-sm); }
-        .act-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-        .act-table th, .act-table td { padding: 6px 10px; text-align: left; border-bottom: 1px solid var(--line-0); }
-        .act-table thead th { position: sticky; top: 0; z-index: 1; background: var(--bg-1); color: var(--ink-2); font-size: 12px; font-weight: 600; border-bottom: 1px solid var(--line-1); }
-        .act-table tbody tr:nth-child(even) { background: var(--surface-2); }
-        .act-table tbody tr:hover { background: var(--accent-dim); }
-        .act-table .num { text-align: right; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
-        .act-table td.reward { color: var(--ink-2); font-size: 12px; }
-        .act-table tr.stage td { background: var(--accent-dim); color: var(--accent-ink); font-weight: 600; }
-        .act-table tr.total td { font-weight: 700; color: var(--ink-0); background: var(--bg-1); border-bottom: none; }
     </style>
 </head>
 
@@ -1956,7 +1937,6 @@
             <div class="tab-group-title">梦幻消除站</div>
             <button class="tab-btn tab-btn-sub active" data-tab="gen"> 话术生成</button>
             <button class="tab-btn tab-btn-sub" data-tab="card"> 集卡分析</button>
-            <button class="tab-btn tab-btn-sub" data-tab="activity">🎮 游戏活动</button>
 
             <button class="tab-btn" data-tab="reply"> 工单回复</button>
             <button class="tab-btn" data-tab="daily"> 每日日报</button>
@@ -2155,104 +2135,6 @@
         </div>
 
         <!-- ==================== 日报生成 daily ==================== -->
-        <!-- ==================== 游戏活动 activity ==================== -->
-        <div id="tab-activity" class="tab-content">
-            <div class="act-head">
-                <div class="act-title">📊 游戏活动攻略速查</div>
-                <div class="act-sub">来源：小红书《【全活动数据汇总】蒲公英/绣球/金币赛等》· 五星卡版本</div>
-                <div class="act-warn">⚠️ 「奖励」列是按原帖<b>图标识读</b>的结果（原帖用的是游戏道具图标），具体道具以游戏内为准；数量列与「累计」为表格数值。</div>
-            </div>
-            <div class="act-grid">
-                <div class="act-card">
-                    <h4>🌼 蒲公英弹弹乐</h4>
-                    <div class="act-meta">五星卡版本 · 共 10 关</div>
-                    <div class="act-table-wrap">
-                        <table class="act-table" id="act-table-pugongying">
-                            <thead><tr><th>关卡</th><th class="num">蒲公英数量</th><th class="num">名额</th></tr></thead>
-                            <tbody>
-                                <tr><td>一</td><td class="num">120</td><td class="num">100</td></tr>
-                                <tr><td>二</td><td class="num">150</td><td class="num">70</td></tr>
-                                <tr><td>三</td><td class="num">190</td><td class="num">50</td></tr>
-                                <tr><td>四</td><td class="num">230</td><td class="num">50</td></tr>
-                                <tr><td>五</td><td class="num">250</td><td class="num">50</td></tr>
-                                <tr><td>六</td><td class="num">300</td><td class="num">30</td></tr>
-                                <tr><td>七</td><td class="num">350</td><td class="num">30</td></tr>
-                                <tr><td>八</td><td class="num">400</td><td class="num">20</td></tr>
-                                <tr><td>九</td><td class="num">450</td><td class="num">10</td></tr>
-                                <tr><td>十</td><td class="num">500</td><td class="num">5</td></tr>
-                                <tr class="total"><td>累计</td><td class="num">2940</td><td class="num">—</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-                <div class="act-card">
-                    <h4>🏵️ 绣球争芳宴</h4>
-                    <div class="act-meta">五星卡版本 · 共 8 关 + 3 次阶段奖励</div>
-                    <div class="act-table-wrap">
-                        <table class="act-table" id="act-table-xiuqiu">
-                            <thead><tr><th>关卡</th><th class="num">绣球数量</th><th>奖励</th></tr></thead>
-                            <tbody>
-                                <tr><td>一</td><td class="num">120</td><td class="reward">⚡×15</td></tr>
-                                <tr><td>二</td><td class="num">150</td><td class="reward">🎁×1</td></tr>
-                                <tr class="stage"><td colspan="2">阶段奖励</td><td class="reward">⚡×25、📗×1</td></tr>
-                                <tr><td>三</td><td class="num">180</td><td class="reward">🍃×1</td></tr>
-                                <tr><td>四</td><td class="num">200</td><td class="reward">📘×1</td></tr>
-                                <tr><td>五</td><td class="num">250</td><td class="reward">🫕×1</td></tr>
-                                <tr class="stage"><td colspan="2">阶段奖励</td><td class="reward">⚡×35、📕×1</td></tr>
-                                <tr><td>六</td><td class="num">300</td><td class="reward">🎫×1</td></tr>
-                                <tr><td>七</td><td class="num">400</td><td class="reward">🧧×1</td></tr>
-                                <tr><td>八</td><td class="num">400</td><td class="reward">✂️×1</td></tr>
-                                <tr class="stage"><td colspan="2">阶段奖励</td><td class="reward">⚡×50、🧑×1、🧱×1</td></tr>
-                                <tr class="total"><td>累计</td><td class="num">2000</td><td class="reward">—</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-                <div class="act-card">
-                    <h4>🏯 茶楼大赛 / 盛世大富商</h4>
-                    <div class="act-meta">五星卡版本 · 共 12 关 + 3 次阶段奖励</div>
-                    <div class="act-table-wrap">
-                        <table class="act-table" id="act-table-chalou">
-                            <thead><tr><th>关卡</th><th class="num">金币数量</th><th>奖励</th></tr></thead>
-                            <tbody>
-                                <tr><td>壹</td><td class="num">250</td><td class="reward">🧰×1、⚡×15、💰×10</td></tr>
-                                <tr><td>贰</td><td class="num">300</td><td class="reward">🧑×1、🪙×1、🪙×1</td></tr>
-                                <tr><td>叁</td><td class="num">400</td><td class="reward">🧧×1、⚡×15、💰×10</td></tr>
-                                <tr><td>肆</td><td class="num">500</td><td class="reward">🧰×1、🎒×1、⚡×25</td></tr>
-                                <tr class="stage"><td colspan="2">阶段奖励</td><td class="reward">⚡×25、🍕×1、🚩×1</td></tr>
-                                <tr><td>伍</td><td class="num">500</td><td class="reward">🧑×1、🪙×1、🪙×1</td></tr>
-                                <tr><td>陆</td><td class="num">500</td><td class="reward">🧧×1、⚡×15、💰×10</td></tr>
-                                <tr><td>柒</td><td class="num">650</td><td class="reward">🧰×1、✂️×1、🎒×1</td></tr>
-                                <tr><td>捌</td><td class="num">650</td><td class="reward">🧧×1、🪙×1、🍃×1</td></tr>
-                                <tr class="stage"><td colspan="2">阶段奖励</td><td class="reward">⚡×50、🍕×1、🚩×1</td></tr>
-                                <tr><td>玖</td><td class="num">650</td><td class="reward">⚡×75、🪙×1、💰×1</td></tr>
-                                <tr><td>拾</td><td class="num">800</td><td class="reward">🎁×1、⚡×15、💰×1</td></tr>
-                                <tr><td>拾壹</td><td class="num">800</td><td class="reward">⚡×100、🧧×1、⚡×15</td></tr>
-                                <tr><td>拾贰</td><td class="num">1000</td><td class="reward">🍃×1、🪙×1、⚡×15</td></tr>
-                                <tr class="stage"><td colspan="2">阶段奖励</td><td class="reward">⚡×100、🎁×1、🪙×1</td></tr>
-                                <tr class="total"><td>累计</td><td class="num">7000</td><td class="reward">—</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-                <div class="act-card">
-                    <h4>🌸 春生雅艺会</h4>
-                    <div class="act-meta">共 5 组 · 各组第一名奖励</div>
-                    <div class="act-table-wrap">
-                        <table class="act-table" id="act-table-chunsheng">
-                            <thead><tr><th>分组</th><th>奖励</th></tr></thead>
-                            <tbody>
-                                <tr><td>启蒙席</td><td class="reward">🎁×1、🎫×1、⚡×125</td></tr>
-                                <tr><td>进学席</td><td class="reward">🎁×1、🎫×1、⚡×150</td></tr>
-                                <tr><td>妙音席</td><td class="reward">🎁×1、🧧×1、⚡×150</td></tr>
-                                <tr><td>风华席</td><td class="reward">🎁×1、🧧×1、⚡×200</td></tr>
-                                <tr><td>宗师席</td><td class="reward">🎁×1、🎫×1、⚡×300</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
         <div id="tab-daily" class="tab-content">
             <div class="card">
                 <div class="flex-row" style="justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
