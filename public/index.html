@@ -1969,6 +1969,7 @@
                             <option value="金币">金币</option>
                             <option value="好评点">好评点</option>
                             <option value="道具">道具</option>
+                            <option value="活动奖励">活动奖励（集合）</option>
                         </select>
                     </div>
                     <div>
@@ -5591,7 +5592,7 @@
                                         if (!records.length) { debugConsole.textContent += '\n❌ 无记录（请确认粘贴内容为资源流水格式）'; return; }
                                         debugConsole.textContent += `\n📌 原始记录数: ${records.length}`;
 
-                                        if (resourceType !== '道具') {
+                                        if (resourceType !== '道具' && resourceType !== '活动奖励') {
                                             const matched = records.filter(r =>
                                                 (r['_资源类型'] || '').includes(resourceType) ||
                                                 (r['道具名称'] || '').includes(resourceType)
@@ -5622,7 +5623,32 @@
                                         if (records.length === 0) { debugConsole.textContent += '\n⚠️ 筛选后无记录，请放宽筛选条件'; return; }
 
                                         let sentences;
-                                        if (resourceType === '道具') {
+                                        if (resourceType === '活动奖励') {
+                                            // 「活动奖励（集合）」：按 时间+来源 合并成一句，列出该次结算的全部资源
+                                            const actMap = new Map();
+                                            for (const rec of records) {
+                                                const { change, action } = getChangeAndAction(rec);
+                                                if (!action || change === 0) continue;
+                                                const timeKey = (rec['时间'] || '').replace(/-/g, '/');
+                                                const source = rec['来源'] || '';
+                                                const gk = timeKey + '|||' + source;
+                                                if (!actMap.has(gk)) actMap.set(gk, { time: timeKey, source, byAction: new Map() });
+                                                const g = actMap.get(gk);
+                                                const name = rec['道具名称'] || rec['_资源类型'] || '道具';
+                                                if (!g.byAction.has(action)) g.byAction.set(action, new Map());
+                                                const list = g.byAction.get(action);
+                                                list.set(name, (list.get(name) || 0) + Math.abs(change));
+                                            }
+                                            sentences = [];
+                                            for (const g of actMap.values()) {
+                                                const parts = [...g.byAction.entries()].map(([action, list]) =>
+                                                    action + [...list.entries()].map(([n, q]) => `${n}*${q}`).join('，')
+                                                );
+                                                if (!parts.length) continue;
+                                                const sourceStr = g.source ? `，通过【${g.source}】` : '';
+                                                sentences.push(`在${g.time}${sourceStr}${parts.join('，')}`);
+                                            }
+                                        } else if (resourceType === '道具') {
                                             const groupMap = new Map();
                                             for (const rec of records) {
                                                 const { change, action } = getChangeAndAction(rec);
@@ -5818,7 +5844,8 @@
                                             resultSourceHint.textContent = `CSV合并 · 原始${records.length}条`;
                                             safeCopy(globalResultArea.value);
                                         } else {
-                                            let sentences = filtered.map(r => generateFlowSentence(r, selectedType, true)).filter(s => s);
+                                            const fallbackType = selectedType === '活动奖励' ? '道具' : selectedType;
+                                            let sentences = filtered.map(r => generateFlowSentence(r, fallbackType, true)).filter(s => s);
                                             if (sentences.length) {
                                                 sentences = sortSentencesByTime(sentences, sortOrder);
                                                 sentences = sentences.map(s => applyAllConversions(s));

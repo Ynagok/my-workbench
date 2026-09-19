@@ -188,6 +188,32 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
   }
   $('flowResourceSelect').value = '体力';
 
+  console.log('--- 2e. 活动奖励（集合）：同时间+同来源合并成一句 ---');
+  const runAct = async (log) => {
+    $('flowResourceSelect').value = '活动奖励';
+    $('includeSourcesInput').value = '';
+    $('itemKeywordInput').value = '';
+    $('smartPasteInput').value = log;
+    $('globalResultArea').value = '';
+    $('smartParseBtn').click();
+    await sleep(30);
+    return $('globalResultArea').value;
+  };
+  const T2 = (a) => a.join('\t');
+  const actGain = await runAct(
+    T2(['2026-04-20 16:04:00', 'x', '体力', '1', '326', '327', '春生雅艺会奖励', '0-货币'])
+    + '\n' + T2(['2026-04-20 16:04:00', 'x', '金币', '20', '500', '520', '春生雅艺会奖励', '0-货币']));
+  check(actGain === '在2026/04/20 16：04：00，通过【春生雅艺会奖励】获得体力*1，金币*20', '同为获得 → 合并成一句且资源列表正确', actGain);
+  const actMix = await runAct(
+    T2(['2026-04-20 16:04:00', 'x', '体力', '-1', '326', '325', '春生雅艺会奖励', '0-货币'])
+    + '\n' + T2(['2026-04-20 16:04:00', 'x', '金币', '20', '500', '520', '春生雅艺会奖励', '0-货币']));
+  check(actMix.split('\n\n').length === 1 && /消耗体力\*1/.test(actMix) && /获得金币\*20/.test(actMix), '一消耗一获得 → 仍是一句，各自带动词', actMix);
+  const actTwo = await runAct(
+    T2(['2026-04-20 16:04:00', 'x', '体力', '1', '326', '327', '棋盘操作-临时母棋生产', '0-货币'])
+    + '\n' + T2(['2026-04-20 16:05:00', 'x', '金币', '20', '500', '520', '棋盘操作-使用消耗棋子', '0-货币']));
+  check(actTwo.split('\n\n').length === 2, '不同时间/来源 → 不合并', actTwo.replace(/\n+/g, ' ⏎ '));
+  $('flowResourceSelect').value = '体力';
+
   console.log('--- 3. 其他三种解析模式 ---');
   for (const [mode, sample, label] of [
     ['order', '创建\t完成\t2026-04-20 16:04:00\t普通订单\t是\t2026-04-20 16:04:00\t10101\t竹子\t10', '订单日志'],
