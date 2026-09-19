@@ -167,6 +167,27 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
   check(/竹子\*2/.test(reviewOut) && /竹片\*1/.test(reviewOut), '好评奖励数量统计正确', reviewOut.slice(0, 90));
   doc.querySelector('input[name="parseMode"][value="resource"]').checked = true;
 
+  console.log('--- 2d. 资源类型「选什么就出什么」（已定语义，锁定防漂移） ---');
+  // 用户已确认：下拉框选了什么类型，日志里所有行就都按那个类型出话术，
+  // 不再按日志里的真实类型（体力/金币）分别筛选。以下两条钉住这个行为。
+  const MIXED = '2026-04-20 16:04:00\tx\t体力\t-1\t326\t325\t棋盘操作-临时母棋生产\t0-货币'
+    + '\n' + '2026-04-20 16:05:00\tx\t金币\t-20\t500\t480\t棋盘操作-使用消耗棋子\t0-货币';
+  for (const [type, expect, forbid, label] of [
+    ['体力', [/消耗20点体力/, /消耗1点体力/], /金币/, '选「体力」→ 连金币行也按体力出'],
+    ['金币', [/消耗20点金币/, /消耗1点金币/], /体力/, '选「金币」→ 连体力行也按金币出'],
+  ]) {
+    $('flowResourceSelect').value = type;
+    $('includeSourcesInput').value = '';
+    $('itemKeywordInput').value = '';
+    $('smartPasteInput').value = MIXED;
+    $('globalResultArea').value = '';
+    $('smartParseBtn').click();
+    await sleep(30);
+    const got = $('globalResultArea').value;
+    check(expect.every(r => r.test(got)) && !forbid.test(got), label, got ? got.replace(/\n+/g, ' ⏎ ').slice(0, 100) : '(空)');
+  }
+  $('flowResourceSelect').value = '体力';
+
   console.log('--- 3. 其他三种解析模式 ---');
   for (const [mode, sample, label] of [
     ['order', '创建\t完成\t2026-04-20 16:04:00\t普通订单\t是\t2026-04-20 16:04:00\t10101\t竹子\t10', '订单日志'],
