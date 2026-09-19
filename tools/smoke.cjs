@@ -277,6 +277,28 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
   doc.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
   check($('sourceRuleModal').style.display === 'none', 'Esc 关闭模态框');
 
+  console.log('--- 8b. 游戏活动子标签页 ---');
+  const actBtn = doc.querySelector('.tab-btn[data-tab="activity"]');
+  check(!!actBtn, '游戏活动 标签按钮存在');
+  check(!!$('tab-activity'), '游戏活动 面板存在');
+  if (actBtn) actBtn.click();
+  check($('tab-activity').classList.contains('active'), '点击后 游戏活动 面板激活');
+  check(!$('tab-gen').classList.contains('active'), '话术生成 面板已取消激活');
+  // 逐行读回表格，锁住攻略数据（转录数字写错会被这里抓住）
+  const rowsOf = (id) => [...$('tab-activity').querySelectorAll('#' + id + ' tbody tr')].map(tr => [...tr.children].map(td => td.textContent.trim()));
+  const isLvl = (s) => /^[一二三四五六七八九十壹贰叁肆伍陆柒捌玖拾]+$/.test(s);
+  const pg = rowsOf('act-table-pugongying');
+  check(pg.length === 11 && pg[0].join('|') === '一|120|100' && pg[9].join('|') === '十|500|5', '蒲公英表 10 关数据正确', pg[0] && pg[0].join('|'));
+  check(pg[10] && pg[10].join('|') === '累计|2940|—', '蒲公英累计 2940', pg[10] && pg[10].join('|'));
+  const xq = rowsOf('act-table-xiuqiu');
+  check(xq.filter(r => isLvl(r[0])).length === 8, '绣球表 8 关齐全', xq.filter(r => isLvl(r[0])).length);
+  check(xq.some(r => r.join('|') === '累计|2000|—'), '绣球累计 2000');
+  const cl = rowsOf('act-table-chalou');
+  check(cl.filter(r => isLvl(r[0])).length === 12, '茶楼表 12 关齐全', cl.filter(r => isLvl(r[0])).length);
+  check(cl.some(r => r.join('|') === '累计|7000|—'), '茶楼金币累计 7000');
+  check(rowsOf('act-table-chunsheng').length === 5, '春生雅艺会 5 组');
+  doc.querySelector('.tab-btn[data-tab="gen"]').click();   // 切回，避免影响后续断言
+
   console.log('--- 9. 无未捕获异常 ---');
   check(!warns.some(w => w.startsWith('ERROR')), 'console.error 未被调用：' + warns.filter(w => w.startsWith('ERROR')).join(' | '));
   check(jsdomErrors.length === 0, '页面无未捕获异常（jsdomError）', jsdomErrors.slice(0, 3));

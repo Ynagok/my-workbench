@@ -39,6 +39,8 @@ ok((s.match(/defer src="https:\/\/cdn\.jsdelivr\.net\/npm\/sortablejs@1\.15\.6/g
 ok(!/@import url\('https:\/\/fonts\.googleapis/.test(s), '@import 字体已移除');
 ok((s.match(/#sub-panel-fry #fryLemonBtn,\r?\n\s*#sub-panel-fry #fryLettuceBtn \{/g) || []).length === 1, 'fry 按钮 CSS 重复块已去重');
 ok(!/function cleanText|resolveActivityType/.test(s), '死代码已删除');
+ok(/data-tab="activity"/.test(s) && /id="tab-activity"/.test(s), '游戏活动 子标签页已注入');
+ok((s.match(/<table class="act-table"/g) || []).length === 4, '攻略表 4 张齐全');
 
 // ---- 4. 花括号/圆括号平衡（粗查，排除字符串内的干扰仅作参考） ----
 const count = (str, ch) => (str.split(ch).length - 1);
