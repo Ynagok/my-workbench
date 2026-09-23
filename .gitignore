@@ -12,3 +12,9 @@ dist/
 
 # 自检脚本的临时产物
 /tools/_extracted.js
+
+# 游戏数据提取产物（npm run build:data 生成）
+/tools/out/
+
+# GM 玩家页快照：含真实玩家信息（playerId/openId/昵称），禁止入库
+/tools/fixtures/player-page.html

@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<!--
+  合成样例：结构照抄 GM 玩家页，但玩家 ID / openId / 昵称都是假的，可安全提交。
+  仅用于 tools/build-game-data.mjs 的离线自测；真实快照请放 player-page.html（已 gitignore）。
+-->
+<head><meta charset="UTF-8"><title>player-page sample</title></head>
+<body>
+<ul class="nav nav-tabs" id="playerTab">
+  <li class="dropdown">
+    <a href="#" class="dropdown-toggle" data-toggle="dropdown">活动<b class="caret"></b></a>
+    <ul class="dropdown-menu dropdown-menu-scroll">
+      <li>
+        <a class="ajaxTab delayAjaxTab" href="https://example.invalid/index.php/query/activity/100001/type/2"
+           data-target="#activity-2"
+           data-toggle="tab">PASS卡                    </a>
+      </li>
+      <li>
+        <a class="ajaxTab delayAjaxTab" href="https://example.invalid/index.php/query/activity/100001/type/81"
+           data-target="#activity-81"
+           data-toggle="tab">体力排行榜                    </a>
+      </li>
+    </ul>
+  </li>
+</ul>
+
+<div class="tab-content form-horizontal">
+  <div class="tab-pane" id="instructionLog">
+    <form class="tab-pane-form form-inline" action="https://example.invalid/index.php/query/instructionLog/100001">
+      <label>
+        <select name="opFrom" class="selectpicker" data-live-search="true" data-size="10">
+          <option value="-1"> 全部来源</option>
+          <option value="1">默认</option>
+          <option value="252">集卡活动-结算</option>
+          <option value="253">联动分享活动-首次赠送</option>
+          <option value="257">打怪棋盘-消耗步数</option>
+        </select>
+      </label>
+    </form>
+  </div>
+
+  <div class="tab-pane" id="goldLog">
+    <form class="tab-pane-form form-inline" action="https://example.invalid/index.php/query/goldLog/100001">
+      <label>
+        <select name="from" class="selectpicker" data-live-search="true" data-size="10">
+          <option value="-1"> 全部来源</option>
+          <option value="1">默认</option>
+          <option value="252">集卡活动-结算</option>
+          <option value="253">联动分享活动-首次赠送</option>
+        </select>
+      </label>
+      <label>
+        <select name="logType" class="selectpicker">
+          <option value="-1">记录类型</option>
+          <option value="1">增加</option>
+        </select>
+      </label>
+    </form>
+  </div>
+</div>
+
+<div class="modal fade" id="modal-present">
+  <select name="presentGoodsType[]" class="presentGoodsType selectpicker" data-live-search="true" data-size="20">
+    <option value="-1">请选择...</option>
+    <option value="100">100---货币</option>
+    <option value="150">150---卡包</option>
+    <option value="10000">10000---棋子</option>
+  </select>
+</div>
+
+<script type="text/javascript">
+  var allPresentGoods = {"100":{"name":"\u8d27\u5e01","goods":{"101":{"id":101,"name":"\u4f53\u529b","type":4,"desc":"x"},"103":{"id":103,"name":"\u7ea2\u5b9d\u77f3","type":4,"desc":"x"}}},"150":{"name":"\u5361\u5305","goods":{"151":{"id":151,"type":1,"star":1,"name":"1\u661f\u767e\u620f\u9526\u56ca","cardNum":2},"176":{"id":176,"type":6,"star":2,"name":"2\u661f\u5e7b\u72d0\u9526\u56ca","cardNum":0,"royal":{"32":2}},"179":{"id":179,"type":6,"star":5,"name":"5\u661f\u5e7b\u72d0\u9526\u56ca","cardNum":0,"royal":{"35":1,"34":1,"33":2,"32":1}}}},"10000":{"name":"\u68cb\u5b50","goods":{"10101":{"id":10101,"name":"\u7af9\u5b50"},"10102":{"id":10102,"name":"\u7af9\u7247"},"40201":{"id":40201,"name":"\u8910\u8272\u4f53\u529b\u846b"}}}};
+</script>
+</body>
+</html>

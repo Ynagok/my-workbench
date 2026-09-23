@@ -39,8 +39,20 @@ npm run verify     # 改完代码、push 前的完整自检
 | `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 55 项 + 「接口挂起时界面仍可用」 |
 | `npm run verify:static` | 只要静态校验 + 语法检查（最快） |
 | `npm run report` | 打印一份真实生成的日报，肉眼确认排版（含 ⑥伙伴弹途 / ⑦异世界勇者） |
+| `npm run build:data` | 从 GM 玩家页快照提取 4 张权威映射表 + 与硬编码常量的**差异报告**（见下「游戏数据管线」） |
 
 `npm run verify` 失败就不要提交。jsdom 未安装时脚本会自动回落到本机 DSH 自带的那份。
+
+## 游戏数据管线（`npm run build:data`）
+
+把 GM 玩家页快照里的权威数据提取出来，跟 `public/index.html` 里的硬编码常量做差异比对。
+
+- **输入**：`tools/fixtures/player-page.html` —— ⚠️ **已 gitignore，含真实玩家信息（playerId/openId/昵称/背包），禁止入库或外发**；获取方式见 `tools/fixtures/README.md`。
+- **自测输入**：`tools/fixtures/player-page.sample.html`（合成、无隐私、已入库）：
+  `node tools/build-game-data.mjs tools/fixtures/player-page.sample.html`
+- **产出**（写到 `tools/out/`，已 gitignore）：`game-data.json`（4 张表）+ `diff-report.md`（缺 / 多 / 名称不一致，另附卡包 royal 星级码表）。
+- **4 张表**：① 来源映射（`opFrom`/`from` → `DEFAULT_SOURCE_ID_MAP`）② 活动类型映射（→ `DEFAULT_ACTIVITY_TYPE_MAP`）③ 卡包表（→ `PACK_NAME_MAP`，含 `star`/`royal` 星级码）④ 物品名表（→ `DEFAULT_ITEM_NAME_MAP`，含分类）。
+- **尚未做**：C 装载方式（payload ≤150KB 时首选 C3 复用 `/api/data`）→ D 逐个消费点接入（**改话术的点先问用户**）→ E `verify.mjs` 断言 + `smoke.cjs` 第 10 节端到端 → F 拆 4 个提交。
 
 ## 硬约定
 
@@ -82,6 +94,10 @@ npm run verify     # 改完代码、push 前的完整自检
   3. `filterRecordsByStar` 的 `extraStars` 由「星级 → 单个代码」改成「星级 → 代码数组」：`{2:[32], 3:[23,33], 4:[24,34], 5:[25,35]}`，使 2–5 星筛选同时命中霞光与幻狐。
   - ⚠️ `DEFAULT_ITEM_NAME_MAP`（资源流水的物品名）里 **176–179 本来就有**，写法是「2星幻狐锦囊」，与 `PACK_NAME_MAP` 的「幻狐2星锦囊」不同——两张表风格历来不一致，各自沿用，别误当重复。
   - `tools/smoke.cjs` 加 **8b** 节 6 条（包名 / 星级标签 / 霞光回归 / 2、3、5 星筛选），`tools/verify.mjs` 加 1 条静态断言；冒烟 49 → **55**。
+- 本轮：新增**游戏数据管线**（`tools/build-game-data.mjs` + `npm run build:data` + `tools/fixtures/`）——从 GM 玩家页快照提取 4 张权威映射表，并与 `index.html` 的硬编码常量做差异比对。**未碰前端代码**（本次按计划的「先做 A、B，不碰前端」）。
+  - 产出 `tools/out/game-data.json`（4 表）+ `tools/out/diff-report.md`（缺 / 多 / 名称不一致，另附卡包 `royal` 星级码表）。
+  - ⚠️ 真实快照 `tools/fixtures/player-page.html` **含玩家隐私**（playerId/openId/昵称/背包），已加入 `.gitignore` 只留本地；入库的是合成样例 `player-page.sample.html`，提取器已用它对跑验证。
+  - 首次自测即复现幻狐命名分歧：游戏官方名为 `2星幻狐锦囊`（与 `DEFAULT_ITEM_NAME_MAP` 一致），而我上轮给 `PACK_NAME_MAP` 写的 `幻狐2星锦囊` 是异类；`royal` 码也确认了 `32–35` = 幻狐 2–5 星。
 
 ## 已定语义（改之前先问用户）
 
@@ -100,9 +116,11 @@ npm run verify     # 改完代码、push 前的完整自检
 ## 目录结构
 
 ```
-public/index.html   全部前端（单文件，约 9100 行：内联 CSS + 内联 JS 的 async IIFE）
-server.js           express：静态托管 public/ + GET/POST /api/data/:key ↔ data.json
-data.json           服务端数据（随使用增长；前端字段缺失会被默认值自动补齐）
-tools/              自检脚本
-package.json        scripts: start / verify / verify:static / report
+public/index.html          全部前端（单文件，约 9150 行：内联 CSS + 内联 JS 的 async IIFE）
+server.js                  express：静态托管 public/ + GET/POST /api/data/:key ↔ data.json
+data.json                  服务端数据（随使用增长；前端字段缺失会被默认值自动补齐）
+tools/                     自检脚本（verify / smoke / print-report / build-game-data）
+tools/fixtures/            build:data 的输入；player-page.html 含玩家隐私已 gitignore，样例已入库
+tools/out/                 build:data 的产出（4 张表 + 差异报告），已 gitignore
+package.json               scripts: start / verify / verify:static / report / build:data
 ```

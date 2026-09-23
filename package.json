@@ -8,6 +8,7 @@
     "verify": "node tools/verify.mjs public/index.html && node --check tools/_extracted.js && node tools/smoke.cjs public/index.html && node tools/smoke-nonblocking.cjs public/index.html",
     "verify:static": "node tools/verify.mjs public/index.html && node --check tools/_extracted.js",
     "report": "node tools/print-report.cjs public/index.html",
+    "build:data": "node tools/build-game-data.mjs",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
