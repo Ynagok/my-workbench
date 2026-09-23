@@ -1,7 +1,7 @@
 # work-bad · 客服冷静演绎工作台
 
 单文件前端（`public/index.html`）+ 极简同步后端（`server.js` / express）。
-数据走 `/api/data/<key>`（GET 读、POST 写），落盘到 `data.json`；前端 **localStorage 优先、服务端兜底**。
+数据走 `/api/data/<key>`（GET 读、POST 写，key 有白名单校验），落盘到 `data.json`；前端 **localStorage 优先、服务端兜底**。
 
 > 给 AI 助手：接手本仓库前先读这个文件，末尾「已定语义 / 待确认」**不要擅自改**。
 
@@ -36,12 +36,18 @@ npm run verify     # 改完代码、push 前的完整自检
 
 | 命令 | 内容 |
 |---|---|
-| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 60 项 + 「接口挂起时界面仍可用」 |
+| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 60 项 + 「接口挂起时界面仍可用」+ 服务端冒烟 12 项 |
 | `npm run verify:static` | 只要静态校验 + 语法检查（最快） |
 | `npm run report` | 打印一份真实生成的日报，肉眼确认排版（含 ⑥伙伴弹途 / ⑦异世界勇者） |
 | `npm run build:data` | 从 GM 玩家页快照提取 4 张权威映射表 + 与硬编码常量的**差异报告**（见下「游戏数据管线」） |
+| `npm run smoke:server` | 单独跑服务端冒烟（真起进程 + 真发 HTTP，12 项） |
+| `npm test` | = `npm run verify` |
 
-`npm run verify` 失败就不要提交。jsdom 未安装时脚本会自动回落到本机 DSH 自带的那份。
+`npm run verify` 失败就不要提交。它一共 5 段：静态结构 → 语法 → jsdom 集成冒烟 **60 项** → 接口挂起时界面仍可用 → 服务端冒烟 **12 项**。
+
+- jsdom 未安装时前端冒烟会自动回落到本机 DSH 自带的那份。
+- `tools/smoke-server.cjs` 用 `PORT` + `DATA_FILE` 环境变量把服务端指到随机端口和 `tools/out/` 里的临时文件，**不会碰真实 `data.json`**；子进程 stdio 必须用 `ignore`/`inherit`（沙箱禁管道，`pipe` 会 EPERM）。
+- 沙箱内跑 npm 需要把缓存指到工作区内：`npm_config_cache=<仓库>/tools/out/npm-cache`（默认的 `C:\Users\...\npm-cache` 会被拒），验证完记得删掉那个目录。
 
 ## 游戏数据管线（`npm run build:data`）
 
@@ -106,6 +112,12 @@ npm run verify     # 改完代码、push 前的完整自检
     - 该表**只服务「映射管理」的展示 / 导入导出 / 重置，不参与解析与话术生成**，所以补它零输出影响。
     - `tools/smoke.cjs` 加 **6d** 节 1 条（把 `mappingTypeSelect` 切到 `activity`，断言列表里出现「95打怪棋盘」），`tools/verify.mjs` 加 2 条（存在性 + 键数 = 39）；冒烟 59 → **60**。
   - 另注：方案1 里「静态 45 → 47」与实际不符（`verify.mjs` 的 `ok()` 当时只有 30 处），别照抄那个数。
+- 本轮：**工程收尾**（未碰前端 `public/index.html` 一行）：
+  1. `server.js` 给 `/api/data/:key` 加 **key 白名单**：`/^[A-Za-z0-9_-]{1,64}$/`，并显式拒绝 `__proto__` / `constructor` / `prototype`。起因是原来直接 `data[key] = value`，`POST /api/data/__proto__` 会去改写对象原型（原型污染）而不是存一个键。非法 key 返回 400。同时支持 `DATA_FILE` 环境变量覆盖落盘位置（自检脚本据此写临时文件）。**前端的 key 是 `work-bad_v2` 这类，落在白名单内，行为不变。**
+  2. 新增 `tools/smoke-server.cjs`（真起进程 + 真发 HTTP，12 项）：5 种非法 key → 400、`Object.prototype` 未被污染、落盘文件无危险键、合法 key 读写往返一致。已挂进 `npm run verify` 末段。
+  3. 删掉**从未被使用**的 devDependency `eslint`；`npm test` 从 `exit 1` 改为 = `npm run verify`。
+  4. 顺带修掉一个**既有的 lockfile 不一致**（发现时 `npm ci` 在任何新克隆上都会直接失败）：`package-lock.json` 里**根本没有 jsdom 条目**，根 `devDependencies` 却只声明 eslint。已用工作区内缓存（`npm_config_cache=tools/out/npm-cache`）跑 `npm install --package-lock-only` 重新生成：-433/+729，**运行时依赖零版本漂移**（express 5.2.1 / cors 2.8.6 原样），diff 纯粹是「删 eslint 树 + 加 jsdom 树」。并在空目录实测 `npm ci` → 106 包装好、jsdom 29.1.1 到位、eslint 不再被安装。
+  - ⚠️ 本机 `node_modules/jsdom` 仍未安装（前端冒烟走 DSH 自带那份的回落），要真正用上声明的 jsdom 就跑一次 `npm install`。
 
 ## 已定语义（改之前先问用户）
 
@@ -128,10 +140,10 @@ npm run verify     # 改完代码、push 前的完整自检
 
 ```
 public/index.html          全部前端（单文件，约 9150 行：内联 CSS + 内联 JS 的 async IIFE）
-server.js                  express：静态托管 public/ + GET/POST /api/data/:key ↔ data.json
+server.js                  express：静态托管 public/ + GET/POST /api/data/:key ↔ data.json（含 key 白名单）
 data.json                  服务端数据（随使用增长；前端字段缺失会被默认值自动补齐）
-tools/                     自检脚本（verify / smoke / print-report / build-game-data）
+tools/                     自检脚本（verify / smoke / smoke-nonblocking / smoke-server / print-report / build-game-data）
 tools/fixtures/            build:data 的输入；player-page.html 含玩家隐私已 gitignore，样例已入库
 tools/out/                 build:data 的产出（4 张表 + 差异报告），已 gitignore
-package.json               scripts: start / verify / verify:static / report / build:data
+package.json               scripts: start / verify / verify:static / smoke:server / report / build:data / test
 ```
