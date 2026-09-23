@@ -315,6 +315,18 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
   check(/打怪棋盘-消耗步数/.test(g257), '来源 257 → 打怪棋盘-消耗步数', g257.slice(0, 90));
   $('flowResourceSelect').value = '体力';
 
+  console.log('--- 6d. 活动类型映射补齐 75（95打怪棋盘）---');
+  // 快照里「活动」下拉共 39 个类型，映射表原来只有 38 个、缺 75。
+  // 注意：该表只服务「映射管理」的展示/导入导出，**不参与解析与话术生成**。
+  $('manageMappingBtn').click();
+  $('mappingTypeSelect').value = 'activity';
+  fire($('mappingTypeSelect'), 'change');
+  await sleep(40);
+  const actList = $('mappingListContainer').textContent;
+  check(actList.includes('95打怪棋盘'), '活动类型映射 75 → 95打怪棋盘（列表可见）', actList.slice(0, 90));
+  $('mappingTypeSelect').value = 'item';
+  $('closeMappingModal').click();
+
   console.log('--- 7. 日报自定义项：输入应防抖（5 次输入只发 1 次 POST） ---');
   $('dailyTabTicket').click();
   $('ticketAddCustomBtn').click();
