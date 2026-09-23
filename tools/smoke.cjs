@@ -324,6 +324,33 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
   doc.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
   check($('sourceRuleModal').style.display === 'none', 'Esc 关闭模态框');
 
+  console.log('--- 8b. 集卡分析：幻狐（卡包 176-179 / 星级码 32-35） ---');
+  const cardCsv = [
+    '卡包ID,卡包星级,after,创建时间',
+    '176,[32],{1003201:1},2026-04-20 16:04:00',
+    '177,[33],{1003301:0},2026-04-20 16:05:00',
+    '179,[35],{1003501:1},2026-04-20 16:07:00',
+    '173,[23],{1002301:1},2026-04-20 16:08:00',
+    '175,[25],{1002501:1},2026-04-20 16:09:00',
+  ].join('\n');
+  Object.defineProperty($('csvFileInput'), 'files', { value: [new window.File([cardCsv], 'cards.csv', { type: 'text/csv' })], configurable: true });
+  $('uploadCsvBtn').click();
+  await sleep(200);
+  const cardAll = $('cardResultArea').value;
+  check(/【幻狐2星锦囊】/.test(cardAll) && /【幻狐5星锦囊】/.test(cardAll), '幻狐锦囊 176/179 → 包名识别', cardAll.slice(0, 80));
+  check(/（幻狐2星，新卡）/.test(cardAll) && /（幻狐5星，新卡）/.test(cardAll), '星级码 32/35 → 「幻狐N星」', (cardAll.match(/（幻狐\d星[^）]*）/g) || []).join(' '));
+  check(/【霞光3星锦囊】/.test(cardAll) && /（霞光3星，新卡）/.test(cardAll), '霞光原有识别未受影响');
+  const filterByStar = async (s) => { $('starFilterSelect').value = s; $('applyFilterBtn').click(); await sleep(120); return $('cardResultArea').value; };
+  const f2 = await filterByStar('2');
+  check(/幻狐2星/.test(f2) && !/霞光/.test(f2), '筛选 2星 → 命中幻狐2星(32)，不牵连霞光');
+  const f3 = await filterByStar('3');
+  check(/幻狐3星/.test(f3) && /霞光3星/.test(f3), '筛选 3星 → 同时命中幻狐3星(33) 与 霞光3星(23)');
+  const f5 = await filterByStar('5');
+  check(/幻狐5星/.test(f5) && /霞光5星/.test(f5), '筛选 5星 → 同时命中幻狐5星(35) 与 霞光5星(25)');
+  $('starFilterSelect').value = 'all';
+  $('applyFilterBtn').click();
+  await sleep(100);
+
   console.log('--- 9. 无未捕获异常 ---');
   check(!warns.some(w => w.startsWith('ERROR')), 'console.error 未被调用：' + warns.filter(w => w.startsWith('ERROR')).join(' | '));
   check(jsdomErrors.length === 0, '页面无未捕获异常（jsdomError）', jsdomErrors.slice(0, 3));

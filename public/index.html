@@ -2458,7 +2458,11 @@
                                         159: "5星百戏锦囊", 160: "5星大百戏锦囊", 161: "5星超大百戏锦囊",
                                         173: "霞光3星锦囊",
                                         174: "霞光4星锦囊",
-                                        175: "霞光5星锦囊"
+                                        175: "霞光5星锦囊",
+                                        176: "幻狐2星锦囊",
+                                        177: "幻狐3星锦囊",
+                                        178: "幻狐4星锦囊",
+                                        179: "幻狐5星锦囊"
                                     };
 
                                     // ==================== 物品名称映射（默认示例） ====================
@@ -5925,6 +5929,10 @@
                                             if (rawStar === 23) starLabel = "霞光3星";
                                             else if (rawStar === 24) starLabel = "霞光4星";
                                             else if (rawStar === 25) starLabel = "霞光5星";
+                                            else if (rawStar === 32) starLabel = "幻狐2星";
+                                            else if (rawStar === 33) starLabel = "幻狐3星";
+                                            else if (rawStar === 34) starLabel = "幻狐4星";
+                                            else if (rawStar === 35) starLabel = "幻狐5星";
                                             const isNew = afterData[cid] === 1;
                                             const segRaw = `${group}组第${num}张（${starLabel}，${isNew ? '新卡' : '重复'}）`;
                                             const segHtml = escapeHtml(segRaw);
@@ -5943,9 +5951,9 @@
                                     function filterRecordsByStar(records, star) {
                                         if (star === 'all') return records;
                                         const target = parseInt(star);
-                                        const extraStars = { 3: 23, 4: 24, 5: 25 };
-                                        const targetList = [target];
-                                        if (extraStars[target]) targetList.push(extraStars[target]);
+                                        // 霞光(23-25)与幻狐(32-35)的星级代码：首位是系列，末位是星级
+                                        const extraStars = { 2: [32], 3: [23, 33], 4: [24, 34], 5: [25, 35] };
+                                        const targetList = [target].concat(extraStars[target] || []);
                                         return records.filter(r => {
                                             const stars = parseStarsArray(r["卡包星级"]);
                                             return targetList.some(t => stars.includes(t));
