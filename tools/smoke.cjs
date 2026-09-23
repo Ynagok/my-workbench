@@ -289,6 +289,32 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
   check(outB.includes('ZZ映射名乙'), 'B 日志只有纯数字 ID 时查映射表', outB.slice(0, 80));
   check(!outB.includes('888888'), 'B 输出中的 ID 已被映射名替换', outB.slice(0, 80));
 
+  console.log('--- 6c. 来源映射补齐 253–257 ---');
+  // 快照（GM 玩家页）里 opFrom/from 有 1..257，而 index.html 的 DEFAULT_SOURCE_ID_MAP
+  // 原来只到 252。以下断言锁住新补的 5 条能被 resolveSource 查到。
+  const parseSources = async (ids) => {
+    doc.querySelector('input[name="parseMode"][value="resource"]').checked = true;
+    $('flowResourceSelect').value = '体力';
+    $('includeSourcesInput').value = '';
+    $('itemKeywordInput').value = '';
+    $('smartPasteInput').value = ids.map((sid, i) =>
+      T2(['2026-04-20 16:0' + (4 + i) + ':00', 'x', '体力', '101', '体力', '货币', '-1', '326', '325', '', String(sid)])
+    ).join('\n');
+    $('globalResultArea').value = '';
+    $('smartParseBtn').click();
+    await sleep(30);
+    return $('globalResultArea').value;
+  };
+  const g253 = await parseSources([253]);
+  check(/联动分享活动-首次赠送/.test(g253), '来源 253 → 联动分享活动-首次赠送', g253.slice(0, 90));
+  const g2545 = await parseSources([254, 255]);
+  check(/联动分享活动-每日分享/.test(g2545) && /联动分享活动-最终奖励/.test(g2545), '来源 254/255 → 每日分享 / 最终奖励', g2545.replace(/\n+/g, ' ⏎ ').slice(0, 130));
+  const g256 = await parseSources([256]);
+  check(/打脸信活动奖励/.test(g256), '来源 256 → 打脸信活动奖励', g256.slice(0, 90));
+  const g257 = await parseSources([257]);
+  check(/打怪棋盘-消耗步数/.test(g257), '来源 257 → 打怪棋盘-消耗步数', g257.slice(0, 90));
+  $('flowResourceSelect').value = '体力';
+
   console.log('--- 7. 日报自定义项：输入应防抖（5 次输入只发 1 次 POST） ---');
   $('dailyTabTicket').click();
   $('ticketAddCustomBtn').click();
