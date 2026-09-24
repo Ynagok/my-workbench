@@ -404,7 +404,8 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     const el = $(formId).querySelector('[data-key="' + key + '"]');
     if (!el) return false;
     el.value = String(val);
-    fire(el, 'input');
+    // select 的监听是 change，input/textarea 是 input（跟 renderDailyForm 里一致）
+    fire(el, el.tagName === 'SELECT' ? 'change' : 'input');
     return true;
   };
 
@@ -546,6 +547,59 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
   check(/"?records"?/.test(jsonOut) && jsonOut.includes('2026-06-03') && jsonOut.includes('2026-07-15'),
     'JSON 导出：含全部记录（含待确认那天）', jsonOut.slice(0, 30));
   check(careerPosts().length >= 4, '生涯数据每次都回写服务端（多设备同步）', careerPosts().length);
+
+  console.log('--- 8d. 粘贴导入：识别工作台自己生成的日报文本 ---');
+  // 先补上海外侧「异世界群维系」（群维系来访），凑齐 4 个海外日报新字段
+  setDailyField('dailyFormOverseas', 'sj_group', 4);
+  await sleep(20);
+  $('dailyTabOverseas').click();                 // 当前在海外栏 → 生成海外日报文本
+  await sleep(20);
+  $('generateDailyBtn').click();
+  await sleep(40);
+  const ovReportText = $('dailyResultArea').value;
+  check(/异世界群维系：4/.test(ovReportText) && /（梦幻\/繁花\/乐缤纷）群维系：6/.test(ovReportText)
+    && /海外CP后台工单：2/.test(ovReportText) && /国内工单：3/.test(ovReportText),
+    '海外日报正文含 4 个新字段的值', ovReportText.slice(-100));
+  $('dailyTabTicket').click();                    // 切到工单栏 → 生成工单日报文本
+  await sleep(20);
+  $('generateDailyBtn').click();
+  await sleep(40);
+  const tkReportText = $('dailyResultArea').value;
+  check(/①繁花微信【2】/.test(tkReportText) && /⑦异世界勇者微信【3】，抖音【1】/.test(tkReportText) && /SSO工单5/.test(tkReportText),
+    '工单日报正文含各字段的值', tkReportText.slice(0, 90));
+  const totalWithSj = 72;                         // 工单 17 + 海外 51 + 异世界群维系 4
+
+  // 先把当天记录删掉，证明接下来的数字确实是导入出来的
+  $('careerEditDate').value = bjToday;
+  $('careerLoadDayBtn').click();
+  await sleep(30);
+  $('careerDeleteDayBtn').click();
+  await sleep(30);
+  check(/累计工作量\s*62/.test(kpiText()), '删掉当天后累计 = 62（只剩导入的两天）', kpiText().slice(0, 30));
+
+  // 把「工单日报 + 海外日报」两段一起粘进去
+  $('careerImportArea').value = tkReportText + '\n\n' + ovReportText;
+  $('careerImportBtn').click();
+  await sleep(60);
+  check(/识别为日报格式：1 天/.test($('careerImportHint').textContent)
+    && $('careerImportHint').textContent.includes('工单+海外=' + totalWithSj),
+    '识别为日报格式并算出当天合计', $('careerImportHint').textContent);
+  const recR = (lastCareer() || { records: {} }).records[bjToday];
+  check(!!recR && recR.total === totalWithSj, '日报文本导入后的当天工作量 = ' + totalWithSj, recR && recR.total);
+  check(recR && recR.items.t_sso === 5 && recR.items.t_g1_wx === 2 && recR.items.t_g7_wx === 3 && recR.items.t_g7_dy === 1,
+    '工单日报那段的各平台数字都还原了', recR && recR.items);
+  check(recR && recR.items.sj_group === 4 && recR.items.mhl_group === 6 && recR.items.ov_cp === 2
+    && recR.items.cn_ticket === 3 && recR.items.store_reply === 14 && recR.items.mute === 7 && recR.items.ban === 3,
+    '海外日报那段也还原了（含异世界群维系4 / 商店回复14=ios9+google5）', recR && recR.items);
+  check(/累计工作量\s*134/.test(kpiText()), '导入后累计 = 62 + 72 = 134（与归档口径一致）', kpiText().slice(0, 30));
+  check(recR && recR.name === '测试员' && recR.shift === 'F', '姓名/班次也从日报文本里带出来了', recR && [recR.name, recR.shift]);
+  // 只粘工单日报那一段时，海外侧旧值不应被清掉
+  $('careerImportArea').value = tkReportText;
+  $('careerImportBtn').click();
+  await sleep(60);
+  const recT = (lastCareer() || {}).records[bjToday];
+  check(recT && recT.items.sj_group === 4 && recT.items.store_reply === 14 && recT.total === totalWithSj,
+    '只粘工单日报时，海外侧数字保留（按侧覆盖，不整条清空）', recT && recT.total);
 
   console.log('--- 9. 无未捕获异常 ---');
   check(!warns.some(w => w.startsWith('ERROR')), 'console.error 未被调用：' + warns.filter(w => w.startsWith('ERROR')).join(' | '));

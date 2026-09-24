@@ -123,6 +123,17 @@ ok(/data-tab="career"/.test(s) && /id="tab-career"/.test(s), '客服生涯标签
 ok(/careerArchiveToday\(\)/.test(s) && /const CAREER_KEY = 'careerData'/.test(s), '客服生涯自动归档已挂 + 存储 key');
 ok(/loadData\(CAREER_KEY, null\)/.test(s) && /careerData = normalizeCareer\(b\.careerData\)/.test(s), '客服生涯走服务端持久化（多设备同步）');
 ok(/function careerStats\(\)/.test(s) && /function careerImport\(\)/.test(s) && /function careerCsvText\(\)/.test(s), '统计 / 粘贴导入 / CSV 导出 已注入');
+// 粘贴导入要能认「工作台自己生成的日报文本」（工单日报 / 海外日报）
+ok(/function careerParseReportPaste\(text\)/.test(s) && /const reports = careerParseReportPaste\(text\)/.test(s)
+  && /识别为日报格式/.test(s),
+  '粘贴导入会先按「日报文本」识别（工单日报 / 海外日报，可两段一起粘）');
+ok(/const CAREER_TICKET_LABEL_TO_KEY = \(function \(\) \{[\s\S]{0,300}?for \(const f of DAILY_TICKET_FIELDS\)/.test(s)
+  && /const CAREER_OVERSEAS_LABEL_TO_KEY = \(function \(\) \{[\s\S]{0,300}?for \(const f of DAILY_OVERSEAS_FIELDS\)/.test(s),
+  '日报正文的「标签 → 字段 key」映射直接从日报字段定义推导（日报加字段不用手改）');
+ok(/function careerItemsFromDaily\(t, o\)/.test(s) && (s.match(/careerItemsFromDaily\(/g) || []).length >= 3,
+  '折算逻辑抽成 careerItemsFromDaily，自动归档与日报文本导入共用同一套口径');
+ok(/①繁花微信【2】|\[\u2460\u2461\u2462\u2463\u2464\u2465\u2466\]/.test(s) && /支付宝后台/.test(s) && /dy在线/.test(s),
+  '日报解析覆盖 ①~⑦ 组行（含 手Q / 支付宝后台 这两个写法）');
 ok(/CAREER_STATUS_PENDING = '总计为空\/待确认'/.test(s), '口径注明「总计为空/待确认」不计入完整记录天数');
 
 // ---- 4. 花括号/圆括号平衡（粗查，排除字符串内的干扰仅作参考） ----

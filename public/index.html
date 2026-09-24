@@ -2380,10 +2380,10 @@
             </div>
 
             <div class="card">
-                <label>📋 粘贴导入（从 Excel 直接复制那段表格粘进来）</label>
+                <label>📋 粘贴导入</label>
                 <div class="hint-text" style="margin: 8px 0;">
-                    带表头时按列名对齐（列顺序随意），不带表头时按 A~T 顺序（日期/人员/班次/14 项/总计/数据状态/特殊问题）。
-                    日期列接受 Excel 序列号或 2026-06-03、2026/6/3；同一天的已有记录会被覆盖。
+                    支持两种内容：<b>① 从 Excel 复制登记表那段</b>（带表头按列名对齐、顺序随意；不带表头按 A~T 顺序）；<b>② 直接粘工作台生成的日报文本</b>（工单日报 / 海外日报，两段可以一起粘，也可粘多天）。<br>
+                    日期接受 Excel 序列号或 2026-06-03、2026/6/3；日报文本按「N月N日」识别，年份取当前年。同一天的已有记录会被覆盖（只覆盖你粘的那一侧）。
                 </div>
                 <textarea id="careerImportArea" rows="6" placeholder="日期&#9;人员&#9;班次&#9;异世界群维系&#9;…&#9;总计&#9;数据状态&#9;特殊问题"></textarea>
                 <div class="flex-row" style="margin-top: 10px;">
@@ -4951,11 +4951,8 @@
                                         return d.year + '-' + String(d.month).padStart(2, '0') + '-' + String(d.day).padStart(2, '0');
                                     }
 
-                                    // 把当前日报（工单 + 海外两栏一起）折算成一条生涯记录
-                                    // 注意：撤出统计的那几项如果有日报来源（如①②⑤群维系），仍然照常采集，只是不进 total
-                                    function careerFoldDaily() {
-                                        const t = dailyData.ticket || {};
-                                        const o = dailyData.overseas || {};
+                                    // 把「日报字段值」折算成生涯项（自动归档与「粘贴日报文本」共用，保证两条路口径一致）
+                                    function careerItemsFromDaily(t, o) {
                                         const pick = (path) => {
                                             const i = path.indexOf('.');
                                             const tab = path.slice(0, i);
@@ -4968,6 +4965,14 @@
                                             for (const p of it.from) v += pick(p);
                                             if (v) items[it.key] = v;
                                         }
+                                        return items;
+                                    }
+
+                                    // 把当前日报（工单 + 海外两栏一起）折算成一条生涯记录
+                                    function careerFoldDaily() {
+                                        const t = dailyData.ticket || {};
+                                        const o = dailyData.overseas || {};
+                                        const items = careerItemsFromDaily(t, o);
                                         const total = careerSum(items);
                                         return {
                                             name: String(t.name || o.name || '').trim(),
@@ -9303,10 +9308,136 @@
                                         return '';
                                     }
 
+                                    // ---------- 识别「工作台自己生成的日报文本」----------
+                                    // 标签 → 日报字段 key：直接从 daily 字段定义推导，日报改了这里自动跟着变
+                                    const CAREER_TICKET_LABEL_TO_KEY = (function () {
+                                        const m = {};
+                                        for (const f of DAILY_TICKET_FIELDS) {
+                                            if (f.type !== 'number') continue;
+                                            m[f.label] = f.key;                       // 「SSO工单」「爱江山CP后台」
+                                            m[f.label.replace(/·/g, '')] = f.key;     // 日报正文里写成「①繁花微信【2】」
+                                        }
+                                        return m;
+                                    })();
+                                    const CAREER_OVERSEAS_LABEL_TO_KEY = (function () {
+                                        const m = {};
+                                        for (const f of DAILY_OVERSEAS_FIELDS) {
+                                            if (f.type !== 'number') continue;
+                                            m[f.label] = f.key;
+                                            m[f.label.replace(/（[^）]*）$/, '')] = f.key;   // 「ios商店（评价）」→ 正文里写「ios商店：」
+                                        }
+                                        return m;
+                                    })();
+                                    function careerReportDate(month, day) {
+                                        return getBeijingDate().year + '-' + String(month).padStart(2, '0') + '-' + String(day).padStart(2, '0');
+                                    }
+
+                                    // 解析工单日报 / 海外日报正文（两段可以一起粘，也可以粘多天的）。
+                                    // 返回 [{date, name, shift, hasTicket, hasOverseas, items, total}]
+                                    function careerParseReportPaste(text) {
+                                        const byDate = {};
+                                        const rec = (d) => byDate[d] || (byDate[d] = { date: d, name: '', shift: '', hasTicket: false, hasOverseas: false, t: {}, o: {} });
+                                        let cur = null;
+                                        for (const raw of String(text || '').split(/\r?\n/)) {
+                                            const line = raw.trim();
+                                            if (!line) continue;
+                                            // ① 工单日报表头：9月24日工作日报（F班）：
+                                            const ht = line.match(/^(\d{1,2})月(\d{1,2})日工作日报/);
+                                            if (ht) {
+                                                cur = rec(careerReportDate(+ht[1], +ht[2]));
+                                                cur.hasTicket = true;
+                                                const sh = line.match(/（([^）]*)）/);
+                                                if (sh && !cur.shift) cur.shift = sh[1].replace(/班$/, '');
+                                                continue;
+                                            }
+                                            // ② 海外日报表头：测试员  9月24日
+                                            const ho = line.match(/^(.+?)\s+(\d{1,2})月(\d{1,2})日$/);
+                                            if (ho) {
+                                                cur = rec(careerReportDate(+ho[2], +ho[3]));
+                                                cur.hasOverseas = true;
+                                                if (!cur.name) cur.name = ho[1].trim();
+                                                continue;
+                                            }
+                                            if (!cur) continue;
+                                            // 工单日报第二行是「姓名：」
+                                            const hn = line.match(/^(.+?)[：:]\s*$/);
+                                            if (hn) { if (!cur.name) cur.name = hn[1].trim(); continue; }
+                                            const body = line.replace(/^\d+、/, '');
+                                            // ③ 组行：①繁花微信【2】，抖音【0】，dy在线【0】，手Q【0】
+                                            const mg = body.match(/^([①②③④⑤⑥⑦][^【]*?)(微信|抖音|dy在线|手Q|支付宝后台)【(\d+)】/);
+                                            if (mg) {
+                                                const prefix = mg[1];
+                                                const put = (plat, val) => {
+                                                    const k = CAREER_TICKET_LABEL_TO_KEY[prefix + plat];
+                                                    if (k) cur.t[k] = val;
+                                                };
+                                                put(mg[2], parseInt(mg[3], 10) || 0);
+                                                for (const mm of body.matchAll(/[，,]\s*(微信|抖音|dy在线|手Q|支付宝后台)【(\d+)】/g)) {
+                                                    put(mm[1], parseInt(mm[2], 10) || 0);
+                                                }
+                                                continue;
+                                            }
+                                            // ④ 其余「标签+数字」或「标签：数字」（海外写法带「例」）
+                                            for (const part of body.split(/[，,]/)) {
+                                                const m1 = part.match(/^(.+?)[：:]\s*(\d+)\s*例?$/);
+                                                if (m1) {
+                                                    const label = m1[1].trim();
+                                                    const ko = CAREER_OVERSEAS_LABEL_TO_KEY[label];
+                                                    const kt = CAREER_TICKET_LABEL_TO_KEY[label];
+                                                    if (ko) cur.o[ko] = parseInt(m1[2], 10);
+                                                    else if (kt) cur.t[kt] = parseInt(m1[2], 10);
+                                                    continue;
+                                                }
+                                                const m2 = part.match(/^(.+?)(\d+)\s*$/);
+                                                if (m2) {
+                                                    const kt = CAREER_TICKET_LABEL_TO_KEY[m2[1].trim()];
+                                                    if (kt) cur.t[kt] = parseInt(m2[2], 10);
+                                                }
+                                            }
+                                        }
+                                        return Object.keys(byDate).sort().map(d => {
+                                            const r = byDate[d];
+                                            const items = careerItemsFromDaily(r.t, r.o);
+                                            return { date: r.date, name: r.name, shift: r.shift, hasTicket: r.hasTicket, hasOverseas: r.hasOverseas, items, total: careerSum(items) };
+                                        });
+                                    }
+
                                     function careerImport() {
                                         const area = document.getElementById('careerImportArea');
                                         const hint = document.getElementById('careerImportHint');
                                         const text = (area && area.value) || '';
+                                        if (!text.trim()) { if (hint) hint.textContent = '没有内容可导入'; return; }
+
+                                        // 先按「工作台生成的日报文本」识别（工单日报 / 海外日报，两段可一起粘、也可粘多天）
+                                        const reports = careerParseReportPaste(text);
+                                        if (reports.length) {
+                                            for (const r of reports) {
+                                                const prev = careerData.records[r.date] || { items: {} };
+                                                const items = Object.assign({}, prev.items || {});
+                                                // 这次粘贴覆盖了哪一侧，就把那一侧的旧值清掉（避免残留旧数）
+                                                if (r.hasTicket) for (const it of CAREER_TICKET_ITEMS) delete items[it.key];
+                                                if (r.hasOverseas) for (const it of CAREER_OVERSEAS_ITEMS) delete items[it.key];
+                                                Object.assign(items, r.items);
+                                                const total = careerSum(items);
+                                                careerCommit({
+                                                    name: r.name || prev.name || '',
+                                                    shift: r.shift || prev.shift || '',
+                                                    items,
+                                                    total,
+                                                    status: total > 0 ? CAREER_STATUS_DONE : CAREER_STATUS_PENDING,
+                                                    note: prev.note || '',
+                                                    src: 'import',
+                                                    at: new Date().toISOString()
+                                                }, r.date);
+                                            }
+                                            renderCareer();
+                                            if (hint) {
+                                                hint.textContent = '识别为日报格式：' + reports.length + ' 天（'
+                                                    + reports.map(r => r.date + (r.hasTicket ? ' 工单' : '') + (r.hasOverseas ? '+海外' : '') + '=' + r.total).join('；') + '）';
+                                            }
+                                            return;
+                                        }
+
                                         const lines = text.split(/\r?\n/).filter(l => l.trim());
                                         if (!lines.length) { if (hint) hint.textContent = '没有内容可导入'; return; }
                                         const split = (l) => l.split('\t').map(c => c.trim());
