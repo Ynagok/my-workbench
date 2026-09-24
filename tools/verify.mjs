@@ -60,14 +60,17 @@ ok(/data-tab="career"/.test(s) && /id="tab-career"/.test(s), '客服生涯标签
   const ticketFields = numKeys(ticketBlk);
   const ovFields = numKeys(ovDailyBlk);
 
-  // 工单侧 = 工单日报的全部数值字段（除姓名/班次），由 DAILY_TICKET_FIELDS 自动生成，只排除 ⑦异世界
-  ok(/const CAREER_TICKET_ITEMS = DAILY_TICKET_FIELDS[\s\S]{0,200}?\.filter\(f => f\.type === 'number' && CAREER_TICKET_EXCLUDE\.indexOf\(f\.key\) === -1\)/.test(s),
+  // 工单侧 = 工单日报的全部数值字段（除姓名/班次），由 DAILY_TICKET_FIELDS 自动生成
+  ok(/const CAREER_TICKET_ITEMS = DAILY_TICKET_FIELDS[\s\S]{0,260}?\.filter\(f => f\.type === 'number' && !CAREER_TICKET_EXCLUDE_PREFIX\.some/.test(s),
     '工单侧统计项由「工单日报」字段自动生成（加日报字段就会自动进统计，不会漏）');
-  ok(/const CAREER_TICKET_EXCLUDE = \['g7_wx', 'g7_dy', 'g7_dyol'\]/.test(s),
-    '工单侧只排除 ⑦异世界勇者（按用户口径它算海外）');
-  const genTicket = ticketFields.filter(k => k.indexOf('g7_') !== 0);
-  ok(ticketFields.length === 29 && genTicket.length === 26,
-    `工单侧项数 = 日报 ${ticketFields.length} 个数值字段 − 3（⑦异世界）= ${genTicket.length}`);
+  ok(/const CAREER_TICKET_EXCLUDE_PREFIX = \['g1_', 'g2_', 'g5_', 'g7_'\]/.test(s),
+    '工单侧排除 g1_/g2_/g5_（已由海外侧群维系汇总计入）与 g7_（异世界归海外）');
+  const excl = (k) => ['g1_', 'g2_', 'g5_', 'g7_'].some(p => k.indexOf(p) === 0);
+  const genTicket = ticketFields.filter(k => !excl(k));
+  ok(ticketFields.length === 29 && genTicket.length === 16,
+    `工单侧项数 = 日报 ${ticketFields.length} 个数值字段 − 13（①②⑤ + ⑦）= ${genTicket.length}`);
+  ok(genTicket.indexOf('g3_wx') !== -1 && genTicket.indexOf('g6_wx') !== -1 && genTicket.indexOf('g1_wx') === -1,
+    '③④⑥ 群维系留在工单侧，①②⑤ 不在（避免与海外侧汇总重复计量）');
   // 海外日报的数值字段必须被海外侧项一一覆盖
   const ovCovered = new Set();
   for (const m of ovBlk.matchAll(/'overseas\.([a-zA-Z0-9_]+)'/g)) ovCovered.add(m[1]);
@@ -77,7 +80,7 @@ ok(/data-tab="career"/.test(s) && /id="tab-career"/.test(s), '客服生涯标签
   const ovN = (ovBlk.match(/side: 'overseas'/g) || []).length;
   ok(ovN === 10, `海外侧 = ${ovN} 项（含异世界群维系）`);
   ok(/const CAREER_ITEMS = CAREER_TICKET_ITEMS\.concat\(CAREER_OVERSEAS_ITEMS\)/.test(s),
-    '合计 26 + 10 = 36 项计入统计');
+    '合计 16 + 10 = 26 项计入统计');
   ok(/key: 'sj_group', label: '异世界群维系', side: 'overseas'/.test(ovBlk) && /'ticket\.g7_wx'/.test(ovBlk),
     '异世界群维系归到海外侧（数据仍取工单日报的⑦）');
   // 海外日报新增的 3 个字段 → 海外侧 3 个统计项

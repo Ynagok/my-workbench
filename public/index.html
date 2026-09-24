@@ -4857,8 +4857,11 @@
                                     // 计入统计的项（两侧的卡片与「累计工作量」都只算这些）
                                     // ⚠️ 工单侧 = 「工单日报」的全部数值字段（除姓名/班次），**从 DAILY_TICKET_FIELDS 自动生成**：
                                     //    以后往日报加字段，这里自动跟着有，不会漏统计（verify 有断言锁定这个构造方式）。
-                                    //    唯一例外是 ⑦异世界勇者（g7_*）：按用户口径算海外业务，归到海外侧的「异世界群维系」。
-                                    const CAREER_TICKET_EXCLUDE = ['g7_wx', 'g7_dy', 'g7_dyol'];
+                                    //    排除两类（避免重复计量）：
+                                    //      ① ⑦异世界勇者 g7_*：按用户口径算海外业务 → 归海外侧「异世界群维系」
+                                    //      ② ①②⑤（繁花/乐缤纷/梦幻）g1_*/g2_*/g5_*：已由海外日报的「（梦幻/繁花/乐缤纷）群维系」汇总计入
+                                    //    ③④⑥（不差钱/你的江湖/伙伴弹途）不在那个汇总里，**保留在工单侧**。
+                                    const CAREER_TICKET_EXCLUDE_PREFIX = ['g1_', 'g2_', 'g5_', 'g7_'];
                                     function careerTicketKind(key) {
                                         if (/_cp$/.test(key)) return 'CP后台';
                                         if (key === 'sso') return '工单/后台';
@@ -4867,7 +4870,7 @@
                                         return '其他';
                                     }
                                     const CAREER_TICKET_ITEMS = DAILY_TICKET_FIELDS
-                                        .filter(f => f.type === 'number' && CAREER_TICKET_EXCLUDE.indexOf(f.key) === -1)
+                                        .filter(f => f.type === 'number' && !CAREER_TICKET_EXCLUDE_PREFIX.some(p => f.key.indexOf(p) === 0))
                                         .map(f => ({ key: 't_' + f.key, label: f.label, side: 'ticket', kind: careerTicketKind(f.key), from: ['ticket.' + f.key] }));
                                     // 海外侧统计项（群维系/CP后台/国内工单这三项在海外日报里有独立输入框；异世界群维系填在工单日报的⑦）
                                     const CAREER_OVERSEAS_ITEMS = [
