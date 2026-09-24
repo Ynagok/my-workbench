@@ -63,26 +63,32 @@ ok(/data-tab="career"/.test(s) && /id="tab-career"/.test(s), '客服生涯标签
     '异世界群维系归到海外侧（数据仍取工单日报的⑦）');
   // 海外日报新增的 3 个字段 → 海外侧 3 个统计项
   ok(/key: 'cp_ticket', label: '海外CP后台工单'/.test(s) && /key: 'cn_ticket', label: '国内工单'/.test(s)
-    && /key: 'group_ajs', label: '（爱江山\/繁花\/乐缤纷）群维系'/.test(s),
-    '海外日报表单新增 3 个字段（海外CP后台工单 / 国内工单 / （爱江山/繁花/乐缤纷）群维系）');
+    && /key: 'mhl_group', label: '（梦幻\/繁花\/乐缤纷）群维系'/.test(s),
+    '海外日报表单新增 3 个字段（海外CP后台工单 / 国内工单 / （梦幻/繁花/乐缤纷）群维系）');
   ok(/from: \['overseas\.cp_ticket'\]/.test(itemsBlk) && /from: \['overseas\.cn_ticket'\]/.test(itemsBlk)
-    && /from: \['overseas\.group_ajs'\]/.test(itemsBlk),
+    && /from: \['overseas\.mhl_group'\]/.test(itemsBlk),
     '这 3 个字段已接到海外侧统计（海外CP后台工单不再是「需补录」）');
   ok(/海外CP后台工单：\$\{d\.cp_ticket/.test(s) && /国内工单：\$\{d\.cn_ticket/.test(s)
-    && /（爱江山\/繁花\/乐缤纷）群维系：\$\{d\.group_ajs/.test(s),
+    && /（梦幻\/繁花\/乐缤纷）群维系：\$\{d\.mhl_group/.test(s),
     '海外日报正文已同步加这 3 行');
-  // 14 项必须与登记表列名一一对应（计入统计的 + 只存档的）
-  const labels = ['异世界群维系', '猫之城ios&B站评论回复', '国内动物领主VIP', '（繁花+乐缤纷+梦幻）群维系', '邮件+SDK（猫旅馆物语）',
+  ok(!/group_ajs/.test(s), '旧标签「（爱江山/繁花/乐缤纷）群维系」已彻底改掉');
+  // 登记表那列「（繁花+乐缤纷+梦幻）群维系」= 海外侧的（梦幻/繁花/乐缤纷）群维系，导入时按别名对齐
+  ok(/const CAREER_IMPORT_ALIASES = \{[\s\S]{0,80}'（繁花\+乐缤纷\+梦幻）群维系': 'mhl_group'/.test(s)
+    && /CAREER_IMPORT_ALIASES\[label\]/.test(s),
+    '登记表「（繁花+乐缤纷+梦幻）群维系」列别名接到海外侧群维系项（历史数据也进统计）');
+  // 14 项必须与登记表列名一一对应（计入统计的 + 只存档的 + 别名）
+  const aliasBlk = "（繁花+乐缤纷+梦幻）群维系";
+  const labels = ['异世界群维系', '猫之城ios&B站评论回复', '国内动物领主VIP', aliasBlk, '邮件+SDK（猫旅馆物语）',
     '海外SSO工单量（全产品）', '海外CP后台工单（全产品）', '塔防FB', '海外邮件（全产品）', '海外FB（全产品）',
     '商店回复', 'SSO国内工单', '监控禁言', '监控封号'];
-  const missing = labels.filter(l => !(itemsBlk + hiddenBlk).includes(l));
+  const missing = labels.filter(l => !(itemsBlk + hiddenBlk).includes(l) && !s.includes("'" + l + "': '"));
   ok(!missing.length, '14 项列名与登记表一致' + (missing.length ? '，缺：' + missing.join('/') : ''));
-  // 按用户要求撤出统计的 5 项：仍然采集/导入、但不在两侧统计里
+  // 只存档的 4 项（登记表里恒为 0 的那几列）：仍然可导入，但不进统计
   const hiddenKeys = hiddenBlk.match(/\{ key: '/g) || [];
-  ok(hiddenKeys.length === 5, `撤出统计、只存档的登记表列 = 5 项（当前 ${hiddenKeys.length}）`);
-  ok(['fanhua_group', 'catcity', 'dwlz_vip', 'catinn_sdk', 'td_fb'].every(k => hiddenBlk.includes("key: '" + k + "'")),
-    '只存档的 5 列正确（①②⑤群维系/猫之城/国内动物领主VIP/邮件+SDK/塔防FB）');
-  ok(!/key: 'g3_group'|key: 'g4_group'|key: 'g6_group'/.test(s), '③④⑤⑥群维系字段已按用户要求彻底移除（⑤梦幻也不采集）');
+  ok(hiddenKeys.length === 4, `只存档、不计入统计的登记表列 = 4 项（当前 ${hiddenKeys.length}）`);
+  ok(['catcity', 'dwlz_vip', 'catinn_sdk', 'td_fb'].every(k => hiddenBlk.includes("key: '" + k + "'")),
+    '只存档的 4 列正确（猫之城/国内动物领主VIP/邮件+SDK/塔防FB）');
+  ok(!/key: 'g3_group'|key: 'g4_group'|key: 'g6_group'/.test(s), '③④⑤⑥群维系字段已按用户要求彻底移除');
   ok(!/careerExtraFields/.test(s) && /const careerAllItems = \(\) =>/.test(s), 'extra 已移除，改为「计入统计 / 只存档」两层');
   // 口径断言：计入统计的项覆盖日报 20 个字段；未覆盖的应恰好是①②③④⑤⑥群维系那 19 个字段
   const numFields = new Set();
@@ -95,16 +101,14 @@ ok(/data-tab="career"/.test(s) && /id="tab-career"/.test(s), '客服生涯标签
   ok(numFields.size === 39 && covered.size === 20, `日报 ${numFields.size} 个数值字段里 20 个计入统计`);
   ok(uncovered.length === expectUncovered.length && expectUncovered.every(k => uncovered.indexOf(k) !== -1),
     '未计入两侧统计的恰好是①②③④⑤⑥群维系那 19 个字段（其余没有算漏）', uncovered);
-  // ①②只进「只存档」层；③④⑤⑥（含⑤梦幻）完全不采集
+  // ①~⑥ 群维系（19 个字段）现在完全不采集：群维系只分「异世界」和「（梦幻/繁花/乐缤纷）」两项
   const allCovered = new Set();
   for (const m of (itemsBlk + hiddenBlk).matchAll(/'((?:ticket|overseas)\.[a-zA-Z0-9_]+)'/g)) allCovered.add(m[1].split('.')[1]);
-  const dropped = ['g3_wx', 'g3_dy', 'g3_dyol', 'g4_wx', 'g4_dy', 'g4_dyol', 'g5_wx', 'g5_dy', 'g5_alipay', 'g6_wx', 'g6_dy', 'g6_dyol'];
   const notCollected = [...numFields].filter(k => !allCovered.has(k));
-  ok(notCollected.length === 12 && dropped.every(k => notCollected.indexOf(k) !== -1),
-    '③④⑤⑥群维系 12 个字段完全不采集（含⑤梦幻，按用户要求）', notCollected);
-  ok(!/from: \[[^\]]*g5_/.test(hiddenBlk), '只存档的①②⑤群维系已去掉梦幻字段（⑤不再采集）');
-  ok(/const CAREER_SHEET_ITEMS = \['sj_group', 'catcity', 'dwlz_vip'/.test(s) && (s.match(/CAREER_SHEET_ITEMS/g) || []).length >= 3,
-    '登记表 14 列口径单列（导入/对账用，含只存档的 5 列）');
+  ok(notCollected.length === 19 && expectUncovered.every(k => notCollected.indexOf(k) !== -1),
+    '①~⑥群维系 19 个日报字段完全不采集（群维系只留异世界 + 梦幻/繁花/乐缤纷两项）', notCollected);
+  ok(/const CAREER_SHEET_ITEMS = \['sj_group', 'catcity', 'dwlz_vip', 'mhl_group'/.test(s) && (s.match(/CAREER_SHEET_ITEMS/g) || []).length >= 3,
+    '登记表 14 列口径单列（导入/对账用，群维系那列已归入海外侧统计）');
 }
 ok(/careerArchiveToday\(\)/.test(s) && /const CAREER_KEY = 'careerData'/.test(s), '客服生涯自动归档已挂 + 存储 key');
 ok(/loadData\(CAREER_KEY, null\)/.test(s) && /careerData = normalizeCareer\(b\.careerData\)/.test(s), '客服生涯走服务端持久化（多设备同步）');
