@@ -4855,16 +4855,22 @@
                                         { key: 'overseas', label: '海外', icon: '🌐' }
                                     ];
                                     // 计入统计的项（两侧的卡片与「累计工作量」都只算这些）
-                                    const CAREER_ITEMS = [
-                                        // ---------- 工单侧（数据取自「工单日报」）----------
-                                        { key: 'cn_sso', label: 'SSO国内工单', side: 'ticket', kind: '工单/后台', from: ['ticket.sso'] },
-                                        { key: 'kf53', label: '53客服在线', side: 'ticket', kind: '在线客服', from: ['ticket.kf53'] },
-                                        { key: 'alipay_online', label: '支付宝在线', side: 'ticket', kind: '在线客服', from: ['ticket.alipay'] },
-                                        { key: 'ajs_cp', label: '爱江山CP后台', side: 'ticket', kind: 'CP后台', from: ['ticket.ajs_cp'] },
-                                        { key: 'fh_cp', label: '繁花CP后台', side: 'ticket', kind: 'CP后台', from: ['ticket.fh_cp'] },
-                                        { key: 'lb_cp', label: '乐缤纷CP后台', side: 'ticket', kind: 'CP后台', from: ['ticket.lb_cp'] },
-                                        { key: 'bcq_cp', label: '不差钱CP后台', side: 'ticket', kind: 'CP后台', from: ['ticket.bcq_cp'] },
-                                        // ---------- 海外侧（群维系/CP后台/国内工单这三项在海外日报里有独立输入框；异世界群维系填在工单日报的⑦）----------
+                                    // ⚠️ 工单侧 = 「工单日报」的全部数值字段（除姓名/班次），**从 DAILY_TICKET_FIELDS 自动生成**：
+                                    //    以后往日报加字段，这里自动跟着有，不会漏统计（verify 有断言锁定这个构造方式）。
+                                    //    唯一例外是 ⑦异世界勇者（g7_*）：按用户口径算海外业务，归到海外侧的「异世界群维系」。
+                                    const CAREER_TICKET_EXCLUDE = ['g7_wx', 'g7_dy', 'g7_dyol'];
+                                    function careerTicketKind(key) {
+                                        if (/_cp$/.test(key)) return 'CP后台';
+                                        if (key === 'sso') return '工单/后台';
+                                        if (key === 'kf53' || key === 'alipay') return '在线客服';
+                                        if (/^g\d/.test(key)) return '群维系';
+                                        return '其他';
+                                    }
+                                    const CAREER_TICKET_ITEMS = DAILY_TICKET_FIELDS
+                                        .filter(f => f.type === 'number' && CAREER_TICKET_EXCLUDE.indexOf(f.key) === -1)
+                                        .map(f => ({ key: 't_' + f.key, label: f.label, side: 'ticket', kind: careerTicketKind(f.key), from: ['ticket.' + f.key] }));
+                                    // 海外侧统计项（群维系/CP后台/国内工单这三项在海外日报里有独立输入框；异世界群维系填在工单日报的⑦）
+                                    const CAREER_OVERSEAS_ITEMS = [
                                         { key: 'sj_group', label: '异世界群维系', side: 'overseas', kind: '群维系', from: ['ticket.g7_wx', 'ticket.g7_dy', 'ticket.g7_dyol'] },
                                         { key: 'mhl_group', label: '（梦幻/繁花/乐缤纷）群维系', side: 'overseas', kind: '群维系', from: ['overseas.mhl_group'] },
                                         { key: 'ov_sso', label: '海外SSO工单量（全产品）', side: 'overseas', kind: '工单/后台', from: ['overseas.sdk'] },
@@ -4876,6 +4882,7 @@
                                         { key: 'mute', label: '监控禁言', side: 'overseas', kind: '监控', from: ['overseas.mute'] },
                                         { key: 'ban', label: '监控封号', side: 'overseas', kind: '监控', from: ['overseas.ban'] }
                                     ];
+                                    const CAREER_ITEMS = CAREER_TICKET_ITEMS.concat(CAREER_OVERSEAS_ITEMS);
                                     // 按用户要求撤出统计的项：《工作量登记表》里的列，**仍然采集/导入，但不计入统计**，
                                     // 只用于「对外登记表口径」那张对账表——否则导入的表跟原表对不上账。
                                     const CAREER_HIDDEN_ITEMS = [
@@ -4887,13 +4894,14 @@
                                     // 登记表里的列名跟本系统标签写法不同的，导入时按这里的别名对齐
                                     // （登记表那列叫「（繁花+乐缤纷+梦幻）群维系」，就是海外侧的（梦幻/繁花/乐缤纷）群维系）
                                     const CAREER_IMPORT_ALIASES = {
-                                        '（繁花+乐缤纷+梦幻）群维系': 'mhl_group'
+                                        '（繁花+乐缤纷+梦幻）群维系': 'mhl_group',
+                                        'SSO国内工单': 't_sso'
                                     };
                                     const CAREER_SHEET_HIDDEN = CAREER_HIDDEN_ITEMS.map(it => it.key);
                                     const careerAllItems = () => CAREER_ITEMS.concat(CAREER_HIDDEN_ITEMS);
                                     const careerItemByKey = (k) => careerAllItems().filter(it => it.key === k)[0] || null;
                                     // 对外《工作量登记表》的 14 列口径（粘贴导入按这些列名对齐；也用于跟外部表格对账）
-                                    const CAREER_SHEET_ITEMS = ['sj_group', 'catcity', 'dwlz_vip', 'mhl_group', 'catinn_sdk', 'ov_sso', 'ov_cp', 'td_fb', 'ov_email', 'ov_fb', 'store_reply', 'cn_sso', 'mute', 'ban'];
+                                    const CAREER_SHEET_ITEMS = ['sj_group', 'catcity', 'dwlz_vip', 'mhl_group', 'catinn_sdk', 'ov_sso', 'ov_cp', 'td_fb', 'ov_email', 'ov_fb', 'store_reply', 't_sso', 'mute', 'ban'];
                                     const CAREER_STATUS_DONE = '已完成记录';
                                     const CAREER_STATUS_PENDING = '总计为空/待确认';
 
