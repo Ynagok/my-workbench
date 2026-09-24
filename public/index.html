@@ -4789,7 +4789,7 @@
                                             ios: 0, google: 0,
                                             fb: 0, email: 0, sdk: 0,
                                             mute: 0, ban: 0,
-                                            cp_ticket: 0, cn_ticket: 0, mhl_group: 0
+                                            cp_ticket: 0, cn_ticket: 0, mhl_group: 0, sj_group: 0
                                         },
                                         ticketCustom: [],
                                         overseasCustom: [],
@@ -4842,7 +4842,8 @@
                                         { key: 'ban', label: '封号', type: 'number' },
                                         { key: 'cp_ticket', label: '海外CP后台工单', type: 'number' },
                                         { key: 'cn_ticket', label: '国内工单', type: 'number' },
-                                        { key: 'mhl_group', label: '（梦幻/繁花/乐缤纷）群维系', type: 'number' }
+                                        { key: 'mhl_group', label: '（梦幻/繁花/乐缤纷）群维系', type: 'number' },
+                                        { key: 'sj_group', label: '异世界群维系', type: 'number' }
                                     ];
 
                                     // ==================== 客服生涯 · 数据模型 ====================
@@ -4870,10 +4871,11 @@
                                     const CAREER_TICKET_ITEMS = DAILY_TICKET_FIELDS
                                         .filter(f => f.type === 'number' && !CAREER_TICKET_EXCLUDE_PREFIX.some(p => f.key.indexOf(p) === 0))
                                         .map(f => ({ key: 't_' + f.key, label: f.label, side: 'ticket', kind: careerTicketKind(f.key), from: ['ticket.' + f.key] }));
-                                    // 海外侧统计项（群维系/CP后台/国内工单这三项在海外日报里有独立输入框）
-                                    // 注：⑦异世界勇者的量已按用户清单计入工单侧，所以这里不再有「异世界群维系」项（避免同一份数据算两次）；
-                                    //     它在「只存档」层保留一份聚合（用同样的 g7_* 来源），只为登记表那列对账。
+                                    // 海外侧统计项（群维系/CP后台/国内工单这几项在海外日报里有独立输入框）
+                                    // ⚠️ 海外侧的「异世界群维系」是**群维系的来访**，跟工单侧 ⑦异世界勇者的「各平台工单来访」
+                                    //    是两码事，所以它在海外日报里单独填（overseas.sj_group），**不读** ticket.g7_*。
                                     const CAREER_OVERSEAS_ITEMS = [
+                                        { key: 'sj_group', label: '异世界群维系', side: 'overseas', kind: '群维系', from: ['overseas.sj_group'] },
                                         { key: 'mhl_group', label: '（梦幻/繁花/乐缤纷）群维系', side: 'overseas', kind: '群维系', from: ['overseas.mhl_group'] },
                                         { key: 'ov_sso', label: '海外SSO工单量（全产品）', side: 'overseas', kind: '工单/后台', from: ['overseas.sdk'] },
                                         { key: 'ov_cp', label: '海外CP后台工单（全产品）', side: 'overseas', kind: 'CP后台', from: ['overseas.cp_ticket'] },
@@ -4886,11 +4888,8 @@
                                     ];
                                     const CAREER_ITEMS = CAREER_TICKET_ITEMS.concat(CAREER_OVERSEAS_ITEMS);
                                     // 按用户要求撤出统计的项：**只存档、不计入统计**，但照样导入/折算，只用于「对外登记表口径」对账表。
-                                    //  - 猫之城/VIP/邮件+SDK/塔防FB：登记表里有、日报里没有的列（恒为 0）
-                                    //  - 异世界群维系：登记表那列是「⑦三个平台之和」的聚合；而统计侧已按用户清单逐平台记在工单侧，
-                                    //    这里保留聚合只为了那列能对上账（不计入累计，避免重复）
+                                    // 都是登记表里有、日报里没有对应字段的列（一直为 0）
                                     const CAREER_HIDDEN_ITEMS = [
-                                        { key: 'sj_group', label: '异世界群维系', kind: '群维系', from: ['ticket.g7_wx', 'ticket.g7_dy', 'ticket.g7_dyol'] },
                                         { key: 'catcity', label: '猫之城ios&B站评论回复', kind: '评论/社区', from: [] },
                                         { key: 'dwlz_vip', label: '国内动物领主VIP', kind: 'VIP', from: [] },
                                         { key: 'catinn_sdk', label: '邮件+SDK（猫旅馆物语）', kind: '邮件/工单', from: [] },
@@ -8850,6 +8849,7 @@
                                             text += `SDk工单：${d.sdk || 0}例\n`;
                                             text += `总计：${visitTotal}例\n\n`;
                                             text += `禁言：${d.mute || 0}，封号：${d.ban || 0}\n`;
+                                            text += `异世界群维系：${d.sj_group || 0}\n`;
                                             text += `（梦幻/繁花/乐缤纷）群维系：${d.mhl_group || 0}\n`;
                                             text += `海外CP后台工单：${d.cp_ticket || 0}\n`;
                                             text += `国内工单：${d.cn_ticket || 0}\n`;

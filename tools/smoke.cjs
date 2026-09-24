@@ -410,7 +410,7 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
 
   $('dailyTabOverseas').click();          // 海外表单要先切过去才渲染
   await sleep(40);
-  check($('dailyFormOverseas').querySelectorAll('[data-key]').length === 11, '海外日报表单 11 个字段（含新增的 海外CP后台工单/国内工单/（梦幻/繁花/乐缤纷）群维系）',
+  check($('dailyFormOverseas').querySelectorAll('[data-key]').length === 12, '海外日报表单 12 个字段（含新增的 异世界群维系/（梦幻/繁花/乐缤纷）群维系/海外CP后台工单/国内工单）',
     $('dailyFormOverseas').querySelectorAll('[data-key]').length);
 
   // 工单栏：g7=异世界群维系(3+1)、①②⑤群维系(只为只存档层)、sso=SSO国内(5)
@@ -432,9 +432,9 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
   const rec0 = (lastCareer() || { records: {} }).records[bjToday];
   check(!!rec0, '点「生成日报」后当天已自动归档', Object.keys((lastCareer() || { records: {} }).records).slice(0, 3));
   check(rec0 && rec0.total === 68, '折算口径正确：当日工作量 = 68（工单 17 + 海外 51）', rec0 && rec0.total);
-  check(rec0 && rec0.items.t_sso === 5 && rec0.items.sj_group === 4 && rec0.items.store_reply === 14
+  check(rec0 && rec0.items.t_sso === 5 && rec0.items.t_g7_wx === 3 && rec0.items.store_reply === 14
     && rec0.items.ov_sso === 12 && rec0.items.ov_email === 4 && rec0.items.mute === 7 && rec0.items.ban === 3,
-    '逐项折算正确（SSO5/异世界4/商店14/海外SSO12/邮件4/禁言7/封号3）', rec0 && rec0.items);
+    '逐项折算正确（工单侧 SSO5/⑦工单来访3+1、海外侧 商店14/海外SSO12/邮件4/禁言7/封号3）', rec0 && rec0.items);
   check(rec0 && rec0.items.mhl_group === 6 && rec0.items.ov_cp === 2 && rec0.items.cn_ticket === 3,
     '海外日报新增的三项已计入海外侧（群维系6/CP后台2/国内工单3）', rec0 && rec0.items);
   const ovReport = $('dailyResultArea').value;
@@ -444,7 +444,7 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
   check(rec0 && rec0.items.t_g1_wx === 2 && rec0.items.t_g2_dy === 1 && rec0.items.t_g6_wx === 5
     && rec0.items.t_g7_wx === 3 && rec0.items.t_g7_dy === 1,
     '工单日报全部字段都在工单侧（含 ①②⑤⑦ 逐平台）', rec0 && rec0.items);
-  check(rec0 && rec0.items.sj_group === 4, '异世界群维系聚合只存档（采集 4 但不计入统计）', rec0 && rec0.items.sj_group);
+  check(rec0 && rec0.items.sj_group === undefined, '海外侧「异世界群维系」读海外日报那个字段（smoke 没填 → 不入账）', rec0 && rec0.items.sj_group);
   check(rec0 && rec0.items.g6_group === undefined && rec0.items.fanhua_group === undefined, '不再有聚合项/只存档项的旧 key', rec0 && rec0.items);
   check(rec0 && rec0.items.t_g5_wx === undefined, '日报里没填的字段不入账（⑤梦幻是 0）', rec0 && rec0.items);
   check(rec0 && rec0.extra === undefined, '不再有脱离统计的 extra 字段');
@@ -458,8 +458,8 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
   check(/环比|近 30 记录日日均/.test(kpiText()), 'KPI：趋势类指标已渲染');
   check($('careerTrend').querySelectorAll('span').length === 1, '趋势条 = 1 根', $('careerTrend').querySelectorAll('span').length);
   check(/工单侧\s*17 \+ 海外侧\s*51 = 68/.test($('careerSheetHint').textContent)
-    && /登记表 14 项口径.*57/.test($('careerSheetHint').textContent),
-    '口径拆分：工单17 + 海外51 = 68；登记表 14 列口径 57（差额 11 = 不在登记表里的项）', $('careerSheetHint').textContent);
+    && /登记表 14 项口径.*53/.test($('careerSheetHint').textContent),
+    '口径拆分：工单17 + 海外51 = 68；登记表 14 列口径 53（差额 = 不在登记表里的项）', $('careerSheetHint').textContent);
   const sideTicket = $('careerSideTicket').textContent;
   const sideOverseas = $('careerSideOverseas').textContent;
   check(/工单侧累计\s*17/.test(sideTicket), '工单侧单独统计：累计 17', sideTicket.slice(0, 40));
@@ -468,10 +468,9 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     && /①繁花·微信/.test(sideTicket) && /⑤梦幻消除战·微信/.test(sideTicket) && /⑦异世界勇者·微信/.test(sideTicket)
     && !/异世界群维系/.test(sideTicket) && !/猫之城/.test(sideTicket),
     '工单侧 = 工单日报全部字段（①②⑤⑦ 都在），且不含只存档项', sideTicket.slice(0, 60));
-  check(/（梦幻\/繁花\/乐缤纷）群维系/.test(sideOverseas)
-    && /国内工单/.test(sideOverseas) && /海外CP后台工单/.test(sideOverseas) && /监控禁言/.test(sideOverseas)
-    && !/异世界群维系/.test(sideOverseas),
-    '海外侧含（梦幻/繁花/乐缤纷）群维系 / 国内工单 / 海外CP后台工单 / 禁言封号（异世界已归工单侧）');
+  check(/异世界群维系/.test(sideOverseas) && /（梦幻\/繁花\/乐缤纷）群维系/.test(sideOverseas)
+    && /国内工单/.test(sideOverseas) && /海外CP后台工单/.test(sideOverseas) && /监控禁言/.test(sideOverseas),
+    '海外侧含 异世界群维系 /（梦幻/繁花/乐缤纷）群维系 / 国内工单 / 海外CP后台工单 / 禁言封号');
   const itemTbl = $('careerItemTable').textContent;
   check(itemTbl.includes('商店回复') && itemTbl.includes('（梦幻/繁花/乐缤纷）群维系') && itemTbl.includes('不计入统计'),
     '登记表 14 列口径表在，只存档的列标了「不计入统计」', itemTbl.slice(0, 50));
@@ -494,7 +493,7 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
   check(recs['2026-06-03'] && recs['2026-06-03'].total === 42, '导入行总计 = 各列之和 42', recs['2026-06-03'] && recs['2026-06-03'].total);
   check(recs['2026-06-04'] && recs['2026-06-04'].note === '测试备注', '特殊问题列已带入');
   check(/累计工作量\s*130/.test(kpiText()), 'KPI 更新：68 + 42 + 20 = 130', kpiText().slice(0, 40));
-  check(/登记表 14 项口径.*119/.test($('careerSheetHint').textContent), '登记表口径同步为 119（57+62）', $('careerSheetHint').textContent);
+  check(/登记表 14 项口径.*115/.test($('careerSheetHint').textContent), '登记表口径同步为 115（53+62）', $('careerSheetHint').textContent);
   check(/待确认 1 天/.test($('careerQuality').textContent), '「总计为空/待确认」不入统计，单列提示', $('careerQuality').textContent.slice(0, 60));
   const monthTbl = $('careerMonthlyTable').textContent;
   check(monthTbl.includes('2026-06') && monthTbl.includes(bjToday.slice(0, 7)), '月度汇总含 2026-06 与本月', monthTbl.slice(0, 60));

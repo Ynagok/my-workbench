@@ -69,23 +69,25 @@ ok(/data-tab="career"/.test(s) && /id="tab-career"/.test(s), '客服生涯标签
   ok(ticketFields.length === 29 && genTicket.length === 29, `工单侧 = 工单日报全部 ${genTicket.length} 个数值字段`);
   ok(genTicket.indexOf('g1_wx') !== -1 && genTicket.indexOf('g7_wx') !== -1 && genTicket.indexOf('g6_wx') !== -1,
     '①②⑤⑦ 都在工单侧（按用户清单）');
-  // ⑦ 的量算在工单侧，所以海外侧不能再有「异世界群维系」（否则重复计量）
-  ok(ovBlk.indexOf("'sj_group'") === -1 && ovBlk.indexOf("'ticket.g7_") === -1,
-    '海外侧不再有异世界群维系（⑦ 已计入工单侧，避免算两次）');
-  ok(/key: 'sj_group', label: '异世界群维系'[\s\S]{0,120}?from: \['ticket\.g7_wx', 'ticket\.g7_dy', 'ticket\.g7_dyol'\]/.test(hiddenBlk),
-    '异世界群维系保留在「只存档」层（用同样的 g7_* 来源），供登记表那列对账');
+  // 两处的「异世界」是不同数据：工单侧 ⑦ = 各平台工单来访；海外侧 = 群维系来访（读海外日报自己的字段）
+  ok(/key: 'sj_group', label: '异世界群维系', side: 'overseas'[\s\S]{0,80}?from: \['overseas\.sj_group'\]/.test(ovBlk),
+    '海外侧的异世界群维系读「海外日报」的 sj_group 字段（群维系来访），不读工单日报的 ⑦');
+  ok(ovBlk.indexOf("'ticket.g7_") === -1, '海外侧不读 ticket.g7_*（那是各平台的工单来访，属工单侧）');
+  ok(/key: 'sj_group', label: '异世界群维系', type: 'number'/.test(ovDailyBlk),
+    '海外日报表单新增「异世界群维系」字段');
+  ok(/异世界群维系：\$\{d\.sj_group/.test(s), '海外日报正文已加「异世界群维系」行');
   // 海外日报的数值字段必须被海外侧项一一覆盖
   const ovCovered = new Set();
   for (const m of ovBlk.matchAll(/'overseas\.([a-zA-Z0-9_]+)'/g)) ovCovered.add(m[1]);
   const ovMissed = ovFields.filter(k => !ovCovered.has(k));
-  ok(ovFields.length === 10 && !ovMissed.length,
+  ok(ovFields.length === 11 && !ovMissed.length,
     `海外侧覆盖海外日报全部 ${ovFields.length} 个数值字段` + (ovMissed.length ? '，漏：' + ovMissed.join('/') : ''));
   const ovN = (ovBlk.match(/side: 'overseas'/g) || []).length;
-  ok(ovN === 9, `海外侧 = ${ovN} 项（含（梦幻/繁花/乐缤纷）群维系；异世界已归工单侧）`);
+  ok(ovN === 10, `海外侧 = ${ovN} 项（含异世界群维系 + （梦幻/繁花/乐缤纷）群维系）`);
   ok(/const CAREER_ITEMS = CAREER_TICKET_ITEMS\.concat\(CAREER_OVERSEAS_ITEMS\)/.test(s),
-    '合计 29 + 9 = 38 项计入统计');
+    '合计 29 + 10 = 39 项计入统计');
   ok(/key: 'mhl_group', label: '（梦幻\/繁花\/乐缤纷）群维系', side: 'overseas'/.test(ovBlk),
-    '海外侧含（梦幻/繁花/乐缤纷）群维系（来源：海外日报那个手填字段）');
+    '海外侧含异世界群维系与（梦幻/繁花/乐缤纷）群维系（都来自海外日报的手填字段）');
   // 海外日报新增的 3 个字段 → 海外侧 3 个统计项
   ok(/key: 'cp_ticket', label: '海外CP后台工单'/.test(s) && /key: 'cn_ticket', label: '国内工单'/.test(s)
     && /key: 'mhl_group', label: '（梦幻\/繁花\/乐缤纷）群维系'/.test(s),
@@ -109,11 +111,11 @@ ok(/data-tab="career"/.test(s) && /id="tab-career"/.test(s), '客服生涯标签
     '商店回复', 'SSO国内工单', '监控禁言', '监控封号'];
   const missing = labels.filter(l => !allLabels.includes(l));
   ok(!missing.length, '14 列列名都能对上（统计项 / 只存档 / 别名）' + (missing.length ? '，缺：' + missing.join('/') : ''));
-  // 只存档的 5 项：仍然可导入/折算，但不进统计
+  // 只存档的 4 项：仍然可导入，但不进统计
   const hiddenKeys = hiddenBlk.match(/\{ key: '/g) || [];
-  ok(hiddenKeys.length === 5, `只存档、不计入统计的项 = 5 项（当前 ${hiddenKeys.length}）`);
-  ok(['sj_group', 'catcity', 'dwlz_vip', 'catinn_sdk', 'td_fb'].every(k => hiddenBlk.includes("key: '" + k + "'")),
-    '只存档的 5 项正确（异世界群维系聚合 + 猫之城/动物领主VIP/邮件+SDK/塔防FB）');
+  ok(hiddenKeys.length === 4, `只存档、不计入统计的项 = 4 项（当前 ${hiddenKeys.length}）`);
+  ok(['catcity', 'dwlz_vip', 'catinn_sdk', 'td_fb'].every(k => hiddenBlk.includes("key: '" + k + "'")),
+    '只存档的 4 项正确（猫之城/动物领主VIP/邮件+SDK/塔防FB）');
   ok(!/careerExtraFields/.test(s) && /const careerAllItems = \(\) =>/.test(s), 'extra 已移除，改为「计入统计 / 只存档」两层');
   ok(/const CAREER_SHEET_ITEMS = \[[^\]]*'mhl_group'[^\]]*'t_sso'/.test(s) && (s.match(/CAREER_SHEET_ITEMS/g) || []).length >= 3,
     '登记表 14 列口径单列（导入/对账用）');
