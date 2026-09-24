@@ -1928,6 +1928,133 @@
             padding: 0 4px !important;
             letter-spacing: 0.02em !important;
         }
+
+        /* ===================== 客服生涯 ===================== */
+        .career-kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(152px, 1fr));
+            gap: 12px;
+        }
+
+        .career-kpi {
+            background: var(--surface-2);
+            border: 1px solid var(--line-0);
+            border-radius: var(--r-md);
+            padding: 12px 14px;
+        }
+
+            .career-kpi.accent {
+                background: var(--accent-dim);
+                border-color: var(--accent-line);
+            }
+
+            .career-kpi .k-label {
+                font-size: 11px;
+                color: var(--ink-2);
+                font-weight: 700;
+                letter-spacing: 0.08em;
+            }
+
+            .career-kpi .k-value {
+                font-family: var(--font-display);
+                font-size: 25px;
+                font-weight: 700;
+                line-height: 1.25;
+                color: var(--ink-0);
+            }
+
+            .career-kpi .k-sub {
+                font-size: 11px;
+                color: var(--ink-3);
+            }
+
+        .career-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+            .career-table th {
+                text-align: left;
+                font-family: var(--font-display);
+                font-size: 11px;
+                letter-spacing: 0.1em;
+                color: var(--ink-2);
+                border-bottom: 1px solid var(--line-1);
+                padding: 8px 10px;
+                white-space: nowrap;
+                position: sticky;
+                top: 0;
+                background: var(--surface);
+            }
+
+            .career-table td {
+                padding: 7px 10px;
+                border-bottom: 1px solid var(--line-0);
+                color: var(--ink-1);
+            }
+
+            .career-table th.num,
+            .career-table td.num {
+                text-align: right;
+                font-family: var(--font-mono);
+            }
+
+            .career-table tbody tr:hover td {
+                background: var(--surface-2);
+            }
+
+            .career-table tr.total-row td {
+                font-weight: 700;
+                background: var(--accent-dim);
+                color: var(--ink-0);
+            }
+
+        .career-bar {
+            height: 6px;
+            border-radius: var(--r-pill);
+            background: var(--line-0);
+            overflow: hidden;
+            min-width: 56px;
+        }
+
+            .career-bar > i {
+                display: block;
+                height: 100%;
+                background: var(--accent);
+            }
+
+        .career-trend {
+            display: flex;
+            align-items: flex-end;
+            gap: 3px;
+            height: 88px;
+            padding: 6px 0;
+            border-bottom: 1px solid var(--line-1);
+        }
+
+            .career-trend > span {
+                flex: 1;
+                min-width: 3px;
+                background: var(--accent);
+                border-radius: 2px 2px 0 0;
+            }
+
+        .career-scroll {
+            max-height: 380px;
+            overflow: auto;
+        }
+
+        .career-tag {
+            display: inline-block;
+            font-size: 10px;
+            padding: 1px 7px;
+            border-radius: var(--r-pill);
+            border: 1px solid var(--line-1);
+            background: var(--surface-2);
+            color: var(--ink-3);
+            letter-spacing: 0.04em;
+        }
     </style>
 </head>
 
@@ -1940,6 +2067,7 @@
 
             <button class="tab-btn" data-tab="reply"> 工单回复</button>
             <button class="tab-btn" data-tab="daily"> 每日日报</button>
+            <button class="tab-btn" data-tab="career"> 客服生涯</button>
             <button class="tab-btn" data-tab="script">小游戏</button>
         </div>
 
@@ -2154,7 +2282,7 @@
 
             <div class="card">
                 <div class="result-header">
-                    <label>📄 日报预览 <span class="hint-text" style="margin-left:8px;">（自动按北京时间逐日刷新）</span></label>
+                    <label>📄 日报预览 <span class="hint-text" style="margin-left:8px;">（自动按北京时间逐日刷新；点「生成日报」会同时归档进「客服生涯」）</span></label>
                     <div class="flex-row">
                         <button id="generateDailyBtn">✨ 生成日报</button>
                         <button id="copyDailyBtn" class="secondary">📋 复制</button>
@@ -2162,6 +2290,90 @@
                     </div>
                 </div>
                 <textarea id="dailyResultArea" rows="18" readonly></textarea>
+            </div>
+        </div>
+
+        <!-- ==================== 客服生涯 ==================== -->
+        <div id="tab-career" class="tab-content">
+            <div class="card">
+                <div class="flex-row" style="justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
+                    <label style="margin:0;">🎖️ 客服生涯 · 工作量总览
+                        <span class="hint-text" style="margin-left:8px;">日报「工单」「海外」两栏自动折算入账，按登记表 14 项工作类型统计</span>
+                    </label>
+                    <div class="flex-row">
+                        <button id="careerArchiveBtn" class="secondary">🗂️ 归档今日日报</button>
+                        <button id="careerExportCsvBtn" class="secondary">📊 导出CSV</button>
+                        <button id="careerExportJsonBtn" class="secondary">💾 导出JSON</button>
+                    </div>
+                </div>
+                <div id="careerKpi" class="career-kpi-grid" style="margin-top: 14px;"></div>
+                <div id="careerArchiveHint" class="hint-text" style="margin-top: 10px;"></div>
+            </div>
+
+            <div class="card">
+                <label>📈 月度汇总</label>
+                <div class="career-scroll" style="margin-top: 10px;"><table class="career-table" id="careerMonthlyTable"></table></div>
+            </div>
+
+            <div class="card">
+                <label>🧩 工作类型累计（14 项）</label>
+                <div class="career-scroll" style="margin-top: 10px;"><table class="career-table" id="careerItemTable"></table></div>
+            </div>
+
+            <div class="card">
+                <label>🗂️ 三大类结构 · 渠道覆盖 · 趋势</label>
+                <div id="careerGroupBox" style="margin-top: 10px;"></div>
+                <div class="hint-text" style="margin-top: 14px;">最近 30 个记录日的单日工作量</div>
+                <div class="career-trend" id="careerTrend"></div>
+            </div>
+
+            <div class="card">
+                <label>🧪 数据质量与备注</label>
+                <div id="careerQuality" style="margin-top: 10px;"></div>
+            </div>
+
+            <div class="card">
+                <label>✍️ 补录 / 修正某一天
+                    <span class="hint-text" style="margin-left:8px;">日期可改，用来补历史或改掉误归档的那天</span>
+                </label>
+                <div class="flex-row" style="margin: 10px 0;">
+                    <input type="date" id="careerEditDate" style="width: 168px;">
+                    <input type="text" id="careerEditName" placeholder="人员" style="width: 104px;">
+                    <select id="careerEditShift" style="width: 92px;">
+                        <option value="">班次</option>
+                        <option value="A">A</option>
+                        <option value="F">F</option>
+                        <option value="H">H</option>
+                    </select>
+                    <select id="careerEditStatus" style="width: 158px;">
+                        <option value="">状态自动判定</option>
+                        <option value="已完成记录">已完成记录</option>
+                        <option value="总计为空/待确认">总计为空/待确认</option>
+                    </select>
+                    <button id="careerLoadDayBtn" class="secondary">载入该日</button>
+                    <button id="careerSaveDayBtn">保存该日</button>
+                    <button id="careerDeleteDayBtn" class="reset-btn">删除该日</button>
+                </div>
+                <div id="careerEditGrid" class="daily-form"></div>
+                <div class="daily-field full-width" style="margin-top: 10px;">
+                    <label>特殊问题 / 备注</label>
+                    <input type="text" id="careerEditNote" placeholder="例：活动峰值、异常工单">
+                </div>
+                <div class="hint-text" id="careerEditHint" style="margin-top: 8px;">选个日期点「载入该日」，或直接填数字后「保存该日」。</div>
+            </div>
+
+            <div class="card">
+                <label>📋 粘贴导入（从 Excel 直接复制那段表格粘进来）</label>
+                <div class="hint-text" style="margin: 8px 0;">
+                    带表头时按列名对齐（列顺序随意），不带表头时按 A~T 顺序（日期/人员/班次/14 项/总计/数据状态/特殊问题）。
+                    日期列接受 Excel 序列号或 2026-06-03、2026/6/3；同一天的已有记录会被覆盖。
+                </div>
+                <textarea id="careerImportArea" rows="6" placeholder="日期&#9;人员&#9;班次&#9;异世界群维系&#9;…&#9;总计&#9;数据状态&#9;特殊问题"></textarea>
+                <div class="flex-row" style="margin-top: 10px;">
+                    <button id="careerImportBtn">📥 导入</button>
+                    <button id="careerClearImportBtn" class="secondary">清空</button>
+                    <span class="hint-text" id="careerImportHint"></span>
+                </div>
             </div>
         </div>
 
@@ -4612,6 +4824,132 @@
                                         { key: 'ban', label: '封号', type: 'number' }
                                     ];
 
+                                    // ==================== 客服生涯 · 数据模型 ====================
+                                    // 口径对齐外部工作量登记表（14 个工作类型列）。日报的「工单」「海外」两栏按下面的
+                                    // from 映射自动折算入账；from 为空的项表示日报里没有对应字段，只能手工补录。
+                                    const CAREER_KEY = 'careerData';
+                                    const CAREER_GROUPS = ['工单/后台', '回复/社区', '监控'];
+                                    const CAREER_ITEMS = [
+                                        { key: 'sj_group', label: '异世界群维系', group: '回复/社区', from: ['ticket.g7_wx', 'ticket.g7_dy', 'ticket.g7_dyol'] },
+                                        { key: 'catcity', label: '猫之城ios&B站评论回复', group: '回复/社区', from: [] },
+                                        { key: 'dwlz_vip', label: '国内动物领主VIP', group: '回复/社区', from: [] },
+                                        { key: 'fanhua_group', label: '（繁花+乐缤纷+梦幻）群维系', group: '回复/社区', from: ['ticket.g1_wx', 'ticket.g1_dy', 'ticket.g1_dyol', 'ticket.g1_qq', 'ticket.g2_wx', 'ticket.g2_dy', 'ticket.g2_dyol', 'ticket.g5_wx', 'ticket.g5_dy', 'ticket.g5_alipay'] },
+                                        { key: 'catinn_sdk', label: '邮件+SDK（猫旅馆物语）', group: '工单/后台', from: [] },
+                                        { key: 'ov_sso', label: '海外SSO工单量（全产品）', group: '工单/后台', from: ['overseas.sdk'] },
+                                        { key: 'ov_cp', label: '海外CP后台工单（全产品）', group: '工单/后台', from: [] },
+                                        { key: 'td_fb', label: '塔防FB', group: '回复/社区', from: [] },
+                                        { key: 'ov_email', label: '海外邮件（全产品）', group: '回复/社区', from: ['overseas.email'] },
+                                        { key: 'ov_fb', label: '海外FB（全产品）', group: '回复/社区', from: ['overseas.fb'] },
+                                        { key: 'store_reply', label: '商店回复', group: '回复/社区', from: ['overseas.ios', 'overseas.google'] },
+                                        { key: 'cn_sso', label: 'SSO国内工单', group: '工单/后台', from: ['ticket.sso'] },
+                                        { key: 'mute', label: '监控禁言', group: '监控', from: ['overseas.mute'] },
+                                        { key: 'ban', label: '监控封号', group: '监控', from: ['overseas.ban'] }
+                                    ];
+                                    const CAREER_STATUS_DONE = '已完成记录';
+                                    const CAREER_STATUS_PENDING = '总计为空/待确认';
+
+                                    const careerSum = (items) => CAREER_ITEMS.reduce((s, it) => s + (parseFloat(items && items[it.key]) || 0), 0);
+
+                                    // 日报里有、但登记表未列的数值项：单独累计展示，避免这部分工作被算丢
+                                    function careerExtraFields() {
+                                        const used = new Set();
+                                        for (const it of CAREER_ITEMS) for (const p of it.from) used.add(p);
+                                        const out = [];
+                                        for (const f of DAILY_TICKET_FIELDS) {
+                                            if (f.type === 'number' && !used.has('ticket.' + f.key)) out.push({ id: 'ticket.' + f.key, label: f.label });
+                                        }
+                                        for (const f of DAILY_OVERSEAS_FIELDS) {
+                                            if (f.type === 'number' && !used.has('overseas.' + f.key)) out.push({ id: 'overseas.' + f.key, label: f.label });
+                                        }
+                                        return out;
+                                    }
+
+                                    let careerData = { records: {}, updatedAt: null };
+
+                                    // 任何来源（服务器 / localStorage / 导入）进来的数据都过一遍归一化，防脏数据
+                                    function normalizeCareer(v) {
+                                        const o = asObject(v) || {};
+                                        const recs = asObject(o.records) || {};
+                                        const out = {};
+                                        for (const d of Object.keys(recs)) {
+                                            if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) continue;
+                                            const r = asObject(recs[d]);
+                                            if (!r) continue;
+                                            const items = {};
+                                            const srcItems = asObject(r.items) || {};
+                                            for (const it of CAREER_ITEMS) {
+                                                const n = parseFloat(srcItems[it.key]);
+                                                if (n) items[it.key] = n;
+                                            }
+                                            const extra = {};
+                                            const srcExtra = asObject(r.extra) || {};
+                                            for (const k of Object.keys(srcExtra)) {
+                                                const n = parseFloat(srcExtra[k]);
+                                                if (n) extra[k] = n;
+                                            }
+                                            out[d] = {
+                                                name: typeof r.name === 'string' ? r.name : '',
+                                                shift: typeof r.shift === 'string' ? r.shift : '',
+                                                items,
+                                                extra,
+                                                total: careerSum(items),
+                                                status: r.status === CAREER_STATUS_PENDING ? CAREER_STATUS_PENDING : CAREER_STATUS_DONE,
+                                                note: typeof r.note === 'string' ? r.note : '',
+                                                src: (r.src === 'import' || r.src === 'manual') ? r.src : 'daily',
+                                                at: typeof r.at === 'string' ? r.at : ''
+                                            };
+                                        }
+                                        return { records: out, updatedAt: typeof o.updatedAt === 'string' ? o.updatedAt : null };
+                                    }
+
+                                    function careerToday() {
+                                        const d = getBeijingDate();
+                                        return d.year + '-' + String(d.month).padStart(2, '0') + '-' + String(d.day).padStart(2, '0');
+                                    }
+
+                                    // 把当前日报（工单 + 海外两栏一起）折算成一条生涯记录
+                                    function careerFoldDaily() {
+                                        const t = dailyData.ticket || {};
+                                        const o = dailyData.overseas || {};
+                                        const pick = (path) => {
+                                            const i = path.indexOf('.');
+                                            const tab = path.slice(0, i);
+                                            const field = path.slice(i + 1);
+                                            return parseFloat((tab === 'ticket' ? t : o)[field]) || 0;
+                                        };
+                                        const items = {};
+                                        let total = 0;
+                                        for (const it of CAREER_ITEMS) {
+                                            let v = 0;
+                                            for (const p of it.from) v += pick(p);
+                                            if (v) { items[it.key] = v; total += v; }
+                                        }
+                                        const extra = {};
+                                        for (const f of careerExtraFields()) {
+                                            const v = pick(f.id);
+                                            if (v) extra[f.id] = v;
+                                        }
+                                        return {
+                                            name: String(t.name || o.name || '').trim(),
+                                            shift: String(t.shift || '').trim(),
+                                            items,
+                                            extra,
+                                            total,
+                                            status: total > 0 ? CAREER_STATUS_DONE : CAREER_STATUS_PENDING,
+                                            note: '',
+                                            src: 'daily',
+                                            at: new Date().toISOString()
+                                        };
+                                    }
+
+                                    function careerCommit(rec, dateStr) {
+                                        const d = dateStr || careerToday();
+                                        careerData.records[d] = rec;
+                                        careerData.updatedAt = new Date().toISOString();
+                                        saveData(CAREER_KEY, careerData);
+                                        return d;
+                                    }
+
                                     // ==================== 工具函数（提前声明，供全局调用） ====================
                                     function escapeHtml(str) {
                                         return String(str == null ? '' : str)
@@ -4786,6 +5124,7 @@
                                         // 关键：补齐 ticket / overseas 主对象，避免旧版本数据缺字段直接崩溃
                                         dailyData.ticket = { ...cloneDefault(DAILY_DEFAULT_DATA.ticket), ...(asObject(dailyData.ticket) || {}) };
                                         dailyData.overseas = { ...cloneDefault(DAILY_DEFAULT_DATA.overseas), ...(asObject(dailyData.overseas) || {}) };
+                                        careerData = normalizeCareer(b.careerData);
 
                                         __reCache.clear();   // 规则可能变了，正则缓存作废
                                         backfillDefaultPhrases();
@@ -8513,6 +8852,451 @@
                                         renderDailyForm(tab);
                                     }
 
+                                    // ==================== 客服生涯 · 统计与渲染 ====================
+                                    function careerNum(n, digits) {
+                                        const v = Number(n) || 0;
+                                        const s = (digits === undefined) ? String(Math.round(v * 100) / 100) : v.toFixed(digits);
+                                        const parts = s.split('.');
+                                        return parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',') + (parts[1] ? '.' + parts[1] : '');
+                                    }
+                                    function careerPct(x) { return ((Number(x) || 0) * 100).toFixed(1) + '%'; }
+
+                                    function careerStats() {
+                                        const dates = Object.keys(careerData.records).sort();
+                                        const all = dates.map(d => Object.assign({ date: d }, careerData.records[d]));
+                                        const good = all.filter(r => r.status !== CAREER_STATUS_PENDING && r.total > 0);
+                                        const totals = good.map(r => r.total);
+                                        const sum = totals.reduce((a, b) => a + b, 0);
+                                        const days = good.length;
+                                        const avg = days ? sum / days : 0;
+                                        const sorted = totals.slice().sort((a, b) => a - b);
+                                        const median = days ? (days % 2 ? sorted[(days - 1) / 2] : (sorted[days / 2 - 1] + sorted[days / 2]) / 2) : 0;
+                                        const max = days ? sorted[sorted.length - 1] : 0;
+                                        const min = days ? sorted[0] : 0;
+                                        const maxRec = good.filter(r => r.total === max)[0] || null;
+                                        const variance = days ? totals.reduce((s, v) => s + (v - avg) * (v - avg), 0) / days : 0;
+                                        const sd = Math.sqrt(variance);
+
+                                        const itemTotals = {};
+                                        for (const it of CAREER_ITEMS) itemTotals[it.key] = 0;
+                                        const extraTotals = {};
+                                        const activeItems = new Set();
+                                        let dayMaxKinds = { n: 0, date: '' };
+                                        for (const r of good) {
+                                            const kinds = Object.keys(r.items).filter(k => r.items[k] > 0);
+                                            kinds.forEach(k => activeItems.add(k));
+                                            if (kinds.length > dayMaxKinds.n) dayMaxKinds = { n: kinds.length, date: r.date };
+                                            for (const k of kinds) itemTotals[k] = (itemTotals[k] || 0) + r.items[k];
+                                            for (const k of Object.keys(r.extra || {})) extraTotals[k] = (extraTotals[k] || 0) + r.extra[k];
+                                        }
+                                        const groupTotals = {};
+                                        for (const g of CAREER_GROUPS) groupTotals[g] = 0;
+                                        for (const it of CAREER_ITEMS) groupTotals[it.group] = (groupTotals[it.group] || 0) + (itemTotals[it.key] || 0);
+
+                                        const monthMap = {};
+                                        for (const r of good) {
+                                            const m = r.date.slice(0, 7);
+                                            const o = monthMap[m] || (monthMap[m] = { month: m, days: 0, sum: 0, max: 0, maxDate: '' });
+                                            o.days++;
+                                            o.sum += r.total;
+                                            if (r.total > o.max) { o.max = r.total; o.maxDate = r.date; }
+                                        }
+                                        const months = Object.keys(monthMap).sort().map(m => {
+                                            const o = monthMap[m];
+                                            return { month: m, days: o.days, sum: o.sum, max: o.max, maxDate: o.maxDate, avg: o.days ? o.sum / o.days : 0 };
+                                        });
+                                        let mom = null;
+                                        if (months.length >= 2) {
+                                            const cur = months[months.length - 1];
+                                            const prev = months[months.length - 2];
+                                            mom = { cur: cur.month, prev: prev.month, delta: prev.avg ? (cur.avg - prev.avg) / prev.avg : 0 };
+                                        }
+                                        const recent = (n) => {
+                                            const s = good.slice(-n);
+                                            const t = s.reduce((a, r) => a + r.total, 0);
+                                            return { days: s.length, sum: t, avg: s.length ? t / s.length : 0 };
+                                        };
+
+                                        // 连续性 & 断档（按自然日算）
+                                        const dayMs = 86400000;
+                                        const toTs = (d) => Date.parse(d + 'T00:00:00Z');
+                                        let best = 0, streak = 0, prevTs = null, gapDays = 0;
+                                        for (const r of good) {
+                                            const ts = toTs(r.date);
+                                            if (prevTs === null) { streak = 1; }
+                                            else {
+                                                const diff = Math.round((ts - prevTs) / dayMs);
+                                                if (diff === 1) streak++;
+                                                else { gapDays += diff - 1; if (streak > best) best = streak; streak = 1; }
+                                            }
+                                            prevTs = ts;
+                                        }
+                                        if (streak > best) best = streak;
+                                        let curStreak = 0;
+                                        for (let i = good.length - 1; i >= 0; i--) {
+                                            if (i === good.length - 1) { curStreak = 1; continue; }
+                                            const diff = Math.round((toTs(good[i + 1].date) - toTs(good[i].date)) / dayMs);
+                                            if (diff === 1) curStreak++; else break;
+                                        }
+                                        const spanDays = good.length > 1
+                                            ? Math.round((toTs(good[good.length - 1].date) - toTs(good[0].date)) / dayMs) + 1
+                                            : good.length;
+
+                                        return {
+                                            dates, all, good, days, sum, avg, median, min, max, sd,
+                                            maxDate: maxRec ? maxRec.date : '',
+                                            cv: avg ? sd / avg : 0,
+                                            itemTotals, groupTotals, extraTotals, activeItems,
+                                            activeKinds: activeItems.size, dayMaxKinds,
+                                            months, mom, recent7: recent(7), recent30: recent(30),
+                                            best, curStreak, gapDays, spanDays,
+                                            pending: all.filter(r => r.status === CAREER_STATUS_PENDING),
+                                            notes: all.filter(r => r.note).sort((a, b) => b.date.localeCompare(a.date)),
+                                            extraFields: careerExtraFields()
+                                        };
+                                    }
+
+                                    function careerKpiCard(label, value, sub, accent) {
+                                        return '<div class="career-kpi' + (accent ? ' accent' : '') + '">'
+                                            + '<div class="k-label">' + escapeHtml(label) + '</div>'
+                                            + '<div class="k-value">' + escapeHtml(String(value)) + '</div>'
+                                            + '<div class="k-sub">' + escapeHtml(sub || '') + '</div></div>';
+                                    }
+
+                                    function renderCareer() {
+                                        const s = careerStats();
+
+                                        const kpi = document.getElementById('careerKpi');
+                                        if (kpi) {
+                                            kpi.innerHTML = [
+                                                careerKpiCard('累计工作量', careerNum(s.sum), s.days ? '完整记录 ' + s.days + ' 天' : '还没有记录', true),
+                                                careerKpiCard('完整记录天数', s.days, s.pending.length ? '另有 ' + s.pending.length + ' 天待确认' : '无待确认'),
+                                                careerKpiCard('日均工作量', careerNum(s.avg, 1), s.days ? '中位数 ' + careerNum(s.median, 1) : '—'),
+                                                careerKpiCard('最高单日', careerNum(s.max), s.maxDate || '—'),
+                                                careerKpiCard('波动（标准差）', careerNum(s.sd, 1), s.avg ? '变异系数 ' + careerPct(s.cv) : '—'),
+                                                careerKpiCard('最长连续记录', s.best + ' 天', '当前连续 ' + s.curStreak + ' 天'),
+                                                careerKpiCard('记录区间', s.days ? (s.dates[0] + ' → ' + s.dates[s.dates.length - 1]) : '—', '区间 ' + s.spanDays + ' 天 · 断档 ' + s.gapDays + ' 天'),
+                                                careerKpiCard('近 30 记录日日均', careerNum(s.recent30.avg, 1), '近 7 日 ' + careerNum(s.recent7.avg, 1) + (s.mom ? ' · 环比 ' + (s.mom.delta >= 0 ? '+' : '') + careerPct(s.mom.delta) : ''))
+                                            ].join('');
+                                        }
+
+                                        const mt = document.getElementById('careerMonthlyTable');
+                                        if (mt) {
+                                            let h = '<thead><tr><th>月份</th><th class="num">完整天数</th><th class="num">总工作量</th><th class="num">日均</th><th class="num">最高单日</th><th class="num">环比日均</th></tr></thead><tbody>';
+                                            if (!s.months.length) h += '<tr><td colspan="6" style="color:var(--ink-3);">暂无数据</td></tr>';
+                                            s.months.forEach((m, i) => {
+                                                const prev = i > 0 ? s.months[i - 1] : null;
+                                                const delta = (prev && prev.avg) ? (m.avg - prev.avg) / prev.avg : null;
+                                                h += '<tr><td>' + m.month + '</td><td class="num">' + m.days + '</td><td class="num">' + careerNum(m.sum)
+                                                    + '</td><td class="num">' + careerNum(m.avg, 1)
+                                                    + '</td><td class="num">' + careerNum(m.max) + ' <span class="hint-text">' + escapeHtml(m.maxDate.slice(5)) + '</span>'
+                                                    + '</td><td class="num">' + (delta === null ? '—' : (delta >= 0 ? '+' : '') + careerPct(delta)) + '</td></tr>';
+                                            });
+                                            h += '</tbody><tfoot><tr class="total-row"><td>合计</td><td class="num">' + s.days + '</td><td class="num">' + careerNum(s.sum)
+                                                + '</td><td class="num">' + careerNum(s.avg, 1) + '</td><td class="num">' + careerNum(s.max) + '</td><td class="num">—</td></tr></tfoot>';
+                                            mt.innerHTML = h;
+                                        }
+
+                                        const it = document.getElementById('careerItemTable');
+                                        if (it) {
+                                            const rows = CAREER_ITEMS.slice().sort((a, b) => (s.itemTotals[b.key] || 0) - (s.itemTotals[a.key] || 0));
+                                            const maxV = rows.reduce((m, r) => Math.max(m, s.itemTotals[r.key] || 0), 0) || 1;
+                                            let h = '<thead><tr><th>工作类型</th><th>类别</th><th class="num">累计</th><th class="num">占比</th><th style="width:110px;">结构</th></tr></thead><tbody>';
+                                            if (!s.days) h += '<tr><td colspan="5" style="color:var(--ink-3);">暂无数据</td></tr>';
+                                            for (const item of rows) {
+                                                const v = s.itemTotals[item.key] || 0;
+                                                const pct = s.sum ? v / s.sum : 0;
+                                                h += '<tr><td>' + escapeHtml(item.label) + (item.from.length ? '' : ' <span class="career-tag">需补录</span>')
+                                                    + '</td><td class="hint-text">' + escapeHtml(item.group)
+                                                    + '</td><td class="num">' + careerNum(v)
+                                                    + '</td><td class="num">' + careerPct(pct)
+                                                    + '</td><td><div class="career-bar"><i style="width:' + ((v / maxV) * 100).toFixed(1) + '%"></i></div></td></tr>';
+                                            }
+                                            h += '</tbody>';
+                                            it.innerHTML = h;
+                                        }
+
+                                        const gb = document.getElementById('careerGroupBox');
+                                        if (gb) {
+                                            let h = '';
+                                            for (const g of CAREER_GROUPS) {
+                                                const v = s.groupTotals[g] || 0;
+                                                const pct = s.sum ? v / s.sum : 0;
+                                                h += '<div style="margin-bottom:10px;"><div class="flex-row" style="justify-content:space-between;">'
+                                                    + '<span style="font-size:13px;font-weight:700;">' + escapeHtml(g) + '</span>'
+                                                    + '<span class="hint-text">' + careerNum(v) + ' · ' + careerPct(pct) + '</span></div>'
+                                                    + '<div class="career-bar" style="margin-top:4px;"><i style="width:' + (pct * 100).toFixed(1) + '%"></i></div></div>';
+                                            }
+                                            h += '<div class="hint-text" style="margin-top:12px;">渠道覆盖：14 项里有 <b>' + s.activeKinds
+                                                + '</b> 项有产出；单日最多同时触达 ' + s.dayMaxKinds.n + ' 项'
+                                                + (s.dayMaxKinds.date ? '（' + escapeHtml(s.dayMaxKinds.date) + '）' : '') + '</div>';
+                                            const ef = s.extraFields.filter(f => s.extraTotals[f.id]);
+                                            if (ef.length) {
+                                                h += '<div class="hint-text" style="margin-top:8px;">日报里有、登记表未列的项（单独累计，不计入上面的累计工作量）：'
+                                                    + ef.map(f => escapeHtml(f.label) + ' ' + careerNum(s.extraTotals[f.id])).join(' · ') + '</div>';
+                                            }
+                                            gb.innerHTML = h;
+                                        }
+
+                                        const tr = document.getElementById('careerTrend');
+                                        if (tr) {
+                                            const last = s.good.slice(-30);
+                                            const mx = last.reduce((m, r) => Math.max(m, r.total), 0) || 1;
+                                            tr.innerHTML = last.length
+                                                ? last.map(r => '<span title="' + escapeHtml(r.date + ' · ' + r.total) + '" style="height:' + Math.max(3, (r.total / mx) * 100).toFixed(1) + '%"></span>').join('')
+                                                : '<span class="hint-text" style="height:auto;background:none;">暂无数据</span>';
+                                        }
+
+                                        const q = document.getElementById('careerQuality');
+                                        if (q) {
+                                            let h = '<div class="hint-text">完整记录 ' + s.days + ' 天 · 待确认 ' + s.pending.length + ' 天 · 记录区间 ' + s.spanDays
+                                                + ' 天 · 断档 ' + s.gapDays + ' 天 · 最低单日 ' + careerNum(s.min) + '</div>';
+                                            if (s.pending.length) {
+                                                h += '<div class="hint-text" style="margin-top:8px;">待确认（没进统计）：'
+                                                    + s.pending.map(r => escapeHtml(r.date)).join('、') + '</div>';
+                                            }
+                                            if (s.notes.length) {
+                                                h += '<div style="margin-top:10px;font-size:13px;">特殊问题：<ul style="margin:6px 0 0 18px;">'
+                                                    + s.notes.slice(0, 30).map(n => '<li>' + escapeHtml(n.date) + ' — ' + escapeHtml(n.note) + '</li>').join('') + '</ul></div>';
+                                            }
+                                            q.innerHTML = h;
+                                        }
+
+                                        const ed = document.getElementById('careerEditDate');
+                                        if (ed && !ed.value) ed.value = careerToday();
+                                    }
+
+                                    function renderCareerEditGrid() {
+                                        const box = document.getElementById('careerEditGrid');
+                                        if (!box || box.dataset.built === '1') return;
+                                        box.innerHTML = CAREER_ITEMS.map(it =>
+                                            '<div class="daily-field"><label>' + escapeHtml(it.label) + '</label>'
+                                            + '<input type="number" min="0" data-career-key="' + it.key + '" value="0"></div>'
+                                        ).join('');
+                                        box.dataset.built = '1';
+                                    }
+
+                                    function careerSetHint(text) {
+                                        const h = document.getElementById('careerEditHint');
+                                        if (h) h.textContent = text;
+                                    }
+                                    function careerLoadDay() {
+                                        const d = (document.getElementById('careerEditDate') || {}).value || '';
+                                        if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) { careerSetHint('请先选一个合法日期'); return; }
+                                        const rec = careerData.records[d];
+                                        const box = document.getElementById('careerEditGrid');
+                                        const setItems = (items) => {
+                                            if (!box) return;
+                                            box.querySelectorAll('[data-career-key]').forEach(el => { el.value = (items && items[el.dataset.careerKey]) || 0; });
+                                        };
+                                        const nameEl = document.getElementById('careerEditName');
+                                        const shiftEl = document.getElementById('careerEditShift');
+                                        const statusEl = document.getElementById('careerEditStatus');
+                                        const noteEl = document.getElementById('careerEditNote');
+                                        if (!rec) {
+                                            setItems(null);
+                                            if (nameEl) nameEl.value = String((dailyData.ticket && dailyData.ticket.name) || '');
+                                            if (shiftEl) shiftEl.value = String((dailyData.ticket && dailyData.ticket.shift) || '');
+                                            if (statusEl) statusEl.value = '';
+                                            if (noteEl) noteEl.value = '';
+                                            careerSetHint(d + ' 还没有记录，填数字后点「保存该日」即可补录。');
+                                            return;
+                                        }
+                                        setItems(rec.items);
+                                        if (nameEl) nameEl.value = rec.name || '';
+                                        if (shiftEl) shiftEl.value = rec.shift || '';
+                                        if (statusEl) statusEl.value = rec.status;
+                                        if (noteEl) noteEl.value = rec.note || '';
+                                        const srcText = rec.src === 'import' ? '粘贴导入' : (rec.src === 'manual' ? '手工补录' : '日报自动归档');
+                                        careerSetHint('已载入 ' + d + '：工作量 ' + rec.total + '（来源：' + srcText + '）');
+                                    }
+
+                                    function careerReadEditForm() {
+                                        const box = document.getElementById('careerEditGrid');
+                                        const items = {};
+                                        if (box) {
+                                            box.querySelectorAll('[data-career-key]').forEach(el => {
+                                                const v = parseFloat(el.value) || 0;
+                                                if (v) items[el.dataset.careerKey] = v;
+                                            });
+                                        }
+                                        return items;
+                                    }
+
+                                    function careerSaveDay() {
+                                        const d = (document.getElementById('careerEditDate') || {}).value || '';
+                                        if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) { careerSetHint('请先选一个合法日期'); return; }
+                                        const items = careerReadEditForm();
+                                        const total = careerSum(items);
+                                        const prev = careerData.records[d] || {};
+                                        const statusEl = document.getElementById('careerEditStatus');
+                                        const status = (statusEl && statusEl.value) || (total > 0 ? CAREER_STATUS_DONE : CAREER_STATUS_PENDING);
+                                        careerCommit({
+                                            name: String((document.getElementById('careerEditName') || {}).value || '').trim(),
+                                            shift: String((document.getElementById('careerEditShift') || {}).value || '').trim(),
+                                            items,
+                                            extra: prev.extra || {},
+                                            total,
+                                            status,
+                                            note: String((document.getElementById('careerEditNote') || {}).value || '').trim(),
+                                            src: 'manual',
+                                            at: new Date().toISOString()
+                                        }, d);
+                                        renderCareer();
+                                        careerSetHint('已保存 ' + d + '：工作量 ' + total);
+                                    }
+
+                                    function careerDeleteDay() {
+                                        const d = (document.getElementById('careerEditDate') || {}).value || '';
+                                        if (!careerData.records[d]) { careerSetHint(d + ' 没有记录'); return; }
+                                        delete careerData.records[d];
+                                        careerData.updatedAt = new Date().toISOString();
+                                        saveData(CAREER_KEY, careerData);
+                                        renderCareer();
+                                        careerSetHint('已删除 ' + d);
+                                    }
+
+                                    function careerArchiveToday() {
+                                        try {
+                                            const rec = careerFoldDaily();
+                                            const d = careerCommit(rec);
+                                            renderCareer();
+                                            const hint = document.getElementById('careerArchiveHint');
+                                            if (hint) {
+                                                hint.textContent = '已按当前日报归档 ' + d + '：当日工作量 ' + rec.total
+                                                    + (rec.total ? '' : '（两栏都是 0，记为「总计为空/待确认」，不计入统计）')
+                                                    + ' · 同一天重复归档会覆盖';
+                                            }
+                                            appendDebug('\n🗂️ 客服生涯已归档 ' + d + '，当日工作量 ' + rec.total);
+                                            return rec.total;
+                                        } catch (e) {
+                                            console.warn('归档客服生涯失败', e);
+                                            return 0;
+                                        }
+                                    }
+
+                                    // ---------- 粘贴导入 ----------
+                                    const careerNormHeader = (s) => String(s == null ? '' : s).replace(/\s+/g, '').replace(/（/g, '(').replace(/）/g, ')');
+                                    const CAREER_IMPORT_COLUMNS = (function () {
+                                        const m = {};
+                                        m[careerNormHeader('日期')] = '@date';
+                                        m[careerNormHeader('人员')] = '@name';
+                                        m[careerNormHeader('班次')] = '@shift';
+                                        m[careerNormHeader('总计')] = '@total';
+                                        m[careerNormHeader('数据状态')] = '@status';
+                                        m[careerNormHeader('特殊问题')] = '@note';
+                                        for (const it of CAREER_ITEMS) m[careerNormHeader(it.label)] = it.key;
+                                        return m;
+                                    })();
+
+                                    function careerParseDate(raw) {
+                                        const t = String(raw == null ? '' : raw).trim();
+                                        if (!t) return '';
+                                        if (/^\d{5}$/.test(t)) {
+                                            const ms = Math.round((parseInt(t, 10) - 25569) * 86400000);
+                                            const d = new Date(ms);
+                                            if (isNaN(d.getTime())) return '';
+                                            return d.toISOString().slice(0, 10);
+                                        }
+                                        const m = t.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/);
+                                        if (m) return m[1] + '-' + String(m[2]).padStart(2, '0') + '-' + String(m[3]).padStart(2, '0');
+                                        const d2 = new Date(t);
+                                        if (!isNaN(d2.getTime())) return d2.toISOString().slice(0, 10);
+                                        return '';
+                                    }
+
+                                    function careerImport() {
+                                        const area = document.getElementById('careerImportArea');
+                                        const hint = document.getElementById('careerImportHint');
+                                        const text = (area && area.value) || '';
+                                        const lines = text.split(/\r?\n/).filter(l => l.trim());
+                                        if (!lines.length) { if (hint) hint.textContent = '没有内容可导入'; return; }
+                                        const split = (l) => l.split('\t').map(c => c.trim());
+
+                                        let cols = null, start = 0;
+                                        const first = split(lines[0]);
+                                        if (/日期/.test(first.join('')) || /班次/.test(first.join(''))) {
+                                            cols = first.map(c => CAREER_IMPORT_COLUMNS[careerNormHeader(c)] || null);
+                                            start = 1;
+                                        } else {
+                                            cols = ['@date', '@name', '@shift'].concat(CAREER_ITEMS.map(i => i.key), ['@total', '@status', '@note']);
+                                        }
+
+                                        let ok = 0, overwrite = 0, bad = 0, mismatch = 0;
+                                        for (let i = start; i < lines.length; i++) {
+                                            const cells = split(lines[i]);
+                                            let date = '';
+                                            let importedTotal = null;
+                                            const items = {};
+                                            const rec = {
+                                                name: '', shift: '', items, extra: {}, total: 0,
+                                                status: '', note: '', src: 'import', at: new Date().toISOString()
+                                            };
+                                            for (let c = 0; c < cols.length; c++) {
+                                                const ck = cols[c];
+                                                const raw = cells[c];
+                                                if (!ck || raw === undefined || raw === '') continue;
+                                                if (ck === '@date') date = careerParseDate(raw);
+                                                else if (ck === '@name') rec.name = raw;
+                                                else if (ck === '@shift') rec.shift = raw;
+                                                else if (ck === '@note') rec.note = raw;
+                                                else if (ck === '@status') rec.status = /待确认/.test(raw) ? CAREER_STATUS_PENDING : CAREER_STATUS_DONE;
+                                                else if (ck === '@total') { const n = parseFloat(String(raw).replace(/,/g, '')); importedTotal = isNaN(n) ? null : n; }
+                                                else {
+                                                    const n = parseFloat(String(raw).replace(/[^\d.\-]/g, ''));
+                                                    if (n) items[ck] = n;
+                                                }
+                                            }
+                                            if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) { bad++; continue; }
+                                            rec.total = careerSum(items);
+                                            if (importedTotal !== null && Math.abs(importedTotal - rec.total) > 0.5) mismatch++;
+                                            if (!rec.status) rec.status = rec.total > 0 ? CAREER_STATUS_DONE : CAREER_STATUS_PENDING;
+                                            if (careerData.records[date]) overwrite++;
+                                            careerData.records[date] = rec;
+                                            ok++;
+                                        }
+                                        careerData.updatedAt = new Date().toISOString();
+                                        saveData(CAREER_KEY, careerData);
+                                        renderCareer();
+                                        if (hint) {
+                                            hint.textContent = '导入 ' + ok + ' 天'
+                                                + (overwrite ? '（覆盖已有 ' + overwrite + ' 天）' : '')
+                                                + (bad ? '，跳过 ' + bad + ' 行（日期无法识别）' : '')
+                                                + (mismatch ? '；有 ' + mismatch + ' 天「总计」与各列之和对不上，已按各列之和入账' : '');
+                                        }
+                                    }
+
+                                    // ---------- 导出 ----------
+                                    function careerDownload(filename, text, mime) {
+                                        try {
+                                            const blob = new Blob([text], { type: (mime || 'text/plain') + ';charset=utf-8' });
+                                            const url = URL.createObjectURL(blob);
+                                            const a = document.createElement('a');
+                                            a.href = url;
+                                            a.download = filename;
+                                            document.body.appendChild(a);
+                                            a.click();
+                                            setTimeout(() => { try { document.body.removeChild(a); URL.revokeObjectURL(url); } catch (_) { } }, 0);
+                                            return true;
+                                        } catch (e) {
+                                            console.warn('导出失败', e);
+                                            return false;
+                                        }
+                                    }
+                                    function careerCsvText() {
+                                        const q = (v) => {
+                                            const t = String(v == null ? '' : v);
+                                            return /[",\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t;
+                                        };
+                                        const head = ['日期', '人员', '班次'].concat(CAREER_ITEMS.map(i => i.label), ['总计', '数据状态', '特殊问题']);
+                                        const rows = [head.map(q).join(',')];
+                                        for (const d of Object.keys(careerData.records).sort()) {
+                                            const r = careerData.records[d];
+                                            rows.push([d, r.name, r.shift].concat(CAREER_ITEMS.map(i => r.items[i.key] || 0), [r.total, r.status, r.note]).map(q).join(','));
+                                        }
+                                        return '\ufeff' + rows.join('\r\n');
+                                    }
+
                                     // ==================== 事件绑定 ====================
                                     function setClick(id, handler) {
                                         const el = document.getElementById(id);
@@ -8776,6 +9560,7 @@
                                             this.classList.add('active');
                                             const targetTab = document.getElementById(`tab-${this.dataset.tab}`);
                                             if (targetTab) targetTab.classList.add('active');
+                                            if (this.dataset.tab === 'career') renderCareer();
                                         });
 
                                         // 规则搜索
@@ -8824,7 +9609,11 @@
                                         // 日报生成
                                         setClick('dailyTabTicket', () => switchDailyTab('ticket'));
                                         setClick('dailyTabOverseas', () => switchDailyTab('overseas'));
-                                        setClick('generateDailyBtn', generateDailyReport);
+                                        setClick('generateDailyBtn', () => {
+                                            generateDailyReport();
+                                            // 点「生成日报」即顺手归档进「客服生涯」（跨天自动刷新那条路径不归档，避免把昨天的数记到今天）
+                                            careerArchiveToday();
+                                        });
                                         setClick('copyDailyBtn', () => {
                                             const area = document.getElementById('dailyResultArea');
                                             if (area) safeCopy(area.value);
@@ -8856,6 +9645,31 @@
                                             const area = document.getElementById('dailyResultArea');
                                             if (area) area.value = '';
                                         });
+
+                                        // 客服生涯
+                                        renderCareerEditGrid();
+                                        (function initCareer() {
+                                            const ed = document.getElementById('careerEditDate');
+                                            if (ed && !ed.value) ed.value = careerToday();
+                                            renderCareer();
+                                        })();
+                                        setClick('careerArchiveBtn', careerArchiveToday);
+                                        setClick('careerExportCsvBtn', () => {
+                                            if (!careerDownload('客服生涯_' + careerToday() + '.csv', careerCsvText(), 'text/csv')) alert('当前环境不支持导出');
+                                        });
+                                        setClick('careerExportJsonBtn', () => {
+                                            if (!careerDownload('客服生涯_' + careerToday() + '.json', JSON.stringify(careerData, null, 2), 'application/json')) alert('当前环境不支持导出');
+                                        });
+                                        setClick('careerImportBtn', careerImport);
+                                        setClick('careerClearImportBtn', () => {
+                                            const a = document.getElementById('careerImportArea');
+                                            if (a) a.value = '';
+                                            const h = document.getElementById('careerImportHint');
+                                            if (h) h.textContent = '';
+                                        });
+                                        setClick('careerLoadDayBtn', careerLoadDay);
+                                        setClick('careerSaveDayBtn', careerSaveDay);
+                                        setClick('careerDeleteDayBtn', careerDeleteDay);
 
                                         // 初始化日报页面
                                         (function initDaily() {
@@ -9117,6 +9931,7 @@
                                             }
                                             renderReplySelects();
                                             renderReplyPresetList();
+                                            renderCareer();
                                         } catch (e) {
                                             console.warn('刷新界面数据失败', e);
                                         }
@@ -9125,7 +9940,7 @@
                                     (async function bootstrapData() {
                                         let raw = null;
                                         try {
-                                            const [vDaily, vRules, vIgnore, vItem, vSource, vActivity, vOpen, vClose, vPresets] = await Promise.all([
+                                            const [vDaily, vRules, vIgnore, vItem, vSource, vActivity, vOpen, vClose, vPresets, vCareer] = await Promise.all([
                                                 loadData('dailyData', null),
                                                 loadData('sourceRules', null),
                                                 loadData('ignoreKeywords', null),
@@ -9134,12 +9949,14 @@
                                                 loadData('activityTypeMap', null),
                                                 loadData('replyOpenings', null),
                                                 loadData('replyClosings', null),
-                                                loadData('replyPresets', null)
+                                                loadData('replyPresets', null),
+                                                loadData(CAREER_KEY, null)
                                             ]);
                                             raw = {
                                                 dailyData: vDaily, sourceRules: vRules, ignoreKeywords: vIgnore,
                                                 itemNameMap: vItem, sourceIdMap: vSource, activityTypeMap: vActivity,
-                                                replyOpenings: vOpen, replyClosings: vClose, replyPresets: vPresets
+                                                replyOpenings: vOpen, replyClosings: vClose, replyPresets: vPresets,
+                                                careerData: vCareer
                                             };
                                         } catch (e) {
                                             console.warn('加载持久化数据失败，继续使用默认值', e);

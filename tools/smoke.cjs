@@ -389,6 +389,136 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
   $('applyFilterBtn').click();
   await sleep(100);
 
+  console.log('--- 8c. 客服生涯：日报自动归档 / 粘贴导入 / 统计口径 ---');
+  // 北京时间今天，与页面 getBeijingDate() 同口径
+  const bjToday = (() => {
+    const now = new Date();
+    const utc = now.getTime() + now.getTimezoneOffset() * 60000;
+    const d = new Date(utc + 8 * 3600000);
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  })();
+  const careerPosts = () => posts.filter(p => p.method !== 'GET' && p.url.includes('careerData'));
+  const lastCareer = () => { const l = careerPosts(); return l.length ? l[l.length - 1].body.value : null; };
+  const kpiText = () => $('careerKpi').textContent;
+  const setDailyField = (formId, key, val) => {
+    const el = $(formId).querySelector('[data-key="' + key + '"]');
+    if (!el) return false;
+    el.value = String(val);
+    fire(el, 'input');
+    return true;
+  };
+
+  $('dailyTabOverseas').click();          // 海外表单要先切过去才渲染
+  await sleep(40);
+  check($('dailyFormOverseas').querySelectorAll('[data-key]').length > 5, '海外日报表单已渲染',
+    $('dailyFormOverseas').querySelectorAll('[data-key]').length);
+
+  // 工单栏：g7=异世界群维系(3+1)、g1/g2=群维系(2+1)、sso=SSO国内(5)
+  // 海外栏：sdk=海外SSO(12)、email=海外邮件(4)、ios+google=商店回复(14)、mute=禁言(7)、ban=封号(3)
+  const dailySets = [['dailyFormTicket', 'name', '测试员'], ['dailyFormTicket', 'shift', 'F'],
+    ['dailyFormTicket', 'g7_wx', 3], ['dailyFormTicket', 'g7_dy', 1],
+    ['dailyFormTicket', 'g1_wx', 2], ['dailyFormTicket', 'g2_dy', 1], ['dailyFormTicket', 'sso', 5],
+    ['dailyFormOverseas', 'sdk', 12], ['dailyFormOverseas', 'email', 4],
+    ['dailyFormOverseas', 'ios', 9], ['dailyFormOverseas', 'google', 5],
+    ['dailyFormOverseas', 'mute', 7], ['dailyFormOverseas', 'ban', 3]];
+  let setOk = 0;
+  for (const [form, key, val] of dailySets) if (setDailyField(form, key, val)) setOk++;
+  check(setOk === dailySets.length, `日报 ${dailySets.length} 个字段已填入`, setOk);
+
+  $('generateDailyBtn').click();          // 生成日报 = 自动归档
+  await sleep(60);
+  const rec0 = (lastCareer() || { records: {} }).records[bjToday];
+  check(!!rec0, '点「生成日报」后当天已自动归档', Object.keys((lastCareer() || { records: {} }).records).slice(0, 3));
+  check(rec0 && rec0.total === 52, '折算口径正确：当日工作量 = 52', rec0 && rec0.total);
+  check(rec0 && rec0.items.sj_group === 4 && rec0.items.store_reply === 14 && rec0.items.ov_sso === 12
+    && rec0.items.fanhua_group === 3 && rec0.items.cn_sso === 5 && rec0.items.mute === 7 && rec0.items.ban === 3,
+    '14 项逐项折算正确（异世界4/商店14/海外SSO12/群维系3/国内SSO5/禁言7/封号3）', rec0 && rec0.items);
+  check(rec0 && rec0.status === '已完成记录' && rec0.src === 'daily', '状态与来源标记正确', rec0 && [rec0.status, rec0.src]);
+  check(rec0 && (rec0.extra['ticket.g6_wx'] || 0) === 5, '日报里有、登记表未列的项进 extra（g6_wx=5）', rec0 && rec0.extra);
+
+  doc.querySelector('.tab-btn[data-tab="career"]').click();   // 切到客服生涯
+  await sleep(40);
+  check(/累计工作量\s*52/.test(kpiText()), 'KPI：累计工作量 52', kpiText().slice(0, 60));
+  check(/完整记录天数\s*1/.test(kpiText()), 'KPI：完整记录 1 天', kpiText().slice(0, 120));
+  check(/日均工作量\s*52/.test(kpiText()) && /最高单日\s*52/.test(kpiText()), 'KPI：日均/最高单日 = 52');
+  check(/最长连续记录\s*1 天/.test(kpiText()), 'KPI：连续记录天数');
+  check(/环比|近 30 记录日日均/.test(kpiText()), 'KPI：趋势类指标已渲染');
+  check($('careerTrend').querySelectorAll('span').length === 1, '趋势条 = 1 根', $('careerTrend').querySelectorAll('span').length);
+  const itemTbl = $('careerItemTable').textContent;
+  check(/商店回复/.test(itemTbl) && /海外SSO工单量（全产品）/.test(itemTbl) && /需补录/.test(itemTbl),
+    '14 项表已渲染，「日报没有对应项」的标了需补录', itemTbl.slice(0, 50));
+
+  // 粘贴导入：故意打乱表头顺序，验证按列名对齐；日期用 Excel 序列号
+  const tsv = [
+    '日期\t人员\t班次\t商店回复\t海外SSO工单量（全产品）\t（繁花+乐缤纷+梦幻）群维系\t监控禁言\t监控封号\t总计\t数据状态\t特殊问题',
+    '46176\t姚宏杰\tF\t14\t12\t0\t9\t7\t42\t已完成记录\t',
+    '2026-06-04\t姚宏杰\tH\t10\t8\t2\t0\t0\t20\t已完成记录\t测试备注',
+    '2026-07-15\t姚宏杰\tH\t0\t0\t0\t0\t0\t\t总计为空/待确认\t',
+  ].join('\n');
+  $('careerImportArea').value = tsv;
+  $('careerImportBtn').click();
+  await sleep(60);
+  const recs = (lastCareer() || { records: {} }).records;
+  check(/导入 3 天/.test($('careerImportHint').textContent), '导入提示条数正确', $('careerImportHint').textContent);
+  check(!!recs['2026-06-03'], 'Excel 序列号 46176 → 2026-06-03', Object.keys(recs).sort());
+  check(recs['2026-06-03'] && recs['2026-06-03'].items.store_reply === 14 && recs['2026-06-03'].items.ov_sso === 12,
+    '打乱列顺序仍按表头正确落位', recs['2026-06-03'] && recs['2026-06-03'].items);
+  check(recs['2026-06-03'] && recs['2026-06-03'].total === 42, '导入行总计 = 各列之和 42', recs['2026-06-03'] && recs['2026-06-03'].total);
+  check(recs['2026-06-04'] && recs['2026-06-04'].note === '测试备注', '特殊问题列已带入');
+  check(/累计工作量\s*114/.test(kpiText()), 'KPI 更新：52+42+20 = 114', kpiText().slice(0, 40));
+  check(/待确认 1 天/.test($('careerQuality').textContent), '「总计为空/待确认」不入统计，单列提示', $('careerQuality').textContent.slice(0, 60));
+  const monthTbl = $('careerMonthlyTable').textContent;
+  check(monthTbl.includes('2026-06') && monthTbl.includes(bjToday.slice(0, 7)), '月度汇总含 2026-06 与本月', monthTbl.slice(0, 60));
+
+  // 重复导入同一天：覆盖而不是累加
+  $('careerImportBtn').click();
+  await sleep(60);
+  const recs2 = (lastCareer() || { records: {} }).records;
+  check(Object.keys(recs2).length === Object.keys(recs).length, '重复导入不产生重复记录', Object.keys(recs2).length);
+  check(/覆盖已有 3 天/.test($('careerImportHint').textContent), '重复导入提示为覆盖', $('careerImportHint').textContent);
+  check(/累计工作量\s*114/.test(kpiText()), '重复导入后累计仍是 114（未翻倍）', kpiText().slice(0, 40));
+
+  // 补录 / 修正 / 删除
+  $('careerEditDate').value = '2026-06-05';
+  $('careerLoadDayBtn').click();
+  await sleep(30);
+  check(/还没有记录/.test($('careerEditHint').textContent), '补录：空日期给出提示', $('careerEditHint').textContent);
+  $('careerEditGrid').querySelector('[data-career-key="store_reply"]').value = '6';
+  $('careerSaveDayBtn').click();
+  await sleep(30);
+  check(/已保存 2026-06-05：工作量 6/.test($('careerEditHint').textContent), '补录保存成功', $('careerEditHint').textContent);
+  check(/累计工作量\s*120/.test(kpiText()), '补录后累计 114+6 = 120', kpiText().slice(0, 40));
+  $('careerLoadDayBtn').click();
+  await sleep(30);
+  check(/已载入 2026-06-05/.test($('careerEditHint').textContent)
+    && $('careerEditGrid').querySelector('[data-career-key="store_reply"]').value === '6', '能回读已补录的那天');
+  $('careerDeleteDayBtn').click();
+  await sleep(30);
+  check(/累计工作量\s*114/.test(kpiText()), '删除后累计回到 114', kpiText().slice(0, 40));
+
+  // 导出：jsdom 里 <a>.click() 会触发 "navigation not implemented"，这里换成桩并把 Blob 内容抓出来验
+  const origBlob = window.Blob;
+  const origAnchorClick = window.HTMLAnchorElement.prototype.click;
+  const capturedBlobs = [];
+  window.Blob = function (parts, opts) {
+    try { capturedBlobs.push(String((parts || [])[0])); } catch (_) { }
+    return new origBlob(parts, opts);
+  };
+  window.HTMLAnchorElement.prototype.click = function () { };
+  $('careerExportCsvBtn').click();
+  $('careerExportJsonBtn').click();
+  await sleep(30);
+  window.Blob = origBlob;
+  window.HTMLAnchorElement.prototype.click = origAnchorClick;
+  const csvOut = capturedBlobs[0] || '';
+  const jsonOut = capturedBlobs[1] || '';
+  check(csvOut.charCodeAt(0) === 0xFEFF && /日期,人员,班次/.test(csvOut) && csvOut.includes('商店回复') && csvOut.includes('监控封号'),
+    'CSV 导出：带 BOM + 14 项表头齐全', csvOut.slice(0, 46));
+  check(csvOut.split('\r\n').length === Object.keys(recs2).length + 1, 'CSV 行数 = 记录数 + 表头', csvOut.split('\r\n').length);
+  check(/"?records"?/.test(jsonOut) && jsonOut.includes('2026-06-03') && jsonOut.includes('2026-07-15'),
+    'JSON 导出：含全部记录（含待确认那天）', jsonOut.slice(0, 30));
+  check(careerPosts().length >= 4, '生涯数据每次都回写服务端（多设备同步）', careerPosts().length);
+
   console.log('--- 9. 无未捕获异常 ---');
   check(!warns.some(w => w.startsWith('ERROR')), 'console.error 未被调用：' + warns.filter(w => w.startsWith('ERROR')).join(' | '));
   check(jsdomErrors.length === 0, '页面无未捕获异常（jsdomError）', jsdomErrors.slice(0, 3));

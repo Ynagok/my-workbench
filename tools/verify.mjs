@@ -49,6 +49,28 @@ ok((s.match(/"25[3-7]":\s*"/g) || []).length === 10, '253–257 在两张表里�
   ok((actBlk.match(/"\d+":/g) || []).length === 39, `活动类型映射键数 = ${(actBlk.match(/"\d+":/g) || []).length}（应为 39）`);
 }
 
+// ---- 3b. 客服生涯 ----
+ok(/data-tab="career"/.test(s) && /id="tab-career"/.test(s), '客服生涯标签页已注入');
+{
+  const itemsBlk = (s.match(/const CAREER_ITEMS = \[[\s\S]*?\r?\n\s*\];/) || [''])[0];
+  const itemKeys = itemsBlk.match(/\{ key: '/g) || [];
+  ok(itemKeys.length === 14, `客服生涯口径 = 14 项工作类型（当前 ${itemKeys.length}）`);
+  // 14 项必须与登记表列名一一对应
+  const labels = ['异世界群维系', '猫之城ios&B站评论回复', '国内动物领主VIP', '（繁花+乐缤纷+梦幻）群维系', '邮件+SDK（猫旅馆物语）',
+    '海外SSO工单量（全产品）', '海外CP后台工单（全产品）', '塔防FB', '海外邮件（全产品）', '海外FB（全产品）',
+    '商店回复', 'SSO国内工单', '监控禁言', '监控封号'];
+  const missing = labels.filter(l => !itemsBlk.includes(l));
+  ok(!missing.length, '14 项列名与登记表一致' + (missing.length ? '，缺：' + missing.join('/') : ''));
+  // 日报能自动折算的项（from 非空）至少覆盖这几个关键映射
+  ok(/from: \['overseas\.sdk'\]/.test(itemsBlk) && /from: \['overseas\.ios', 'overseas\.google'\]/.test(itemsBlk)
+    && /'ticket\.g7_wx'/.test(itemsBlk) && /from: \['ticket\.sso'\]/.test(itemsBlk),
+    '日报字段映射（海外SSO/商店回复/异世界群维系/SSO国内）已接');
+}
+ok(/careerArchiveToday\(\)/.test(s) && /const CAREER_KEY = 'careerData'/.test(s), '客服生涯自动归档已挂 + 存储 key');
+ok(/loadData\(CAREER_KEY, null\)/.test(s) && /careerData = normalizeCareer\(b\.careerData\)/.test(s), '客服生涯走服务端持久化（多设备同步）');
+ok(/function careerStats\(\)/.test(s) && /function careerImport\(\)/.test(s) && /function careerCsvText\(\)/.test(s), '统计 / 粘贴导入 / CSV 导出 已注入');
+ok(/CAREER_STATUS_PENDING = '总计为空\/待确认'/.test(s), '口径注明「总计为空/待确认」不计入完整记录天数');
+
 // ---- 4. 花括号/圆括号平衡（粗查，排除字符串内的干扰仅作参考） ----
 const count = (str, ch) => (str.split(ch).length - 1);
 const braces = count(js, '{') - count(js, '}');
