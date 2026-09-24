@@ -4850,13 +4850,9 @@
                                         { key: 'ticket', label: '工单', icon: '📋' },
                                         { key: 'overseas', label: '海外', icon: '🌐' }
                                     ];
+                                    // 计入统计的项（两侧的卡片与「累计工作量」都只算这些）
                                     const CAREER_ITEMS = [
                                         // ---------- 工单侧（数据取自「工单日报」）----------
-                                        { key: 'sj_group', label: '异世界群维系', side: 'ticket', kind: '群维系', from: ['ticket.g7_wx', 'ticket.g7_dy', 'ticket.g7_dyol'] },
-                                        { key: 'fanhua_group', label: '（繁花+乐缤纷+梦幻）群维系', side: 'ticket', kind: '群维系', from: ['ticket.g1_wx', 'ticket.g1_dy', 'ticket.g1_dyol', 'ticket.g1_qq', 'ticket.g2_wx', 'ticket.g2_dy', 'ticket.g2_dyol', 'ticket.g5_wx', 'ticket.g5_dy', 'ticket.g5_alipay'] },
-                                        { key: 'g3_group', label: '③不差钱 群维系', side: 'ticket', kind: '群维系', from: ['ticket.g3_wx', 'ticket.g3_dy', 'ticket.g3_dyol'] },
-                                        { key: 'g4_group', label: '④你的江湖 群维系', side: 'ticket', kind: '群维系', from: ['ticket.g4_wx', 'ticket.g4_dy', 'ticket.g4_dyol'] },
-                                        { key: 'g6_group', label: '⑥伙伴弹途 群维系', side: 'ticket', kind: '群维系', from: ['ticket.g6_wx', 'ticket.g6_dy', 'ticket.g6_dyol'] },
                                         { key: 'cn_sso', label: 'SSO国内工单', side: 'ticket', kind: '工单/后台', from: ['ticket.sso'] },
                                         { key: 'kf53', label: '53客服在线', side: 'ticket', kind: '在线客服', from: ['ticket.kf53'] },
                                         { key: 'alipay_online', label: '支付宝在线', side: 'ticket', kind: '在线客服', from: ['ticket.alipay'] },
@@ -4864,11 +4860,8 @@
                                         { key: 'fh_cp', label: '繁花CP后台', side: 'ticket', kind: 'CP后台', from: ['ticket.fh_cp'] },
                                         { key: 'lb_cp', label: '乐缤纷CP后台', side: 'ticket', kind: 'CP后台', from: ['ticket.lb_cp'] },
                                         { key: 'bcq_cp', label: '不差钱CP后台', side: 'ticket', kind: 'CP后台', from: ['ticket.bcq_cp'] },
-                                        { key: 'catcity', label: '猫之城ios&B站评论回复', side: 'ticket', kind: '评论/社区', from: [] },
-                                        { key: 'dwlz_vip', label: '国内动物领主VIP', side: 'ticket', kind: 'VIP', from: [] },
-                                        { key: 'catinn_sdk', label: '邮件+SDK（猫旅馆物语）', side: 'ticket', kind: '邮件/工单', from: [] },
-                                        { key: 'td_fb', label: '塔防FB', side: 'ticket', kind: '评论/社区', from: [] },
-                                        // ---------- 海外侧（数据取自「海外日报」）----------
+                                        // ---------- 海外侧（异世界群维系虽然填在工单日报的⑦，但业务上算海外）----------
+                                        { key: 'sj_group', label: '异世界群维系', side: 'overseas', kind: '群维系', from: ['ticket.g7_wx', 'ticket.g7_dy', 'ticket.g7_dyol'] },
                                         { key: 'ov_sso', label: '海外SSO工单量（全产品）', side: 'overseas', kind: '工单/后台', from: ['overseas.sdk'] },
                                         { key: 'store_reply', label: '商店回复', side: 'overseas', kind: '评价回复', from: ['overseas.ios', 'overseas.google'] },
                                         { key: 'ov_email', label: '海外邮件（全产品）', side: 'overseas', kind: '来访', from: ['overseas.email'] },
@@ -4877,12 +4870,26 @@
                                         { key: 'ban', label: '监控封号', side: 'overseas', kind: '监控', from: ['overseas.ban'] },
                                         { key: 'ov_cp', label: '海外CP后台工单（全产品）', side: 'overseas', kind: 'CP后台', from: [] }
                                     ];
+                                    // 按用户要求撤出统计的项：都是《工作量登记表》里的列，**仍然采集/导入，但不计入统计**，
+                                    // 只用于「对外登记表口径」那张对账表——否则导入的表跟原表对不上账。
+                                    const CAREER_HIDDEN_ITEMS = [
+                                        { key: 'fanhua_group', label: '（繁花+乐缤纷+梦幻）群维系', kind: '群维系', from: ['ticket.g1_wx', 'ticket.g1_dy', 'ticket.g1_dyol', 'ticket.g1_qq', 'ticket.g2_wx', 'ticket.g2_dy', 'ticket.g2_dyol', 'ticket.g5_wx', 'ticket.g5_dy', 'ticket.g5_alipay'] },
+                                        { key: 'catcity', label: '猫之城ios&B站评论回复', kind: '评论/社区', from: [] },
+                                        { key: 'dwlz_vip', label: '国内动物领主VIP', kind: 'VIP', from: [] },
+                                        { key: 'catinn_sdk', label: '邮件+SDK（猫旅馆物语）', kind: '邮件/工单', from: [] },
+                                        { key: 'td_fb', label: '塔防FB', kind: '评论/社区', from: [] }
+                                    ];
+                                    const CAREER_SHEET_HIDDEN = CAREER_HIDDEN_ITEMS.map(it => it.key);
+                                    const careerAllItems = () => CAREER_ITEMS.concat(CAREER_HIDDEN_ITEMS);
+                                    const careerItemByKey = (k) => careerAllItems().filter(it => it.key === k)[0] || null;
                                     // 对外《工作量登记表》的 14 列口径（粘贴导入按这些列名对齐；也用于跟外部表格对账）
                                     const CAREER_SHEET_ITEMS = ['sj_group', 'catcity', 'dwlz_vip', 'fanhua_group', 'catinn_sdk', 'ov_sso', 'ov_cp', 'td_fb', 'ov_email', 'ov_fb', 'store_reply', 'cn_sso', 'mute', 'ban'];
                                     const CAREER_STATUS_DONE = '已完成记录';
                                     const CAREER_STATUS_PENDING = '总计为空/待确认';
 
+                                    // 累计工作量 = 只算计入统计的 15 项
                                     const careerSum = (items) => CAREER_ITEMS.reduce((s, it) => s + (parseFloat(items && items[it.key]) || 0), 0);
+                                    // 登记表 14 列口径（含只存档的那 5 列），用于跟外部表格对账
                                     const careerSheetSum = (items) => CAREER_SHEET_ITEMS.reduce((s, k) => s + (parseFloat(items && items[k]) || 0), 0);
                                     const careerItemsOfSide = (side) => CAREER_ITEMS.filter(it => it.side === side);
 
@@ -4899,7 +4906,7 @@
                                             if (!r) continue;
                                             const items = {};
                                             const srcItems = asObject(r.items) || {};
-                                            for (const it of CAREER_ITEMS) {
+                                            for (const it of careerAllItems()) {
                                                 const n = parseFloat(srcItems[it.key]);
                                                 if (n) items[it.key] = n;
                                             }
@@ -4923,6 +4930,7 @@
                                     }
 
                                     // 把当前日报（工单 + 海外两栏一起）折算成一条生涯记录
+                                    // 注意：撤出统计的那几项如果有日报来源（如①②⑤群维系），仍然照常采集，只是不进 total
                                     function careerFoldDaily() {
                                         const t = dailyData.ticket || {};
                                         const o = dailyData.overseas || {};
@@ -4933,12 +4941,12 @@
                                             return parseFloat((tab === 'ticket' ? t : o)[field]) || 0;
                                         };
                                         const items = {};
-                                        let total = 0;
-                                        for (const it of CAREER_ITEMS) {
+                                        for (const it of careerAllItems()) {
                                             let v = 0;
                                             for (const p of it.from) v += pick(p);
-                                            if (v) { items[it.key] = v; total += v; }
+                                            if (v) items[it.key] = v;
                                         }
+                                        const total = careerSum(items);
                                         return {
                                             name: String(t.name || o.name || '').trim(),
                                             shift: String(t.shift || '').trim(),
@@ -8887,7 +8895,7 @@
                                         const sd = Math.sqrt(variance);
 
                                         const itemTotals = {};
-                                        for (const it of CAREER_ITEMS) itemTotals[it.key] = 0;
+                                        for (const it of careerAllItems()) itemTotals[it.key] = 0;
                                         const activeItems = new Set();
                                         let dayMaxKinds = { n: 0, date: '' };
                                         for (const r of good) {
@@ -9060,24 +9068,25 @@
                                             box.innerHTML = h;
                                         }
 
-                                        // 对外登记表 14 项口径（跟外部表格对账用）
+                                        // 对外登记表 14 项口径（跟外部表格对账用；含撤出统计、只存档的那 5 列）
                                         const it = document.getElementById('careerItemTable');
                                         if (it) {
-                                            const rows = CAREER_SHEET_ITEMS.map(k => CAREER_ITEMS.filter(x => x.key === k)[0]).filter(Boolean);
+                                            const rows = CAREER_SHEET_ITEMS.map(k => careerItemByKey(k)).filter(Boolean);
                                             const maxV = rows.reduce((m, r) => Math.max(m, s.itemTotals[r.key] || 0), 0) || 1;
                                             let h = '<thead><tr><th>登记表列</th><th>归属</th><th class="num">累计</th><th class="num">占比</th><th style="width:110px;">结构</th></tr></thead><tbody>';
                                             if (!s.days) h += '<tr><td colspan="5" style="color:var(--ink-3);">暂无数据</td></tr>';
                                             for (const item of rows) {
                                                 const v = s.itemTotals[item.key] || 0;
                                                 const pct = s.sheetSum ? v / s.sheetSum : 0;
-                                                const sideLabel = item.side === 'overseas' ? '海外' : '工单';
-                                                h += '<tr><td>' + escapeHtml(item.label) + (item.from.length ? '' : ' <span class="career-tag">需补录</span>')
+                                                const hidden = CAREER_SHEET_HIDDEN.indexOf(item.key) !== -1;
+                                                const sideLabel = hidden ? '仅存档' : (item.side === 'overseas' ? '海外' : '工单');
+                                                h += '<tr><td>' + escapeHtml(item.label) + (hidden ? ' <span class="career-tag">不计入统计</span>' : '')
                                                     + '</td><td class="hint-text">' + sideLabel
                                                     + '</td><td class="num">' + careerNum(v)
                                                     + '</td><td class="num">' + careerPct(pct)
                                                     + '</td><td><div class="career-bar"><i style="width:' + ((v / maxV) * 100).toFixed(1) + '%"></i></div></td></tr>';
                                             }
-                                            h += '</tbody><tfoot><tr class="total-row"><td colspan="2">14 项合计</td><td class="num">' + careerNum(s.sheetSum) + '</td><td class="num">100.0%</td><td></td></tr></tfoot>';
+                                            h += '</tbody><tfoot><tr class="total-row"><td colspan="2">14 列合计（对账口径）</td><td class="num">' + careerNum(s.sheetSum) + '</td><td class="num">100.0%</td><td></td></tr></tfoot>';
                                             it.innerHTML = h;
                                         }
 
@@ -9245,7 +9254,7 @@
                                         m[careerNormHeader('总计')] = '@total';
                                         m[careerNormHeader('数据状态')] = '@status';
                                         m[careerNormHeader('特殊问题')] = '@note';
-                                        for (const it of CAREER_ITEMS) m[careerNormHeader(it.label)] = it.key;
+                                        for (const it of careerAllItems()) m[careerNormHeader(it.label)] = it.key;
                                         return m;
                                     })();
 
@@ -9309,7 +9318,9 @@
                                             }
                                             if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) { bad++; continue; }
                                             rec.total = careerSum(items);
-                                            if (importedTotal !== null && Math.abs(importedTotal - rec.total) > 0.5) mismatch++;
+                                            // 跟表里的「总计」对账要用登记表 14 列口径（含只存档的列），不能用计入统计的 15 项口径
+                                            const sheetTotal = careerSheetSum(items);
+                                            if (importedTotal !== null && Math.abs(importedTotal - sheetTotal) > 0.5) mismatch++;
                                             if (!rec.status) rec.status = rec.total > 0 ? CAREER_STATUS_DONE : CAREER_STATUS_PENDING;
                                             if (careerData.records[date]) overwrite++;
                                             careerData.records[date] = rec;
@@ -9348,11 +9359,13 @@
                                             const t = String(v == null ? '' : v);
                                             return /[",\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t;
                                         };
-                                        const head = ['日期', '人员', '班次'].concat(CAREER_ITEMS.map(i => i.label), ['总计', '数据状态', '特殊问题']);
+                                        // 导出全部项（含只存档的那几列），保证 CSV 能原样再导入、也能跟登记表对账
+                                        const cols = careerAllItems();
+                                        const head = ['日期', '人员', '班次'].concat(cols.map(i => i.label), ['总计', '数据状态', '特殊问题']);
                                         const rows = [head.map(q).join(',')];
                                         for (const d of Object.keys(careerData.records).sort()) {
                                             const r = careerData.records[d];
-                                            rows.push([d, r.name, r.shift].concat(CAREER_ITEMS.map(i => r.items[i.key] || 0), [r.total, r.status, r.note]).map(q).join(','));
+                                            rows.push([d, r.name, r.shift].concat(cols.map(i => r.items[i.key] || 0), [r.total, r.status, r.note]).map(q).join(','));
                                         }
                                         return '\ufeff' + rows.join('\r\n');
                                     }

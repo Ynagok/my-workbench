@@ -429,38 +429,39 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
   await sleep(60);
   const rec0 = (lastCareer() || { records: {} }).records[bjToday];
   check(!!rec0, '点「生成日报」后当天已自动归档', Object.keys((lastCareer() || { records: {} }).records).slice(0, 3));
-  check(rec0 && rec0.total === 57, '折算口径正确：当日工作量 = 57（工单 17 + 海外 40）', rec0 && rec0.total);
-  check(rec0 && rec0.items.sj_group === 4 && rec0.items.fanhua_group === 3 && rec0.items.g6_group === 5
-    && rec0.items.cn_sso === 5 && rec0.items.store_reply === 14 && rec0.items.ov_sso === 12
-    && rec0.items.ov_email === 4 && rec0.items.mute === 7 && rec0.items.ban === 3,
-    '逐项折算正确（异世界4/①②⑤群维系3/⑥群维系5/国内SSO5/商店14/海外SSO12/邮件4/禁言7/封号3）', rec0 && rec0.items);
+  check(rec0 && rec0.total === 49, '折算口径正确：当日工作量 = 49（工单 5 + 海外 44）', rec0 && rec0.total);
+  check(rec0 && rec0.items.cn_sso === 5 && rec0.items.sj_group === 4 && rec0.items.store_reply === 14
+    && rec0.items.ov_sso === 12 && rec0.items.ov_email === 4 && rec0.items.mute === 7 && rec0.items.ban === 3,
+    '逐项折算正确（国内SSO5/异世界4/商店14/海外SSO12/邮件4/禁言7/封号3）', rec0 && rec0.items);
   check(rec0 && rec0.status === '已完成记录' && rec0.src === 'daily', '状态与来源标记正确', rec0 && [rec0.status, rec0.src]);
-  check(rec0 && rec0.items.g6_group === 5, '⑥伙伴弹途群维系已从「额外项」升格为正式统计项', rec0 && rec0.items.g6_group);
-  check(rec0 && rec0.extra === undefined, '不再有脱离统计的 extra 字段（日报每个数值项都进统计）', rec0 && rec0.extra);
+  check(rec0 && rec0.items.g6_group === undefined && rec0.items.g3_group === undefined && rec0.items.g4_group === undefined,
+    '③④⑥群维系已彻底移除（不再采集）', rec0 && rec0.items);
+  check(rec0 && rec0.items.fanhua_group === 3, '①②⑤群维系改为「只存档」：仍采集(3)但不计入统计', rec0 && rec0.items.fanhua_group);
+  check(rec0 && rec0.extra === undefined, '不再有脱离统计的 extra 字段');
 
   doc.querySelector('.tab-btn[data-tab="career"]').click();   // 切到客服生涯
   await sleep(40);
-  check(/累计工作量\s*57/.test(kpiText()), 'KPI：累计工作量 57', kpiText().slice(0, 60));
+  check(/累计工作量\s*49/.test(kpiText()), 'KPI：累计工作量 49', kpiText().slice(0, 60));
   check(/完整记录天数\s*1/.test(kpiText()), 'KPI：完整记录 1 天', kpiText().slice(0, 120));
-  check(/日均工作量\s*57/.test(kpiText()) && /最高单日\s*57/.test(kpiText()), 'KPI：日均/最高单日 = 57');
+  check(/日均工作量\s*49/.test(kpiText()) && /最高单日\s*49/.test(kpiText()), 'KPI：日均/最高单日 = 49');
   check(/最长连续记录\s*1 天/.test(kpiText()), 'KPI：连续记录天数');
   check(/环比|近 30 记录日日均/.test(kpiText()), 'KPI：趋势类指标已渲染');
   check($('careerTrend').querySelectorAll('span').length === 1, '趋势条 = 1 根', $('careerTrend').querySelectorAll('span').length);
-  check(/工单侧\s*17 \+ 海外侧\s*40 = 57/.test($('careerSheetHint').textContent)
+  check(/工单侧\s*5 \+ 海外侧\s*44 = 49/.test($('careerSheetHint').textContent)
     && /登记表 14 项口径.*52/.test($('careerSheetHint').textContent),
-    '口径拆分：工单17 + 海外40 = 57；登记表 14 项口径 52', $('careerSheetHint').textContent);
+    '口径拆分：工单5 + 海外44 = 49；登记表 14 列口径 52（含只存档的①②⑤群维系 3）', $('careerSheetHint').textContent);
   const sideTicket = $('careerSideTicket').textContent;
   const sideOverseas = $('careerSideOverseas').textContent;
-  check(/工单侧累计\s*17/.test(sideTicket), '工单侧单独统计：累计 17', sideTicket.slice(0, 40));
-  check(/海外侧累计\s*40/.test(sideOverseas), '海外侧单独统计：累计 40', sideOverseas.slice(0, 40));
+  check(/工单侧累计\s*5/.test(sideTicket), '工单侧单独统计：累计 5', sideTicket.slice(0, 40));
+  check(/海外侧累计\s*44/.test(sideOverseas), '海外侧单独统计：累计 44', sideOverseas.slice(0, 40));
   check(/53客服在线/.test(sideTicket) && /支付宝在线/.test(sideTicket) && /爱江山CP后台/.test(sideTicket)
-    && /⑥伙伴弹途 群维系/.test(sideTicket) && /③不差钱 群维系/.test(sideTicket),
-    '工单侧已包含 CP 后台 / 在线客服 / ③④⑥ 群维系等原「额外项」', sideTicket.slice(0, 60));
-  check(/监控禁言/.test(sideOverseas) && /监控封号/.test(sideOverseas) && /商店回复/.test(sideOverseas),
-    '海外侧统计项齐全（商店回复 / 禁言 / 封号）');
+    && !/异世界群维系/.test(sideTicket) && !/不差钱 群维系/.test(sideTicket) && !/猫之城/.test(sideTicket),
+    '工单侧含 CP后台/在线客服，且不再含异世界群维系、③④⑥群维系、需补录项', sideTicket.slice(0, 60));
+  check(/异世界群维系/.test(sideOverseas) && /监控禁言/.test(sideOverseas) && /海外CP后台工单/.test(sideOverseas),
+    '海外侧含异世界群维系 / 禁言封号 / 海外CP后台');
   const itemTbl = $('careerItemTable').textContent;
-  check(/商店回复/.test(itemTbl) && /海外SSO工单量（全产品）/.test(itemTbl) && /需补录/.test(itemTbl),
-    '登记表 14 项口径表已渲染，「日报没有对应项」的标了需补录', itemTbl.slice(0, 50));
+  check(itemTbl.includes('商店回复') && itemTbl.includes('（繁花+乐缤纷+梦幻）群维系') && itemTbl.includes('不计入统计'),
+    '登记表 14 列口径表在，只存档的列标了「不计入统计」', itemTbl.slice(0, 50));
 
   // 粘贴导入：故意打乱表头顺序，验证按列名对齐；日期用 Excel 序列号
   const tsv = [
@@ -479,8 +480,8 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     '打乱列顺序仍按表头正确落位', recs['2026-06-03'] && recs['2026-06-03'].items);
   check(recs['2026-06-03'] && recs['2026-06-03'].total === 42, '导入行总计 = 各列之和 42', recs['2026-06-03'] && recs['2026-06-03'].total);
   check(recs['2026-06-04'] && recs['2026-06-04'].note === '测试备注', '特殊问题列已带入');
-  check(/累计工作量\s*119/.test(kpiText()), 'KPI 更新：57 + 42 + 20 = 119', kpiText().slice(0, 40));
-  check(/登记表 14 项口径.*114/.test($('careerSheetHint').textContent), '登记表口径同步为 114（52+62）', $('careerSheetHint').textContent);
+  check(/累计工作量\s*109/.test(kpiText()), 'KPI 更新：49 + 42 + 18 = 109（只算计入统计的项）', kpiText().slice(0, 40));
+  check(/登记表 14 项口径.*114/.test($('careerSheetHint').textContent), '登记表口径同步为 114（52+62，含只存档的 ①②⑤群维系 2）', $('careerSheetHint').textContent);
   check(/待确认 1 天/.test($('careerQuality').textContent), '「总计为空/待确认」不入统计，单列提示', $('careerQuality').textContent.slice(0, 60));
   const monthTbl = $('careerMonthlyTable').textContent;
   check(monthTbl.includes('2026-06') && monthTbl.includes(bjToday.slice(0, 7)), '月度汇总含 2026-06 与本月', monthTbl.slice(0, 60));
@@ -491,7 +492,7 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
   const recs2 = (lastCareer() || { records: {} }).records;
   check(Object.keys(recs2).length === Object.keys(recs).length, '重复导入不产生重复记录', Object.keys(recs2).length);
   check(/覆盖已有 3 天/.test($('careerImportHint').textContent), '重复导入提示为覆盖', $('careerImportHint').textContent);
-  check(/累计工作量\s*119/.test(kpiText()), '重复导入后累计仍是 119（未翻倍）', kpiText().slice(0, 40));
+  check(/累计工作量\s*109/.test(kpiText()), '重复导入后累计仍是 109（未翻倍）', kpiText().slice(0, 40));
 
   // 补录 / 修正 / 删除
   $('careerEditDate').value = '2026-06-05';
@@ -502,14 +503,14 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
   $('careerSaveDayBtn').click();
   await sleep(30);
   check(/已保存 2026-06-05：工作量 6/.test($('careerEditHint').textContent), '补录保存成功', $('careerEditHint').textContent);
-  check(/累计工作量\s*125/.test(kpiText()), '补录后累计 119+6 = 125', kpiText().slice(0, 40));
+  check(/累计工作量\s*115/.test(kpiText()), '补录后累计 109+6 = 115', kpiText().slice(0, 40));
   $('careerLoadDayBtn').click();
   await sleep(30);
   check(/已载入 2026-06-05/.test($('careerEditHint').textContent)
     && $('careerEditGrid').querySelector('[data-career-key="store_reply"]').value === '6', '能回读已补录的那天');
   $('careerDeleteDayBtn').click();
   await sleep(30);
-  check(/累计工作量\s*119/.test(kpiText()), '删除后累计回到 119', kpiText().slice(0, 40));
+  check(/累计工作量\s*109/.test(kpiText()), '删除后累计回到 109', kpiText().slice(0, 40));
 
   // 导出：jsdom 里 <a>.click() 会触发 "navigation not implemented"，这里换成桩并把 Blob 内容抓出来验
   const origBlob = window.Blob;

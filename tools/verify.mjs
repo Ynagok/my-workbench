@@ -53,36 +53,40 @@ ok((s.match(/"25[3-7]":\s*"/g) || []).length === 10, '253–257 在两张表里�
 ok(/data-tab="career"/.test(s) && /id="tab-career"/.test(s), '客服生涯标签页已注入');
 {
   const itemsBlk = (s.match(/const CAREER_ITEMS = \[[\s\S]*?\r?\n\s*\];/) || [''])[0];
+  const hiddenBlk = (s.match(/const CAREER_HIDDEN_ITEMS = \[[\s\S]*?\r?\n\s*\];/) || [''])[0];
   const itemKeys = itemsBlk.match(/\{ key: '/g) || [];
-  ok(itemKeys.length === 23, `客服生涯统计项 = 23 项（工单 16 + 海外 7，当前 ${itemKeys.length}）`);
+  ok(itemKeys.length === 15, `客服生涯计入统计的项 = 15 项（当前 ${itemKeys.length}）`);
   const ticketN = (itemsBlk.match(/side: 'ticket'/g) || []).length;
   const overseasN = (itemsBlk.match(/side: 'overseas'/g) || []).length;
-  ok(ticketN === 16 && overseasN === 7, `两侧分开统计（工单 ${ticketN} 项 / 海外 ${overseasN} 项）`);
-  // 14 项必须与登记表列名一一对应
+  ok(ticketN === 7 && overseasN === 8, `两侧分开统计（工单 ${ticketN} 项 / 海外 ${overseasN} 项）`);
+  ok(/key: 'sj_group', label: '异世界群维系', side: 'overseas'/.test(itemsBlk) && /'ticket\.g7_wx'/.test(itemsBlk),
+    '异世界群维系归到海外侧（数据仍取工单日报的⑦）');
+  // 14 项必须与登记表列名一一对应（计入统计的 + 只存档的）
   const labels = ['异世界群维系', '猫之城ios&B站评论回复', '国内动物领主VIP', '（繁花+乐缤纷+梦幻）群维系', '邮件+SDK（猫旅馆物语）',
     '海外SSO工单量（全产品）', '海外CP后台工单（全产品）', '塔防FB', '海外邮件（全产品）', '海外FB（全产品）',
     '商店回复', 'SSO国内工单', '监控禁言', '监控封号'];
-  const missing = labels.filter(l => !itemsBlk.includes(l));
+  const missing = labels.filter(l => !(itemsBlk + hiddenBlk).includes(l));
   ok(!missing.length, '14 项列名与登记表一致' + (missing.length ? '，缺：' + missing.join('/') : ''));
-  // 日报能自动折算的项（from 非空）至少覆盖这几个关键映射
-  ok(/from: \['overseas\.sdk'\]/.test(itemsBlk) && /from: \['overseas\.ios', 'overseas\.google'\]/.test(itemsBlk)
-    && /'ticket\.g7_wx'/.test(itemsBlk) && /from: \['ticket\.sso'\]/.test(itemsBlk),
-    '日报字段映射（海外SSO/商店回复/异世界群维系/SSO国内）已接');
-  // 原「额外项」已升格为正式统计项
-  ok(/key: 'kf53'/.test(itemsBlk) && /key: 'alipay_online'/.test(itemsBlk) && /key: 'bcq_cp'/.test(itemsBlk)
-    && /key: 'g3_group'/.test(itemsBlk) && /key: 'g6_group'/.test(itemsBlk),
-    '53客服在线/支付宝在线/4个CP后台/③④⑥群维系已升格为正式统计项');
-  ok(!/careerExtraFields/.test(s), 'extra 概念已移除（不再有脱离统计的字段）');
-  // 不变式：日报里每个数值字段都必须被某个统计项的 from 覆盖（保证没有算漏的工作）
+  // 按用户要求撤出统计的 5 项：仍然采集/导入、但不在两侧统计里
+  const hiddenKeys = hiddenBlk.match(/\{ key: '/g) || [];
+  ok(hiddenKeys.length === 5, `撤出统计、只存档的登记表列 = 5 项（当前 ${hiddenKeys.length}）`);
+  ok(['fanhua_group', 'catcity', 'dwlz_vip', 'catinn_sdk', 'td_fb'].every(k => hiddenBlk.includes("key: '" + k + "'")),
+    '只存档的 5 列正确（①②⑤群维系/猫之城/国内动物领主VIP/邮件+SDK/塔防FB）');
+  ok(!/key: 'g3_group'|key: 'g4_group'|key: 'g6_group'/.test(s), '③④⑥群维系已按用户要求彻底移除');
+  ok(!/careerExtraFields/.test(s) && /const careerAllItems = \(\) =>/.test(s), 'extra 已移除，改为「计入统计 / 只存档」两层');
+  // 口径断言：计入统计的项必须覆盖日报的 17 个字段；未覆盖的应恰好是①②⑤③④⑥群维系那 19 个字段
   const numFields = new Set();
   for (const m of s.matchAll(/\{ key: '([a-zA-Z0-9_]+)', label: '[^']*', type: 'number' \}/g)) numFields.add(m[1]);
   const covered = new Set();
   for (const m of itemsBlk.matchAll(/'((?:ticket|overseas)\.[a-zA-Z0-9_]+)'/g)) covered.add(m[1].split('.')[1]);
-  const missed = [...numFields].filter(k => !covered.has(k));
-  ok(numFields.size === 36 && !missed.length,
-    `日报 ${numFields.size} 个数值字段全部被统计项覆盖` + (missed.length ? '，漏：' + missed.join('/') : ''));
+  const uncovered = [...numFields].filter(k => !covered.has(k));
+  const expectUncovered = ['g1_wx', 'g1_dy', 'g1_dyol', 'g1_qq', 'g2_wx', 'g2_dy', 'g2_dyol', 'g5_wx', 'g5_dy', 'g5_alipay',
+    'g3_wx', 'g3_dy', 'g3_dyol', 'g4_wx', 'g4_dy', 'g4_dyol', 'g6_wx', 'g6_dy', 'g6_dyol'];
+  ok(numFields.size === 36 && covered.size === 17, `日报 36 个数值字段里 17 个计入统计`);
+  ok(uncovered.length === expectUncovered.length && expectUncovered.every(k => uncovered.indexOf(k) !== -1),
+    '未计入统计的恰好是①②⑤③④⑥群维系那 19 个字段（其余没有算漏）', uncovered);
   ok(/const CAREER_SHEET_ITEMS = \['sj_group', 'catcity', 'dwlz_vip'/.test(s) && (s.match(/CAREER_SHEET_ITEMS/g) || []).length >= 3,
-    '登记表 14 项口径单列（导入/对账用）');
+    '登记表 14 列口径单列（导入/对账用，含只存档的 5 列）');
 }
 ok(/careerArchiveToday\(\)/.test(s) && /const CAREER_KEY = 'careerData'/.test(s), '客服生涯自动归档已挂 + 存储 key');
 ok(/loadData\(CAREER_KEY, null\)/.test(s) && /careerData = normalizeCareer\(b\.careerData\)/.test(s), '客服生涯走服务端持久化（多设备同步）');
