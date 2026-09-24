@@ -60,17 +60,20 @@ ok(/data-tab="career"/.test(s) && /id="tab-career"/.test(s), '客服生涯标签
   const ticketFields = numKeys(ticketBlk);
   const ovFields = numKeys(ovDailyBlk);
 
-  // 工单侧 = 工单日报的全部数值字段（除姓名/班次），由 DAILY_TICKET_FIELDS 自动生成
+  // 工单侧 = 工单日报的全部数值字段（除姓名/班次），由 DAILY_TICKET_FIELDS 自动生成，不排除任何字段
   ok(/const CAREER_TICKET_ITEMS = DAILY_TICKET_FIELDS[\s\S]{0,260}?\.filter\(f => f\.type === 'number' && !CAREER_TICKET_EXCLUDE_PREFIX\.some/.test(s),
     '工单侧统计项由「工单日报」字段自动生成（加日报字段就会自动进统计，不会漏）');
-  ok(/const CAREER_TICKET_EXCLUDE_PREFIX = \['g1_', 'g2_', 'g5_', 'g7_'\]/.test(s),
-    '工单侧排除 g1_/g2_/g5_（已由海外侧群维系汇总计入）与 g7_（异世界归海外）');
-  const excl = (k) => ['g1_', 'g2_', 'g5_', 'g7_'].some(p => k.indexOf(p) === 0);
-  const genTicket = ticketFields.filter(k => !excl(k));
-  ok(ticketFields.length === 29 && genTicket.length === 16,
-    `工单侧项数 = 日报 ${ticketFields.length} 个数值字段 − 13（①②⑤ + ⑦）= ${genTicket.length}`);
-  ok(genTicket.indexOf('g3_wx') !== -1 && genTicket.indexOf('g6_wx') !== -1 && genTicket.indexOf('g1_wx') === -1,
-    '③④⑥ 群维系留在工单侧，①②⑤ 不在（避免与海外侧汇总重复计量）');
+  ok(/const CAREER_TICKET_EXCLUDE_PREFIX = \[\]/.test(s),
+    '工单侧不排除任何字段（用户清单：SSO工单…⑦异世界勇者 全要）');
+  const genTicket = ticketFields.slice();
+  ok(ticketFields.length === 29 && genTicket.length === 29, `工单侧 = 工单日报全部 ${genTicket.length} 个数值字段`);
+  ok(genTicket.indexOf('g1_wx') !== -1 && genTicket.indexOf('g7_wx') !== -1 && genTicket.indexOf('g6_wx') !== -1,
+    '①②⑤⑦ 都在工单侧（按用户清单）');
+  // ⑦ 的量算在工单侧，所以海外侧不能再有「异世界群维系」（否则重复计量）
+  ok(ovBlk.indexOf("'sj_group'") === -1 && ovBlk.indexOf("'ticket.g7_") === -1,
+    '海外侧不再有异世界群维系（⑦ 已计入工单侧，避免算两次）');
+  ok(/key: 'sj_group', label: '异世界群维系'[\s\S]{0,120}?from: \['ticket\.g7_wx', 'ticket\.g7_dy', 'ticket\.g7_dyol'\]/.test(hiddenBlk),
+    '异世界群维系保留在「只存档」层（用同样的 g7_* 来源），供登记表那列对账');
   // 海外日报的数值字段必须被海外侧项一一覆盖
   const ovCovered = new Set();
   for (const m of ovBlk.matchAll(/'overseas\.([a-zA-Z0-9_]+)'/g)) ovCovered.add(m[1]);
@@ -78,11 +81,11 @@ ok(/data-tab="career"/.test(s) && /id="tab-career"/.test(s), '客服生涯标签
   ok(ovFields.length === 10 && !ovMissed.length,
     `海外侧覆盖海外日报全部 ${ovFields.length} 个数值字段` + (ovMissed.length ? '，漏：' + ovMissed.join('/') : ''));
   const ovN = (ovBlk.match(/side: 'overseas'/g) || []).length;
-  ok(ovN === 10, `海外侧 = ${ovN} 项（含异世界群维系）`);
+  ok(ovN === 9, `海外侧 = ${ovN} 项（含（梦幻/繁花/乐缤纷）群维系；异世界已归工单侧）`);
   ok(/const CAREER_ITEMS = CAREER_TICKET_ITEMS\.concat\(CAREER_OVERSEAS_ITEMS\)/.test(s),
-    '合计 16 + 10 = 26 项计入统计');
-  ok(/key: 'sj_group', label: '异世界群维系', side: 'overseas'/.test(ovBlk) && /'ticket\.g7_wx'/.test(ovBlk),
-    '异世界群维系归到海外侧（数据仍取工单日报的⑦）');
+    '合计 29 + 9 = 38 项计入统计');
+  ok(/key: 'mhl_group', label: '（梦幻\/繁花\/乐缤纷）群维系', side: 'overseas'/.test(ovBlk),
+    '海外侧含（梦幻/繁花/乐缤纷）群维系（来源：海外日报那个手填字段）');
   // 海外日报新增的 3 个字段 → 海外侧 3 个统计项
   ok(/key: 'cp_ticket', label: '海外CP后台工单'/.test(s) && /key: 'cn_ticket', label: '国内工单'/.test(s)
     && /key: 'mhl_group', label: '（梦幻\/繁花\/乐缤纷）群维系'/.test(s),
@@ -106,11 +109,11 @@ ok(/data-tab="career"/.test(s) && /id="tab-career"/.test(s), '客服生涯标签
     '商店回复', 'SSO国内工单', '监控禁言', '监控封号'];
   const missing = labels.filter(l => !allLabels.includes(l));
   ok(!missing.length, '14 列列名都能对上（统计项 / 只存档 / 别名）' + (missing.length ? '，缺：' + missing.join('/') : ''));
-  // 只存档的 4 项（登记表里恒为 0 的那几列）：仍然可导入，但不进统计
+  // 只存档的 5 项：仍然可导入/折算，但不进统计
   const hiddenKeys = hiddenBlk.match(/\{ key: '/g) || [];
-  ok(hiddenKeys.length === 4, `只存档、不计入统计的登记表列 = 4 项（当前 ${hiddenKeys.length}）`);
-  ok(['catcity', 'dwlz_vip', 'catinn_sdk', 'td_fb'].every(k => hiddenBlk.includes("key: '" + k + "'")),
-    '只存档的 4 列正确（猫之城/国内动物领主VIP/邮件+SDK/塔防FB）');
+  ok(hiddenKeys.length === 5, `只存档、不计入统计的项 = 5 项（当前 ${hiddenKeys.length}）`);
+  ok(['sj_group', 'catcity', 'dwlz_vip', 'catinn_sdk', 'td_fb'].every(k => hiddenBlk.includes("key: '" + k + "'")),
+    '只存档的 5 项正确（异世界群维系聚合 + 猫之城/动物领主VIP/邮件+SDK/塔防FB）');
   ok(!/careerExtraFields/.test(s) && /const careerAllItems = \(\) =>/.test(s), 'extra 已移除，改为「计入统计 / 只存档」两层');
   ok(/const CAREER_SHEET_ITEMS = \[[^\]]*'mhl_group'[^\]]*'t_sso'/.test(s) && (s.match(/CAREER_SHEET_ITEMS/g) || []).length >= 3,
     '登记表 14 列口径单列（导入/对账用）');
