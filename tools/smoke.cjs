@@ -601,6 +601,32 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
   check(recT && recT.items.sj_group === 4 && recT.items.store_reply === 14 && recT.total === totalWithSj,
     '只粘工单日报时，海外侧数字保留（按侧覆盖，不整条清空）', recT && recT.total);
 
+  console.log('--- 8e. 重置模板：姓名保留，其它字段回默认 ---');
+  const fieldVal = (formId, key) => {
+    const el = $(formId).querySelector('[data-key="' + key + '"]');
+    return el ? el.value : null;
+  };
+  $('dailyTabTicket').click();
+  await sleep(30);
+  setDailyField('dailyFormTicket', 'name', '重置测试员');
+  setDailyField('dailyFormTicket', 'g1_wx', 9);
+  await sleep(30);
+  $('resetDailyBtn').click();
+  await sleep(40);
+  check(fieldVal('dailyFormTicket', 'name') === '重置测试员', '工单栏重置后姓名保留', fieldVal('dailyFormTicket', 'name'));
+  check(String(fieldVal('dailyFormTicket', 'g1_wx')) === '0', '工单栏重置后其它字段回默认', fieldVal('dailyFormTicket', 'g1_wx'));
+  $('dailyTabOverseas').click();
+  await sleep(30);
+  setDailyField('dailyFormOverseas', 'name', '海外小李');
+  await sleep(30);
+  $('resetDailyBtn').click();
+  await sleep(40);
+  check(fieldVal('dailyFormOverseas', 'name') === '海外小李', '海外栏重置后姓名也保留', fieldVal('dailyFormOverseas', 'name'));
+  check(String(fieldVal('dailyFormOverseas', 'mhl_group')) === '0', '海外栏重置后其它字段回默认', fieldVal('dailyFormOverseas', 'mhl_group'));
+  check(fieldVal('dailyFormTicket', 'name') === '重置测试员', '重置海外栏不会动工单栏的姓名', fieldVal('dailyFormTicket', 'name'));
+  $('dailyTabTicket').click();
+  await sleep(20);
+
   console.log('--- 9. 无未捕获异常 ---');
   check(!warns.some(w => w.startsWith('ERROR')), 'console.error 未被调用：' + warns.filter(w => w.startsWith('ERROR')).join(' | '));
   check(jsdomErrors.length === 0, '页面无未捕获异常（jsdomError）', jsdomErrors.slice(0, 3));

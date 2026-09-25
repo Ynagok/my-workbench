@@ -123,6 +123,11 @@ ok(/data-tab="career"/.test(s) && /id="tab-career"/.test(s), '客服生涯标签
 ok(/careerArchiveToday\(\)/.test(s) && /const CAREER_KEY = 'careerData'/.test(s), '客服生涯自动归档已挂 + 存储 key');
 ok(/loadData\(CAREER_KEY, null\)/.test(s) && /careerData = normalizeCareer\(b\.careerData\)/.test(s), '客服生涯走服务端持久化（多设备同步）');
 ok(/function careerStats\(\)/.test(s) && /function careerImport\(\)/.test(s) && /function careerCsvText\(\)/.test(s), '统计 / 粘贴导入 / CSV 导出 已注入');
+// 重置模板不清姓名（用户需求）：只有当旧数据里真有 name 键时才把值带过去
+ok(/const keepName = \(prevTab && Object\.prototype\.hasOwnProperty\.call\(prevTab, 'name'\)\) \? prevTab\.name : undefined;/.test(s)
+  && /if \(keepName !== undefined\) dailyData\[tab\]\.name = keepName;/.test(s)
+  && /姓名保留/.test(s),
+  '重置模板保留姓名（其余字段照旧回默认）');
 // 粘贴导入要能认「工作台自己生成的日报文本」（工单日报 / 海外日报）
 ok(/function careerParseReportPaste\(text\)/.test(s) && /const reports = careerParseReportPaste\(text\)/.test(s)
   && /识别为日报格式/.test(s),

@@ -9864,8 +9864,11 @@
                                             a.click();
                                         });
                                         setClick('resetDailyBtn', () => {
-                                            if (!confirm('确认重置模板？所有填写内容（含姓名）将被清空。')) return;
+                                            if (!confirm('确认重置模板？所有填写内容将被清空（姓名保留）。')) return;
                                             const tab = dailyData.currentTab || 'ticket';
+                                            // [需求] 重置不清姓名：把当前这一栏的姓名原样带过去（原本空着就保持空着）
+                                            const prevTab = asObject(dailyData[tab]);
+                                            const keepName = (prevTab && Object.prototype.hasOwnProperty.call(prevTab, 'name')) ? prevTab.name : undefined;
                                             if (tab === 'ticket') {
                                                 dailyData.ticket = { ...DAILY_DEFAULT_DATA.ticket };
                                                 dailyData.ticketCustom = [];
@@ -9873,6 +9876,7 @@
                                                 dailyData.overseas = { ...DAILY_DEFAULT_DATA.overseas };
                                                 dailyData.overseasCustom = [];
                                             }
+                                            if (keepName !== undefined) dailyData[tab].name = keepName;
                                             saveData('dailyData', dailyData);
                                             renderDailyForm(tab);
                                             const area = document.getElementById('dailyResultArea');
