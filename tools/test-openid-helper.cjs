@@ -1,6 +1,9 @@
 /* Gemjy OpenID 助手 单测：只测纯函数层（脚本里 Node 导出守卫会挡住 DOM/GM 相关代码）
    用法：node tools/test-openid-helper.cjs */
-const helper = require('../public/gemjy-openid-helper.user.js');
+const fs = require('fs');
+const path = require('path');
+const USERSCRIPT = path.join(__dirname, '..', 'public', 'gemjy-openid-helper.user.js');
+const helper = require(USERSCRIPT);
 
 let pass = 0, fail = 0;
 const ok = (cond, msg, extra) => {
@@ -99,6 +102,19 @@ eq(helper.CONFIG.concurrency, 2, '并发默认 2');
 eq(helper.CONFIG.cacheTtlMs, 10 * 60 * 1000, '缓存 TTL 10 分钟');
 ok(Array.isArray(helper.CONFIG.requestCandidates) && helper.CONFIG.requestCandidates.length === 6, '6 种候选请求形态');
 ok(helper.STATUS_TEXT.login === '未登录' && helper.STATUS_TEXT.uncalibrated === '待校准', '状态机文案');
+{
+    // @version 与内部 API.version 必须一致，否则 Tampermonkey 自动更新不会触发
+    const src = fs.readFileSync(USERSCRIPT, 'utf8');
+    const hv = (src.match(/\/\/\s*@version\s+([0-9][0-9.]*)/) || [])[1];
+    eq(hv, helper.version, `@version(${hv}) 与内部 API.version 一致`);
+    ok(/\n\/\/ @match\s+https:\/\/work-bad\.onrender\.com\/\*/.test(src), '线上工作台域名在 @match 里');
+    ok(/@updateURL\s+https:\/\/work-bad\.onrender\.com\/gemjy-openid-helper\.user\.js/.test(src), '@updateURL 指向线上（部署后自动提示更新）');
+    ok(/@connect\s+operator\.gemjy\.cn/.test(src), '@connect 声明了 operator 域名');
+    ok(/GM_xmlhttpRequest\(\{/.test(src), '查询走 GM_xmlhttpRequest（同时解决 CORS 与 cookie）');
+    ok(!/fetch\([^)]*CONFIG\.endpoint/.test(src), '没有用 fetch 查 operator');
+    ok(/function isWorkbenchPage\(\)/.test(src) && /if \(!isWorkbenchPage\(\)\) return;/.test(src),
+        '只有真正的工作台页面才注入按钮（isWorkbenchPage 有被用到）');
+}
 
 console.log('\n通过 ' + pass + ' 项，失败 ' + fail + ' 项');
 process.exit(fail ? 1 : 0);

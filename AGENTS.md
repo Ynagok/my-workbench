@@ -46,15 +46,15 @@ npm run verify     # 改完代码、push 前的完整自检
 
 | 命令 | 内容 |
 |---|---|
-| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 116 项 + 「接口挂起时界面仍可用」+ 服务端冒烟 12 项 + 油猴脚本语法/单测 55 项 |
+| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 116 项 + 「接口挂起时界面仍可用」+ 服务端冒烟 12 项 + 油猴脚本语法/单测 62 项 |
 | `npm run verify:static` | 只要静态校验 + 语法检查（最快） |
 | `npm run report` | 打印一份真实生成的日报，肉眼确认排版（含 ⑥伙伴弹途 / ⑦异世界勇者） |
 | `npm run build:data` | 从 GM 玩家页快照提取 4 张权威映射表 + 与硬编码常量的**差异报告**（见下「游戏数据管线」） |
 | `npm run smoke:server` | 单独跑服务端冒烟（真起进程 + 真发 HTTP，12 项） |
-| `npm run test:helper` | Gemjy OpenID 助手（油猴脚本）纯函数单测，55 项 |
+| `npm run test:helper` | Gemjy OpenID 助手（油猴脚本）单测，62 项 |
 | `npm test` | = `npm run verify` |
 
-`npm run verify` 失败就不要提交。它一共 7 段：静态结构 → 语法 → jsdom 集成冒烟 **116 项** → 接口挂起时界面仍可用 → 服务端冒烟 **12 项** → 油猴脚本语法 → 油猴脚本单测 **55 项**。
+`npm run verify` 失败就不要提交。它一共 7 段：静态结构 → 语法 → jsdom 集成冒烟 **116 项** → 接口挂起时界面仍可用 → 服务端冒烟 **12 项** → 油猴脚本语法 → 油猴脚本单测 **62 项**。
 
 - jsdom 未安装时前端冒烟会自动回落到本机 DSH 自带的那份。
 - `tools/smoke-server.cjs` 用 `PORT` + `DATA_FILE` 环境变量把服务端指到随机端口和 `tools/out/` 里的临时文件，**不会碰真实 `data.json`**；子进程 stdio 必须用 `ignore`/`inherit`（沙箱禁管道，`pipe` 会 EPERM）。
@@ -85,7 +85,7 @@ npm run verify     # 改完代码、push 前的完整自检
 - **`@match` 覆盖三处**：反馈后台 `*://mp.weixin.qq.com/*`、**线上工作台 `https://work-bad.onrender.com/*`**、本地工作台 `localhost:3000` / `127.0.0.1:3000`。要从别的域名开工作台就再加一行。
 - 已声明 **`@updateURL` / `@downloadURL`** 指向 `https://work-bad.onrender.com/gemjy-openid-helper.user.js`：改完这个文件并部署（push 后 Render 自动部署），Tampermonkey 会提示更新。也可以直接打开那个 URL 安装。
 - ⚠️ **唯一还没补的外部参数**：**operator 查询接口**——`CONFIG.requestCandidates` 里 6 种是**猜的常见形态**，首次查询会依次试探并锁定命中那条（写进 GM 的 `requestSpec`）。拿到一次成功响应的「F12 → Copy as fetch」后换成那一条最省事。可选：反馈列表若在跨域 iframe 里，把那个域名也加一条 `@match`。
-- 单测：`tools/test-openid-helper.cjs`（55 项：openid 边界与去重、B 端输入解析、JSON 嵌套归一与别名、HTML 三种渲染（相邻/4 列交叉/标签值/标签空格值/实体还原）、登录页识别与 classify、buildRequest、toCsv 转义、导出面与 CONFIG 默认值）。
+- 单测：`tools/test-openid-helper.cjs`（62 项：openid 边界与去重、B 端输入解析、JSON 嵌套归一与别名、HTML 三种渲染（相邻/4 列交叉/标签值/标签空格值/实体还原）、登录页识别与 classify、buildRequest、toCsv 转义、导出面与 CONFIG 默认值、**@version 与内部 version 一致 / @match 覆盖 / @updateURL / @connect / 只用 GM_xmlhttpRequest / 只在工作台页注入**）。
 
 ## 硬约定
 

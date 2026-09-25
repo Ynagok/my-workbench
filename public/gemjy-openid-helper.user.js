@@ -2,7 +2,7 @@
 // ==UserScript==
 // @name         Gemjy OpenID 助手
 // @namespace    work-bad/gemjy-openid-helper
-// @version      0.2.0
+// @version      0.2.1
 // @description  反馈后台：自动把 openid 查成角色信息（卡片内联徽标，零点击）；工作台：批量查询面板。A/B 共用一个查询函数 + GM 本地缓存。
 // @author       work-bad
 // @run-at       document-start
@@ -619,7 +619,7 @@
         setHooks: setHooks,
         store: store,
         state: state,
-        version: '0.2.0'
+        version: '0.2.1'
     };
 
     // ==================== Node 单测守卫：require() 时只导出纯函数与运行时，不碰 DOM ====================
@@ -1051,8 +1051,9 @@
     }
 
     function bootWorkbench() {
-        addStyle(CSS);
         const start = function () {
+            if (!isWorkbenchPage()) return;      // 同一个域名下不是工作台页面就不注入（避免到处冒按钮）
+            addStyle(CSS);
             const b = mkEl('button', '', 'OpenID 批量查询');
             b.style.cssText = 'position:fixed;right:16px;bottom:16px;z-index:2147483000;padding:8px 12px;border-radius:8px;border:1px solid #1a7f45;background:#1a7f45;color:#fff;cursor:pointer;font:13px/1.6 -apple-system,"Microsoft YaHei",sans-serif';
             b.onclick = openDrawer;
