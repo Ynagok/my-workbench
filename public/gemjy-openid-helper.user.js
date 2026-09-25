@@ -24,8 +24,12 @@
 // 它不做的事（刻意为之）：
 //   · 不查 operator、不发任何网络请求（所以不需要 @connect，也不会掉登录/跨域）
 //   · 不碰工作台页面（@match 只有 mp.weixin.qq.com 一处）
+//   · 数据**不往工作台存**：不碰 /api/data、不碰 data.json、不碰工作台的 localStorage
+//     数据键（dailyData / careerData / …），也不写进仓库里任何日志或文件 ——
+//     只落在本机浏览器：GM_setValue（没有 GM 环境时退化成本域名 localStorage），
+//     键名统一带 gemjyHelper: 前缀，跟反馈页自己的存储不会混。
 //
-// 数据存在 GM_setValue('feedbacks')（没有 GM 环境时退化成 localStorage），
+// 数据存在 GM_setValue('gemjyHelper:feedbacks')，
 // 关掉页面再开还在，最多留 CONFIG.maxItems 条（最新在前）。
 //
 // 提取不准时：点悬浮窗的「诊断」，把复制到的 JSON 发我 —— 里面有第一条反馈的原始
@@ -291,7 +295,11 @@
     }
 
     // ==================== 存储 / 状态（Node 下也定义，但不碰 GM_*、不碰 DOM） ====================
-    const KEY = { records: 'feedbacks', ui: 'panelUi' };
+    // ⚠️ 只落在本机浏览器（GM 存储，或本域名 localStorage）。
+    // 前缀 gemjyHelper: 有两个用处：① 跟反馈页自己的 localStorage 键区分开
+    // ② 单测可以直接断言「这一页的 localStorage 里只有本脚本的键」——见 test-openid-helper.cjs。
+    // 绝不要把这些数据发去工作台（/api/data ↔ data.json），那是工作台自己的业务数据。
+    const KEY = { records: 'gemjyHelper:feedbacks', ui: 'gemjyHelper:panelUi' };
 
     function gmGet(key) {
         try {

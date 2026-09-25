@@ -46,15 +46,15 @@ npm run verify     # 改完代码、push 前的完整自检
 
 | 命令 | 内容 |
 |---|---|
-| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 116 项 + 「接口挂起时界面仍可用」+ 服务端冒烟 12 项 + 油猴脚本语法/单测 120 项 |
+| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 116 项 + 「接口挂起时界面仍可用」+ 服务端冒烟 12 项 + 油猴脚本语法/单测 125 项 |
 | `npm run verify:static` | 只要静态校验 + 语法检查（最快） |
 | `npm run report` | 打印一份真实生成的日报，肉眼确认排版（含 ⑥伙伴弹途 / ⑦异世界勇者） |
 | `npm run build:data` | 从 GM 玩家页快照提取 4 张权威映射表 + 与硬编码常量的**差异报告**（见下「游戏数据管线」） |
 | `npm run smoke:server` | 单独跑服务端冒烟（真起进程 + 真发 HTTP，12 项） |
-| `npm run test:helper` | 反馈提取助手（油猴脚本）单测，120 项 |
+| `npm run test:helper` | 反馈提取助手（油猴脚本）单测，125 项 |
 | `npm test` | = `npm run verify` |
 
-`npm run verify` 失败就不要提交。它一共 7 段：静态结构 → 语法 → jsdom 集成冒烟 **116 项** → 接口挂起时界面仍可用 → 服务端冒烟 **12 项** → 油猴脚本语法 → 油猴脚本单测 **120 项**。
+`npm run verify` 失败就不要提交。它一共 7 段：静态结构 → 语法 → jsdom 集成冒烟 **116 项** → 接口挂起时界面仍可用 → 服务端冒烟 **12 项** → 油猴脚本语法 → 油猴脚本单测 **125 项**。
 
 - jsdom 未安装时前端冒烟会自动回落到本机 DSH 自带的那份。
 - `tools/smoke-server.cjs` 用 `PORT` + `DATA_FILE` 环境变量把服务端指到随机端口和 `tools/out/` 里的临时文件，**不会碰真实 `data.json`**；子进程 stdio 必须用 `ignore`/`inherit`（沙箱禁管道，`pipe` 会 EPERM）。
@@ -88,11 +88,12 @@ npm run verify     # 改完代码、push 前的完整自检
   - 问题：把非噪声行按文档顺序接起来（丢掉时间行、纯数字、只有标签的行、「展开/收起/暂无/加载中」这类按钮文字），超 `maxQuestionLen` 截断。
   - 图片：`img` 的 `src`/懒加载属性（`data-src` 等）+ 内联 `background-image` + 指向图片的链接；丢掉头像/图标/svg/小于 `minImageSize`(40px) 的图，去重后最多 `maxImages`(6) 张。
   - 取文本优先 `innerText`（自带换行）；不可用时（jsdom 等）按块级元素边界自己插换行 —— 这样单测能端到端跑。
-- **保存**：`GM_setValue('feedbacks')`（无 GM 环境退化成 `localStorage`），最新在前、按 openid upsert（更新后提到最前、`hits` 累加、空值不覆盖旧值、`firstSeen` 保留），上限 `CONFIG.maxItems`(300)；`panelUi` 记面板展开/收起。
+- **保存**：`GM_setValue('gemjyHelper:feedbacks')`（无 GM 环境退化成 `localStorage`），最新在前、按 openid upsert（更新后提到最前、`hits` 累加、空值不覆盖旧值、`firstSeen` 保留），上限 `CONFIG.maxItems`(300)；`gemjyHelper:panelUi` 记面板展开/收起。
+- ⚠️ **它的数据一律不往工作台存**（用户明确要求）：不引用 `/api/data`、不碰 `data.json`、不碰工作台自己的数据键（`dailyData`/`careerData`/`itemNameMap`/…），也不写进仓库里任何日志或文件 —— 只落在本机浏览器，键名统一 `gemjyHelper:` 前缀（既跟反馈页自己的 localStorage 分开，也让单测能断言「这一页的 localStorage 里只有本脚本的键」）。提取到的玩家信息（含「诊断」复制的 JSON）**只贴到对话里给我调启发式，不要写进仓库文件**。这四条都有单测锁。
 - **悬浮窗**：右下角「反馈 N」按钮（收起时变白底）；面板每条列出 昵称 / 问题（超 90 字折叠，点击展开）/ 图片缩略图（点击开原图）/ openid + **「复制 openid」**；工具条：`扫描本页` / `复制全部 openid`（一行一个）/ `诊断` / `清空`。菜单命令同名四件套。**复制动作只有 openid**（用户明确要求）。
 - **提取不准时**：点「诊断」会复制一段 JSON（版本、URL、CONFIG、前 3 条记录、**第一条反馈容器的原始文本与 HTML 片段**）——把它发我，照着调 `guessName` / `pickQuestion` / `isNoiseLine` / `CONFIG` 即可。
 - 已声明 **`@updateURL` / `@downloadURL`** 指向 `https://work-bad.onrender.com/gemjy-openid-helper.user.js`：改完这个文件并部署（push 后 Render 自动部署），Tampermonkey 会提示更新。也可以直接打开那个 URL 安装。
-- 单测：`tools/test-openid-helper.cjs`（**120 项**）= 纯函数层（openid 边界与宽松计数、行切分、时间行/噪声行、猜昵称、取问题与截断、图片绝对化/过滤/去重/上限、记录组装与 upsert 语义、`hits` 与 `firstSeen`、复制文本、诊断 JSON）+ 脚本头约束（`@version` 与内部 `API.version` 一致、`@match` 只有反馈后台一处、元数据里无 `@connect`、全文件无 `GM_xmlhttpRequest`/`fetch`/`XMLHttpRequest`、`@updateURL`、`@grant` 声明）+ **jsdom 端到端**（造一张假反馈页 → 注入脚本 → 断言昵称/问题/图片/openid 真的提出来了、面板与启动按钮建出来了、面板里的 openid 不会被自己再收一遍、非反馈站点不注入、localStorage 落盘与清空）。
+- 单测：`tools/test-openid-helper.cjs`（**125 项**）= 纯函数层（openid 边界与宽松计数、行切分、时间行/噪声行、猜昵称、取问题与截断、图片绝对化/过滤/去重/上限、记录组装与 upsert 语义、`hits` 与 `firstSeen`、复制文本、诊断 JSON）+ 脚本头约束（`@version` 与内部 `API.version` 一致、`@match` 只有反馈后台一处、元数据里无 `@connect`、全文件无 `GM_xmlhttpRequest`/`fetch`/`XMLHttpRequest`、`@updateURL`、`@grant` 声明）+ **不许碰工作台的静态断言**（代码里没有 `/api/data`、没有 `data.json`、没有工作台任何数据键、localStorage 只用变量键）+ **jsdom 端到端**（造一张假反馈页 → 注入脚本 → 断言昵称/问题/图片/openid 真的提出来了、面板与启动按钮建出来了、面板里的 openid 不会被自己再收一遍、非反馈站点不注入、localStorage 里只出现 `gemjyHelper:` 前缀的键、落盘与清空）。
 
 ## 硬约定
 

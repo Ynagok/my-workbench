@@ -179,6 +179,13 @@ console.log('--- 7. 脚本头 / 依赖面（不跨工作台、不联网）---');
     ok(/@grant\s+GM_setValue/.test(SRC) && /@grant\s+GM_getValue/.test(SRC), '@grant 里声明了 GM 存储（保存靠它）');
     ok(/if \(!isFeedbackHost\(\)\) return;/.test(SRC), '只在反馈后台注入（别的站点直接 return）');
     ok(!/tabsContainer|smartPasteInput|isWorkbenchPage/.test(SRC), '已经没有任何工作台相关代码');
+    // 数据不许往工作台存：接口、落盘文件、工作台自己的数据键，一个都不能出现。
+    // 只在「去掉整行注释」的代码上看——注释里本来就要说明这些词是刻意不碰的。
+    const CODE = SRC.replace(/^[ \t]*\/\/.*$/gm, '');
+    ok(!/api\/data/.test(CODE), '不引用工作台接口 /api/data');
+    ok(!/data\.json/.test(CODE), '不引用服务端 data.json');
+    ok(!/dailyData|careerData|itemNameMap|sourceIdMap|activityTypeMap|work-bad_v2/.test(CODE), '不碰工作台的任何数据键');
+    ok(!/localStorage\.(setItem|getItem|removeItem)\(\s*['"]/.test(SRC), 'localStorage 只用变量键（都是 gemjyHelper: 前缀），没有写死别的键');
     eq(typeof helper.runtime.getRecords, 'function', 'runtime 面导出（jsdom 端到端测试用）');
 }
 
@@ -222,8 +229,15 @@ console.log('--- 8. 端到端：jsdom 假反馈页 → 真的提取出来了 ---
         eq(win.document.querySelectorAll('.gj-item .gj-id button').length, 2, '每条一个「复制 openid」按钮');
         ok(win.document.querySelector('.gj-panel').textContent.indexOf(A) !== -1, '面板里能看到 openid 原文（方便手动选）');
 
-        const saved = JSON.parse(win.localStorage.getItem('feedbacks') || 'null');
+        const saved = JSON.parse(win.localStorage.getItem('gemjyHelper:feedbacks') || 'null');
         eq(saved && saved.records.length, 2, '已存进本地（无 GM 环境时走 localStorage）');
+        {
+            // 「不往工作台存」的运行时证据：这一页的 localStorage 里只有本脚本带前缀的键
+            const keys = [];
+            for (let i = 0; i < win.localStorage.length; i++) keys.push(win.localStorage.key(i));
+            ok(keys.length > 0 && keys.every(k => k.indexOf('gemjyHelper:') === 0),
+                'localStorage 里只写 gemjyHelper: 前缀的键（没碰页面/工作台别的键）', keys);
+        }
 
         // 面板自己显示着 openid —— 把真实卡片删掉后重扫，绝不能把面板里的 openid 又收一遍
         win.document.querySelectorAll('.card').forEach(function (c) { c.parentNode.removeChild(c); });
@@ -234,7 +248,7 @@ console.log('--- 8. 端到端：jsdom 假反馈页 → 真的提取出来了 ---
 
         H.runtime.clearAll();
         eq(H.runtime.getRecords().length, 0, '清空后 0 条');
-        eq(JSON.parse(win.localStorage.getItem('feedbacks')).records.length, 0, '清空也落盘了');
+        eq(JSON.parse(win.localStorage.getItem('gemjyHelper:feedbacks')).records.length, 0, '清空也落盘了');
     } finally {
         win.close();
     }
