@@ -1,4 +1,4 @@
-/* Gemjy OpenID 助手 单测（当前测的是 0.4.0 那份：public/gemjy-openid-helper-0.4.user.js）
+/* Gemjy OpenID 助手 单测（当前测的是原链接上那份 0.4.0：public/gemjy-openid-helper.user.js）
    1) 纯函数层：脚本里的 Node 导出守卫会挡住 DOM / GM 相关代码，require() 直接测
       —— 含 0.4 新增的 isAvatarish / pickAvatar，以及 buildRecord / mergeRecord 的头像语义
    2) 端到端：用 jsdom 造一张假的反馈列表页，把脚本注入进去，断言「头像/昵称/图片/openid」
@@ -6,8 +6,8 @@
    用法：node tools/test-openid-helper.cjs */
 const fs = require('fs');
 const path = require('path');
-// ⚠️ 0.4.0 走的是**新链接**（文件名带 -0.4），旧链接那份 0.3.0 不动；这里跟着测新那份
-const USERSCRIPT_NAME = 'gemjy-openid-helper-0.4.user.js';
+// ⚠️ 0.4.0 是**覆盖在原链接**上的（文件名不变，靠 @version 0.3.0 → 0.4.0 触发自动升级）
+const USERSCRIPT_NAME = 'gemjy-openid-helper.user.js';
 const USERSCRIPT = path.join(__dirname, '..', 'public', USERSCRIPT_NAME);
 const helper = require(USERSCRIPT);
 const SRC = fs.readFileSync(USERSCRIPT, 'utf8');
@@ -237,11 +237,12 @@ console.log('--- 7. 脚本头 / 依赖面（不跨工作台、不联网）---');
     ok(!/GM_xmlhttpRequest/.test(SRC), '没有 GM_xmlhttpRequest');
     ok(!/[^.\w]fetch\s*\(/.test(SRC), '没有 fetch(');
     ok(!/new XMLHttpRequest|XMLHttpRequest\.prototype/.test(SRC), '没有 XMLHttpRequest');
-    // 0.4 走新链接：@updateURL/@downloadURL 都指向 -0.4 那个文件名，且必须跟实际文件名一致
-    ok(/@updateURL\s+https:\/\/work-bad\.onrender\.com\/gemjy-openid-helper-0\.4\.user\.js/.test(SRC), '@updateURL 指向 0.4 新链接');
-    ok(/@downloadURL\s+https:\/\/work-bad\.onrender\.com\/gemjy-openid-helper-0\.4\.user\.js/.test(SRC), '@downloadURL 也指向同一条新链接');
-    eq((SRC.match(/@updateURL\s+\S+\/([^\s/]+)/) || [])[1], USERSCRIPT_NAME, '@updateURL 的文件名 = 实际文件名（新链接别写错）');
+    // 0.4 覆盖在原链接上：@updateURL/@downloadURL 都指向 gemjy-openid-helper.user.js，且必须跟实际文件名一致
+    ok(/@updateURL\s+https:\/\/work-bad\.onrender\.com\/gemjy-openid-helper\.user\.js/.test(SRC), '@updateURL 指向原链接（0.4.0 就发在这一条上）');
+    ok(/@downloadURL\s+https:\/\/work-bad\.onrender\.com\/gemjy-openid-helper\.user\.js/.test(SRC), '@downloadURL 也指向同一条链接');
+    eq((SRC.match(/@updateURL\s+\S+\/([^\s/]+)/) || [])[1], USERSCRIPT_NAME, '@updateURL 的文件名 = 实际文件名（改文件名就得同步改这两行）');
     eq((SRC.match(/@downloadURL\s+\S+\/([^\s/]+)/) || [])[1], USERSCRIPT_NAME, '@downloadURL 的文件名 = 实际文件名');
+    ok(!/-0\.4\.user\.js/.test(SRC), '文件里不再出现 -0.4 那条临时链接');
     ok(/@grant\s+GM_setClipboard/.test(SRC), '@grant 里声明了 GM_setClipboard（复制靠它）');
     ok(/@grant\s+GM_setValue/.test(SRC) && /@grant\s+GM_getValue/.test(SRC), '@grant 里声明了 GM 存储（保存靠它）');
     ok(/if \(!isFeedbackHost\(\)\) return;/.test(SRC), '只在反馈后台注入（别的站点直接 return）');

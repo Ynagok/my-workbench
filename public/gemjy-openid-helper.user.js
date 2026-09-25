@@ -2,8 +2,8 @@
 // ==UserScript==
 // @name         Gemjy OpenID 助手
 // @namespace    work-bad/gemjy-openid-helper
-// @version      0.3.0
-// @description  反馈后台：把每条反馈的「昵称 / 问题 / 图片 / openid」提取出来存进右下角悬浮窗，一键复制 openid。不跨工作台、不联网查询。
+// @version      0.4.0
+// @description  反馈后台：把每条反馈的「头像 / 昵称 / 图片 / openid」提取出来，卡片式排进右下角悬浮窗，一键复制 openid。不跨工作台、不联网查询。
 // @author       work-bad
 // @run-at       document-start
 // @match        *://mp.weixin.qq.com/*
@@ -18,8 +18,10 @@
 // ==/UserScript==
 //
 // 它只做一件事：在反馈后台（mp.weixin.qq.com）把每条反馈的
-//   昵称 / 问题 / 图片 / openid
-// 提取出来，存进右下角悬浮窗；客服点「复制 openid」拿走，去别处粘贴查询。
+//   头像 / 昵称 / 图片 / openid
+// 提取出来，**卡片式**排进右下角悬浮窗；客服点「复制 openid」拿走，去别处粘贴查询。
+// （问题文本仍然会被解析并保存进记录里，只是面板不再渲染它 —— 需要时把 buildItem 里
+//   那段注释掉的 .gj-q 打开即可。）
 //
 // 它不做的事（刻意为之）：
 //   · 不查 operator、不发任何网络请求（所以不需要 @connect，也不会掉登录/跨域）
@@ -33,11 +35,13 @@
 // 关掉页面再开还在，最多留 CONFIG.maxItems 条（最新在前）。
 //
 // 提取不准时：点悬浮窗的「诊断」，把复制到的 JSON 发我 —— 里面有第一条反馈的原始
-// 文本与 HTML 片段，照着调 CONFIG / guessName / pickQuestion / isNoiseLine 的
+// 文本与 HTML 片段，照着调 CONFIG / guessName / pickAvatar / isNoiseLine 的
 // 启发式就行（纯函数层，tools/test-openid-helper.cjs 有单测）。
+//
 // 安装：Tampermonkey → 新建 → 粘本文件；或直接打开
 //   https://work-bad.onrender.com/gemjy-openid-helper.user.js
-// （已声明 @updateURL/@downloadURL，改完这个文件并部署，脚本会自动提示更新。）
+// （@updateURL/@downloadURL 都指向这一个地址 —— 0.4.0 是**覆盖在同一条链接上**的：
+//   以前从这里装过 0.3.0 的人，Tampermonkey 检查更新时会直接升到这一版。）
 
 (function () {
     'use strict';
@@ -56,6 +60,10 @@
 
         // 小于这个边长的图片当图标/头像丢掉（拿不到尺寸时不丢）
         minImageSize: 40,
+
+        // 头像：带 avatar/head/qlogo 线索的图，或很小的方形图（16–48px）
+        minAvatarSize: 16,
+        maxAvatarSize: 48,
 
         // 兜底猜昵称时的长度上限
         nameMaxLen: 16,
@@ -235,7 +243,41 @@
         return out.slice(0, CONFIG.maxImages);
     }
 
-    // 一条反馈记录：没给名字/问题就用启发式从文本里猜
+    // 头像线索：URL、class、alt 里出现这些词就基本是头像
+    const AVATAR_HINT_RE = /(avatar|headimg|head_img|headpic|head_url|portrait|face|qlogo|mmhead|头像)/i;
+
+    // 是不是头像：① 有线索 ② 没有线索时只认很小的方形图（避免把方形截图当头像）
+    function isAvatarish(item) {
+        const it = (typeof item === 'string') ? { url: item } : (item || {});
+        if (AVATAR_HINT_RE.test(String(it.url || '')) || AVATAR_HINT_RE.test(String(it.hint || ''))) return true;
+        const w = Number(it.w) || 0;
+        const h = Number(it.h) || 0;
+        if (!w || !h) return false;
+        return w >= CONFIG.minAvatarSize && w <= CONFIG.maxAvatarSize &&
+            h >= CONFIG.minAvatarSize && h <= CONFIG.maxAvatarSize &&
+            Math.abs(w - h) <= 8;
+    }
+
+    // 从候选里挑一个头像 URL：去重 → 只留头像 → 取面积最小的；挑不到返回 ''
+    function pickAvatar(candidates) {
+        const seen = Object.create(null);
+        const pool = [];
+        (Array.isArray(candidates) ? candidates : []).forEach(function (it) {
+            const src = (typeof it === 'string') ? { url: it } : (it || {});
+            const url = absolutize(src.url, src.base);
+            if (!url || seen[url]) return;
+            const item = { url: url, w: Number(src.w) || 0, h: Number(src.h) || 0, hint: String(src.hint || '') };
+            if (!isAvatarish(item)) return;
+            seen[url] = 1;
+            pool.push(item);
+        });
+        if (!pool.length) return '';
+        const area = function (it) { return (it.w && it.h) ? it.w * it.h : 64 * 64; };
+        pool.sort(function (a, b) { return area(a) - area(b); });
+        return pool[0].url;
+    }
+
+    // 一条反馈记录：没给名字/问题就用启发式从文本里猜；头像单独挑，且不重复进图片列表
     function buildRecord(input) {
         const o = input || {};
         const openid = String(o.openid || '');
@@ -244,11 +286,14 @@
         const question = (o.question === undefined || o.question === null || o.question === '')
             ? pickQuestion(lines, { openid: openid, name: name })
             : String(o.question);
+        const images = normalizeImages(o.images || []);
+        const avatar = pickAvatar(o.avatarCandidates || []);
         return {
             openid: openid,
             name: name,
-            question: question,
-            images: normalizeImages(o.images || []),
+            question: question,          // 仍然提取，只是面板不再渲染（旧数据/单测不受影响）
+            avatar: avatar,
+            images: avatar ? images.filter(function (im) { return im.url !== avatar; }) : images,
             url: String(o.url || ''),
             at: Number(o.at) || Date.now()
         };
@@ -263,6 +308,7 @@
         const merged = {
             openid: rec.openid,
             name: rec.name || (old && old.name) || '',
+            avatar: rec.avatar || (old && old.avatar) || '',
             question: (rec.question && rec.question.length >= String((old && old.question) || '').length)
                 ? rec.question : String((old && old.question) || ''),
             images: (rec.images && rec.images.length) ? rec.images : ((old && old.images) || []),
@@ -553,6 +599,42 @@
         return out;
     }
 
+    // 容器里的头像候选：img（含懒加载属性）+ 带 avatar/head 类名的 background-image；
+    // class/alt/父级 class 一起带上当线索，给 pickAvatar 判定用。
+    function avatarCandidatesOf(el, base) {
+        const out = [];
+        if (!el || !el.querySelectorAll) return out;
+        const push = function (url, node, w, h) {
+            if (!url) return;
+            const hint = [
+                node && node.className,
+                node && node.getAttribute && node.getAttribute('alt'),
+                node && node.parentElement && node.parentElement.className
+            ].join(' ');
+            out.push({ url: url, w: w || 0, h: h || 0, hint: String(hint || ''), base: base });
+        };
+        try {
+            el.querySelectorAll('img').forEach(function (img) {
+                const w = img.naturalWidth || img.width || 0;
+                const h = img.naturalHeight || img.height || 0;
+                if (img.currentSrc) push(img.currentSrc, img, w, h);
+                ['src', 'data-src', 'data-original', 'data-url', 'data-lazy-src', 'data-echo'].forEach(function (attr) {
+                    const v = img.getAttribute ? img.getAttribute(attr) : '';
+                    if (v) push(v, img, w, h);
+                });
+            });
+        } catch (_) { }
+        try {
+            el.querySelectorAll('[style*="url("],[class*="avatar"],[class*="head"]').forEach(function (n) {
+                const st = n.getAttribute ? (n.getAttribute('style') || '') : '';
+                const re = /url\((['"]?)([^'")]+)\1\)/gi;
+                let m;
+                while ((m = re.exec(st)) !== null) push(m[2], n, 0, 0);
+            });
+        } catch (_) { }
+        return out;
+    }
+
     const REFLECT = ['.gj-panel', '.gj-launcher', '.gj-toast'];
 
     function insideOwnUi(node) {
@@ -593,6 +675,7 @@
                         openid: id,
                         lines: domLinesOf(box),
                         images: imagesOf(box, location.href),
+                        avatarCandidates: avatarCandidatesOf(box, location.href),
                         url: location.href
                     });
                     state.records = mergeRecord(state.records, rec);
@@ -628,15 +711,20 @@
         '.gj-panel .gj-bar button:hover{background:#f0f0f0}',
         '.gj-panel .gj-bar button.gj-pri{background:#1a7f45;border-color:#1a7f45;color:#fff}',
         '.gj-panel .gj-list{overflow:auto;padding:0}',
-        '.gj-item{padding:8px 12px;border-bottom:1px solid #f4f4f4}',
-        '.gj-item .gj-name{font-weight:700;word-break:break-all}',
-        '.gj-item .gj-q{margin:2px 0;color:#333;white-space:pre-wrap;word-break:break-word}',
-        '.gj-item .gj-q.gj-clamp{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}',
-        '.gj-item .gj-thumbs{display:flex;gap:6px;flex-wrap:wrap;margin:4px 0}',
-        '.gj-item .gj-thumbs img{width:52px;height:52px;object-fit:cover;border-radius:6px;border:1px solid #e2e2e2;background:#fafafa;cursor:zoom-in}',
-        '.gj-item .gj-id{display:flex;align-items:center;gap:6px;margin-top:4px}',
-        '.gj-item .gj-id code{font:12px/1.6 Consolas,monospace;word-break:break-all;color:#1a7f45}',
-        '.gj-item .gj-id button{padding:2px 8px;border:1px solid #1a7f45;background:#e8f7ee;color:#1a7f45;border-radius:6px;cursor:pointer;font-size:12px;white-space:nowrap}',
+        '.gj-item{padding:10px 12px;border-bottom:1px solid #f4f4f4;display:flex;gap:10px;align-items:flex-start}',
+        '.gj-item .gj-ava{width:40px;height:40px;flex:0 0 40px;border-radius:50%;overflow:hidden;background:#eef2f0;border:1px solid #e6e6e6}',
+        '.gj-item .gj-ava img{width:100%;height:100%;object-fit:cover;display:block}',
+        '.gj-item .gj-ava.gj-ph{display:flex;align-items:center;justify-content:center;color:#1a7f45;font-weight:700;font-size:16px;border-style:dashed}',
+        '.gj-item .gj-main{flex:1 1 auto;min-width:0}',
+        '.gj-item .gj-top{display:flex;align-items:baseline;gap:8px}',
+        '.gj-item .gj-name{flex:1 1 auto;min-width:0;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+        '.gj-item .gj-unk{color:#a86a12;font-weight:400}',
+        '.gj-item .gj-time{flex:0 0 auto;color:#9a9a9a;font-size:11px}',
+        '.gj-item .gj-idrow{display:flex;align-items:center;gap:6px;margin-top:3px;min-width:0}',
+        '.gj-item .gj-idrow code{flex:1 1 auto;min-width:0;font:11.5px/1.5 Consolas,monospace;color:#1a7f45;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+        '.gj-item .gj-idrow button{flex:0 0 auto;padding:2px 8px;border:1px solid #1a7f45;background:#e8f7ee;color:#1a7f45;border-radius:6px;cursor:pointer;font-size:12px;white-space:nowrap}',
+        '.gj-item .gj-thumbs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:7px}',
+        '.gj-item .gj-thumbs img{width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:6px;border:1px solid #e6e6e6;background:#fafafa;cursor:zoom-in}',
         '.gj-mute{color:#8a8a8a;font-size:12px}',
         '.gj-toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%);z-index:2147483002;background:rgba(0,0,0,.82);color:#fff;',
         'padding:6px 14px;border-radius:999px;font:13px/1.6 -apple-system,"Microsoft YaHei",sans-serif}'
@@ -647,23 +735,42 @@
         else toast('复制失败，请手动选中（' + (label || '') + '）');
     }
 
+    // 卡片排版：左头像 / 右（昵称 + 时间 · openid + 复制 · 图片网格）；不再渲染问题文本
     function buildItem(rec) {
         const box = mkEl('div', 'gj-item');
-        const name = mkEl('div', 'gj-name', rec.name ? rec.name : '（昵称未识别）');
-        if (!rec.name) name.style.color = '#a86a12';
-        box.appendChild(name);
 
-        if (rec.question) {
-            const q = mkEl('div', 'gj-q', rec.question);
-            if (rec.question.length > 90) {
-                q.className = 'gj-q gj-clamp';
-                q.title = '点击展开 / 收起';
-                q.onclick = function () { q.className = (q.className.indexOf('gj-clamp') === -1) ? 'gj-q gj-clamp' : 'gj-q'; };
-            }
-            box.appendChild(q);
+        // 左：头像；没有就退化成昵称首字圆底
+        const ava = mkEl('div', 'gj-ava');
+        if (rec.avatar) {
+            const img = document.createElement('img');
+            img.src = rec.avatar;
+            img.loading = 'lazy';
+            try { img.referrerPolicy = 'no-referrer'; } catch (_) { }
+            img.onerror = function () {
+                try { img.remove(); } catch (_) { }
+                ava.className = 'gj-ava gj-ph';
+                ava.textContent = (rec.name || '?').slice(0, 1);
+            };
+            ava.appendChild(img);
         } else {
-            box.appendChild(mkEl('div', 'gj-q gj-mute', '（没提到问题文本）'));
+            ava.className = 'gj-ava gj-ph';
+            ava.textContent = (rec.name || '?').slice(0, 1);
         }
+        box.appendChild(ava);
+
+        // 右：昵称 + 时间 / openid 行 / 图片网格
+        const main = mkEl('div', 'gj-main');
+        const top = mkEl('div', 'gj-top');
+        top.appendChild(mkEl('div', rec.name ? 'gj-name' : 'gj-name gj-unk', rec.name || '（昵称未识别）'));
+        top.appendChild(mkEl('span', 'gj-time', clockOf(rec.at) + (rec.hits > 1 ? ' · 见 ' + rec.hits + ' 次' : '')));
+        main.appendChild(top);
+
+        const idRow = mkEl('div', 'gj-idrow');
+        idRow.appendChild(mkEl('code', '', rec.openid));
+        const btn = mkEl('button', '', '复制 openid');
+        btn.onclick = function () { copyOpenid(rec.openid, rec.name); };
+        idRow.appendChild(btn);
+        main.appendChild(idRow);
 
         if (rec.images && rec.images.length) {
             const wrap = mkEl('div', 'gj-thumbs');
@@ -676,17 +783,10 @@
                 img.onclick = function () { try { window.open(im.url, '_blank'); } catch (_) { } };
                 wrap.appendChild(img);
             });
-            box.appendChild(wrap);
+            main.appendChild(wrap);
         }
 
-        const idRow = mkEl('div', 'gj-id');
-        idRow.appendChild(mkEl('code', '', rec.openid));
-        const btn = mkEl('button', '', '复制 openid');
-        btn.onclick = function () { copyOpenid(rec.openid, rec.name); };
-        idRow.appendChild(btn);
-        const meta = mkEl('span', 'gj-mute', clockOf(rec.at) + (rec.hits > 1 ? ' · 见 ' + rec.hits + ' 次' : ''));
-        idRow.appendChild(meta);
-        box.appendChild(idRow);
+        box.appendChild(main);
         return box;
     }
 
@@ -813,6 +913,8 @@
         absolutize: absolutize,
         isLikelyImageUrl: isLikelyImageUrl,
         normalizeImages: normalizeImages,
+        isAvatarish: isAvatarish,
+        pickAvatar: pickAvatar,
         buildRecord: buildRecord,
         mergeRecord: mergeRecord,
         capRecords: capRecords,
@@ -826,9 +928,10 @@
             clearAll: clearAll,
             setOpen: setOpen,
             buildDiagnosticText: buildDiagnosticText,
+            avatarCandidatesOf: avatarCandidatesOf,
             store: store
         },
-        version: '0.3.0'
+        version: '0.4.0'
     };
 
     // ==================== Node 单测守卫：require() 时只导出，不碰 DOM ====================
