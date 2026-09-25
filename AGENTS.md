@@ -38,7 +38,9 @@ npm run verify     # 改完代码、push 前的完整自检
 ```
 
 线上部署：**https://work-bad.onrender.com/**（Render，push 后自动部署；托管同一份 `public/`，「客服生涯」等数据仍走 `/api/data` —— 注意 Render 的磁盘是**临时的**，重启/重新部署会丢 `data.json`，长期数据以浏览器 localStorage + 手动导出 JSON 为准）。
-油猴脚本安装地址：https://work-bad.onrender.com/gemjy-openid-helper.user.js
+油猴脚本安装地址（**两个链接并存，互不影响**）：
+- **0.4.0（当前版，卡片式 + 头像）**：https://work-bad.onrender.com/gemjy-openid-helper-0.4.user.js
+- 0.3.0（旧版，别人机器上装过的停在它，`@updateURL` 也还指着它）：https://work-bad.onrender.com/gemjy-openid-helper.user.js
 
 ⚠️ 不要用双击 `public/index.html` 的方式打开：`file://` 下 `/api/data` 请求会失败，数据只留在本机浏览器，换设备不共享。
 
@@ -46,15 +48,15 @@ npm run verify     # 改完代码、push 前的完整自检
 
 | 命令 | 内容 |
 |---|---|
-| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 121 项 + 「接口挂起时界面仍可用」+ 服务端冒烟 12 项 + 油猴脚本语法/单测 125 项 |
+| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 121 项 + 「接口挂起时界面仍可用」+ 服务端冒烟 12 项 + 油猴脚本语法（两份都查）/单测 168 项 |
 | `npm run verify:static` | 只要静态校验 + 语法检查（最快） |
 | `npm run report` | 打印一份真实生成的日报，肉眼确认排版（含 ⑥伙伴弹途 / ⑦异世界勇者） |
 | `npm run build:data` | 从 GM 玩家页快照提取 4 张权威映射表 + 与硬编码常量的**差异报告**（见下「游戏数据管线」） |
 | `npm run smoke:server` | 单独跑服务端冒烟（真起进程 + 真发 HTTP，12 项） |
-| `npm run test:helper` | 反馈提取助手（油猴脚本）单测，125 项 |
+| `npm run test:helper` | 反馈提取助手（油猴脚本 0.4.0）单测，168 项 |
 | `npm test` | = `npm run verify` |
 
-`npm run verify` 失败就不要提交。它一共 7 段：静态结构 → 语法 → jsdom 集成冒烟 **121 项** → 接口挂起时界面仍可用 → 服务端冒烟 **12 项** → 油猴脚本语法 → 油猴脚本单测 **125 项**。
+`npm run verify` 失败就不要提交。它一共 7 段：静态结构 → 语法 → jsdom 集成冒烟 **121 项** → 接口挂起时界面仍可用 → 服务端冒烟 **12 项** → 油猴脚本语法（0.3 与 0.4 两份都 `node --check`）→ 油猴脚本单测 **168 项**（测的是 0.4 那份）。
 
 - jsdom 未安装时前端冒烟会自动回落到本机 DSH 自带的那份。
 - `tools/smoke-server.cjs` 用 `PORT` + `DATA_FILE` 环境变量把服务端指到随机端口和 `tools/out/` 里的临时文件，**不会碰真实 `data.json`**；子进程 stdio 必须用 `ignore`/`inherit`（沙箱禁管道，`pipe` 会 EPERM）。
@@ -73,27 +75,32 @@ npm run verify     # 改完代码、push 前的完整自检
 
 ## 反馈提取助手（油猴脚本，**不跨工作台**、不联网）
 
-`public/gemjy-openid-helper.user.js` —— 只在**反馈后台**（`@match` 就 `*://mp.weixin.qq.com/*` 一处）跑：把每条反馈的 **昵称 / 问题 / 图片 / openid** 提取出来，存进右下角悬浮窗；客服点「复制 openid」拿走，自己去别处粘贴查询。
+**当前版是 `public/gemjy-openid-helper-0.4.user.js`（0.4.0，走新链接）**；旧的 `public/gemjy-openid-helper.user.js`（0.3.0）**原样保留**，别人机器上装过的停在旧链接、`@updateURL` 也还指着它，两份互不影响（`npm run verify` 会 `node --check` 两份，单测只测 0.4）。
+
+只在**反馈后台**（`@match` 就 `*://mp.weixin.qq.com/*` 一处）跑：把每条反馈的 **头像 / 昵称 / 图片 / openid** 提取出来，**卡片式**排进右下角悬浮窗；客服点「复制 openid」拿走，自己去别处粘贴查询。（⚠️ **问题文本 0.4 仍会解析并保存进记录**，只是面板不再渲染它 —— 需要时把 `buildItem` 里注释掉的 `.gj-q` 那段打开。）
 
 - **它不跨工作台**：不 import、不共享全局、不碰 `index.html` / `server.js` / `data.json`；`@match` 里也没有工作台域名，工作台页面一行都不注入。改它不影响前端任何东西。
 - **它不联网**：没有 `@connect`、没有 `GM_xmlhttpRequest` / `fetch` / `XMLHttpRequest`。0.2.x 那套「自动查 operator + 卡片徽标 + B 端批量查询抽屉」已按用户要求**整段删掉**（历史在 `b9334b3` / `0be1e1b`，要捡回来用 `git show`）。因此不存在跨域、掉登录、接口形态待校准，**也不再需要补 operator 接口参数**。
-- **它由 `express.static` 顺带托管**：安装地址 `https://work-bad.onrender.com/gemjy-openid-helper.user.js`（本地是 `http://localhost:3000/gemjy-openid-helper.user.js`）。
-- **结构**：IIFE → `CONFIG`（全部可调）→ 纯函数层（`openidsIn/hasOpenid/distinctIdCount/linesOf/looksLikeDate/isNoiseLine/cleanName/guessName/pickQuestion/absolutize/isLikelyImageUrl/normalizeImages/buildRecord/mergeRecord/capRecords/openidListText/diagnosticText`）→ 存储与状态 → DOM 层（`findItemContainer/domLinesOf/imagesOf/scan` + 悬浮窗 + `buildDiagnosticText`）→ `API` → Node 导出守卫 → `boot()`。
+- **它由 `express.static` 顺带托管**（两个文件都被托管）：当前版 `https://work-bad.onrender.com/gemjy-openid-helper-0.4.user.js`（本地 `http://localhost:3000/gemjy-openid-helper-0.4.user.js`）；旧版 `https://work-bad.onrender.com/gemjy-openid-helper.user.js`。
+- **结构**：IIFE → `CONFIG`（全部可调）→ 纯函数层（`openidsIn/hasOpenid/distinctIdCount/linesOf/looksLikeDate/isNoiseLine/cleanName/guessName/pickQuestion/absolutize/isLikelyImageUrl/normalizeImages/isAvatarish/pickAvatar/buildRecord/mergeRecord/capRecords/openidListText/diagnosticText`）→ 存储与状态 → DOM 层（`findItemContainer/domLinesOf/imagesOf/avatarCandidatesOf/scan` + 悬浮窗 + `buildDiagnosticText`）→ `API` → Node 导出守卫 → `boot()`。
   - ⚠️ **纯函数层不得引用 `document` / `GM_*`**；导出守卫在 `module.exports` 后 `return`，所以 `require()` 它不会碰 DOM。改完必须 `npm run test:helper` 绿。
   - 面板/按钮/吐司带 `gj-` 类名，扫描时 `closest('.gj-panel,.gj-launcher,.gj-toast')` 排除自己 —— **面板里显示着 openid，不排除就会自己收自己**（单测锁了这条）。
 - **提取口径（启发式；当初和用户说好「先按通用启发式做，跑起来再调」）**：
   - 一条反馈 = 从 openid 那个文本节点往上爬祖先，直到「这个祖先里出现第二个不同 openid」为止的那一层。
     - ⚠️ 数个数必须用 `distinctIdCount`（**宽松**匹配），不能用 `openidsIn`：容器的 `textContent` 是拼接的，openid 后面常紧跟日期数字（`…00012026-06-03`），边界规则会把它当成「长串的一部分」而漏掉，结果容器一路爬到 `body`，把整页并成一条记录。**这个坑有单测锁**。
   - 昵称：优先「昵称：xxx」/「微信昵称 xxx」标签行；否则取靠前的短行（要求同卡片里还有更长的行当问题）。`玩家反馈无法登录` 这种不会被误当昵称。
-  - 问题：把非噪声行按文档顺序接起来（丢掉时间行、纯数字、只有标签的行、「展开/收起/暂无/加载中」这类按钮文字），超 `maxQuestionLen` 截断。
-  - 图片：`img` 的 `src`/懒加载属性（`data-src` 等）+ 内联 `background-image` + 指向图片的链接；丢掉头像/图标/svg/小于 `minImageSize`(40px) 的图，去重后最多 `maxImages`(6) 张。
+  - 问题：把非噪声行按文档顺序接起来（丢掉时间行、纯数字、只有标签的行、「展开/收起/暂无/加载中」这类按钮文字），超 `maxQuestionLen` 截断；**0.4 只存不显示**。
+  - 图片（截图）：`img` 的 `src`/懒加载属性（`data-src` 等）+ 内联 `background-image` + 指向图片的链接；丢掉头像/图标/svg/小于 `minImageSize`(40px) 的图，去重后最多 `maxImages`(6) 张。
+  - **头像（0.4 新增）**：`avatarCandidatesOf` 单独收一份候选（img + `[class*=avatar|head]`/内联背景图，并把 class/alt/父级 class 当 `hint`），`isAvatarish` 判定「URL/hint 里带 avatar/headimg/qlogo/mmhead/头像 等线索」或「没线索但边长 16–48 且接近正方形」，`pickAvatar` 在命中的里**取面积最小的**那个（挑不到返回空串）。`buildRecord` 把它存进 `avatar` 并**从截图列表里剔掉**；`mergeRecord` 与名字/问题同规矩（新值空则不覆盖旧头像）。
+    - ⚠️ 副作用（是有意的）：若卡里同时有「真头像 40×40」和「更小的 24×24 头像图标」，会挑到小的那个 —— 单测的假页面里特意用 14×14 的 icon 当噪声，避免这种歧义。
   - 取文本优先 `innerText`（自带换行）；不可用时（jsdom 等）按块级元素边界自己插换行 —— 这样单测能端到端跑。
-- **保存**：`GM_setValue('gemjyHelper:feedbacks')`（无 GM 环境退化成 `localStorage`），最新在前、按 openid upsert（更新后提到最前、`hits` 累加、空值不覆盖旧值、`firstSeen` 保留），上限 `CONFIG.maxItems`(300)；`gemjyHelper:panelUi` 记面板展开/收起。
+- **保存**：`GM_setValue('gemjyHelper:feedbacks')`（无 GM 环境退化成 `localStorage`），最新在前、按 openid upsert（更新后提到最前、`hits` 累加、空值不覆盖旧值、`firstSeen` 保留），上限 `CONFIG.maxItems`(300)；`gemjyHelper:panelUi` 记面板展开/收起。**0.3 与 0.4 共用同一套存储键**（同一浏览器里装两份会看到同一批记录）。
 - ⚠️ **它的数据一律不往工作台存**（用户明确要求）：不引用 `/api/data`、不碰 `data.json`、不碰工作台自己的数据键（`dailyData`/`careerData`/`itemNameMap`/…），也不写进仓库里任何日志或文件 —— 只落在本机浏览器，键名统一 `gemjyHelper:` 前缀（既跟反馈页自己的 localStorage 分开，也让单测能断言「这一页的 localStorage 里只有本脚本的键」）。提取到的玩家信息（含「诊断」复制的 JSON）**只贴到对话里给我调启发式，不要写进仓库文件**。这四条都有单测锁。
-- **悬浮窗**：右下角「反馈 N」按钮（收起时变白底）；面板每条列出 昵称 / 问题（超 90 字折叠，点击展开）/ 图片缩略图（点击开原图）/ openid + **「复制 openid」**；工具条：`扫描本页` / `复制全部 openid`（一行一个）/ `诊断` / `清空`。菜单命令同名四件套。**复制动作只有 openid**（用户明确要求）。
-- **提取不准时**：点「诊断」会复制一段 JSON（版本、URL、CONFIG、前 3 条记录、**第一条反馈容器的原始文本与 HTML 片段**）——把它发我，照着调 `guessName` / `pickQuestion` / `isNoiseLine` / `CONFIG` 即可。
-- 已声明 **`@updateURL` / `@downloadURL`** 指向 `https://work-bad.onrender.com/gemjy-openid-helper.user.js`：改完这个文件并部署（push 后 Render 自动部署），Tampermonkey 会提示更新。也可以直接打开那个 URL 安装。
-- 单测：`tools/test-openid-helper.cjs`（**125 项**）= 纯函数层（openid 边界与宽松计数、行切分、时间行/噪声行、猜昵称、取问题与截断、图片绝对化/过滤/去重/上限、记录组装与 upsert 语义、`hits` 与 `firstSeen`、复制文本、诊断 JSON）+ 脚本头约束（`@version` 与内部 `API.version` 一致、`@match` 只有反馈后台一处、元数据里无 `@connect`、全文件无 `GM_xmlhttpRequest`/`fetch`/`XMLHttpRequest`、`@updateURL`、`@grant` 声明）+ **不许碰工作台的静态断言**（代码里没有 `/api/data`、没有 `data.json`、没有工作台任何数据键、localStorage 只用变量键）+ **jsdom 端到端**（造一张假反馈页 → 注入脚本 → 断言昵称/问题/图片/openid 真的提出来了、面板与启动按钮建出来了、面板里的 openid 不会被自己再收一遍、非反馈站点不注入、localStorage 里只出现 `gemjyHelper:` 前缀的键、落盘与清空）。
+- **悬浮窗（0.4 卡片式）**：右下角「反馈 N」按钮（收起时变白底）；面板每条是一张卡片 —— **左侧头像**（挑不到就退化成昵称首字圆底）＋ 右侧「昵称 · 时间/见几次」/ openid 行 + **「复制 openid」** / 截图三列网格（点击开原图）；工具条：`扫描本页` / `复制全部 openid`（一行一个）/ `诊断` / `清空`。菜单命令同名四件套。**复制动作只有 openid**（用户明确要求）。
+- **提取不准时**：点「诊断」会复制一段 JSON（版本、URL、CONFIG、前 3 条记录、**第一条反馈容器的原始文本与 HTML 片段**）——把它发我，照着调 `guessName` / `pickQuestion` / `isAvatarish` / `isNoiseLine` / `CONFIG` 即可。
+- 已声明 **`@updateURL` / `@downloadURL` 都指向新链接** `https://work-bad.onrender.com/gemjy-openid-helper-0.4.user.js`：改完这个文件并部署（push 后 Render 自动部署），装了这一版的人会自动升级；装了旧版的人停在旧链接，互不影响。**想换版本号不必换文件名。**
+  - ⚠️ 单测会断言「`@updateURL`/`@downloadURL` 的文件名 == 实际文件名」——**改文件名就得同步改这两行**，否则 `npm run test:helper` 直接红。
+- 单测：`tools/test-openid-helper.cjs`（**168 项**，测的是 0.4 那份）= 纯函数层（openid 边界与宽松计数、行切分、时间行/噪声行、猜昵称、取问题与截断、图片绝对化/过滤/去重/上限、**头像 `isAvatarish`/`pickAvatar`（线索/尺寸/方形/取最小/去重/相对地址/data URI/字符串候选）**、记录组装与 upsert 语义（**含头像：新记录没头像不覆盖旧头像、换头像会覆盖、旧记录没这字段补空串**）、`hits` 与 `firstSeen`、复制文本、诊断 JSON）+ 脚本头约束（`@version` 与内部 `API.version` 一致且 = **0.4.0**、`@match` 只有反馈后台一处、元数据里无 `@connect`、全文件无 `GM_xmlhttpRequest`/`fetch`/`XMLHttpRequest`、**`@updateURL`/`@downloadURL` 指向 -0.4 新链接且文件名对得上**、`@grant` 声明）+ **不许碰工作台的静态断言**（代码里没有 `/api/data`、没有 `data.json`、没有工作台任何数据键、localStorage 只用变量键）+ **jsdom 端到端**（造一张假反馈页：卡片带头像 img，另有 14×14 噪声小图标 → 注入脚本 → 断言头像/昵称/图片/openid 真的提出来了、头像被单独挑出且不重复进截图、卡片式面板建出来（有头像 img、没头像退化成首字圆底、**面板里没有 `.gj-q`**）、面板里的 openid 不会被自己再收一遍、非反馈站点不注入、localStorage 里只出现 `gemjyHelper:` 前缀的键、落盘与清空）。
 
 ## 硬约定
 
@@ -186,6 +193,12 @@ npm run verify     # 改完代码、push 前的完整自检
   - **测试**：`tools/smoke.cjs` 有 **8c**（自动归档折算、两侧拆分、工单日报全部字段进工单侧、海外日报 4 个新字段参与统计、两处异世界互不干扰、别名、登记表导入、补录、删除、导出）与 **8d**（真去点「生成日报」拿到两段日报正文 → 删掉当天 → 粘回去导入，断言还原的数字/姓名/班次与归档一致、且「只粘工单那段时海外侧不被清空」）两节，冒烟 60 → **116**；`tools/verify.mjs` 有整块客服生涯断言（工单侧由 DAILY_TICKET_FIELDS 生成且不排除字段 + 29 项 + 海外侧 10 项覆盖海外日报全部 11 个数值字段 + 海外侧不读 `ticket.g7_*` + 14 列列名对得上（含别名）+ 只存档 4 项 + 日报标签映射/解析函数 + 持久化 key 等）。
   - **✅ 真实数据对账**：把上传的登记表 81 行（80 天）原样喂进粘贴导入，与表格自己的「月度汇总」「个人指标看板」逐项比对，**38/38 全对，且所有指标都跟原表一致**——79 完整记录天；**工单侧 22 + 海外侧 5,601 = 累计 5,623（= 原表累计工作量）**；海外侧含「异世界群维系 7」（登记表那列）+「（梦幻/繁花/乐缤纷）群维系 142」（别名那列）；**日均 71.2、最高单日 191 @ 2026-08-05、月度 1,312 / 1,614 / 1,572 / 1,125** 全部与原表看板一致；14 列逐项累计吻合；只存档 4 列都是 0。回放脚本是一次性的（`tools/out/`，未入库）。
 - 本轮：**「重置模板」不再重置姓名**（用户需求）。`resetDailyBtn` 先把当前栏的 `name` 记下来，重建默认对象后再写回（原本空着就保持空着）；其余字段照旧回默认、自定义附加项照旧清空。确认文案由「含姓名」改成「姓名保留」。冒烟加 **8e** 节 5 条（工单栏保留 / 工单栏其余回默认 / 海外栏保留 / 海外栏其余回默认 / 重置海外栏不动工单栏），`tools/verify.mjs` 加 1 条静态断言；冒烟 116 → **121**。
+- 本轮：**油猴脚本升到 0.4.0 并换新链接**（用户要求：`E:\ai\gemjy-openid-helper.user.js` 那份不存在，改成把 0.4.0 全文贴过来 → 落成**新文件名**）。
+  - 新增 `public/gemjy-openid-helper-0.4.user.js`（0.4.0，用户给的全文原样落盘），**旧版 `public/gemjy-openid-helper.user.js`（0.3.0）保留不动** —— 已装旧链接的人不受影响，两份 `@updateURL` 各指各的。
+  - 0.4 的功能差异：**头像提取**（新增纯函数 `isAvatarish` / `pickAvatar` + DOM 层 `avatarCandidatesOf`，记录多一个 `avatar` 字段，且头像会从截图列表里剔掉）、**卡片式面板**（左头像 + 右昵称/时间/openid/三列截图网格）、**问题文本只存不渲染**（`question` 仍在记录里，`buildItem` 里注释掉的 `.gj-q` 可随时打开）。
+  - `package.json` 的 `verify` 里 `node --check` 改成**两份都查**；`tools/test-openid-helper.cjs` 指向新文件并补测：**`isAvatarish` 11 条 + `pickAvatar` 9 条 + `buildRecord` 头像 6 条 + `mergeRecord` 头像 6 条**，并新增「`@updateURL`/`@downloadURL` 的文件名 == 实际文件名」断言（改文件名必须同步改这两行，否则直接红）。125 → **168 项**。
+  - 端到端假页面也加了头像 img（外加 14×14 的 icon 当噪声），断言头像被单独挑出、不重复进截图、面板里「有头像渲染 img / 没头像退化成昵称首字圆底」、**面板里没有 `.gj-q`**。
+  - ⚠️ 过程中发现一个**测试夹具歧义**（不是脚本 bug）：假页面里原来那个 24×24 的 `avatar/default.png` 也是「头像候选」（URL 带 avatar），而 `pickAvatar` 取面积最小的，于是挑到了它、真头像反倒留在截图里。已把噪声图换成 **14×14 的 `static/icon.png`**（小于 `minAvatarSize` 16 且撞图片噪声表），夹具才无歧义 —— 真实页面上若同时存在「真头像」和「更小的头像角标」，确实会挑到小的那个，这是 `pickAvatar` 的既定取舍。
 
 ## 已定语义（改之前先问用户）
 
@@ -208,7 +221,8 @@ npm run verify     # 改完代码、push 前的完整自检
 
 ```
 public/index.html          全部前端（单文件，约 9890 行：内联 CSS + 内联 JS 的 async IIFE；含「客服生涯」标签页）
-public/gemjy-openid-helper.user.js  油猴脚本（只跑在反馈后台：提取 昵称/问题/图片/openid 到悬浮窗，一键复制 openid；与前端无代码耦合）
+public/gemjy-openid-helper-0.4.user.js  油猴脚本**当前版 0.4.0**（反馈后台：卡片式悬浮窗，提取 头像/昵称/图片/openid，一键复制 openid；新链接，与前端无代码耦合）
+public/gemjy-openid-helper.user.js  油猴脚本**旧版 0.3.0**（同一功能的上一版，保留给已装旧链接的人；不要再改它）
 server.js                  express：静态托管 public/ + GET/POST /api/data/:key ↔ data.json（含 key 白名单）
 data.json                  服务端数据（随使用增长；前端字段缺失会被默认值自动补齐）
 tools/                     自检脚本（verify / smoke / smoke-nonblocking / smoke-server / test-openid-helper / print-report / build-game-data）

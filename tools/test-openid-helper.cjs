@@ -1,11 +1,14 @@
-/* Gemjy OpenID 助手 单测
+/* Gemjy OpenID 助手 单测（当前测的是 0.4.0 那份：public/gemjy-openid-helper-0.4.user.js）
    1) 纯函数层：脚本里的 Node 导出守卫会挡住 DOM / GM 相关代码，require() 直接测
-   2) 端到端：用 jsdom 造一张假的反馈列表页，把脚本注入进去，断言「昵称/问题/图片/openid」
-      真的被提取、面板真的建出来、而且面板里的 openid 不会被自己再扫一遍
+      —— 含 0.4 新增的 isAvatarish / pickAvatar，以及 buildRecord / mergeRecord 的头像语义
+   2) 端到端：用 jsdom 造一张假的反馈列表页，把脚本注入进去，断言「头像/昵称/图片/openid」
+      真的被提取、卡片式面板真的建出来、而且面板里的 openid 不会被自己再扫一遍
    用法：node tools/test-openid-helper.cjs */
 const fs = require('fs');
 const path = require('path');
-const USERSCRIPT = path.join(__dirname, '..', 'public', 'gemjy-openid-helper.user.js');
+// ⚠️ 0.4.0 走的是**新链接**（文件名带 -0.4），旧链接那份 0.3.0 不动；这里跟着测新那份
+const USERSCRIPT_NAME = 'gemjy-openid-helper-0.4.user.js';
+const USERSCRIPT = path.join(__dirname, '..', 'public', USERSCRIPT_NAME);
 const helper = require(USERSCRIPT);
 const SRC = fs.readFileSync(USERSCRIPT, 'utf8');
 
@@ -114,6 +117,36 @@ ok(!helper.isLikelyImageUrl('a.png'), '没绝对化过的相对地址不算图�
     eq(helper.normalizeImages(many).length, helper.CONFIG.maxImages, '超过 maxImages 截断');
 }
 
+console.log('--- 5b. 头像：isAvatarish / pickAvatar（0.4 新增）---');
+const AVA = 'https://mmbiz.qpic.cn/mmhead/abc/132';          // URL 里带 mmhead → 头像线索；又不撞图片噪声表
+{
+    ok(helper.isAvatarish({ url: AVA }), true, 'URL 带 mmhead 线索 = 头像');
+    ok(helper.isAvatarish({ url: 'https://wx.qlogo.cn/mmopen/vi_32/abc' }), true, 'qlogo 链接 = 头像');
+    ok(helper.isAvatarish({ url: 'https://mmbiz.qpic.cn/x/a.png', hint: 'class="avatar"' }), true, 'class/alt 带 avatar = 头像');
+    ok(helper.isAvatarish({ url: 'https://mmbiz.qpic.cn/x/a.png', hint: '头像' }), true, '中文「头像」也算线索');
+    ok(helper.isAvatarish({ url: 'https://mmbiz.qpic.cn/x/a.png', w: 40, h: 40 }), true, '40×40 方形小图 = 头像（没线索时）');
+    ok(helper.isAvatarish({ url: 'https://mmbiz.qpic.cn/x/a.png', w: 16, h: 16 }), true, '16×16 也在 minAvatarSize 允许范围内');
+    ok(!helper.isAvatarish({ url: 'https://mmbiz.qpic.cn/x/a.png', w: 120, h: 120 }), '120×120 大图不算头像');
+    ok(!helper.isAvatarish({ url: 'https://mmbiz.qpic.cn/x/a.png', w: 8, h: 8 }), '8×8 太小不算头像');
+    ok(!helper.isAvatarish({ url: 'https://mmbiz.qpic.cn/x/a.png', w: 40, h: 120 }), '40×120 不是方形，不算头像');
+    ok(!helper.isAvatarish({ url: 'https://mmbiz.qpic.cn/x/a.png' }), '既没线索又没尺寸 → 不算头像');
+    ok(!helper.isAvatarish(null), 'null 不抛错');
+}
+{
+    const shot = 'https://mmbiz.qpic.cn/feedback/shot.png';
+    eq(helper.pickAvatar([{ url: shot, w: 600, h: 800 }, { url: AVA, w: 40, h: 40 }]), AVA, '多张里挑出头像（大截图不要）');
+    eq(helper.pickAvatar([{ url: AVA, w: 40, h: 40 }, { url: 'https://mmbiz.qpic.cn/mmhead/small/132', w: 20, h: 20 }]),
+        'https://mmbiz.qpic.cn/mmhead/small/132', '多个头像取面积最小的那个');
+    eq(helper.pickAvatar([{ url: shot, w: 600, h: 800 }]), '', '只有截图 → 挑不到头像（空串）');
+    eq(helper.pickAvatar([]), '', '空候选 → 空串');
+    eq(helper.pickAvatar(null), '', 'null 不抛错');
+    eq(helper.pickAvatar([{ url: '/ava/1.png', base: 'https://mp.weixin.qq.com/x', hint: 'avatar' }]),
+        'https://mp.weixin.qq.com/ava/1.png', '相对地址先绝对化再挑');
+    eq(helper.pickAvatar([{ url: AVA }, { url: AVA }]), AVA, '同一头像重复出现只算一个');
+    eq(helper.pickAvatar([{ url: 'data:image/png;base64,AAA', hint: 'avatar' }]), '', 'data URI 不要');
+    eq(helper.pickAvatar(['https://mmbiz.qpic.cn/mmhead/str/132']), 'https://mmbiz.qpic.cn/mmhead/str/132', '候选是纯字符串也认');
+}
+
 console.log('--- 6. 记录组装 / upsert / 上限 ---');
 {
     const r = helper.buildRecord({ openid: A, text: '昵称：小明\n登录不了\n2026-06-03 12:30' });
@@ -128,6 +161,21 @@ console.log('--- 6. 记录组装 / upsert / 上限 ---');
 {
     const img = helper.buildRecord({ openid: A, text: '', images: [{ url: '/f/1.png', base: 'https://mp.weixin.qq.com/x', w: 200, h: 200 }] });
     eq(img.images.length, 1, 'buildRecord 里图片也会归一');
+}
+{
+    // 0.4：头像单独挑，并且不会重复留在截图列表里（截图列表和头像候选是两套输入）
+    const r = helper.buildRecord({
+        openid: A, text: '昵称：小明',
+        images: [{ url: 'https://mmbiz.qpic.cn/feedback/shot.png', w: 600, h: 600 }, { url: AVA, w: 40, h: 40 }],
+        avatarCandidates: [{ url: AVA, w: 40, h: 40 }]
+    });
+    eq(r.avatar, AVA, 'buildRecord 把头像挑进 avatar 字段');
+    eq(r.images.map(i => i.url), ['https://mmbiz.qpic.cn/feedback/shot.png'], '头像不会重复出现在截图列表里');
+    eq(r.name, '小明', '头像不影响昵称解析');
+    eq(helper.buildRecord({ openid: A, text: '', avatarCandidates: [] }).avatar, '', '没给头像候选 → avatar 空串');
+    eq(helper.buildRecord({ openid: A, text: '' }).avatar, '', '连 avatarCandidates 都没给 → avatar 空串');
+    eq(helper.buildRecord({ openid: A, text: '', avatarCandidates: [{ url: '/ava/1.png', base: 'https://mp.weixin.qq.com/x', hint: 'avatar' }] }).avatar,
+        'https://mp.weixin.qq.com/ava/1.png', 'buildRecord 里的头像也会先绝对化');
 }
 {
     const r1 = { openid: A, name: '小明', question: '登录不了', images: [], at: 1000, url: '' };
@@ -148,6 +196,21 @@ console.log('--- 6. 记录组装 / upsert / 上限 ---');
     eq(helper.mergeRecord([], null).length, 0, 'rec 为空 → 原样返回');
 }
 {
+    // 0.4：mergeRecord 的头像语义（同名字/同问题那套「空值不覆盖旧值」）
+    const A2 = 'https://mmbiz.qpic.cn/mmhead/bbb/132';
+    const base = { openid: A, name: '小明', avatar: AVA, question: 'q', images: [], at: 1000, url: '' };
+    const one = helper.mergeRecord([], base);
+    eq(one[0].avatar, AVA, '新记录带头像 → 存下来');
+    const noAva = helper.mergeRecord(one, { openid: A, name: '', avatar: '', question: '', images: [], at: 2000, url: '' });
+    eq(noAva[0].avatar, AVA, '新记录没头像 → 不覆盖旧头像');
+    eq(noAva[0].name, '小明', '（顺带）名字也照旧不被空值覆盖');
+    const newAva = helper.mergeRecord(noAva, { openid: A, name: '', avatar: A2, question: '', images: [], at: 3000, url: '' });
+    eq(newAva[0].avatar, A2, '新记录换了头像 → 覆盖成新的');
+    eq(newAva[0].hits, 3, 'hits 照旧累加');
+    eq(helper.mergeRecord([], { openid: B, name: 'b', avatar: '', images: [], at: 1, url: '' })[0].avatar, '', '从没头像就是空串');
+    eq(helper.mergeRecord([], { openid: B, images: [], at: 1 })[0].avatar, '', '旧记录没这个字段也不炸（补空串）');
+}
+{
     const list = [1, 2, 3, 4, 5].map(n => ({ openid: OID(n), name: '', question: '', images: [], at: n, url: '' }));
     eq(helper.capRecords(list, 3).length, 3, 'capRecords 按上限截断（保留最新）');
     eq(helper.capRecords(null, 3), [], 'null → 空数组');
@@ -165,7 +228,7 @@ console.log('--- 7. 脚本头 / 依赖面（不跨工作台、不联网）---');
 {
     const hv = (SRC.match(/\/\/\s*@version\s+([0-9][0-9.]*)/) || [])[1];
     eq(hv, helper.version, `@version(${hv}) 与内部 API.version 一致（否则 Tampermonkey 不提示更新）`);
-    ok(hv >= '0.3.0', '版本号已升到 0.3.x（行为变了，装上会提示更新）');
+    eq(hv, '0.4.0', '版本号就是 0.4.0');
     ok(/^\/\/ @match\s+\*:\/\/mp\.weixin\.qq\.com\/\*$/m.test(SRC), '@match 覆盖反馈后台');
     eq((SRC.match(/^\/\/ @match/gm) || []).length, 1, '@match 只有一处（不再进工作台）');
     const meta = (SRC.match(/\/\/ ==UserScript==[\s\S]*?\/\/ ==\/UserScript==/) || [''])[0];
@@ -174,7 +237,11 @@ console.log('--- 7. 脚本头 / 依赖面（不跨工作台、不联网）---');
     ok(!/GM_xmlhttpRequest/.test(SRC), '没有 GM_xmlhttpRequest');
     ok(!/[^.\w]fetch\s*\(/.test(SRC), '没有 fetch(');
     ok(!/new XMLHttpRequest|XMLHttpRequest\.prototype/.test(SRC), '没有 XMLHttpRequest');
-    ok(/@updateURL\s+https:\/\/work-bad\.onrender\.com\/gemjy-openid-helper\.user\.js/.test(SRC), '@updateURL 指向线上（部署后自动提示更新）');
+    // 0.4 走新链接：@updateURL/@downloadURL 都指向 -0.4 那个文件名，且必须跟实际文件名一致
+    ok(/@updateURL\s+https:\/\/work-bad\.onrender\.com\/gemjy-openid-helper-0\.4\.user\.js/.test(SRC), '@updateURL 指向 0.4 新链接');
+    ok(/@downloadURL\s+https:\/\/work-bad\.onrender\.com\/gemjy-openid-helper-0\.4\.user\.js/.test(SRC), '@downloadURL 也指向同一条新链接');
+    eq((SRC.match(/@updateURL\s+\S+\/([^\s/]+)/) || [])[1], USERSCRIPT_NAME, '@updateURL 的文件名 = 实际文件名（新链接别写错）');
+    eq((SRC.match(/@downloadURL\s+\S+\/([^\s/]+)/) || [])[1], USERSCRIPT_NAME, '@downloadURL 的文件名 = 实际文件名');
     ok(/@grant\s+GM_setClipboard/.test(SRC), '@grant 里声明了 GM_setClipboard（复制靠它）');
     ok(/@grant\s+GM_setValue/.test(SRC) && /@grant\s+GM_getValue/.test(SRC), '@grant 里声明了 GM 存储（保存靠它）');
     ok(/if \(!isFeedbackHost\(\)\) return;/.test(SRC), '只在反馈后台注入（别的站点直接 return）');
@@ -189,15 +256,17 @@ console.log('--- 7. 脚本头 / 依赖面（不跨工作台、不联网）---');
     eq(typeof helper.runtime.getRecords, 'function', 'runtime 面导出（jsdom 端到端测试用）');
 }
 
-console.log('--- 8. 端到端：jsdom 假反馈页 → 真的提取出来了 ---');
+console.log('--- 8. 端到端：jsdom 假反馈页 → 头像/昵称/图片/openid 真的提取出来了 ---');
 {
     const { JSDOM } = require('jsdom');
     const IMG_OK = 'https://mmbiz.qpic.cn/feedback/aaa.png';
     const page = '<!doctype html><html><body><div class="list">'
-        + '<div class="card"><div class="who">昵称：小明</div>'
+        + '<div class="card"><div class="ava"><img class="avatar" src="' + AVA + '" width="40" height="40"></div>'
+        + '<div class="who">昵称：小明</div>'
         + '<div class="q">登录不了，一直转圈</div>'
         + '<div class="imgs"><img src="' + IMG_OK + '" width="120" height="120">'
-        + '<img src="https://mp.weixin.qq.com/avatar/default.png" width="24" height="24"></div>'
+        // 14×14 的小图标：既被图片噪声表（icon）挡在截图外，也不满足 minAvatarSize，不会跟真头像抢
+        + '<img src="https://mp.weixin.qq.com/static/icon.png" width="14" height="14"></div>'
         + '<div class="oid">openid：' + A + '</div>'
         + '<div class="t">2026-06-03 12:30</div></div>'
         + '<div class="card"><div class="who">昵称 阿花</div>'
@@ -220,13 +289,20 @@ console.log('--- 8. 端到端：jsdom 假反馈页 → 真的提取出来了 ---
         eq(byId[B].question, '充值没到账', 'B：问题文本');
         eq(byId[A].images.map(i => i.url), [IMG_OK], 'A：只留下真图，头像被过滤');
         eq(byId[B].images.length, 0, 'B：没图就是 0 张');
+        eq(byId[A].avatar, AVA, 'A：头像被单独挑进 avatar');
+        eq(byId[B].avatar, '', 'B：没头像 → 空串');
+        ok(!byId[A].images.some(i => i.url === AVA), 'A：头像没有重复出现在截图列表里（0.4 的头像/截图分流）');
 
         const panel = win.document.querySelector('.gj-panel');
         ok(!!panel, '悬浮窗面板建出来了');
         ok(!!win.document.querySelector('.gj-launcher'), '悬浮窗启动按钮建出来了');
         ok(/反馈 2/.test(win.document.querySelector('.gj-launcher').textContent), '启动按钮上显示条数');
-        eq(win.document.querySelectorAll('.gj-item').length, 2, '面板里两条记录');
-        eq(win.document.querySelectorAll('.gj-item .gj-id button').length, 2, '每条一个「复制 openid」按钮');
+        eq(win.document.querySelectorAll('.gj-item').length, 2, '面板里两条记录（卡片式）');
+        eq(win.document.querySelectorAll('.gj-item .gj-idrow button').length, 2, '每条一个「复制 openid」按钮');
+        eq(win.document.querySelectorAll('.gj-item .gj-ava img').length, 1, '有头像那条渲染了头像图');
+        eq(win.document.querySelectorAll('.gj-item .gj-ava.gj-ph').length, 1, '没头像那条退化成昵称首字圆底');
+        eq(win.document.querySelector('.gj-item .gj-ava.gj-ph').textContent, '阿', '圆底里是昵称首字');
+        eq(win.document.querySelectorAll('.gj-item .gj-q').length, 0, '0.4 面板不再渲染问题文本（问题仍留在记录里）');
         ok(win.document.querySelector('.gj-panel').textContent.indexOf(A) !== -1, '面板里能看到 openid 原文（方便手动选）');
 
         const saved = JSON.parse(win.localStorage.getItem('gemjyHelper:feedbacks') || 'null');
