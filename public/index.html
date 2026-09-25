@@ -2304,6 +2304,9 @@
                         <button id="careerArchiveBtn" class="secondary">🗂️ 归档今日日报</button>
                         <button id="careerExportCsvBtn" class="secondary">📊 导出CSV</button>
                         <button id="careerExportJsonBtn" class="secondary">💾 导出JSON</button>
+                        <button id="careerImportJsonBtn" class="secondary">📤 导入JSON</button>
+                        <button id="careerClearLocalBtn" class="reset-btn">🧹 清空本机数据</button>
+                        <input type="file" id="careerImportJsonInput" accept=".json,application/json" style="display:none;" />
                     </div>
                 </div>
                 <div id="careerKpi" class="career-kpi-grid" style="margin-top: 14px;"></div>
@@ -9540,6 +9543,51 @@
                                             return false;
                                         }
                                     }
+                                    // 顶部那几个按钮（归档/导出/导入JSON/清空本机）的提示都写这里
+                                    function careerSetToolbarHint(text) {
+                                        const h = document.getElementById('careerArchiveHint');
+                                        if (h) h.textContent = text;
+                                    }
+                                    // 从「导出JSON」的文件把数据搬回本机（按日期合并，同一天以文件为准）
+                                    function careerImportJsonFile(file) {
+                                        if (!file) return;
+                                        try {
+                                            const reader = new FileReader();
+                                            reader.onload = () => {
+                                                try {
+                                                    const parsed = normalizeCareer(JSON.parse(String(reader.result || '')));
+                                                    const days = Object.keys(parsed.records);
+                                                    if (!days.length) { careerSetToolbarHint('这个 JSON 里没有可识别的生涯记录'); return; }
+                                                    let overwrite = 0;
+                                                    days.forEach(d => {
+                                                        if (careerData.records[d]) overwrite++;
+                                                        careerData.records[d] = parsed.records[d];
+                                                    });
+                                                    careerData.updatedAt = new Date().toISOString();
+                                                    careerSaveLocal();
+                                                    renderCareer();
+                                                    careerSetToolbarHint('已从 JSON 导入 ' + days.length + ' 天'
+                                                        + (overwrite ? '（覆盖本机已有 ' + overwrite + ' 天）' : ''));
+                                                } catch (e) {
+                                                    careerSetToolbarHint('JSON 解析失败：' + ((e && e.message) || e));
+                                                }
+                                            };
+                                            reader.onerror = () => careerSetToolbarHint('读取文件失败');
+                                            reader.readAsText(file);
+                                        } catch (e) {
+                                            careerSetToolbarHint('导入失败：' + ((e && e.message) || e));
+                                        }
+                                    }
+                                    // 只清**这台设备**的生涯数据（生涯本来就只存本机，服务端没有可清的）
+                                    function careerClearLocal() {
+                                        const n = Object.keys(careerData.records).length;
+                                        if (!n) { careerSetToolbarHint('本机本来就没有生涯数据'); return; }
+                                        if (!confirm('只清空【这台设备】的 ' + n + ' 天生涯数据？\n（生涯数据只存在本机浏览器，服务端和其它设备不受影响）')) return;
+                                        careerData = { records: {}, updatedAt: null };
+                                        try { localStorage.removeItem(CAREER_KEY); } catch (_) { }
+                                        renderCareer();
+                                        careerSetToolbarHint('已清空本机的 ' + n + ' 天生涯数据');
+                                    }
                                     function careerCsvText() {
                                         const q = (v) => {
                                             const t = String(v == null ? '' : v);
@@ -9923,6 +9971,21 @@
                                         setClick('careerExportJsonBtn', () => {
                                             if (!careerDownload('客服生涯_' + careerToday() + '.json', JSON.stringify(careerData, null, 2), 'application/json')) alert('当前环境不支持导出');
                                         });
+                                        setClick('careerImportJsonBtn', () => {
+                                            const f = document.getElementById('careerImportJsonInput');
+                                            if (!f) return;
+                                            f.value = '';       // 允许连续导入同一个文件
+                                            f.click();
+                                        });
+                                        (function bindCareerJsonInput() {
+                                            const f = document.getElementById('careerImportJsonInput');
+                                            if (!f) return;
+                                            f.addEventListener('change', () => {
+                                                const file = f.files && f.files[0];
+                                                if (file) careerImportJsonFile(file);
+                                            });
+                                        })();
+                                        setClick('careerClearLocalBtn', careerClearLocal);
                                         setClick('careerImportBtn', careerImport);
                                         setClick('careerClearImportBtn', () => {
                                             const a = document.getElementById('careerImportArea');

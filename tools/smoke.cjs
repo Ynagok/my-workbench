@@ -636,6 +636,41 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
   $('dailyTabTicket').click();
   await sleep(20);
 
+  console.log('--- 8f. 客服生涯：JSON 导入 / 清空本机（都不碰服务端）---');
+  {
+    const recsNow = () => (lastCareer() || { records: {} }).records;
+    const daysBefore = Object.keys(recsNow()).length;
+    const existingDate = Object.keys(recsNow()).sort()[0];
+    const freshDate = '2026-12-31';
+    const payload = { records: {}, updatedAt: null };
+    payload.records[existingDate] = { date: existingDate, shift: 'A', status: '已完成记录', items: { t_sso: 7 }, total: 7, src: 'manual' };
+    payload.records[freshDate] = { date: freshDate, shift: 'A', status: '已完成记录', items: { t_sso: 9 }, total: 9, src: 'manual' };
+    const fin = $('careerImportJsonInput');
+    check(!!fin, '导入 JSON 的 file 输入已注入');
+    Object.defineProperty(fin, 'files', {
+      value: [new window.File([JSON.stringify(payload)], 'career.json', { type: 'application/json' })],
+      configurable: true
+    });
+    fire(fin, 'change');
+    await sleep(80);
+    check(Object.keys(recsNow()).length === daysBefore + 1, 'JSON 导入：新日期加进来', Object.keys(recsNow()).length);
+    check(recsNow()[existingDate] && recsNow()[existingDate].total === 7, 'JSON 导入：同一天以文件为准（覆盖）', recsNow()[existingDate] && recsNow()[existingDate].total);
+    check(/已从 JSON 导入 2 天/.test($('careerArchiveHint').textContent), 'JSON 导入有提示', $('careerArchiveHint').textContent);
+    check(careerRequests().length === 0, 'JSON 导入不碰服务端', careerRequests().length);
+
+    const daysNow = Object.keys(recsNow()).length;
+    $('careerClearLocalBtn').click();
+    await sleep(40);
+    check(Object.keys(recsNow()).length === 0, '清空本机：记录归零（清掉 ' + daysNow + ' 天）', Object.keys(recsNow()).length);
+    check(window.localStorage.getItem('careerData') === null, '清空本机：localStorage 键也被删掉');
+    check(/已清空本机的 \d+ 天/.test($('careerArchiveHint').textContent), '清空本机有提示', $('careerArchiveHint').textContent);
+    check(careerRequests().length === 0, '清空本机也不碰服务端（生涯根本没有服务端副本）', careerRequests().length);
+    // 清空后再点一次：应提示本来就是空的，不弹 confirm
+    $('careerClearLocalBtn').click();
+    await sleep(20);
+    check(/本来就没有/.test($('careerArchiveHint').textContent), '空数据时再点清空 → 提示本来就是空的', $('careerArchiveHint').textContent);
+  }
+
   console.log('--- 9. 无未捕获异常 ---');
   check(!warns.some(w => w.startsWith('ERROR')), 'console.error 未被调用：' + warns.filter(w => w.startsWith('ERROR')).join(' | '));
   check(jsdomErrors.length === 0, '页面无未捕获异常（jsdomError）', jsdomErrors.slice(0, 3));

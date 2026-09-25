@@ -48,7 +48,7 @@ npm run verify     # 改完代码、push 前的完整自检
 
 | 命令 | 内容 |
 |---|---|
-| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 123 项 + 「接口挂起时界面仍可用」+ 服务端冒烟 12 项 + 油猴脚本语法 + 单测 169 项 |
+| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 133 项 + 「接口挂起时界面仍可用」+ 服务端冒烟 12 项 + 油猴脚本语法 + 单测 169 项 |
 | `npm run verify:static` | 只要静态校验 + 语法检查（最快） |
 | `npm run report` | 打印一份真实生成的日报，肉眼确认排版（含 ⑥伙伴弹途 / ⑦异世界勇者） |
 | `npm run build:data` | 从 GM 玩家页快照提取 4 张权威映射表 + 与硬编码常量的**差异报告**（见下「游戏数据管线」） |
@@ -56,7 +56,7 @@ npm run verify     # 改完代码、push 前的完整自检
 | `npm run test:helper` | 反馈提取助手（油猴脚本 0.4.0）单测，169 项 |
 | `npm test` | = `npm run verify` |
 
-`npm run verify` 失败就不要提交。它一共 7 段：静态结构 → 语法 → jsdom 集成冒烟 **123 项** → 接口挂起时界面仍可用 → 服务端冒烟 **12 项** → 油猴脚本语法（`node --check`）→ 油猴脚本单测 **169 项**。
+`npm run verify` 失败就不要提交。它一共 7 段：静态结构 → 语法 → jsdom 集成冒烟 **133 项** → 接口挂起时界面仍可用 → 服务端冒烟 **12 项** → 油猴脚本语法（`node --check`）→ 油猴脚本单测 **169 项**。
 
 - jsdom 未安装时前端冒烟会自动回落到本机 DSH 自带的那份。
 - `tools/smoke-server.cjs` 用 `PORT` + `DATA_FILE` 环境变量把服务端指到随机端口和 `tools/out/` 里的临时文件，**不会碰真实 `data.json`**；子进程 stdio 必须用 `ignore`/`inherit`（沙箱禁管道，`pipe` 会 EPERM）。
@@ -192,7 +192,9 @@ npm run verify     # 改完代码、push 前的完整自检
   - **持久化：只存本机浏览器，不走服务端**（⚠️ 用户明确要求，2026-09 改的）。`careerData` 是 **localStorage-only**：归档 / 补录 / 删除 / 粘贴导入都只调 `careerSaveLocal()`，加载走 `careerLoadLocal()`（`applyState` 里写死 `careerData = normalizeCareer(careerLoadLocal())`，**不看服务端 bundle**；启动的 `Promise.all` 里也刻意不 `loadData(CAREER_KEY)`）。
     - **为什么**：不同客服在不同设备上打开工作台、各记各的日报，谁的数据都不该同步给别人。旧实现走 `/api/data/careerData`（落 `data.json`），换台设备打开时本机没有缓存 → `loadData` 去服务端兜底 → 看到的是「最后同步上来那个人」的统计（用户报的 bug 就是这个）。
     - ⚠️ **不要再把它改回 `loadData`/`saveData(CAREER_KEY…)`**（那两个会读写 `/api/data`）——`verify.mjs` 有 4 条静态断言锁死：helper 存在 + 不出现 `loadData(CAREER_KEY` / `saveData(CAREER_KEY` + `applyState` 不取 `b.careerData` + `careerSaveLocal();` ≥3 处；`smoke.cjs` 还会断言「整场跑下来**一次都没请求**过 careerData」＋「数据确实落在 localStorage」。
-    - 换设备的办法：页面上的 **JSON 导出 / 导入**（导出的是同一份 `careerData`）。服务端 `data.json` 里可能还留着历史 `careerData` 键，但**已经没人读它**。
+    - 换设备的办法：工具栏上的 **`📤 导入JSON`**（吃 `💾 导出JSON` 导出的文件，按日期合并、同一天以文件为准，提示写在 `careerArchiveHint`）＋ **`🧹 清空本机数据`**（只清这台设备的 localStorage，不碰服务端/别的设备）。
+    - ⚠️ **「别的设备已经有我的数据了」怎么办**：旧版 `loadData` 在拉服务端数据时会顺手把值**缓存进那台设备的 localStorage**，所以那些设备本地也有一份副本 —— 改完之后它们读本机，**不会自动消失**。要么让那台设备点一次 `🧹 清空本机数据`，要么在它的控制台跑 `localStorage.removeItem('careerData')` 再刷新。反过来，自己这台设备的数据一直在本机、不受影响。
+    - 服务端 `data.json` 里可能还留着历史 `careerData` 键，但**已经没人读它**。
     - 其它数据（`dailyData`/映射表/短语…）仍是「localStorage 优先 + 服务端兜底」，**没动**。
   - **测试**：`tools/smoke.cjs` 有 **8c**（自动归档折算、两侧拆分、工单日报全部字段进工单侧、海外日报 4 个新字段参与统计、两处异世界互不干扰、别名、登记表导入、补录、删除、导出、**只落本机不碰服务端**）与 **8d**（真去点「生成日报」拿到两段日报正文 → 删掉当天 → 粘回去导入，断言还原的数字/姓名/班次与归档一致、且「只粘工单那段时海外侧不被清空」）两节；`tools/verify.mjs` 有整块客服生涯断言（工单侧由 DAILY_TICKET_FIELDS 生成且不排除字段 + 29 项 + 海外侧 10 项覆盖海外日报全部 11 个数值字段 + 海外侧不读 `ticket.g7_*` + 14 列列名对得上（含别名）+ 只存档 4 项 + 日报标签映射/解析函数 + **只读本机 localStorage** 共 4 条）。
   - **✅ 真实数据对账**：把上传的登记表 81 行（80 天）原样喂进粘贴导入，与表格自己的「月度汇总」「个人指标看板」逐项比对，**38/38 全对，且所有指标都跟原表一致**——79 完整记录天；**工单侧 22 + 海外侧 5,601 = 累计 5,623（= 原表累计工作量）**；海外侧含「异世界群维系 7」（登记表那列）+「（梦幻/繁花/乐缤纷）群维系 142」（别名那列）；**日均 71.2、最高单日 191 @ 2026-08-05、月度 1,312 / 1,614 / 1,572 / 1,125** 全部与原表看板一致；14 列逐项累计吻合；只存档 4 列都是 0。回放脚本是一次性的（`tools/out/`，未入库）。

@@ -131,6 +131,9 @@ ok(/careerData = normalizeCareer\(careerLoadLocal\(\)\)/.test(s)
   'applyState / 启动加载都不从服务端取 careerData（永远读本机）');
 ok((s.match(/careerSaveLocal\(\);/g) || []).length >= 3,
   '归档 / 补录 / 删除 / 导入 都写本机（≥3 处调用）');
+ok(/function careerImportJsonFile\(/.test(s) && /function careerClearLocal\(/.test(s)
+  && /careerImportJsonBtn/.test(s) && /careerClearLocalBtn/.test(s) && /careerImportJsonInput/.test(s),
+  '客服生涯：导入 JSON（按日期合并）+ 清空本机数据 已注入');
 ok(/function careerStats\(\)/.test(s) && /function careerImport\(\)/.test(s) && /function careerCsvText\(\)/.test(s), '统计 / 粘贴导入 / CSV 导出 已注入');
 // 重置模板不清姓名（用户需求）：只有当旧数据里真有 name 键时才把值带过去
 ok(/const keepName = \(prevTab && Object\.prototype\.hasOwnProperty\.call\(prevTab, 'name'\)\) \? prevTab\.name : undefined;/.test(s)
