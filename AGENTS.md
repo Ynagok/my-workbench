@@ -46,15 +46,15 @@ npm run verify     # 改完代码、push 前的完整自检
 
 | 命令 | 内容 |
 |---|---|
-| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 116 项 + 「接口挂起时界面仍可用」+ 服务端冒烟 12 项 + 油猴脚本语法/单测 62 项 |
+| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 116 项 + 「接口挂起时界面仍可用」+ 服务端冒烟 12 项 + 油猴脚本语法/单测 120 项 |
 | `npm run verify:static` | 只要静态校验 + 语法检查（最快） |
 | `npm run report` | 打印一份真实生成的日报，肉眼确认排版（含 ⑥伙伴弹途 / ⑦异世界勇者） |
 | `npm run build:data` | 从 GM 玩家页快照提取 4 张权威映射表 + 与硬编码常量的**差异报告**（见下「游戏数据管线」） |
 | `npm run smoke:server` | 单独跑服务端冒烟（真起进程 + 真发 HTTP，12 项） |
-| `npm run test:helper` | Gemjy OpenID 助手（油猴脚本）单测，62 项 |
+| `npm run test:helper` | 反馈提取助手（油猴脚本）单测，120 项 |
 | `npm test` | = `npm run verify` |
 
-`npm run verify` 失败就不要提交。它一共 7 段：静态结构 → 语法 → jsdom 集成冒烟 **116 项** → 接口挂起时界面仍可用 → 服务端冒烟 **12 项** → 油猴脚本语法 → 油猴脚本单测 **62 项**。
+`npm run verify` 失败就不要提交。它一共 7 段：静态结构 → 语法 → jsdom 集成冒烟 **116 项** → 接口挂起时界面仍可用 → 服务端冒烟 **12 项** → 油猴脚本语法 → 油猴脚本单测 **120 项**。
 
 - jsdom 未安装时前端冒烟会自动回落到本机 DSH 自带的那份。
 - `tools/smoke-server.cjs` 用 `PORT` + `DATA_FILE` 环境变量把服务端指到随机端口和 `tools/out/` 里的临时文件，**不会碰真实 `data.json`**；子进程 stdio 必须用 `ignore`/`inherit`（沙箱禁管道，`pipe` 会 EPERM）。
@@ -71,21 +71,28 @@ npm run verify     # 改完代码、push 前的完整自检
 - **4 张表**：① 来源映射（`opFrom`/`from` → `DEFAULT_SOURCE_ID_MAP`）② 活动类型映射（→ `DEFAULT_ACTIVITY_TYPE_MAP`）③ 卡包表（→ `PACK_NAME_MAP`，含 `star`/`royal` 星级码）④ 物品名表（→ `DEFAULT_ITEM_NAME_MAP`，含分类）。
 - **尚未做**：C 装载方式（payload ≤150KB 时首选 C3 复用 `/api/data`）→ D 逐个消费点接入（**改话术的点先问用户**）→ E `verify.mjs` 断言 + `smoke.cjs` 第 10 节端到端 → F 拆 4 个提交。
 
-## Gemjy OpenID 助手（油猴脚本，与工作台解耦）
+## 反馈提取助手（油猴脚本，**不跨工作台**、不联网）
 
-`public/gemjy-openid-helper.user.js` —— 一个文件两端（A 端反馈后台 `mp.weixin.qq.com`、B 端工作台），**共用同一个查询函数与 GM 本地缓存**。它由 `express.static` 顺带托管，所以可以直接从工作台装：`http://localhost:3000/gemjy-openid-helper.user.js`。
+`public/gemjy-openid-helper.user.js` —— 只在**反馈后台**（`@match` 就 `*://mp.weixin.qq.com/*` 一处）跑：把每条反馈的 **昵称 / 问题 / 图片 / openid** 提取出来，存进右下角悬浮窗；客服点「复制 openid」拿走，自己去别处粘贴查询。
 
-- **它和前端工作台没有代码耦合**：不 import、不共享全局，只有「B 端往工作台页面注入一个浮动按钮+抽屉」这一层 DOM 关系。改它不影响 `index.html`、`server.js`、`data.json`。
-- **为什么必须用 `GM_xmlhttpRequest`**：operator 与 mp.weixin 跨域，`fetch` 会被 CORS 拦；GM 请求同时带上 operator 的 cookie（`withCredentials`）与 `@connect operator.gemjy.cn` 声明。**脚本里绝不出现 fetch 查 operator**。
-- **结构**：IIFE → `CONFIG`（全部可调）→ 纯函数层（`openidsIn/parseIds/parseResponse/extractPairsFromHtml/pickRole/isLoginPage/classify/buildRequest/toCsv`）→ 共享运行时（store / 缓存 / gmRequest / lookup / 队列 / 状态机 / 诊断）→ A 端 UI → B 端 UI → `boot()`。
-  - ⚠️ **纯函数层不得引用 `document` 或 `GM_*`**；文件末尾有 Node 导出守卫（`module.exports` 后 `return`），所以 `require()` 它不会碰 DOM。改完必须 `npm run test:helper` 绿。
-- **存储键**：`requestSpec`（已锁定的请求形态，持久）、`oid:<openid>`（`{t,status,role}`，10 分钟 TTL，**只缓存成功结果**）、`tries`（最近 12 次尝试）、`lastRaw`（最近一次原始响应片段）、`recentBatch`（A 端扫到的 id 列表，B 端「导入上次会话」读）。
-- **限流**：并发 2、inflight 去重、10 分钟缓存、A 端自动展开每页最多 3 轮×8 次、MutationObserver 重扫 ≥1.2s 节流。
-- **异常路径**：掉登录 → 立刻停队列、徽标全转「未登录」、一键开登录页，登录后「重试失败」恢复；候选形态都不匹配 → `uncalibrated`，「校准」按钮复制 `{endpoint, lockedSpec, tries, lastRawHead}` 供改成硬编码；页面改版 → 最坏只丢徽标，面板与 B 端仍可用。
-- **`@match` 覆盖三处**：反馈后台 `*://mp.weixin.qq.com/*`、**线上工作台 `https://work-bad.onrender.com/*`**、本地工作台 `localhost:3000` / `127.0.0.1:3000`。要从别的域名开工作台就再加一行。
+- **它不跨工作台**：不 import、不共享全局、不碰 `index.html` / `server.js` / `data.json`；`@match` 里也没有工作台域名，工作台页面一行都不注入。改它不影响前端任何东西。
+- **它不联网**：没有 `@connect`、没有 `GM_xmlhttpRequest` / `fetch` / `XMLHttpRequest`。0.2.x 那套「自动查 operator + 卡片徽标 + B 端批量查询抽屉」已按用户要求**整段删掉**（历史在 `b9334b3` / `0be1e1b`，要捡回来用 `git show`）。因此不存在跨域、掉登录、接口形态待校准，**也不再需要补 operator 接口参数**。
+- **它由 `express.static` 顺带托管**：安装地址 `https://work-bad.onrender.com/gemjy-openid-helper.user.js`（本地是 `http://localhost:3000/gemjy-openid-helper.user.js`）。
+- **结构**：IIFE → `CONFIG`（全部可调）→ 纯函数层（`openidsIn/hasOpenid/distinctIdCount/linesOf/looksLikeDate/isNoiseLine/cleanName/guessName/pickQuestion/absolutize/isLikelyImageUrl/normalizeImages/buildRecord/mergeRecord/capRecords/openidListText/diagnosticText`）→ 存储与状态 → DOM 层（`findItemContainer/domLinesOf/imagesOf/scan` + 悬浮窗 + `buildDiagnosticText`）→ `API` → Node 导出守卫 → `boot()`。
+  - ⚠️ **纯函数层不得引用 `document` / `GM_*`**；导出守卫在 `module.exports` 后 `return`，所以 `require()` 它不会碰 DOM。改完必须 `npm run test:helper` 绿。
+  - 面板/按钮/吐司带 `gj-` 类名，扫描时 `closest('.gj-panel,.gj-launcher,.gj-toast')` 排除自己 —— **面板里显示着 openid，不排除就会自己收自己**（单测锁了这条）。
+- **提取口径（启发式；当初和用户说好「先按通用启发式做，跑起来再调」）**：
+  - 一条反馈 = 从 openid 那个文本节点往上爬祖先，直到「这个祖先里出现第二个不同 openid」为止的那一层。
+    - ⚠️ 数个数必须用 `distinctIdCount`（**宽松**匹配），不能用 `openidsIn`：容器的 `textContent` 是拼接的，openid 后面常紧跟日期数字（`…00012026-06-03`），边界规则会把它当成「长串的一部分」而漏掉，结果容器一路爬到 `body`，把整页并成一条记录。**这个坑有单测锁**。
+  - 昵称：优先「昵称：xxx」/「微信昵称 xxx」标签行；否则取靠前的短行（要求同卡片里还有更长的行当问题）。`玩家反馈无法登录` 这种不会被误当昵称。
+  - 问题：把非噪声行按文档顺序接起来（丢掉时间行、纯数字、只有标签的行、「展开/收起/暂无/加载中」这类按钮文字），超 `maxQuestionLen` 截断。
+  - 图片：`img` 的 `src`/懒加载属性（`data-src` 等）+ 内联 `background-image` + 指向图片的链接；丢掉头像/图标/svg/小于 `minImageSize`(40px) 的图，去重后最多 `maxImages`(6) 张。
+  - 取文本优先 `innerText`（自带换行）；不可用时（jsdom 等）按块级元素边界自己插换行 —— 这样单测能端到端跑。
+- **保存**：`GM_setValue('feedbacks')`（无 GM 环境退化成 `localStorage`），最新在前、按 openid upsert（更新后提到最前、`hits` 累加、空值不覆盖旧值、`firstSeen` 保留），上限 `CONFIG.maxItems`(300)；`panelUi` 记面板展开/收起。
+- **悬浮窗**：右下角「反馈 N」按钮（收起时变白底）；面板每条列出 昵称 / 问题（超 90 字折叠，点击展开）/ 图片缩略图（点击开原图）/ openid + **「复制 openid」**；工具条：`扫描本页` / `复制全部 openid`（一行一个）/ `诊断` / `清空`。菜单命令同名四件套。**复制动作只有 openid**（用户明确要求）。
+- **提取不准时**：点「诊断」会复制一段 JSON（版本、URL、CONFIG、前 3 条记录、**第一条反馈容器的原始文本与 HTML 片段**）——把它发我，照着调 `guessName` / `pickQuestion` / `isNoiseLine` / `CONFIG` 即可。
 - 已声明 **`@updateURL` / `@downloadURL`** 指向 `https://work-bad.onrender.com/gemjy-openid-helper.user.js`：改完这个文件并部署（push 后 Render 自动部署），Tampermonkey 会提示更新。也可以直接打开那个 URL 安装。
-- ⚠️ **唯一还没补的外部参数**：**operator 查询接口**——`CONFIG.requestCandidates` 里 6 种是**猜的常见形态**，首次查询会依次试探并锁定命中那条（写进 GM 的 `requestSpec`）。拿到一次成功响应的「F12 → Copy as fetch」后换成那一条最省事。可选：反馈列表若在跨域 iframe 里，把那个域名也加一条 `@match`。
-- 单测：`tools/test-openid-helper.cjs`（62 项：openid 边界与去重、B 端输入解析、JSON 嵌套归一与别名、HTML 三种渲染（相邻/4 列交叉/标签值/标签空格值/实体还原）、登录页识别与 classify、buildRequest、toCsv 转义、导出面与 CONFIG 默认值、**@version 与内部 version 一致 / @match 覆盖 / @updateURL / @connect / 只用 GM_xmlhttpRequest / 只在工作台页注入**）。
+- 单测：`tools/test-openid-helper.cjs`（**120 项**）= 纯函数层（openid 边界与宽松计数、行切分、时间行/噪声行、猜昵称、取问题与截断、图片绝对化/过滤/去重/上限、记录组装与 upsert 语义、`hits` 与 `firstSeen`、复制文本、诊断 JSON）+ 脚本头约束（`@version` 与内部 `API.version` 一致、`@match` 只有反馈后台一处、元数据里无 `@connect`、全文件无 `GM_xmlhttpRequest`/`fetch`/`XMLHttpRequest`、`@updateURL`、`@grant` 声明）+ **jsdom 端到端**（造一张假反馈页 → 注入脚本 → 断言昵称/问题/图片/openid 真的提出来了、面板与启动按钮建出来了、面板里的 openid 不会被自己再收一遍、非反馈站点不注入、localStorage 落盘与清空）。
 
 ## 硬约定
 
@@ -199,7 +206,7 @@ npm run verify     # 改完代码、push 前的完整自检
 
 ```
 public/index.html          全部前端（单文件，约 9890 行：内联 CSS + 内联 JS 的 async IIFE；含「客服生涯」标签页）
-public/gemjy-openid-helper.user.js  油猴脚本（A 端反馈页徽标 + B 端工作台批量查询抽屉；与前端无代码耦合）
+public/gemjy-openid-helper.user.js  油猴脚本（只跑在反馈后台：提取 昵称/问题/图片/openid 到悬浮窗，一键复制 openid；与前端无代码耦合）
 server.js                  express：静态托管 public/ + GET/POST /api/data/:key ↔ data.json（含 key 白名单）
 data.json                  服务端数据（随使用增长；前端字段缺失会被默认值自动补齐）
 tools/                     自检脚本（verify / smoke / smoke-nonblocking / smoke-server / test-openid-helper / print-report / build-game-data）

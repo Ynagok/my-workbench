@@ -2,82 +2,67 @@
 // ==UserScript==
 // @name         Gemjy OpenID 助手
 // @namespace    work-bad/gemjy-openid-helper
-// @version      0.2.1
-// @description  反馈后台：自动把 openid 查成角色信息（卡片内联徽标，零点击）；工作台：批量查询面板。A/B 共用一个查询函数 + GM 本地缓存。
+// @version      0.3.0
+// @description  反馈后台：把每条反馈的「昵称 / 问题 / 图片 / openid」提取出来存进右下角悬浮窗，一键复制 openid。不跨工作台、不联网查询。
 // @author       work-bad
 // @run-at       document-start
 // @match        *://mp.weixin.qq.com/*
-// @match        https://work-bad.onrender.com/*
-// @match        *://localhost:3000/*
-// @match        *://127.0.0.1:3000/*
 // @updateURL    https://work-bad.onrender.com/gemjy-openid-helper.user.js
 // @downloadURL  https://work-bad.onrender.com/gemjy-openid-helper.user.js
-// @grant        GM_xmlhttpRequest
 // @grant        GM_setValue
 // @grant        GM_getValue
 // @grant        GM_deleteValue
-// @grant        GM_listValues
 // @grant        GM_registerMenuCommand
 // @grant        GM_addStyle
 // @grant        GM_setClipboard
-// @connect      operator.gemjy.cn
 // ==/UserScript==
 //
-// ⚠️ 待补参数（改这里就行，不用动逻辑）：
-//   1) operator 查询接口：见下面 CONFIG.requestCandidates。首次查询会依次试探 6 种常见形态，
-//      命中即锁定并写进 GM 存储（requestSpec），之后不再试探。拿到一次成功的
-//      「F12 → Copy as fetch」后，把 CONFIG.requestCandidates 换成那一条最省事。
-//   2) 若反馈列表在跨域 iframe 里，把那个域名再加一条 @match。
+// 它只做一件事：在反馈后台（mp.weixin.qq.com）把每条反馈的
+//   昵称 / 问题 / 图片 / openid
+// 提取出来，存进右下角悬浮窗；客服点「复制 openid」拿走，去别处粘贴查询。
 //
-// @match 覆盖：反馈后台（mp.weixin.qq.com）、线上工作台（work-bad.onrender.com）、
-// 本地工作台（localhost:3000 / 127.0.0.1:3000）。要从别的域名打开工作台就再加一行。
+// 它不做的事（刻意为之）：
+//   · 不查 operator、不发任何网络请求（所以不需要 @connect，也不会掉登录/跨域）
+//   · 不碰工作台页面（@match 只有 mp.weixin.qq.com 一处）
+//
+// 数据存在 GM_setValue('feedbacks')（没有 GM 环境时退化成 localStorage），
+// 关掉页面再开还在，最多留 CONFIG.maxItems 条（最新在前）。
+//
+// 提取不准时：点悬浮窗的「诊断」，把复制到的 JSON 发我 —— 里面有第一条反馈的原始
+// 文本与 HTML 片段，照着调 CONFIG / guessName / pickQuestion / isNoiseLine 的
+// 启发式就行（纯函数层，tools/test-openid-helper.cjs 有单测）。
 // 安装：Tampermonkey → 新建 → 粘本文件；或直接打开
 //   https://work-bad.onrender.com/gemjy-openid-helper.user.js
-// （已声明 @updateURL/@downloadURL，之后改这个文件并部署，脚本会自动提示更新。）
+// （已声明 @updateURL/@downloadURL，改完这个文件并部署，脚本会自动提示更新。）
 
 (function () {
     'use strict';
 
     // ==================== CONFIG（集中可调；改这里不需要动逻辑代码） ====================
     const CONFIG = {
-        // operator 站点
-        endpoint: 'https://operator.gemjy.cn',
-        loginUrl: 'https://operator.gemjy.cn/login',
-
-        // 候选请求形态：按顺序试探，命中（能解析出角色）即锁定。
-        // 占位符：url 里用 {id}（会 URL 编码）、data 里用 {id}（原样替换）。
-        requestCandidates: [
-            { name: 'GET /api/player?openid=', method: 'GET', url: 'https://operator.gemjy.cn/api/player?openid={id}' },
-            { name: 'GET /api/role?openid=', method: 'GET', url: 'https://operator.gemjy.cn/api/role?openid={id}' },
-            { name: 'GET /player?openid=', method: 'GET', url: 'https://operator.gemjy.cn/player?openid={id}' },
-            { name: 'POST /api/player (json)', method: 'POST', url: 'https://operator.gemjy.cn/api/player', data: '{"openid":"{id}"}', headers: { 'Content-Type': 'application/json' } },
-            { name: 'POST /api/role (json)', method: 'POST', url: 'https://operator.gemjy.cn/api/role', data: '{"openid":"{id}"}', headers: { 'Content-Type': 'application/json' } },
-            { name: 'POST /api/player (form)', method: 'POST', url: 'https://operator.gemjy.cn/api/player', data: 'openid={id}', headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
-        ],
-
-        // 并发与缓存（别把 operator 打挂）
-        concurrency: 2,
-        cacheTtlMs: 10 * 60 * 1000,
-        requestTimeoutMs: 15000,
-
-        // 行为开关
-        autoQuery: true,          // A 端扫到就自动查
-        autoExpand: true,         // A 端自动点开「展开」小按钮
-        debug: false,
-
-        // A 端自动展开：命中选择器、或文本恰为这些符号的小元素
-        autoExpandSelectors: ['[class*="expand"]', '[class*="toggle"]', '[class*="arrow"]', '[class*="more"]', '[class*="detail"]'],
-        autoExpandSymbols: ['+', '＋', '▸', '▶', '›', '»'],
-
-        // 卡片徽标显示哪些字段（顺序即拼接顺序）
-        badgeFields: ['nickname', 'uid', 'server', 'platform'],
-
         // openid 形态：o + 27 位
         openidSource: 'o[A-Za-z0-9_-]{27}',
 
-        // A 端重扫节流（翻页后 MutationObserver 的抖动间隔）
+        // 保存上限（最新在前，超出丢最旧的）
+        maxItems: 300,
+
+        // 每条反馈最多保留几张图 / 问题文本最长多少字
+        maxImages: 6,
+        maxQuestionLen: 400,
+
+        // 小于这个边长的图片当图标/头像丢掉（拿不到尺寸时不丢）
+        minImageSize: 40,
+
+        // 兜底猜昵称时的长度上限
+        nameMaxLen: 16,
+
+        // 页面变化后重扫的节流间隔
         scanThrottleMs: 1200,
-        maxTriesKept: 12
+
+        // 扫到新反馈就自动展开悬浮窗
+        autoOpenPanel: true,
+
+        debug: false
     };
 
     // ==================== 纯函数层（Node 单测对象：不得引用 document / GM_*） ====================
@@ -101,231 +86,223 @@
         return out;
     }
 
-    // B 端输入解析：先按 openid 正则抽；抽不到就按「一行一个 id」兜底
-    function parseIds(text) {
+    function hasOpenid(text) { return openidsIn(text).length > 0; }
+
+    // 数一个容器里有几个「不同」的 openid。这里不能用 openidsIn 的边界规则：
+    // 容器的 textContent 是拼接出来的，openid 后面紧跟着日期数字（…00012026-06-03）
+    // 会被当成「长串的一部分」而漏掉，于是容器一路爬到了 body。数个数用宽松匹配。
+    function distinctIdCount(text) {
         const s = (text === null || text === undefined) ? '' : String(text);
-        const found = openidsIn(s);
-        if (found.length) return found;
-        const out = [];
+        const re = new RegExp(CONFIG.openidSource, 'g');
         const seen = Object.create(null);
-        s.split(/\r?\n/).forEach(function (line) {
-            let t = line.trim();
+        let n = 0, m;
+        while ((m = re.exec(s)) !== null) {
+            if (seen[m[0]]) continue;
+            seen[m[0]] = 1;
+            n++;
+        }
+        return n;
+    }
+
+    // 文本 → 行（去空行、压缩空白、去重）
+    function linesOf(text) {
+        const s = (text === null || text === undefined) ? '' : String(text);
+        const out = [];
+        s.replace(/\r\n?/g, '\n').split('\n').forEach(function (raw) {
+            const t = raw.replace(/[ \t\u00a0\u3000]+/g, ' ').trim();
             if (!t) return;
-            t = t.replace(/^[\s"'`[\](){}<>]+/, '').replace(/[\s"'`[\](){}<>]+$/, '');
-            if (!t || seen[t]) return;
-            seen[t] = 1;
+            if (out.indexOf(t) !== -1) return;
             out.push(t);
         });
         return out;
     }
 
-    function tryJson(text) {
-        const s = (text === null || text === undefined) ? '' : String(text);
-        if (!s) return null;
-        const t = s.trim();
-        if (!/^[\[{]/.test(t)) return null;
-        try { return JSON.parse(t); } catch (_) { return null; }
-    }
+    // 「2026-06-03」「6月3日」「12:30」「3 分钟前」这类时间行
+    const DATE_RE = /(\d{4}\s*[-/年.]\s*\d{1,2}\s*[-/月.]\s*\d{1,2}|\d{1,2}\s*[-/月.]\s*\d{1,2}\s*日?|\d{1,2}:\d{2}(:\d{2})?|\d+\s*(分钟|小时|天)前|刚刚|昨天|今天)/;
+    function looksLikeDate(text) { return DATE_RE.test(String(text === null || text === undefined ? '' : text)); }
 
-    // 把任意 JSON 结构摊平成「标签 → 值」对（键名就是标签）
-    function pairsFromJson(obj, out, depth) {
-        out = out || [];
-        depth = depth || 0;
-        if (depth > 4 || out.length > 400) return out;
-        if (obj === null || obj === undefined) return out;
-        if (Array.isArray(obj)) {
-            obj.slice(0, 20).forEach(function (v) { pairsFromJson(v, out, depth + 1); });
-            return out;
-        }
-        if (typeof obj === 'object') {
-            Object.keys(obj).forEach(function (k) {
-                const v = obj[k];
-                if (v !== null && typeof v === 'object') pairsFromJson(v, out, depth + 1);
-                else if (v !== null && v !== undefined && String(v) !== '') out.push({ label: k, value: String(v) });
-            });
-            return out;
-        }
-        return out;
-    }
+    // 昵称标签：带冒号的宽松（「玩家：小明」），不带冒号的只认「以…名/昵称结尾」的（免得「玩家反馈无法登录」被当成昵称）
+    const NAME_LABELS_COLON = ['微信昵称', '玩家昵称', '游戏昵称', '昵称', '角色名', '角色', '玩家名', '玩家', '用户名', '用户', '姓名', '游戏名'];
+    const NAME_LABELS_TIGHT = ['微信昵称', '玩家昵称', '游戏昵称', '昵称', '角色名', '玩家名', '用户名', '游戏名', '姓名'];
+    const NAME_COLON_RE = new RegExp('^(?:' + NAME_LABELS_COLON.join('|') + ')\\s*[:：]\\s*(.*)$');
+    const NAME_TIGHT_RE = new RegExp('^(?:' + NAME_LABELS_TIGHT.join('|') + ')\\s+([^\\s:：].*)$');
 
-    function decodeEntities(s) {
-        return String(s === null || s === undefined ? '' : s)
-            .replace(/&nbsp;/gi, ' ').replace(/&amp;/gi, '&').replace(/&lt;/gi, '<')
-            .replace(/&gt;/gi, '>').replace(/&quot;/gi, '"').replace(/&#39;/g, "'");
-    }
+    // 「只有标签」或纯 UI 的行：这种行不算「问题」内容
+    const NOISE_EXACT = ['昵称', '微信昵称', '玩家昵称', '角色名', '角色的名', '玩家名', '用户名', '姓名', 'openid', 'uid', 'id', '账号', '区服', '服务器', '平台', '系统', '渠道', '微信号', '时间', '类型', '状态', '来源', '操作', '反馈内容', '反馈描述', '问题描述', '问题', '描述', '内容', '反馈', '诉求', '备注', '补充', '详情', '图片', '截图', '附件', '全部', '暂无'];
+    const NOISE_PART = ['展开', '收起', '查看详情', '查看更多', '点击查看', '更多', '暂无', '加载中', 'loading', '已读', '未读'];
 
-    function stripTags(html) {
-        return decodeEntities(String(html === null || html === undefined ? '' : html)
-            .replace(/<script[\s\S]*?<\/script>/gi, ' ')
-            .replace(/<style[\s\S]*?<\/style>/gi, ' ')
-            .replace(/<br\s*\/?>/gi, '\n')
-            .replace(/<\/(tr|div|p|li|h[1-6])>/gi, '\n')
-            .replace(/<[^>]*>/g, ' '))
-            .replace(/[ \t\u00a0]+/g, ' ');
-    }
-
-    const KNOWN_LABELS = ['nickname', 'openid', 'uid', 'server', 'platform', 'nick', 'role', '角色', '昵称', '玩家', '区服', '服务器', '平台', '系统', '渠道', '账号'];
-
-    function looksLikeLabel(text) {
-        const t = String(text === null || text === undefined ? '' : text).trim().toLowerCase();
-        if (!t || t.length > 16) return false;
-        return KNOWN_LABELS.some(function (k) { return t.indexOf(k.toLowerCase()) !== -1; });
-    }
-
-    // 三种渲染都要兼容：① <tr> 成对 th/td（含 4 列交叉）② 标签：值 ③ 标签 空格 值
-    function extractPairsFromHtml(html) {
-        const s = String(html === null || html === undefined ? '' : html);
-        const out = [];
-        const trRe = /<tr\b[^>]*>([\s\S]*?)<\/tr>/gi;
-        let tr;
-        while ((tr = trRe.exec(s)) !== null) {
-            const cells = [];
-            const cellRe = /<(th|td)\b[^>]*>([\s\S]*?)<\/\1>/gi;
-            let c;
-            while ((c = cellRe.exec(tr[1])) !== null) {
-                cells.push({ tag: c[1].toLowerCase(), text: stripTags(c[2]).trim().replace(/\s+/g, ' ') });
-            }
-            for (let i = 0; i < cells.length - 1; i++) {
-                const a = cells[i], b = cells[i + 1];
-                if (a.tag === 'th' && b.tag === 'td') out.push({ label: a.text, value: b.text });
-                else if (a.tag === 'td' && b.tag === 'td' && looksLikeLabel(a.text)) out.push({ label: a.text, value: b.text });
-            }
-        }
-        const text = stripTags(s);
-        let m;
-        const colonRe = /([A-Za-z\u4e00-\u9fa5][A-Za-z0-9_\u4e00-\u9fa5]{0,15})\s*[：:]\s*([^\s：:，,]{1,64})/g;
-        while ((m = colonRe.exec(text)) !== null) out.push({ label: m[1], value: m[2] });
-        const spaceRe = /(nickname|openid|uid|server|platform|nick|昵称|角色|玩家名|区服|服务器|平台|系统|渠道)\s+([A-Za-z0-9_\-\u4e00-\u9fa5]{1,64})/gi;
-        while ((m = spaceRe.exec(text)) !== null) out.push({ label: m[1], value: m[2] });
-        return out;
-    }
-
-    // 先整段 JSON → 再找内嵌 JSON → 最后当 HTML 解析
-    function parseResponse(text) {
-        const s = (text === null || text === undefined) ? '' : String(text);
-        const direct = tryJson(s);
-        if (direct !== null) return { kind: 'json', json: direct, pairs: pairsFromJson(direct) };
-        const pairs2 = [['{', '}'], ['[', ']']];
-        for (let i = 0; i < pairs2.length; i++) {
-            const a = s.indexOf(pairs2[i][0]);
-            const b = s.lastIndexOf(pairs2[i][1]);
-            if (a >= 0 && b > a) {
-                const inner = tryJson(s.slice(a, b + 1));
-                if (inner !== null) return { kind: 'json', json: inner, pairs: pairsFromJson(inner) };
-            }
-        }
-        return { kind: 'html', json: null, pairs: extractPairsFromHtml(s) };
-    }
-
-    const ROLE_KEYS = {
-        nickname: ['nickname', 'nick', 'name', 'rolename', 'playername', '昵称', '角色名', '玩家昵称', '玩家名', '玩家'],
-        uid: ['uid', 'roleid', 'userid', 'playerid', 'accountid', 'id', '玩家id', '角色id', '账号id', '角色编号'],
-        server: ['server', 'servername', 'zone', 'zonename', 'area', '区服', '服务器', '大区', '所在服', '所在区'],
-        platform: ['platform', 'os', 'channel', 'client', '平台', '系统', '渠道', '客户端']
-    };
-
-    function normKey(x) {
-        return String(x === null || x === undefined ? '' : x).trim().toLowerCase().replace(/[\s_\-:：]/g, '');
-    }
-
-    // 按优先级归一成 { nickname, uid, server, platform }
-    function pickRole(pairs) {
-        const list = (pairs || []).filter(function (p) { return p && p.label !== undefined && p.value !== undefined && String(p.value).trim() !== ''; });
-        const role = {};
-        Object.keys(ROLE_KEYS).forEach(function (want) {
-            const alts = ROLE_KEYS[want].map(normKey).filter(Boolean);
-            let hit = null;
-            for (let i = 0; i < alts.length && !hit; i++) {
-                for (let j = 0; j < list.length; j++) {
-                    if (normKey(list[j].label) === alts[i]) { hit = list[j]; break; }
-                }
-            }
-            if (!hit) {
-                for (let i = 0; i < alts.length && !hit; i++) {
-                    for (let j = 0; j < list.length; j++) {
-                        if (normKey(list[j].label).indexOf(alts[i]) !== -1) { hit = list[j]; break; }
-                    }
-                }
-            }
-            if (hit) role[want] = String(hit.value).trim();
-        });
-        // nickname 兜底：有些接口只有 name，上面已含；这里再兜一层「昵称」类中文键
-        return role;
-    }
-
-    // 登录页 / 无权访问识别
-    function isLoginPage(text, finalUrl) {
-        const u = String(finalUrl === null || finalUrl === undefined ? '' : finalUrl);
-        if (/login|signin|sign_in|passport|sso|auth/i.test(u)) return true;
-        const s = String(text === null || text === undefined ? '' : text);
-        if (!s) return false;
-        if (/请先登录|请登录后|您尚未登录|您还未登录|尚未登录|未登录|登录已过期|登录状态已失效|重新登录|无权访问|没有权限|无权限|请先认证/i.test(s)) return true;
-        if (/"code"\s*:\s*(401|403|10001|10002)\b/.test(s)) return true;
-        if (/\b40[13]\b/.test(s) && /(token|未授权|unauthor)/i.test(s)) return true;
+    function isNoiseLine(line, opts) {
+        const t = String(line === null || line === undefined ? '' : line).trim();
+        if (!t) return true;
+        const o = opts || {};
+        if (o.openid && t.indexOf(o.openid) !== -1) return true;      // 含 openid 的行不参与
+        if (o.name && t === o.name) return true;                      // 昵称行本身不算问题
+        if (openidsIn(t).length) return true;
+        if (NAME_COLON_RE.test(t) || NAME_TIGHT_RE.test(t)) return true;
+        if (/^[\s\d.、)）(（\-—:：]*$/.test(t)) return true;            // 纯数字 / 序号
+        if (/[:：]$/.test(t)) return true;                             // 「昵称：」这种只有标签的行
+        if (looksLikeDate(t) && t.length <= 24) return true;
+        const low = t.toLowerCase();
+        if (NOISE_EXACT.some(function (w) { return low === w.toLowerCase(); })) return true;
+        if (t.length <= 12 && NOISE_PART.some(function (w) { return low.indexOf(w.toLowerCase()) !== -1; })) return true;
         return false;
     }
 
-    // 汇总成 ok / login / empty（网络错误由调用方标 error）
-    function classify(text, finalUrl) {
-        const s = String(text === null || text === undefined ? '' : text).trim();
-        if (!s) return 'empty';
-        if (isLoginPage(s, finalUrl)) return 'login';
-        const parsed = parseResponse(s);
-        const role = pickRole(parsed.pairs);
-        if (!role.nickname && !role.uid) return 'empty';
-        return 'ok';
+    function cleanName(v) {
+        let t = String(v === null || v === undefined ? '' : v).trim();
+        t = t.replace(/[:：\s]+$/, '').trim();
+        if (!t) return '';
+        if (openidsIn(t).length) return '';
+        if (t.length > 32) t = t.slice(0, 32);
+        return t;
     }
 
-    // 生成 GM_xmlhttpRequest 需要的 {url, method, data, headers}
-    function buildRequest(spec, openid) {
-        const s = spec || {};
-        const id = (openid === null || openid === undefined) ? '' : String(openid);
-        const enc = encodeURIComponent(id);
-        const url = String(s.url || '').split('{id}').join(enc);
-        let data = s.data;
-        if (typeof data === 'string') {
-            data = data.split('{id}').join(id);
-        } else if (data && typeof data === 'object') {
-            try { data = JSON.parse(JSON.stringify(data).split('{id}').join(id)); } catch (_) { /* 原样传 */ }
+    // 昵称：① 找「昵称：xxx」/「昵称 xxx」这种标签行 ② 兜底取靠前的短行（要求卡里还有更长的行当问题）
+    function guessName(lines, openid) {
+        const ls = Array.isArray(lines) ? lines : [];
+        for (let i = 0; i < ls.length; i++) {
+            let m = NAME_COLON_RE.exec(ls[i]);
+            if (m) { const v = cleanName(m[1]); if (v) return v; }
+            m = NAME_TIGHT_RE.exec(ls[i]);
+            if (m) { const v = cleanName(m[1]); if (v) return v; }
         }
+        const cands = ls.filter(function (t) { return !isNoiseLine(t, { openid: openid }); });
+        for (let i = 0; i < cands.length && i < 3; i++) {
+            const t = cands[i];
+            if (t.length < 2 || t.length > CONFIG.nameMaxLen) continue;
+            if (/[\s，。！？；、,.!?;:：]/.test(t)) continue;
+            const hasLonger = cands.some(function (x) { return x.length >= t.length + 6; });
+            if (hasLonger) return t;
+        }
+        return '';
+    }
+
+    // 问题：把非噪声行按文档顺序接起来（截图里那行「反馈内容：xxx」会被保留，只丢掉标签/时间/按钮文字）
+    function pickQuestion(lines, opts) {
+        const o = opts || {};
+        const cands = (Array.isArray(lines) ? lines : []).filter(function (l) { return !isNoiseLine(l, o); });
+        let out = cands.join(' ').replace(/\s+/g, ' ').trim();
+        if (out.length > CONFIG.maxQuestionLen) out = out.slice(0, CONFIG.maxQuestionLen) + '…';
+        return out;
+    }
+
+    // 相对地址 → 绝对地址（data:/javascript: 一律不要，反馈图不可能是内联的）
+    function absolutize(url, base) {
+        let u = String(url === null || url === undefined ? '' : url).trim();
+        if (!u) return '';
+        u = u.replace(/^['"]+|['"]+$/g, '').trim();
+        if (!u) return '';
+        if (/^(data|javascript|about|blob):/i.test(u)) return '';
+        if (u.indexOf('//') === 0) return 'https:' + u;
+        if (/^https?:\/\//i.test(u)) return u;
+        const m = /^(https?:\/\/[^/]+)/i.exec(String(base || ''));
+        if (!m) return '';
+        if (u.charAt(0) === '/') return m[1] + u;
+        return m[1] + '/' + u.replace(/^\.?\//, '');
+    }
+
+    const IMG_NOISE_RE = /(avatar|headimg|head_img|headpic|icon|sprite|emoji|logo|qrcode|qr_code|loading|placeholder|blank|transparent|default_|no_img|1x1|pixel)/i;
+    function isLikelyImageUrl(url, size) {
+        const u = String(url === null || url === undefined ? '' : url).trim();
+        if (!u) return false;
+        if (!/^https?:\/\//i.test(u)) return false;
+        if (/\.svg(\?|#|$)/i.test(u)) return false;
+        if (IMG_NOISE_RE.test(u)) return false;
+        const s = size || {};
+        const w = Number(s.w) || 0;
+        const h = Number(s.h) || 0;
+        if (w && h && (w < CONFIG.minImageSize || h < CONFIG.minImageSize)) return false;
+        return true;
+    }
+
+    // [{url, w, h, base}] → [{url, w, h}]：去重、过滤图标/头像、截断到 maxImages
+    function normalizeImages(list) {
+        const out = [];
+        const seen = Object.create(null);
+        (Array.isArray(list) ? list : []).forEach(function (it) {
+            const src = (typeof it === 'string') ? { url: it } : (it || {});
+            const u = absolutize(src.url, src.base);
+            if (!u || seen[u]) return;
+            const size = { w: src.w, h: src.h };
+            if (!isLikelyImageUrl(u, size)) return;
+            seen[u] = 1;
+            out.push({ url: u, w: Number(src.w) || 0, h: Number(src.h) || 0 });
+        });
+        return out.slice(0, CONFIG.maxImages);
+    }
+
+    // 一条反馈记录：没给名字/问题就用启发式从文本里猜
+    function buildRecord(input) {
+        const o = input || {};
+        const openid = String(o.openid || '');
+        const lines = Array.isArray(o.lines) ? linesOf(o.lines.join('\n')) : linesOf(o.text);
+        const name = cleanName(o.name) || guessName(lines, openid);
+        const question = (o.question === undefined || o.question === null || o.question === '')
+            ? pickQuestion(lines, { openid: openid, name: name })
+            : String(o.question);
         return {
-            url: url,
-            method: String(s.method || 'GET').toUpperCase(),
-            data: data,
-            headers: Object.assign({}, s.headers || {})
+            openid: openid,
+            name: name,
+            question: question,
+            images: normalizeImages(o.images || []),
+            url: String(o.url || ''),
+            at: Number(o.at) || Date.now()
         };
     }
 
-    // CSV 转义（导出用；带 BOM，Excel 直接能开）
-    function toCsv(rows, cols) {
-        const columns = (cols || []).map(function (c) {
-            return (typeof c === 'string') ? { key: c, label: c } : { key: c.key, label: c.label || c.key };
-        });
-        const esc = function (v) {
-            const t = (v === null || v === undefined) ? '' : String(v);
-            return /[",\r\n]/.test(t) ? '"' + t.split('"').join('""') + '"' : t;
+    // 按 openid upsert：新的排最前；已有的更新后也提到最前；空值不覆盖旧值
+    function mergeRecord(list, rec) {
+        const arr = Array.isArray(list) ? list : [];
+        if (!rec || !rec.openid) return arr.slice();
+        const old = arr.filter(function (r) { return r && r.openid === rec.openid; })[0] || null;
+        const rest = arr.filter(function (r) { return r && r.openid !== rec.openid; });
+        const merged = {
+            openid: rec.openid,
+            name: rec.name || (old && old.name) || '',
+            question: (rec.question && rec.question.length >= String((old && old.question) || '').length)
+                ? rec.question : String((old && old.question) || ''),
+            images: (rec.images && rec.images.length) ? rec.images : ((old && old.images) || []),
+            url: rec.url || (old && old.url) || '',
+            at: rec.at || (old && old.at) || Date.now(),
+            firstSeen: old ? (old.firstSeen || old.at || rec.at) : (rec.at || Date.now()),
+            hits: old ? (((old.hits) || 1) + 1) : 1
         };
-        const lines = [columns.map(function (c) { return esc(c.label); }).join(',')];
-        (rows || []).forEach(function (r) {
-            lines.push(columns.map(function (c) { return esc(r ? r[c.key] : ''); }).join(','));
-        });
-        return '\ufeff' + lines.join('\r\n');
+        rest.unshift(merged);
+        return rest;
     }
 
-    // ==================== 状态机 ====================
-    // pending / loading / ok / empty / error / login / uncalibrated
-    const STATUS_TEXT = {
-        pending: '待查询', loading: '查询中', ok: '成功', empty: '未查到',
-        error: '失败', login: '未登录', uncalibrated: '待校准'
-    };
+    // 保存上限（最新在前，超出丢尾部）
+    function capRecords(list, max) {
+        const arr = Array.isArray(list) ? list.filter(function (r) { return r && r.openid; }) : [];
+        return arr.slice(0, Number(max) > 0 ? Number(max) : CONFIG.maxItems);
+    }
 
-    // ==================== 共享运行时（A/B 复用；碰 GM / 网络的都在这层） ====================
-    const hasGM = (typeof GM_xmlhttpRequest === 'function');
+    // 「复制全部 openid」用（一行一个，顺序同面板：最新在前）
+    function openidListText(records) {
+        return (Array.isArray(records) ? records : [])
+            .map(function (r) { return (r && r.openid) || ''; })
+            .filter(Boolean)
+            .join('\n');
+    }
+
+    // 诊断信息（提取不准时复制给开发改启发式）
+    function diagnosticText(info) {
+        return JSON.stringify(info || {}, null, 2);
+    }
+
+    // ==================== 存储 / 状态（Node 下也定义，但不碰 GM_*、不碰 DOM） ====================
+    const KEY = { records: 'feedbacks', ui: 'panelUi' };
 
     function gmGet(key) {
         try {
-            if (typeof GM_getValue === 'function') return GM_getValue(key, '');
-            if (typeof localStorage !== 'undefined') return localStorage.getItem(key) || '';
+            if (typeof GM_getValue === 'function') {
+                const v = GM_getValue(key, '');
+                return (v === undefined || v === null) ? '' : v;
+            }
+            if (typeof localStorage !== 'undefined') {
+                const v = localStorage.getItem(key);
+                return v === null ? '' : v;
+            }
         } catch (_) { }
         return '';
     }
@@ -341,17 +318,6 @@
             if (typeof localStorage !== 'undefined') localStorage.removeItem(key);
         } catch (_) { }
     }
-    function gmKeys() {
-        try {
-            if (typeof GM_listValues === 'function') return GM_listValues() || [];
-            if (typeof localStorage !== 'undefined') {
-                const out = [];
-                for (let i = 0; i < localStorage.length; i++) out.push(localStorage.key(i));
-                return out;
-            }
-        } catch (_) { }
-        return [];
-    }
 
     const store = {
         get: function (key, dflt) {
@@ -360,47 +326,23 @@
             try { return JSON.parse(raw); } catch (_) { return dflt; }
         },
         set: function (key, val) { try { gmSet(key, JSON.stringify(val)); } catch (_) { } },
-        del: function (key) { gmDel(key); },
-        keys: function () { return gmKeys(); }
+        del: function (key) { gmDel(key); }
     };
 
-    // ---- 缓存：键 oid:<openid>，值 {t, status, role}，10 分钟 TTL，只缓存成功结果 ----
-    const KEY = {
-        spec: 'requestSpec',
-        recent: 'recentBatch',
-        lastRaw: 'lastRaw',
-        oid: function (openid) { return 'oid:' + openid; }
+    const state = {
+        records: [],        // 最新在前
+        nodes: {},          // openid → 已提取过的容器元素（同一容器不重复提取）
+        scans: 0,
+        lastScanAt: 0,
+        open: true,
+        userClosed: false,
+        panel: null,
+        launcher: null,
+        toast: null,
+        toastTimer: null,
+        listBox: null,
+        countBox: null
     };
-
-    function cacheGet(openid) {
-        const v = store.get(KEY.oid(openid), null);
-        if (!v || !v.t || Date.now() - v.t > CONFIG.cacheTtlMs) return null;
-        return v;
-    }
-    function cacheSet(openid, status, role) {
-        if (status !== 'ok') return;                       // 只缓存成功结果
-        store.set(KEY.oid(openid), { t: Date.now(), status: status, role: role || null });
-    }
-    function clearCache() {
-        let n = 0;
-        store.keys().forEach(function (k) { if (k.indexOf('oid:') === 0) { store.del(k); n++; } });
-        return n;
-    }
-
-    // ---- 已锁定 / 待锁定的请求形态 ----
-    function getSpec() { const s = store.get(KEY.spec, null); return (s && s.url) ? s : null; }
-    function setSpec(spec) { store.set(KEY.spec, spec); }
-    function clearSpec() { store.del(KEY.spec); }
-
-    function recordTry(name, openid, status, text) {
-        const tries = store.get('tries', []) || [];
-        tries.push({ t: Date.now(), name: name, openid: String(openid).slice(-8), status: status });
-        while (tries.length > CONFIG.maxTriesKept) tries.shift();
-        store.set('tries', tries);
-        const head = String(text || '').slice(0, 1500);
-        store.set(KEY.lastRaw, head);
-        if (CONFIG.debug && typeof console !== 'undefined') console.log('[gemjy] try', name, status, head.slice(0, 200));
-    }
 
     function dbg() {
         if (!CONFIG.debug || typeof console === 'undefined') return;
@@ -408,259 +350,78 @@
         console.log.apply(console, ['[gemjy]'].concat(a));
     }
 
-    function gmRequest(req) {
-        return new Promise(function (resolve, reject) {
-            if (typeof GM_xmlhttpRequest !== 'function') { reject(new Error('GM_xmlhttpRequest 不可用（检查 @grant）')); return; }
-            GM_xmlhttpRequest({
-                method: req.method,
-                url: req.url,
-                headers: req.headers,
-                data: req.data,
-                timeout: CONFIG.requestTimeoutMs,
-                withCredentials: true,                      // 带上 cookie（这就是用 GM 请求而不用 fetch 的原因）
-                onload: function (r) { resolve({ status: r.status, text: r.responseText || '', finalUrl: r.finalUrl || req.url }); },
-                onerror: function (e) { reject(new Error('网络错误 ' + ((e && e.error) || 'unknown'))); },
-                ontimeout: function () { reject(new Error('请求超时')); }
-            });
-        });
+    function getRecords() { return state.records.slice(); }
+    function recordOf(openid) {
+        return state.records.filter(function (r) { return r && r.openid === openid; })[0] || null;
     }
 
-    // ---- 共享状态 ----
-    const state = {
-        results: {},          // openid → { status, role, note }
-        known: [],            // 出现过的 openid（有序）
-        queue: [],
-        inflight: {},
-        running: 0,
-        stopped: null,        // 'login' | 'uncalibrated' | null
-        scanned: 0
-    };
-
-    let renderHook = function () { };
-    let updateStatus = function () { };
-    function setHooks(h) {
-        if (h && typeof h.render === 'function') renderHook = h.render;
-        if (h && typeof h.status === 'function') updateStatus = h.status;
+    function loadRecords() {
+        const saved = store.get(KEY.records, null);
+        const list = (saved && Array.isArray(saved.records)) ? saved.records : (Array.isArray(saved) ? saved : []);
+        state.records = capRecords(list);
+        const ui = store.get(KEY.ui, null);
+        if (ui && typeof ui.open === 'boolean') { state.open = ui.open; state.userClosed = !ui.open; }
+        if (!CONFIG.autoOpenPanel) { state.open = false; state.userClosed = true; }
+    }
+    function saveRecords() {
+        store.set(KEY.records, { t: Date.now(), records: capRecords(state.records) });
+    }
+    function saveUi() {
+        store.set(KEY.ui, { open: !!state.open });
+    }
+    function clearAll() {
+        state.records = [];
+        state.nodes = {};
+        saveRecords();
+        renderPanel();
+        updateLauncher();
     }
 
-    function getResult(openid) { return state.results[openid] || null; }
-    function remember(id) { if (state.known.indexOf(id) === -1) state.known.push(id); }
-
-    function setResult(openid, status, role, note) {
-        state.results[openid] = { status: status, role: role || null, note: note || '' };
-        try { updateStatus(openid, state.results[openid]); } catch (e) { dbg('updateStatus 抛错', e); }
-        try { renderHook(); } catch (e) { dbg('renderHook 抛错', e); }
-    }
-
-    function stats() {
-        const s = { pending: 0, loading: 0, ok: 0, empty: 0, error: 0, login: 0, uncalibrated: 0, total: state.known.length };
-        state.known.forEach(function (id) {
-            const r = state.results[id];
-            const k = r ? r.status : 'pending';
-            if (s[k] === undefined) s[k] = 0;
-            s[k]++;
-        });
-        return s;
-    }
-
-    // ---- 查询：缓存 → 已锁定形态 → 依次试候选 ----
-    async function trySpec(spec, openid) {
-        const req = buildRequest(spec, openid);
-        const raw = await gmRequest(req);
-        const text = String(raw.text || '');
-        const status = classify(text, raw.finalUrl);
-        let role = null;
-        if (status === 'ok') role = pickRole(parseResponse(text).pairs);
-        recordTry(spec.name || spec.url, openid, status, text);
-        return { status: status, role: role };
-    }
-
-    async function lookup(openid) {
-        const c = cacheGet(openid);
-        if (c) return { status: c.status, role: c.role, cached: true };
-        const locked = getSpec();
-        if (locked) {
-            const r1 = await trySpec(locked, openid);
-            if (r1.status === 'ok') { cacheSet(openid, 'ok', r1.role); return r1; }
-            if (r1.status === 'login') return { status: 'login', role: null };
-            clearSpec();                                   // 锁定的形态失效了 → 重新校准
-        }
-        for (let i = 0; i < CONFIG.requestCandidates.length; i++) {
-            const cand = CONFIG.requestCandidates[i];
-            const r = await trySpec(cand, openid);
-            if (r.status === 'ok') { setSpec(cand); cacheSet(openid, 'ok', r.role); return r; }
-            if (r.status === 'login') return { status: 'login', role: null };
-        }
-        return { status: 'uncalibrated', role: null };
-    }
-
-    // ---- 队列：并发 2、inflight 去重、掉登录/待校准立刻停 ----
-    function stopQueue(reason) {
-        if (state.stopped) return;
-        state.stopped = reason;
-        state.queue.length = 0;
-        Object.keys(state.results).forEach(function (id) {
-            if (state.results[id].status === 'loading') setResult(id, reason === 'login' ? 'login' : 'uncalibrated', null);
-        });
-        try { renderHook(); } catch (_) { }
-    }
-    function resumeQueue() { state.stopped = null; }
-
-    function pump() {
-        if (state.stopped) return;
-        while (state.running < CONFIG.concurrency && state.queue.length) {
-            const id = state.queue.shift();
-            if (state.inflight[id]) continue;
-            state.running++;
-            state.inflight[id] = true;
-            setResult(id, 'loading');
-            lookup(id).then(function (res) {
-                setResult(id, res.status, res.role, res.cached ? '缓存命中' : '');
-                if (res.status === 'login') stopQueue('login');
-                else if (res.status === 'uncalibrated') stopQueue('uncalibrated');
-            }).catch(function (e) {
-                setResult(id, 'error', null, String((e && e.message) || e));
-            }).then(function () {
-                state.running--;
-                delete state.inflight[id];
-                pump();
-            });
-        }
-    }
-
-    function enqueue(ids) {
-        if (state.stopped) return 0;
-        let n = 0;
-        (ids || []).forEach(function (id) {
-            if (!id) return;
-            remember(id);
-            if (state.inflight[id]) return;
-            if (state.queue.indexOf(id) !== -1) return;
-            const cur = state.results[id];
-            if (cur && cur.status === 'ok') return;         // 已有成功结果
-            state.queue.push(id);
-            n++;
-        });
-        if (n) pump();
-        return n;
-    }
-
-    // 失败/未登录/待校准的重新排队
-    function retryFailed() {
-        resumeQueue();
-        const again = state.known.filter(function (id) {
-            const r = state.results[id];
-            return !r || r.status === 'error' || r.status === 'empty' || r.status === 'uncalibrated' || r.status === 'login';
-        });
-        return enqueue(again);
-    }
-
-    function roleText(role) {
-        if (!role) return '';
-        return CONFIG.badgeFields.map(function (k) { return role[k] ? role[k] : ''; }).filter(Boolean).join(' · ');
-    }
-
-    function copyText(text, label) {
-        if (!text) return false;
+    // ==================== 剪贴板 / 小工具 ====================
+    function copyText(text) {
+        const t = String(text === null || text === undefined ? '' : text);
+        if (!t) return false;
+        try { if (typeof GM_setClipboard === 'function') { GM_setClipboard(t, 'text'); return true; } } catch (_) { }
         try {
-            if (typeof GM_setClipboard === 'function') { GM_setClipboard(text, 'text'); return true; }
-            if (typeof navigator !== 'undefined' && navigator.clipboard) { navigator.clipboard.writeText(text); return true; }
+            if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(t);
+                return true;
+            }
         } catch (_) { }
-        return false;
+        try {
+            const ta = document.createElement('textarea');
+            ta.value = t;
+            ta.style.cssText = 'position:fixed;left:-9999px;top:0';
+            document.body.appendChild(ta);
+            ta.select();
+            const done = document.execCommand && document.execCommand('copy');
+            document.body.removeChild(ta);
+            return !!done;
+        } catch (_) { return false; }
     }
 
-    // 上次反馈页会话（A 端写、B 端读）
-    function saveRecentBatch(ids) {
-        store.set(KEY.recent, { t: Date.now(), url: (typeof location !== 'undefined' ? location.href : ''), ids: (ids || []).slice(0, 500) });
-    }
-    function loadRecentBatch() {
-        const v = store.get(KEY.recent, null);
-        return (v && Array.isArray(v.ids)) ? v : null;
-    }
-
-    // 校准信息（复制给开发/给 AI 换成硬编码用）
-    function calibrationText() {
-        return JSON.stringify({
-            endpoint: CONFIG.endpoint,
-            lockedSpec: getSpec(),
-            tries: store.get('tries', []),
-            lastRawHead: String(store.get(KEY.lastRaw, '')).slice(0, 800)
-        }, null, 2);
+    function toast(msg) {
+        try {
+            if (!state.toast) {
+                state.toast = mkEl('div', 'gj-toast', '');
+                document.body.appendChild(state.toast);
+            }
+            state.toast.textContent = msg;
+            state.toast.style.display = '';
+            if (state.toastTimer) clearTimeout(state.toastTimer);
+            state.toastTimer = setTimeout(function () {
+                if (state.toast) state.toast.style.display = 'none';
+            }, 1500);
+        } catch (_) { }
     }
 
-    const API = {
-        CONFIG: CONFIG,
-        STATUS_TEXT: STATUS_TEXT,
-        // 纯函数
-        openidsIn: openidsIn,
-        parseIds: parseIds,
-        tryJson: tryJson,
-        pairsFromJson: pairsFromJson,
-        extractPairsFromHtml: extractPairsFromHtml,
-        pickRole: pickRole,
-        isLoginPage: isLoginPage,
-        parseResponse: parseResponse,
-        classify: classify,
-        buildRequest: buildRequest,
-        toCsv: toCsv,
-        // 运行时
-        lookup: lookup,
-        enqueue: enqueue,
-        retryFailed: retryFailed,
-        stats: stats,
-        getResult: getResult,
-        clearCache: clearCache,
-        calibrationText: calibrationText,
-        getSpec: getSpec,
-        setSpec: setSpec,
-        clearSpec: clearSpec,
-        loadRecentBatch: loadRecentBatch,
-        saveRecentBatch: saveRecentBatch,
-        setHooks: setHooks,
-        store: store,
-        state: state,
-        version: '0.2.1'
-    };
-
-    // ==================== Node 单测守卫：require() 时只导出纯函数与运行时，不碰 DOM ====================
-    if (typeof module !== 'undefined' && module.exports) {
-        module.exports = API;
-        return;
+    function clockOf(ts) {
+        try {
+            const d = new Date(Number(ts) || Date.now());
+            const p = function (n) { return (n < 10 ? '0' : '') + n; };
+            return p(d.getHours()) + ':' + p(d.getMinutes());
+        } catch (_) { return ''; }
     }
-    if (typeof window !== 'undefined') window.__GEMJY_HELPER__ = API;
-    if (typeof document === 'undefined') return;
-
-    // ==================== 样式 ====================
-    const CSS = [
-        '.gj-badge{display:inline-flex;align-items:center;gap:4px;margin:2px 6px 2px 0;padding:1px 7px;border-radius:10px;',
-        'font:12px/1.6 -apple-system,"Microsoft YaHei",sans-serif;border:1px solid #d9d9d9;background:#fafafa;color:#666;cursor:pointer;vertical-align:middle;white-space:nowrap}',
-        '.gj-badge.ok{background:#e8f7ee;border-color:#a8dcbd;color:#1a7f45}',
-        '.gj-badge.loading{background:#eef4ff;border-color:#b7cdf5;color:#2a5db0}',
-        '.gj-badge.login{background:#fff5e6;border-color:#f0cf9a;color:#a86a12}',
-        '.gj-badge.uncalibrated{background:#f6f0ff;border-color:#d0bdf0;color:#6b3fbf}',
-        '.gj-badge.empty{background:#f5f5f5;border-color:#dddddd;color:#999}',
-        '.gj-badge.error{background:#fdecec;border-color:#f2b8b5;color:#b3261e}',
-        '.gj-panel{position:fixed;right:16px;bottom:16px;z-index:2147483000;background:#fff;border:1px solid #dcdcdc;border-radius:10px;',
-        'box-shadow:0 8px 28px rgba(0,0,0,.16);font:13px/1.7 -apple-system,"Microsoft YaHei",sans-serif;color:#333;padding:10px 12px;max-width:340px}',
-        '.gj-panel .gj-row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}',
-        '.gj-panel button{margin:2px 0;padding:3px 9px;border:1px solid #d0d0d0;background:#fafafa;border-radius:6px;cursor:pointer;font-size:12px}',
-        '.gj-panel button:hover{background:#f0f0f0}',
-        '.gj-panel .gj-title{font-weight:700;margin-bottom:4px}',
-        '.gj-panel .gj-mute{color:#8a8a8a;font-size:12px}',
-        '.gj-drawer{position:fixed;right:0;top:0;bottom:0;width:660px;max-width:96vw;z-index:2147483001;background:#fff;border-left:1px solid #dcdcdc;',
-        'box-shadow:-8px 0 28px rgba(0,0,0,.14);font:13px/1.7 -apple-system,"Microsoft YaHei",sans-serif;color:#222;display:flex;flex-direction:column}',
-        '.gj-drawer header{padding:10px 14px;border-bottom:1px solid #eee;display:flex;justify-content:space-between;align-items:center;font-weight:700}',
-        '.gj-drawer .gj-body{padding:10px 14px;overflow:auto;flex:1}',
-        '.gj-drawer textarea{width:100%;min-height:88px;box-sizing:border-box;font:12px/1.6 Consolas,monospace;border:1px solid #dcdcdc;border-radius:6px;padding:6px}',
-        '.gj-drawer button{margin:2px 4px 2px 0;padding:4px 10px;border:1px solid #d0d0d0;background:#fafafa;border-radius:6px;cursor:pointer;font-size:12px}',
-        '.gj-drawer button.primary{background:#1a7f45;border-color:#1a7f45;color:#fff}',
-        '.gj-table{width:100%;border-collapse:collapse;margin-top:8px;font-size:12px}',
-        '.gj-table th,.gj-table td{border-bottom:1px solid #eee;padding:4px 6px;text-align:left;vertical-align:top;word-break:break-all}',
-        '.gj-table th{background:#fafafa;position:sticky;top:0}',
-        '.gj-banner{margin:8px 0;padding:6px 10px;border-radius:6px;background:#fff5e6;border:1px solid #f0cf9a;color:#a86a12}',
-        '.gj-st{font-weight:700}.gj-st.ok{color:#1a7f45}.gj-st.loading{color:#2a5db0}.gj-st.login{color:#a86a12}',
-        '.gj-st.uncalibrated{color:#6b3fbf}.gj-st.empty{color:#999}.gj-st.error{color:#b3261e}'
-    ].join('');
 
     function addStyle(css) {
         try {
@@ -678,412 +439,420 @@
         return el;
     }
 
-    // ==================== A 端：反馈后台 ====================
-    const FEEDBACK = {
-        nodes: {},            // openid → 容器元素
-        badges: {},           // openid → 徽标元素
-        clicked: [],          // 已点过的展开元素（用 indexOf 代替 WeakSet，方便查）
-        rounds: 0,
-        panel: null,
-        lastScanAt: 0
-    };
-
-    function isFeedbackHost() { return /(^|\.)mp\.weixin\.qq\.com$/.test(location.hostname); }
-
-    // 从任意响应里嗅 openid（跳过我们自己发往 operator 的请求）
-    function hookNetwork() {
-        try {
-            const of = window.fetch;
-            if (typeof of === 'function') {
-                window.fetch = function () {
-                    const args = arguments;
-                    const url = String((args[0] && args[0].url) || args[0] || '');
-                    return of.apply(this, args).then(function (resp) {
-                        if (url.indexOf(CONFIG.endpoint) === -1) {
-                            try {
-                                resp.clone().text().then(function (t) {
-                                    const ids = openidsIn(t);
-                                    if (ids.length) { saveRecentBatch(ids); if (CONFIG.autoQuery) enqueue(ids); }
-                                }).catch(function () { });
-                            } catch (_) { }
-                        }
-                        return resp;
-                    });
-                };
-            }
-            const OX = window.XMLHttpRequest;
-            if (typeof OX === 'function') {
-                const open = OX.prototype.open;
-                const send = OX.prototype.send;
-                OX.prototype.open = function (method, url) {
-                    this.__gjUrl = String(url || '');
-                    return open.apply(this, arguments);
-                };
-                OX.prototype.send = function () {
-                    const xhr = this;
-                    if (String(xhr.__gjUrl || '').indexOf(CONFIG.endpoint) === -1) {
-                        xhr.addEventListener('load', function () {
-                            try {
-                                const t = xhr.responseText || '';
-                                const ids = openidsIn(t);
-                                if (ids.length) { saveRecentBatch(ids); if (CONFIG.autoQuery) enqueue(ids); }
-                            } catch (_) { }
-                        });
-                    }
-                    return send.apply(this, arguments);
-                };
-            }
-        } catch (e) { dbg('hookNetwork 失败', e); }
+    // ==================== DOM 层：从反馈页提取 ====================
+    function isFeedbackHost() {
+        try { return /(^|\.)mp\.weixin\.qq\.com$/.test(location.hostname); } catch (_) { return false; }
     }
 
-    // 找 openid 所在的「卡片」容器：向上最多 12 层，取含日期且高度 60–800 的祖先，兜底第 6 层
+    const BLOCK_TAGS = {
+        DIV: 1, P: 1, LI: 1, UL: 1, OL: 1, TR: 1, TD: 1, TH: 1, TABLE: 1, TBODY: 1, THEAD: 1,
+        SECTION: 1, ARTICLE: 1, HEADER: 1, FOOTER: 1, ASIDE: 1, MAIN: 1, NAV: 1, BR: 1, HR: 1,
+        H1: 1, H2: 1, H3: 1, H4: 1, H5: 1, H6: 1, BLOCKQUOTE: 1, PRE: 1, FIGURE: 1, DL: 1, DD: 1, DT: 1, IMG: 1
+    };
+
+    function textOf(el) {
+        if (!el) return '';
+        try { if (el.innerText) return String(el.innerText); } catch (_) { }
+        try { return String(el.textContent || ''); } catch (_) { return ''; }
+    }
+
+    // 容器的可见文本 → 行。真浏览器走 innerText（自带换行）；
+    // innerText 不可用（jsdom 等）时按块级元素边界自己插换行。
+    function domLinesOf(el) {
+        if (!el) return [];
+        let t = '';
+        try { t = el.innerText || ''; } catch (_) { }
+        if (t) return linesOf(t);
+        let out = '';
+        const walk = function (n) {
+            if (!n) return;
+            if (n.nodeType === 3) { out += n.nodeValue; return; }
+            if (n.nodeType !== 1) return;
+            const tag = String(n.tagName || '').toUpperCase();
+            if (tag === 'SCRIPT' || tag === 'STYLE' || tag === 'NOSCRIPT' || tag === 'TEXTAREA') return;
+            if (tag === 'IMG') { out += '\n'; return; }
+            const block = !!BLOCK_TAGS[tag];
+            if (block) out += '\n';
+            for (let c = n.firstChild; c; c = c.nextSibling) walk(c);
+            if (block) out += '\n';
+        };
+        walk(el);
+        return linesOf(out);
+    }
+
+    // 显式 display:none 才当不可见（jsdom 没有布局，不能用 offsetParent）
+    function isVisible(el) {
+        try {
+            if (!el || !el.isConnected) return false;
+            if (el.hidden) return false;
+            if (el.getAttribute && el.getAttribute('aria-hidden') === 'true') return false;
+            let n = el;
+            for (let i = 0; n && n.nodeType === 1 && i < 6; i++) {
+                const st = n.getAttribute && n.getAttribute('style');
+                if (st && /display\s*:\s*none/i.test(st)) return false;
+                n = n.parentElement;
+            }
+            if (typeof el.checkVisibility === 'function') { try { return el.checkVisibility(); } catch (_) { } }
+            return true;
+        } catch (_) { return true; }
+    }
+
+    // 找 openid 所在的「一条反馈」容器：一路向上，直到这个祖先里出现第二个不同 openid
+    // （或文本过长）为止 —— 再往上一层就是整张列表了。
     function findItemContainer(node) {
         let el = node && node.parentElement;
-        let fallback = null;
-        for (let i = 0; el && i < 12; i++) {
-            if (i === 5) fallback = el;
-            let rect = null;
-            try { rect = el.getBoundingClientRect(); } catch (_) { }
-            const h = rect ? rect.height : 0;
-            const text = (el.innerText || el.textContent || '');
-            const hasDate = /\d{1,4}[-/月.]\d{1,2}([-/日.]\d{1,2})?/.test(text);
-            if (hasDate && h >= 60 && h <= 800) return el;
+        let best = el;
+        for (let i = 0; el && i < 14; i++) {
+            const text = textOf(el);
+            if (distinctIdCount(text) > 1) break;
+            if (text.length > 2000) break;
+            best = el;
             el = el.parentElement;
         }
-        return fallback || (node && node.parentElement) || null;
+        return best || (node && node.parentElement) || null;
+    }
+
+    // 容器里的图片：img 的 src/懒加载属性 + 内联 background-image + 指向图片的链接
+    function imagesOf(el, base) {
+        const out = [];
+        if (!el || !el.querySelectorAll) return out;
+        const push = function (url, w, h) { if (url) out.push({ url: url, w: w || 0, h: h || 0, base: base }); };
+        try {
+            el.querySelectorAll('img').forEach(function (img) {
+                const w = img.naturalWidth || img.width || 0;
+                const h = img.naturalHeight || img.height || 0;
+                if (img.currentSrc) push(img.currentSrc, w, h);
+                ['src', 'data-src', 'data-original', 'data-url', 'data-lazy-src', 'data-echo'].forEach(function (attr) {
+                    const v = img.getAttribute ? img.getAttribute(attr) : '';
+                    if (v) push(v, w, h);
+                });
+            });
+        } catch (_) { }
+        try {
+            el.querySelectorAll('a[href]').forEach(function (a) {
+                const href = a.getAttribute('href') || '';
+                if (/\.(png|jpe?g|gif|webp|bmp)(\?|#|$)/i.test(href)) push(href, 0, 0);
+            });
+        } catch (_) { }
+        try {
+            el.querySelectorAll('[style*="url("]').forEach(function (n) {
+                const st = n.getAttribute('style') || '';
+                const re = /url\((['"]?)([^'")]+)\1\)/gi;
+                let m;
+                while ((m = re.exec(st)) !== null) push(m[2], 0, 0);
+            });
+        } catch (_) { }
+        return out;
+    }
+
+    const REFLECT = ['.gj-panel', '.gj-launcher', '.gj-toast'];
+
+    function insideOwnUi(node) {
+        try {
+            const el = node && (node.nodeType === 1 ? node : node.parentElement);
+            if (!el || !el.closest) return false;
+            return !!el.closest(REFLECT.join(','));
+        } catch (_) { return false; }
     }
 
     function scan() {
-        FEEDBACK.lastScanAt = Date.now();
-        const ids = [];
+        state.scans++;
+        state.lastScanAt = Date.now();
+        let added = 0;
         try {
+            if (!document.body) return;
             const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
                 acceptNode: function (n) {
                     const p = n.parentElement;
                     if (!p) return NodeFilter.FILTER_REJECT;
-                    const tag = (p.tagName || '').toLowerCase();
+                    const tag = String(p.tagName || '').toLowerCase();
                     if (tag === 'script' || tag === 'style' || tag === 'textarea' || tag === 'noscript') return NodeFilter.FILTER_REJECT;
-                    if (p.closest && p.closest('.gj-panel,.gj-drawer')) return NodeFilter.FILTER_REJECT;
-                    if (p.offsetParent === null) return NodeFilter.FILTER_REJECT;      // 只看可见的
+                    if (insideOwnUi(p)) return NodeFilter.FILTER_REJECT;    // 别把自己面板里的 openid 又扫一遍
+                    if (!isVisible(p)) return NodeFilter.FILTER_REJECT;
                     return NodeFilter.FILTER_ACCEPT;
                 }
             });
             let n;
             while ((n = walker.nextNode())) {
-                const found = openidsIn(n.nodeValue);
-                if (!found.length) continue;
+                const ids = openidsIn(n.nodeValue);
+                if (!ids.length) continue;
                 const box = findItemContainer(n);
-                found.forEach(function (id) {
-                    if (!box) return;
-                    if (!FEEDBACK.nodes[id]) { FEEDBACK.nodes[id] = box; ids.push(id); }
-                    else if (!FEEDBACK.badges[id]) ids.push(id);
+                if (!box) continue;
+                ids.forEach(function (id) {
+                    if (state.nodes[id] === box && recordOf(id)) return;    // 同一容器已提取过
+                    state.nodes[id] = box;
+                    const rec = buildRecord({
+                        openid: id,
+                        lines: domLinesOf(box),
+                        images: imagesOf(box, location.href),
+                        url: location.href
+                    });
+                    state.records = mergeRecord(state.records, rec);
+                    added++;
                 });
             }
         } catch (e) { dbg('scan 失败', e); }
-        if (ids.length) {
-            ids.forEach(remember);
-            saveRecentBatch(state.known);
-            renderBadges();
-            if (CONFIG.autoQuery) enqueue(ids);
+        if (added) {
+            saveRecords();
+            if (CONFIG.autoOpenPanel && !state.userClosed) state.open = true;
+            renderPanel();
+            updateLauncher();
+            dbg('新增 ' + added + ' 条');
+        } else {
+            renderPanel();
         }
-        FEEDBACK.scanned = state.known.length;
+    }
+
+    // ==================== DOM 层：悬浮窗 ====================
+    const CSS = [
+        '.gj-launcher{position:fixed;right:16px;bottom:16px;z-index:2147483000;padding:8px 13px;border-radius:999px;',
+        'border:1px solid #1a7f45;background:#1a7f45;color:#fff;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.18);',
+        'font:13px/1.6 -apple-system,"Microsoft YaHei",sans-serif;white-space:nowrap}',
+        '.gj-launcher.gj-off{background:#fff;color:#1a7f45}',
+        '.gj-panel{position:fixed;right:16px;bottom:62px;width:382px;max-width:94vw;max-height:72vh;z-index:2147483001;',
+        'background:#fff;border:1px solid #dcdcdc;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.18);',
+        'font:13px/1.7 -apple-system,"Microsoft YaHei",sans-serif;color:#222;display:flex;flex-direction:column;overflow:hidden}',
+        '.gj-panel .gj-hd{padding:9px 12px;border-bottom:1px solid #eee;display:flex;justify-content:space-between;align-items:center;gap:8px;font-weight:700}',
+        '.gj-panel .gj-hd button{border:1px solid #dcdcdc;background:#fafafa;border-radius:6px;cursor:pointer;font-size:12px;padding:2px 8px;font-weight:400}',
+        '.gj-panel .gj-count{padding:4px 12px;border-bottom:1px solid #f2f2f2}',
+        '.gj-panel .gj-bar{padding:7px 12px;border-bottom:1px solid #f2f2f2;display:flex;flex-wrap:wrap;gap:6px}',
+        '.gj-panel .gj-bar button{padding:3px 9px;border:1px solid #d0d0d0;background:#fafafa;border-radius:6px;cursor:pointer;font-size:12px}',
+        '.gj-panel .gj-bar button:hover{background:#f0f0f0}',
+        '.gj-panel .gj-bar button.gj-pri{background:#1a7f45;border-color:#1a7f45;color:#fff}',
+        '.gj-panel .gj-list{overflow:auto;padding:0}',
+        '.gj-item{padding:8px 12px;border-bottom:1px solid #f4f4f4}',
+        '.gj-item .gj-name{font-weight:700;word-break:break-all}',
+        '.gj-item .gj-q{margin:2px 0;color:#333;white-space:pre-wrap;word-break:break-word}',
+        '.gj-item .gj-q.gj-clamp{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}',
+        '.gj-item .gj-thumbs{display:flex;gap:6px;flex-wrap:wrap;margin:4px 0}',
+        '.gj-item .gj-thumbs img{width:52px;height:52px;object-fit:cover;border-radius:6px;border:1px solid #e2e2e2;background:#fafafa;cursor:zoom-in}',
+        '.gj-item .gj-id{display:flex;align-items:center;gap:6px;margin-top:4px}',
+        '.gj-item .gj-id code{font:12px/1.6 Consolas,monospace;word-break:break-all;color:#1a7f45}',
+        '.gj-item .gj-id button{padding:2px 8px;border:1px solid #1a7f45;background:#e8f7ee;color:#1a7f45;border-radius:6px;cursor:pointer;font-size:12px;white-space:nowrap}',
+        '.gj-mute{color:#8a8a8a;font-size:12px}',
+        '.gj-toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%);z-index:2147483002;background:rgba(0,0,0,.82);color:#fff;',
+        'padding:6px 14px;border-radius:999px;font:13px/1.6 -apple-system,"Microsoft YaHei",sans-serif}'
+    ].join('');
+
+    function copyOpenid(openid, label) {
+        if (copyText(openid)) toast('已复制 openid：' + openid.slice(0, 10) + '…');
+        else toast('复制失败，请手动选中（' + (label || '') + '）');
+    }
+
+    function buildItem(rec) {
+        const box = mkEl('div', 'gj-item');
+        const name = mkEl('div', 'gj-name', rec.name ? rec.name : '（昵称未识别）');
+        if (!rec.name) name.style.color = '#a86a12';
+        box.appendChild(name);
+
+        if (rec.question) {
+            const q = mkEl('div', 'gj-q', rec.question);
+            if (rec.question.length > 90) {
+                q.className = 'gj-q gj-clamp';
+                q.title = '点击展开 / 收起';
+                q.onclick = function () { q.className = (q.className.indexOf('gj-clamp') === -1) ? 'gj-q gj-clamp' : 'gj-q'; };
+            }
+            box.appendChild(q);
+        } else {
+            box.appendChild(mkEl('div', 'gj-q gj-mute', '（没提到问题文本）'));
+        }
+
+        if (rec.images && rec.images.length) {
+            const wrap = mkEl('div', 'gj-thumbs');
+            rec.images.forEach(function (im) {
+                const img = document.createElement('img');
+                img.src = im.url;
+                img.loading = 'lazy';
+                try { img.referrerPolicy = 'no-referrer'; } catch (_) { }
+                img.title = '点击看原图';
+                img.onclick = function () { try { window.open(im.url, '_blank'); } catch (_) { } };
+                wrap.appendChild(img);
+            });
+            box.appendChild(wrap);
+        }
+
+        const idRow = mkEl('div', 'gj-id');
+        idRow.appendChild(mkEl('code', '', rec.openid));
+        const btn = mkEl('button', '', '复制 openid');
+        btn.onclick = function () { copyOpenid(rec.openid, rec.name); };
+        idRow.appendChild(btn);
+        const meta = mkEl('span', 'gj-mute', clockOf(rec.at) + (rec.hits > 1 ? ' · 见 ' + rec.hits + ' 次' : ''));
+        idRow.appendChild(meta);
+        box.appendChild(idRow);
+        return box;
+    }
+
+    function renderLauncher() {
+        if (!state.launcher) {
+            const b = mkEl('button', 'gj-launcher', '');
+            b.onclick = function () { setOpen(!state.open); };
+            document.body.appendChild(b);
+            state.launcher = b;
+        }
+        updateLauncher();
+    }
+
+    function updateLauncher() {
+        if (!state.launcher) return;
+        state.launcher.textContent = '反馈 ' + state.records.length + (state.open ? ' ▾' : ' ▴');
+        state.launcher.className = state.open ? 'gj-launcher' : 'gj-launcher gj-off';
+        state.launcher.title = state.open ? '收起面板' : '展开面板（已存 ' + state.records.length + ' 条）';
+    }
+
+    function setOpen(open) {
+        state.open = !!open;
+        state.userClosed = !state.open;
+        saveUi();
         renderPanel();
-    }
-
-    function renderBadges() {
-        Object.keys(FEEDBACK.nodes).forEach(function (id) {
-            const box = FEEDBACK.nodes[id];
-            if (!box || !box.isConnected) return;
-            let b = FEEDBACK.badges[id];
-            if (!b) {
-                b = mkEl('span', 'gj-badge', '');
-                b.__gjId = id;
-                b.onclick = function (ev) {
-                    ev.stopPropagation();
-                    ev.preventDefault();
-                    const r = getResult(id);
-                    if (r && r.status === 'login') { window.open(CONFIG.loginUrl, '_blank'); return; }
-                    copyText(id + (r && r.role && r.role.uid ? ' ' + r.role.uid : ''), '徽标');
-                    b.title = '已复制：' + id;
-                    if (!r || r.status === 'pending' || r.status === 'error') { resumeQueue(); enqueue([id]); }
-                };
-                try { box.insertBefore(b, box.firstChild); } catch (_) { box.appendChild(b); }
-                FEEDBACK.badges[id] = b;
-            }
-            updateBadge(id);
-        });
-    }
-
-    function updateBadge(id) {
-        const b = FEEDBACK.badges[id];
-        if (!b) return;
-        const r = getResult(id);
-        const st = r ? r.status : 'pending';
-        b.className = 'gj-badge ' + st;
-        const role = r && r.role ? roleText(r.role) : '';
-        b.textContent = (STATUS_TEXT[st] || st) + (role ? '：' + role : (r && r.note ? '：' + r.note : ''));
-        b.title = st === 'login' ? '点我打开 operator 登录页' : (id + (role ? '\n' + role : ''));
-    }
-
-    // 自动展开（限流）：命中选择器的小元素，或文本恰为 + ＋ ▸ ▶
-    function autoExpandOnce() {
-        let clicked = 0;
-        const max = 8;
-        const all = document.querySelectorAll(CONFIG.autoExpandSelectors.join(',') + ',button,span,a,i,div');
-        for (let i = 0; i < all.length && clicked < max; i++) {
-            const el = all[i];
-            if (el.closest && el.closest('.gj-panel,.gj-drawer')) continue;
-            if (FEEDBACK.clicked.indexOf(el) !== -1) continue;
-            const text = (el.textContent || '').trim();
-            let hit = false;
-            if (CONFIG.autoExpandSymbols.indexOf(text) !== -1) hit = true;
-            else if (CONFIG.autoExpandSelectors.some(function (sel) { try { return el.matches(sel); } catch (_) { return false; } })) {
-                if (text.length <= 8 && el.offsetParent !== null) hit = true;
-            }
-            if (!hit) continue;
-            FEEDBACK.clicked.push(el);
-            try { el.click(); clicked++; } catch (_) { }
-        }
-        if (clicked && FEEDBACK.rounds < 3) {
-            FEEDBACK.rounds++;
-            setTimeout(scan, 900);
-        }
-        return clicked;
+        updateLauncher();
     }
 
     function renderPanel() {
-        if (!FEEDBACK.panel) {
-            const p = mkEl('div', 'gj-panel');
-            document.body.appendChild(p);
-            FEEDBACK.panel = p;
-        }
-        const s = stats();
-        const p = FEEDBACK.panel;
-        p.innerHTML = '';
-        p.appendChild(mkEl('div', 'gj-title', 'Gemjy OpenID 助手 v' + API.version));
-        p.appendChild(mkEl('div', 'gj-mute',
-            '共 ' + s.total + ' 条 · 成功 ' + s.ok + ' · 查询中 ' + s.loading + ' · 待查 ' + s.pending +
-            ' · 未查到 ' + s.empty + ' · 失败 ' + s.error + (s.login ? ' · 未登录 ' + s.login : '') +
-            (s.uncalibrated ? ' · 待校准 ' + s.uncalibrated : '')));
-        if (state.stopped === 'login') p.appendChild(mkEl('div', 'gj-mute', '⚠️ operator 未登录：先登录再点「重试失败」'));
-        if (state.stopped === 'uncalibrated') p.appendChild(mkEl('div', 'gj-mute', '⚠️ 接口形态不符：点「校准」把信息发我，或改 CONFIG.requestCandidates'));
-        const row1 = mkEl('div', 'gj-row');
-        const row2 = mkEl('div', 'gj-row');
-        const btn = function (parent, label, fn) { const b = mkEl('button', '', label); b.onclick = fn; parent.appendChild(b); return b; };
-        btn(row1, '查询本页', function () { resumeQueue(); enqueue(state.known); scan(); });
-        btn(row1, '重试失败', function () { retryFailed(); });
-        btn(row1, '打开登录页', function () { window.open(CONFIG.loginUrl, '_blank'); });
-        btn(row2, '清空缓存', function () { const n = clearCache(); retryFailed(); alert('已清空 ' + n + ' 条缓存'); });
-        btn(row2, '校准', function () { copyText(calibrationText(), '校准信息'); alert('校准信息已复制（含 lockedSpec / tries / lastRaw 片段）'); });
-        btn(row2, '收起', function () { p.style.display = 'none'; });
-        if (CONFIG.autoExpand) btn(row2, '展开更多', function () { autoExpandOnce(); });
-        p.appendChild(row1);
-        p.appendChild(row2);
-    }
-
-    function bootFeedback() {
-        addStyle(CSS);
-        hookNetwork();
-        const start = function () {
-            scan();
-            setTimeout(scan, 2500);
-            setTimeout(scan, 6000);
-            if (CONFIG.autoExpand) setTimeout(autoExpandOnce, 1200);
-            try {
-                let timer = null;
-                const mo = new MutationObserver(function () {
-                    if (timer) return;
-                    timer = setTimeout(function () { timer = null; scan(); }, CONFIG.scanThrottleMs);
-                });
-                mo.observe(document.body, { childList: true, subtree: true });
-            } catch (e) { dbg('MutationObserver 失败', e); }
-        };
-        if (document.body) start();
-        else document.addEventListener('DOMContentLoaded', start);
-    }
-
-    // ==================== B 端：工作台批量查询面板 ====================
-    const WORKBENCH = { drawer: null, rows: [], btn: null };
-
-    function isWorkbenchPage() {
-        return !!(document.getElementById('tabsContainer') || document.getElementById('smartPasteInput'));
-    }
-
-    const COLS = [
-        { key: 'openid', label: 'openid' },
-        { key: 'nickname', label: '昵称' },
-        { key: 'uid', label: 'UID' },
-        { key: 'server', label: '区服' },
-        { key: 'platform', label: '平台' },
-        { key: 'status', label: '状态' }
-    ];
-
-    function rowsFromState() {
-        return state.known.map(function (id) {
-            const r = getResult(id) || { status: 'pending', role: null };
-            const role = r.role || {};
-            return {
-                openid: id,
-                nickname: role.nickname || '',
-                uid: role.uid || '',
-                server: role.server || '',
-                platform: role.platform || '',
-                status: (STATUS_TEXT[r.status] || r.status) + (r.note ? '（' + r.note + '）' : ''),
-                _status: r.status
+        if (!state.panel) {
+            if (!document.body) return;
+            const p = mkEl('div', 'gj-panel', '');
+            const hd = mkEl('div', 'gj-hd');
+            hd.appendChild(mkEl('span', '', '反馈提取 v' + API.version));
+            const close = mkEl('button', '', '收起 ✕');
+            close.onclick = function () { setOpen(false); };
+            hd.appendChild(close);
+            p.appendChild(hd);
+            state.countBox = mkEl('div', 'gj-count gj-mute', '');
+            p.appendChild(state.countBox);
+            const bar = mkEl('div', 'gj-bar');
+            const add = function (label, fn, pri) {
+                const b = mkEl('button', pri ? 'gj-pri' : '', label);
+                b.onclick = fn;
+                bar.appendChild(b);
+                return b;
             };
-        });
-    }
-
-    function renderTable() {
-        const d = WORKBENCH.drawer;
-        if (!d) return;
-        const s = stats();
-        const box = d.querySelector('.gj-stat');
-        if (box) {
-            box.textContent = '共 ' + s.total + ' 条 · 成功 ' + s.ok + ' · 查询中 ' + s.loading + ' · 待查 ' + s.pending +
-                ' · 未查到 ' + s.empty + ' · 失败 ' + s.error + (s.login ? ' · 未登录 ' + s.login : '') +
-                (s.uncalibrated ? ' · 待校准 ' + s.uncalibrated : '');
+            add('扫描本页', function () { state.nodes = {}; scan(); }, true);
+            add('复制全部 openid', function () {
+                const text = openidListText(state.records);
+                if (!text) { toast('还没有提取到 openid'); return; }
+                if (copyText(text)) toast('已复制 ' + state.records.length + ' 个 openid');
+                else toast('复制失败，请手动选中');
+            });
+            add('诊断', function () {
+                if (copyText(buildDiagnosticText())) toast('诊断信息已复制，发我即可');
+                else toast('复制失败');
+            });
+            add('清空', function () {
+                if (!state.records.length) { toast('本来就是空的'); return; }
+                if (window.confirm('清空已保存的 ' + state.records.length + ' 条反馈？')) { clearAll(); toast('已清空'); }
+            });
+            p.appendChild(bar);
+            state.listBox = mkEl('div', 'gj-list', '');
+            p.appendChild(state.listBox);
+            document.body.appendChild(p);
+            state.panel = p;
         }
-        const banner = d.querySelector('.gj-banner');
-        if (banner) {
-            if (state.stopped === 'login') {
-                banner.style.display = '';
-                banner.innerHTML = '⚠️ operator 未登录。<button class="gj-open-login">打开登录页</button><button class="gj-retry">重试失败</button>';
-            } else if (state.stopped === 'uncalibrated') {
-                banner.style.display = '';
-                banner.innerHTML = '⚠️ 接口形态不符（候选都试过了）。<button class="gj-cal">复制校准信息</button>';
-            } else banner.style.display = 'none';
+        state.panel.style.display = state.open ? 'flex' : 'none';
+        state.countBox.textContent = '共 ' + state.records.length + ' 条 · 扫描 ' + state.scans + ' 次' +
+            (state.lastScanAt ? ' · 最近 ' + clockOf(state.lastScanAt) : '');
+        const list = state.listBox;
+        list.textContent = '';
+        if (!state.records.length) {
+            list.appendChild(mkEl('div', 'gj-mute', '还没提取到反馈。若页面已经加载完，点「扫描本页」。'));
+            list.firstChild.style.padding = '10px 12px';
+            return;
         }
-        const tb = d.querySelector('tbody');
-        if (!tb) return;
-        tb.innerHTML = '';
-        rowsFromState().forEach(function (r) {
-            const tr = document.createElement('tr');
-            const td = function (text, cls) { const c = document.createElement('td'); if (cls) c.className = cls; c.textContent = text === undefined ? '' : text; tr.appendChild(c); return c; };
-            const idTd = td(r.openid);
-            const cp = mkEl('button', '', '复制');
-            cp.onclick = function () { copyText(r.openid); };
-            idTd.appendChild(document.createTextNode(' '));
-            idTd.appendChild(cp);
-            td(r.nickname); td(r.uid); td(r.server); td(r.platform);
-            td(r.status, 'gj-st ' + r._status);
+        state.records.forEach(function (rec) { list.appendChild(buildItem(rec)); });
+    }
+
+    function buildDiagnosticText() {
+        const first = state.records[0] || null;
+        const box = first ? state.nodes[first.openid] : null;
+        return diagnosticText({
+            version: API.version,
+            host: (typeof location !== 'undefined' ? location.hostname : ''),
+            url: (typeof location !== 'undefined' ? location.href : ''),
+            items: state.records.length,
+            scans: state.scans,
+            config: CONFIG,
+            records: state.records.slice(0, 3),
+            sampleBoxText: box ? textOf(box).slice(0, 1200) : '',
+            sampleBoxHtml: box ? String(box.outerHTML || '').slice(0, 2000) : ''
         });
-        // 事件（重渲染后要重挂）
-        const q = function (sel) { return d.querySelector(sel); };
-        const on = function (sel, fn) { const el = q(sel); if (el) el.onclick = fn; };
-        on('.gj-open-login', function () { window.open(CONFIG.loginUrl, '_blank'); });
-        on('.gj-retry', function () { retryFailed(); });
-        on('.gj-cal', function () { copyText(calibrationText(), '校准信息'); });
-    }
-
-    function openDrawer() {
-        if (WORKBENCH.drawer) { WORKBENCH.drawer.style.display = 'flex'; renderTable(); return; }
-        const d = mkEl('div', 'gj-drawer');
-        d.innerHTML = [
-            '<header><span>Gemjy OpenID 批量查询</span><span>',
-            '<button class="gj-close">关闭 ✕</button></span></header>',
-            '<div class="gj-body">',
-            '<div>粘贴包含 openid 的任意文本（或一行一个 id）：</div>',
-            '<textarea class="gj-input" placeholder="oXXXXXXXXXXXXXXXXXXXXXXXXXXX&#10;也支持直接粘反馈页/日志里的一大段文本"></textarea>',
-            '<div><button class="primary gj-run">查询全部</button>',
-            '<button class="gj-import">导入上次反馈页会话</button>',
-            '<button class="gj-retry2">重试失败</button>',
-            '<button class="gj-csv">导出 CSV</button>',
-            '<button class="gj-copyall">复制全部结果</button>',
-            '<button class="gj-clear">清空</button>',
-            '<button class="gj-clearall">清空缓存</button></div>',
-            '<div class="gj-stat"></div>',
-            '<div class="gj-banner" style="display:none"></div>',
-            '<table class="gj-table"><thead><tr>',
-            COLS.map(function (c) { return '<th>' + c.label + '</th>'; }).join(''),
-            '</tr></thead><tbody></tbody></table>',
-            '<div class="gj-mute" style="margin-top:8px">同一 openid 10 分钟内不重复请求（GM 缓存，A/B 端共用）；并发 2 条。</div>',
-            '</div>'
-        ].join('');
-        document.body.appendChild(d);
-        WORKBENCH.drawer = d;
-        const input = d.querySelector('.gj-input');
-        d.querySelector('.gj-close').onclick = function () { d.style.display = 'none'; };
-        d.querySelector('.gj-run').onclick = function () {
-            const ids = parseIds(input.value);
-            if (!ids.length) { alert('没识别到内容'); return; }
-            resumeQueue();
-            enqueue(ids);
-            renderTable();
-        };
-        d.querySelector('.gj-import').onclick = function () {
-            const b = loadRecentBatch();
-            if (!b || !b.ids.length) { alert('没有上次会话记录（先去反馈页扫一次）'); return; }
-            input.value = b.ids.join('\n');
-            resumeQueue();
-            enqueue(b.ids);
-            renderTable();
-        };
-        d.querySelector('.gj-retry2').onclick = function () { retryFailed(); renderTable(); };
-        d.querySelector('.gj-csv').onclick = function () {
-            const rows = rowsFromState();
-            if (!rows.length) { alert('还没有结果'); return; }
-            const csv = toCsv(rows, COLS);
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = 'gemjy-openid-' + new Date().toISOString().slice(0, 10) + '.csv';
-            document.body.appendChild(a);
-            a.click();
-            setTimeout(function () { try { document.body.removeChild(a); URL.revokeObjectURL(a.href); } catch (_) { } }, 0);
-        };
-        d.querySelector('.gj-copyall').onclick = function () {
-            const rows = rowsFromState();
-            const text = rows.map(function (r) { return [r.openid, r.nickname, r.uid, r.server, r.platform].join('\t'); }).join('\n');
-            copyText(text, '全部结果');
-        };
-        d.querySelector('.gj-clear').onclick = function () {
-            input.value = '';
-            state.known = [];
-            state.results = {};
-            renderTable();
-        };
-        d.querySelector('.gj-clearall').onclick = function () {
-            const n = clearCache();
-            resumeQueue();
-            alert('已清空 ' + n + ' 条缓存');
-        };
-    }
-
-    function bootWorkbench() {
-        const start = function () {
-            if (!isWorkbenchPage()) return;      // 同一个域名下不是工作台页面就不注入（避免到处冒按钮）
-            addStyle(CSS);
-            const b = mkEl('button', '', 'OpenID 批量查询');
-            b.style.cssText = 'position:fixed;right:16px;bottom:16px;z-index:2147483000;padding:8px 12px;border-radius:8px;border:1px solid #1a7f45;background:#1a7f45;color:#fff;cursor:pointer;font:13px/1.6 -apple-system,"Microsoft YaHei",sans-serif';
-            b.onclick = openDrawer;
-            document.body.appendChild(b);
-            WORKBENCH.btn = b;
-        };
-        if (document.body) start();
-        else document.addEventListener('DOMContentLoaded', start);
     }
 
     // ==================== 菜单命令 + 启动 ====================
     function registerMenus() {
         try {
             if (typeof GM_registerMenuCommand !== 'function') return;
-            GM_registerMenuCommand('清空 OpenID 缓存', function () { alert('已清空 ' + clearCache() + ' 条'); });
-            GM_registerMenuCommand('复制校准信息（接口形态）', function () { copyText(calibrationText(), '校准'); });
-            GM_registerMenuCommand('清除已锁定的请求形态', function () { clearSpec(); alert('已清除 requestSpec，下次查询会重新试探'); });
+            GM_registerMenuCommand('扫描本页反馈', function () { state.nodes = {}; scan(); toast('已扫描，共 ' + state.records.length + ' 条'); });
+            GM_registerMenuCommand('复制全部 openid', function () {
+                const text = openidListText(state.records);
+                if (copyText(text)) toast('已复制 ' + state.records.length + ' 个 openid');
+            });
+            GM_registerMenuCommand('复制诊断信息', function () { copyText(buildDiagnosticText()); toast('诊断信息已复制'); });
+            GM_registerMenuCommand('清空已保存的反馈', function () { clearAll(); toast('已清空'); });
         } catch (_) { }
     }
 
+    const API = {
+        CONFIG: CONFIG,
+        // 纯函数（单测对象）
+        openidsIn: openidsIn,
+        hasOpenid: hasOpenid,
+        distinctIdCount: distinctIdCount,
+        linesOf: linesOf,
+        looksLikeDate: looksLikeDate,
+        isNoiseLine: isNoiseLine,
+        cleanName: cleanName,
+        guessName: guessName,
+        pickQuestion: pickQuestion,
+        absolutize: absolutize,
+        isLikelyImageUrl: isLikelyImageUrl,
+        normalizeImages: normalizeImages,
+        buildRecord: buildRecord,
+        mergeRecord: mergeRecord,
+        capRecords: capRecords,
+        openidListText: openidListText,
+        diagnosticText: diagnosticText,
+        // 运行时（jsdom 端到端测试用）
+        runtime: {
+            state: state,
+            getRecords: getRecords,
+            scan: scan,
+            clearAll: clearAll,
+            setOpen: setOpen,
+            buildDiagnosticText: buildDiagnosticText,
+            store: store
+        },
+        version: '0.3.0'
+    };
+
+    // ==================== Node 单测守卫：require() 时只导出，不碰 DOM ====================
+    if (typeof module !== 'undefined' && module.exports) {
+        module.exports = API;
+        return;
+    }
+    if (typeof window !== 'undefined') window.__GEMJY_HELPER__ = API;
+    if (typeof document === 'undefined') return;
+
     function boot() {
-        // 两端各自挂钩子
-        if (isFeedbackHost()) {
-            setHooks({ status: updateBadge, render: function () { renderPanel(); } });
-            bootFeedback();
-        } else {
-            setHooks({ status: function () { }, render: function () { renderTable(); } });
-            bootWorkbench();
-        }
+        if (!isFeedbackHost()) return;                 // 只认反馈后台，别的站点一律不注入
         registerMenus();
+        const start = function () {
+            try {
+                addStyle(CSS);
+                renderLauncher();
+                loadRecords();
+                renderPanel();
+                scan();
+                setTimeout(scan, 2500);
+                setTimeout(scan, 6000);
+                let timer = null;
+                const mo = new MutationObserver(function () {
+                    if (timer) return;
+                    timer = setTimeout(function () { timer = null; scan(); }, CONFIG.scanThrottleMs);
+                });
+                mo.observe(document.body, { childList: true, subtree: true });
+            } catch (e) { dbg('启动失败', e); }
+        };
+        if (document.body) start();
+        else document.addEventListener('DOMContentLoaded', start);
     }
 
     boot();
