@@ -7,8 +7,11 @@
 // @author       work-bad
 // @run-at       document-start
 // @match        *://mp.weixin.qq.com/*
+// @match        https://work-bad.onrender.com/*
 // @match        *://localhost:3000/*
 // @match        *://127.0.0.1:3000/*
+// @updateURL    https://work-bad.onrender.com/gemjy-openid-helper.user.js
+// @downloadURL  https://work-bad.onrender.com/gemjy-openid-helper.user.js
 // @grant        GM_xmlhttpRequest
 // @grant        GM_setValue
 // @grant        GM_getValue
@@ -21,13 +24,16 @@
 // ==/UserScript==
 //
 // ⚠️ 待补参数（改这里就行，不用动逻辑）：
-//   1) 工作台域名：把上面第二条/第三条 @match 换成你的真实地址，例如
-//      // @match        *://your-workbench.example.com/*
-//      若用 file:// 打开工作台，需在 Tampermonkey 里打开「允许访问文件网址」。
-//   2) operator 查询接口：见下面 CONFIG.requestCandidates。首次查询会依次试探 6 种常见形态，
+//   1) operator 查询接口：见下面 CONFIG.requestCandidates。首次查询会依次试探 6 种常见形态，
 //      命中即锁定并写进 GM 存储（requestSpec），之后不再试探。拿到一次成功的
 //      「F12 → Copy as fetch」后，把 CONFIG.requestCandidates 换成那一条最省事。
-//   3) 若反馈列表在跨域 iframe 里，把那个域名再加一条 @match。
+//   2) 若反馈列表在跨域 iframe 里，把那个域名再加一条 @match。
+//
+// @match 覆盖：反馈后台（mp.weixin.qq.com）、线上工作台（work-bad.onrender.com）、
+// 本地工作台（localhost:3000 / 127.0.0.1:3000）。要从别的域名打开工作台就再加一行。
+// 安装：Tampermonkey → 新建 → 粘本文件；或直接打开
+//   https://work-bad.onrender.com/gemjy-openid-helper.user.js
+// （已声明 @updateURL/@downloadURL，之后改这个文件并部署，脚本会自动提示更新。）
 
 (function () {
     'use strict';

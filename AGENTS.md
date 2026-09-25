@@ -37,6 +37,9 @@ npm start          # http://localhost:3000（静态托管 public/ + /api/data �
 npm run verify     # 改完代码、push 前的完整自检
 ```
 
+线上部署：**https://work-bad.onrender.com/**（Render，push 后自动部署；托管同一份 `public/`，「客服生涯」等数据仍走 `/api/data` —— 注意 Render 的磁盘是**临时的**，重启/重新部署会丢 `data.json`，长期数据以浏览器 localStorage + 手动导出 JSON 为准）。
+油猴脚本安装地址：https://work-bad.onrender.com/gemjy-openid-helper.user.js
+
 ⚠️ 不要用双击 `public/index.html` 的方式打开：`file://` 下 `/api/data` 请求会失败，数据只留在本机浏览器，换设备不共享。
 
 ## 自检工具链（tools/）
@@ -79,7 +82,9 @@ npm run verify     # 改完代码、push 前的完整自检
 - **存储键**：`requestSpec`（已锁定的请求形态，持久）、`oid:<openid>`（`{t,status,role}`，10 分钟 TTL，**只缓存成功结果**）、`tries`（最近 12 次尝试）、`lastRaw`（最近一次原始响应片段）、`recentBatch`（A 端扫到的 id 列表，B 端「导入上次会话」读）。
 - **限流**：并发 2、inflight 去重、10 分钟缓存、A 端自动展开每页最多 3 轮×8 次、MutationObserver 重扫 ≥1.2s 节流。
 - **异常路径**：掉登录 → 立刻停队列、徽标全转「未登录」、一键开登录页，登录后「重试失败」恢复；候选形态都不匹配 → `uncalibrated`，「校准」按钮复制 `{endpoint, lockedSpec, tries, lastRawHead}` 供改成硬编码；页面改版 → 最坏只丢徽标，面板与 B 端仍可用。
-- ⚠️ **两个待补的外部参数**（不阻塞使用）：① **工作台域名**——目前 `@match` 只有 `localhost:3000` / `127.0.0.1:3000`，真实域名要自己加一行；② **operator 查询接口**——`CONFIG.requestCandidates` 里 6 种是**猜的常见形态**，首次查询会依次试探并锁定命中那条，拿到一次成功响应的「Copy as fetch」后换成那一条最省事。
+- **`@match` 覆盖三处**：反馈后台 `*://mp.weixin.qq.com/*`、**线上工作台 `https://work-bad.onrender.com/*`**、本地工作台 `localhost:3000` / `127.0.0.1:3000`。要从别的域名开工作台就再加一行。
+- 已声明 **`@updateURL` / `@downloadURL`** 指向 `https://work-bad.onrender.com/gemjy-openid-helper.user.js`：改完这个文件并部署（push 后 Render 自动部署），Tampermonkey 会提示更新。也可以直接打开那个 URL 安装。
+- ⚠️ **唯一还没补的外部参数**：**operator 查询接口**——`CONFIG.requestCandidates` 里 6 种是**猜的常见形态**，首次查询会依次试探并锁定命中那条（写进 GM 的 `requestSpec`）。拿到一次成功响应的「F12 → Copy as fetch」后换成那一条最省事。可选：反馈列表若在跨域 iframe 里，把那个域名也加一条 `@match`。
 - 单测：`tools/test-openid-helper.cjs`（55 项：openid 边界与去重、B 端输入解析、JSON 嵌套归一与别名、HTML 三种渲染（相邻/4 列交叉/标签值/标签空格值/实体还原）、登录页识别与 classify、buildRequest、toCsv 转义、导出面与 CONFIG 默认值）。
 
 ## 硬约定
