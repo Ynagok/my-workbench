@@ -43,14 +43,15 @@ npm run verify     # 改完代码、push 前的完整自检
 
 | 命令 | 内容 |
 |---|---|
-| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 116 项 + 「接口挂起时界面仍可用」+ 服务端冒烟 12 项 |
+| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 116 项 + 「接口挂起时界面仍可用」+ 服务端冒烟 12 项 + 油猴脚本语法/单测 55 项 |
 | `npm run verify:static` | 只要静态校验 + 语法检查（最快） |
 | `npm run report` | 打印一份真实生成的日报，肉眼确认排版（含 ⑥伙伴弹途 / ⑦异世界勇者） |
 | `npm run build:data` | 从 GM 玩家页快照提取 4 张权威映射表 + 与硬编码常量的**差异报告**（见下「游戏数据管线」） |
 | `npm run smoke:server` | 单独跑服务端冒烟（真起进程 + 真发 HTTP，12 项） |
+| `npm run test:helper` | Gemjy OpenID 助手（油猴脚本）纯函数单测，55 项 |
 | `npm test` | = `npm run verify` |
 
-`npm run verify` 失败就不要提交。它一共 5 段：静态结构 → 语法 → jsdom 集成冒烟 **116 项** → 接口挂起时界面仍可用 → 服务端冒烟 **12 项**。
+`npm run verify` 失败就不要提交。它一共 7 段：静态结构 → 语法 → jsdom 集成冒烟 **116 项** → 接口挂起时界面仍可用 → 服务端冒烟 **12 项** → 油猴脚本语法 → 油猴脚本单测 **55 项**。
 
 - jsdom 未安装时前端冒烟会自动回落到本机 DSH 自带的那份。
 - `tools/smoke-server.cjs` 用 `PORT` + `DATA_FILE` 环境变量把服务端指到随机端口和 `tools/out/` 里的临时文件，**不会碰真实 `data.json`**；子进程 stdio 必须用 `ignore`/`inherit`（沙箱禁管道，`pipe` 会 EPERM）。
@@ -66,6 +67,20 @@ npm run verify     # 改完代码、push 前的完整自检
 - **产出**（写到 `tools/out/`，已 gitignore）：`game-data.json`（4 张表）+ `diff-report.md`（缺 / 多 / 名称不一致，另附卡包 royal 星级码表）。
 - **4 张表**：① 来源映射（`opFrom`/`from` → `DEFAULT_SOURCE_ID_MAP`）② 活动类型映射（→ `DEFAULT_ACTIVITY_TYPE_MAP`）③ 卡包表（→ `PACK_NAME_MAP`，含 `star`/`royal` 星级码）④ 物品名表（→ `DEFAULT_ITEM_NAME_MAP`，含分类）。
 - **尚未做**：C 装载方式（payload ≤150KB 时首选 C3 复用 `/api/data`）→ D 逐个消费点接入（**改话术的点先问用户**）→ E `verify.mjs` 断言 + `smoke.cjs` 第 10 节端到端 → F 拆 4 个提交。
+
+## Gemjy OpenID 助手（油猴脚本，与工作台解耦）
+
+`public/gemjy-openid-helper.user.js` —— 一个文件两端（A 端反馈后台 `mp.weixin.qq.com`、B 端工作台），**共用同一个查询函数与 GM 本地缓存**。它由 `express.static` 顺带托管，所以可以直接从工作台装：`http://localhost:3000/gemjy-openid-helper.user.js`。
+
+- **它和前端工作台没有代码耦合**：不 import、不共享全局，只有「B 端往工作台页面注入一个浮动按钮+抽屉」这一层 DOM 关系。改它不影响 `index.html`、`server.js`、`data.json`。
+- **为什么必须用 `GM_xmlhttpRequest`**：operator 与 mp.weixin 跨域，`fetch` 会被 CORS 拦；GM 请求同时带上 operator 的 cookie（`withCredentials`）与 `@connect operator.gemjy.cn` 声明。**脚本里绝不出现 fetch 查 operator**。
+- **结构**：IIFE → `CONFIG`（全部可调）→ 纯函数层（`openidsIn/parseIds/parseResponse/extractPairsFromHtml/pickRole/isLoginPage/classify/buildRequest/toCsv`）→ 共享运行时（store / 缓存 / gmRequest / lookup / 队列 / 状态机 / 诊断）→ A 端 UI → B 端 UI → `boot()`。
+  - ⚠️ **纯函数层不得引用 `document` 或 `GM_*`**；文件末尾有 Node 导出守卫（`module.exports` 后 `return`），所以 `require()` 它不会碰 DOM。改完必须 `npm run test:helper` 绿。
+- **存储键**：`requestSpec`（已锁定的请求形态，持久）、`oid:<openid>`（`{t,status,role}`，10 分钟 TTL，**只缓存成功结果**）、`tries`（最近 12 次尝试）、`lastRaw`（最近一次原始响应片段）、`recentBatch`（A 端扫到的 id 列表，B 端「导入上次会话」读）。
+- **限流**：并发 2、inflight 去重、10 分钟缓存、A 端自动展开每页最多 3 轮×8 次、MutationObserver 重扫 ≥1.2s 节流。
+- **异常路径**：掉登录 → 立刻停队列、徽标全转「未登录」、一键开登录页，登录后「重试失败」恢复；候选形态都不匹配 → `uncalibrated`，「校准」按钮复制 `{endpoint, lockedSpec, tries, lastRawHead}` 供改成硬编码；页面改版 → 最坏只丢徽标，面板与 B 端仍可用。
+- ⚠️ **两个待补的外部参数**（不阻塞使用）：① **工作台域名**——目前 `@match` 只有 `localhost:3000` / `127.0.0.1:3000`，真实域名要自己加一行；② **operator 查询接口**——`CONFIG.requestCandidates` 里 6 种是**猜的常见形态**，首次查询会依次试探并锁定命中那条，拿到一次成功响应的「Copy as fetch」后换成那一条最省事。
+- 单测：`tools/test-openid-helper.cjs`（55 项：openid 边界与去重、B 端输入解析、JSON 嵌套归一与别名、HTML 三种渲染（相邻/4 列交叉/标签值/标签空格值/实体还原）、登录页识别与 classify、buildRequest、toCsv 转义、导出面与 CONFIG 默认值）。
 
 ## 硬约定
 
@@ -179,9 +194,10 @@ npm run verify     # 改完代码、push 前的完整自检
 
 ```
 public/index.html          全部前端（单文件，约 9890 行：内联 CSS + 内联 JS 的 async IIFE；含「客服生涯」标签页）
+public/gemjy-openid-helper.user.js  油猴脚本（A 端反馈页徽标 + B 端工作台批量查询抽屉；与前端无代码耦合）
 server.js                  express：静态托管 public/ + GET/POST /api/data/:key ↔ data.json（含 key 白名单）
 data.json                  服务端数据（随使用增长；前端字段缺失会被默认值自动补齐）
-tools/                     自检脚本（verify / smoke / smoke-nonblocking / smoke-server / print-report / build-game-data）
+tools/                     自检脚本（verify / smoke / smoke-nonblocking / smoke-server / test-openid-helper / print-report / build-game-data）
 tools/fixtures/            build:data 的输入；player-page.html 含玩家隐私已 gitignore，样例已入库
 tools/out/                 build:data 的产出（4 张表 + 差异报告），已 gitignore
 package.json               scripts: start / verify / verify:static / smoke:server / report / build:data / test

@@ -5,10 +5,11 @@
   "main": "index.js",
   "scripts": {
     "start": "node server.js",
-    "verify": "node tools/verify.mjs public/index.html && node --check tools/_extracted.js && node tools/smoke.cjs public/index.html && node tools/smoke-nonblocking.cjs public/index.html && node tools/smoke-server.cjs",
+    "verify": "node tools/verify.mjs public/index.html && node --check tools/_extracted.js && node tools/smoke.cjs public/index.html && node tools/smoke-nonblocking.cjs public/index.html && node tools/smoke-server.cjs && node --check public/gemjy-openid-helper.user.js && node tools/test-openid-helper.cjs",
     "verify:static": "node tools/verify.mjs public/index.html && node --check tools/_extracted.js",
     "report": "node tools/print-report.cjs public/index.html",
     "smoke:server": "node tools/smoke-server.cjs",
+    "test:helper": "node tools/test-openid-helper.cjs",
     "build:data": "node tools/build-game-data.mjs",
     "test": "npm run verify"
   },
