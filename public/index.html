@@ -4917,7 +4917,31 @@
 
                                     let careerData = { records: {}, updatedAt: null };
 
-                                    // 任何来源（服务器 / localStorage / 导入）进来的数据都过一遍归一化，防脏数据
+                                    // ⚠️ 客服生涯的数据**只存本机**（浏览器 localStorage），**不走服务端**。
+                                    //    原因：不同客服在不同设备上打开工作台、各记各的日报，谁的数据都不该同步给别人。
+                                    //    以前走 /api/data/careerData（落 data.json），换台设备打开时本机没有缓存 →
+                                    //    loadData 会去服务端兜底，于是看到的是「最后同步上来那个人的统计」。
+                                    //    所以这里刻意不用 loadData/saveData —— 那两个都会读写 /api/data。
+                                    function careerLoadLocal() {
+                                        try {
+                                            const raw = localStorage.getItem(CAREER_KEY);
+                                            return raw === null ? null : JSON.parse(raw);
+                                        } catch (e) {
+                                            console.warn('读取本机客服生涯数据失败（按空处理）', e);
+                                            return null;
+                                        }
+                                    }
+                                    function careerSaveLocal() {
+                                        try {
+                                            localStorage.setItem(CAREER_KEY, JSON.stringify(careerData));
+                                            return true;
+                                        } catch (e) {
+                                            console.warn('写入本机客服生涯数据失败（localStorage 不可用或已满）', e);
+                                            return false;
+                                        }
+                                    }
+
+                                    // 任何来源（本机 localStorage / 粘贴导入 / 补录）进来的数据都过一遍归一化，防脏数据
                                     function normalizeCareer(v) {
                                         const o = asObject(v) || {};
                                         const recs = asObject(o.records) || {};
@@ -4990,7 +5014,7 @@
                                         const d = dateStr || careerToday();
                                         careerData.records[d] = rec;
                                         careerData.updatedAt = new Date().toISOString();
-                                        saveData(CAREER_KEY, careerData);
+                                        careerSaveLocal();
                                         return d;
                                     }
 
@@ -5168,7 +5192,9 @@
                                         // 关键：补齐 ticket / overseas 主对象，避免旧版本数据缺字段直接崩溃
                                         dailyData.ticket = { ...cloneDefault(DAILY_DEFAULT_DATA.ticket), ...(asObject(dailyData.ticket) || {}) };
                                         dailyData.overseas = { ...cloneDefault(DAILY_DEFAULT_DATA.overseas), ...(asObject(dailyData.overseas) || {}) };
-                                        careerData = normalizeCareer(b.careerData);
+                                        // 客服生涯只认本机：不管 bundle 里有没有 careerData 都不用它，
+                                        // 永远从这台设备的 localStorage 读（各客服各记各的，不同步）。
+                                        careerData = normalizeCareer(careerLoadLocal());
 
                                         __reCache.clear();   // 规则可能变了，正则缓存作废
                                         backfillDefaultPhrases();
@@ -9253,7 +9279,7 @@
                                         if (!careerData.records[d]) { careerSetHint(d + ' 没有记录'); return; }
                                         delete careerData.records[d];
                                         careerData.updatedAt = new Date().toISOString();
-                                        saveData(CAREER_KEY, careerData);
+                                        careerSaveLocal();
                                         renderCareer();
                                         careerSetHint('已删除 ' + d);
                                     }
@@ -9487,7 +9513,7 @@
                                             ok++;
                                         }
                                         careerData.updatedAt = new Date().toISOString();
-                                        saveData(CAREER_KEY, careerData);
+                                        careerSaveLocal();
                                         renderCareer();
                                         if (hint) {
                                             hint.textContent = '导入 ' + ok + ' 天'
@@ -10177,7 +10203,7 @@
                                     (async function bootstrapData() {
                                         let raw = null;
                                         try {
-                                            const [vDaily, vRules, vIgnore, vItem, vSource, vActivity, vOpen, vClose, vPresets, vCareer] = await Promise.all([
+                                            const [vDaily, vRules, vIgnore, vItem, vSource, vActivity, vOpen, vClose, vPresets] = await Promise.all([
                                                 loadData('dailyData', null),
                                                 loadData('sourceRules', null),
                                                 loadData('ignoreKeywords', null),
@@ -10186,14 +10212,13 @@
                                                 loadData('activityTypeMap', null),
                                                 loadData('replyOpenings', null),
                                                 loadData('replyClosings', null),
-                                                loadData('replyPresets', null),
-                                                loadData(CAREER_KEY, null)
+                                                loadData('replyPresets', null)
                                             ]);
                                             raw = {
                                                 dailyData: vDaily, sourceRules: vRules, ignoreKeywords: vIgnore,
                                                 itemNameMap: vItem, sourceIdMap: vSource, activityTypeMap: vActivity,
-                                                replyOpenings: vOpen, replyClosings: vClose, replyPresets: vPresets,
-                                                careerData: vCareer
+                                                replyOpenings: vOpen, replyClosings: vClose, replyPresets: vPresets
+                                                // 注意：客服生涯**不在这里**——它只读本机 localStorage，见 careerLoadLocal()
                                             };
                                         } catch (e) {
                                             console.warn('加载持久化数据失败，继续使用默认值', e);

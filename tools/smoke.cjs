@@ -397,8 +397,11 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     const d = new Date(utc + 8 * 3600000);
     return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
   })();
-  const careerPosts = () => posts.filter(p => p.method !== 'GET' && p.url.includes('careerData'));
-  const lastCareer = () => { const l = careerPosts(); return l.length ? l[l.length - 1].body.value : null; };
+  // 客服生涯**只存本机**：断言里既不读服务端，也要能证明服务端一次都没被碰
+  const careerRequests = () => posts.filter(p => p.url.includes('careerData'));
+  const lastCareer = () => {
+    try { return JSON.parse(window.localStorage.getItem('careerData') || 'null'); } catch (_) { return null; }
+  };
   const kpiText = () => $('careerKpi').textContent;
   const setDailyField = (formId, key, val) => {
     const el = $(formId).querySelector('[data-key="' + key + '"]');
@@ -546,7 +549,13 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
   check(csvOut.split('\r\n').length === Object.keys(recs2).length + 1, 'CSV 行数 = 记录数 + 表头', csvOut.split('\r\n').length);
   check(/"?records"?/.test(jsonOut) && jsonOut.includes('2026-06-03') && jsonOut.includes('2026-07-15'),
     'JSON 导出：含全部记录（含待确认那天）', jsonOut.slice(0, 30));
-  check(careerPosts().length >= 4, '生涯数据每次都回写服务端（多设备同步）', careerPosts().length);
+  check(careerRequests().length === 0, '客服生涯一次都没碰服务端（不再 /api/data，各设备只用自己的数据）', careerRequests().map(p => p.method + ' ' + p.url));
+  check(!!window.localStorage.getItem('careerData'), '客服生涯数据落在本机 localStorage');
+  {
+    const saved = JSON.parse(window.localStorage.getItem('careerData') || 'null');
+    check(!!saved && Object.keys(saved.records || {}).length === Object.keys(recs2).length,
+      'localStorage 里的记录数与界面一致', saved && Object.keys(saved.records || {}).length);
+  }
 
   console.log('--- 8d. 粘贴导入：识别工作台自己生成的日报文本 ---');
   // 先补上海外侧「异世界群维系」（群维系来访），凑齐 4 个海外日报新字段

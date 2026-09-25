@@ -121,7 +121,16 @@ ok(/data-tab="career"/.test(s) && /id="tab-career"/.test(s), '客服生涯标签
     '登记表 14 列口径单列（导入/对账用）');
 }
 ok(/careerArchiveToday\(\)/.test(s) && /const CAREER_KEY = 'careerData'/.test(s), '客服生涯自动归档已挂 + 存储 key');
-ok(/loadData\(CAREER_KEY, null\)/.test(s) && /careerData = normalizeCareer\(b\.careerData\)/.test(s), '客服生涯走服务端持久化（多设备同步）');
+// 客服生涯只存本机：helper 在，且不再出现 loadData/saveData(CAREER_KEY…)（那两个会读写 /api/data）
+ok(/function careerLoadLocal\(\)/.test(s) && /function careerSaveLocal\(\)/.test(s)
+  && !/loadData\(CAREER_KEY/.test(s) && !/saveData\(CAREER_KEY/.test(s),
+  '客服生涯只读写本机 localStorage（不走服务端，各设备数据互不串）');
+ok(/careerData = normalizeCareer\(careerLoadLocal\(\)\)/.test(s)
+  && !/careerData = normalizeCareer\(b\.careerData\)/.test(s)
+  && !/careerData: vCareer/.test(s),
+  'applyState / 启动加载都不从服务端取 careerData（永远读本机）');
+ok((s.match(/careerSaveLocal\(\);/g) || []).length >= 3,
+  '归档 / 补录 / 删除 / 导入 都写本机（≥3 处调用）');
 ok(/function careerStats\(\)/.test(s) && /function careerImport\(\)/.test(s) && /function careerCsvText\(\)/.test(s), '统计 / 粘贴导入 / CSV 导出 已注入');
 // 重置模板不清姓名（用户需求）：只有当旧数据里真有 name 键时才把值带过去
 ok(/const keepName = \(prevTab && Object\.prototype\.hasOwnProperty\.call\(prevTab, 'name'\)\) \? prevTab\.name : undefined;/.test(s)

@@ -2,6 +2,7 @@
 
 单文件前端（`public/index.html`）+ 极简同步后端（`server.js` / express）。
 数据走 `/api/data/<key>`（GET 读、POST 写，key 有白名单校验），落盘到 `data.json`；前端 **localStorage 优先、服务端兜底**。
+⚠️ **例外：「客服生涯」的 `careerData` 只存本机浏览器，完全不碰服务端**（不同客服不同设备的数据不能互相串），见下「客服生涯」一节。
 
 > 给 AI 助手：接手本仓库前先读这个文件，末尾「已定语义 / 待确认」**不要擅自改**。
 
@@ -37,7 +38,7 @@ npm start          # http://localhost:3000（静态托管 public/ + /api/data �
 npm run verify     # 改完代码、push 前的完整自检
 ```
 
-线上部署：**https://work-bad.onrender.com/**（Render，push 后自动部署；托管同一份 `public/`，「客服生涯」等数据仍走 `/api/data` —— 注意 Render 的磁盘是**临时的**，重启/重新部署会丢 `data.json`，长期数据以浏览器 localStorage + 手动导出 JSON 为准）。
+线上部署：**https://work-bad.onrender.com/**（Render，push 后自动部署；托管同一份 `public/`）。日报模板、映射表、短语等仍走 `/api/data` ↔ `data.json`，注意 Render 的磁盘是**临时的**，重启/重新部署会丢 `data.json`；**「客服生涯」不走服务端**（只在本机 localStorage，见下），所以换设备/换浏览器看不到别人的生涯统计，也丢不了别人的。
 油猴脚本安装地址：https://work-bad.onrender.com/gemjy-openid-helper.user.js
 （**就这一条链接**：0.4.0 是覆盖在同一文件名上的，以前装过 0.3.0 的人 Tampermonkey 检查更新时会自动升上来。）
 
@@ -47,7 +48,7 @@ npm run verify     # 改完代码、push 前的完整自检
 
 | 命令 | 内容 |
 |---|---|
-| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 121 项 + 「接口挂起时界面仍可用」+ 服务端冒烟 12 项 + 油猴脚本语法 + 单测 169 项 |
+| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 123 项 + 「接口挂起时界面仍可用」+ 服务端冒烟 12 项 + 油猴脚本语法 + 单测 169 项 |
 | `npm run verify:static` | 只要静态校验 + 语法检查（最快） |
 | `npm run report` | 打印一份真实生成的日报，肉眼确认排版（含 ⑥伙伴弹途 / ⑦异世界勇者） |
 | `npm run build:data` | 从 GM 玩家页快照提取 4 张权威映射表 + 与硬编码常量的**差异报告**（见下「游戏数据管线」） |
@@ -55,7 +56,7 @@ npm run verify     # 改完代码、push 前的完整自检
 | `npm run test:helper` | 反馈提取助手（油猴脚本 0.4.0）单测，169 项 |
 | `npm test` | = `npm run verify` |
 
-`npm run verify` 失败就不要提交。它一共 7 段：静态结构 → 语法 → jsdom 集成冒烟 **121 项** → 接口挂起时界面仍可用 → 服务端冒烟 **12 项** → 油猴脚本语法（`node --check`）→ 油猴脚本单测 **169 项**。
+`npm run verify` 失败就不要提交。它一共 7 段：静态结构 → 语法 → jsdom 集成冒烟 **123 项** → 接口挂起时界面仍可用 → 服务端冒烟 **12 项** → 油猴脚本语法（`node --check`）→ 油猴脚本单测 **169 项**。
 
 - jsdom 未安装时前端冒烟会自动回落到本机 DSH 自带的那份。
 - `tools/smoke-server.cjs` 用 `PORT` + `DATA_FILE` 环境变量把服务端指到随机端口和 `tools/out/` 里的临时文件，**不会碰真实 `data.json`**；子进程 stdio 必须用 `ignore`/`inherit`（沙箱禁管道，`pipe` 会 EPERM）。
@@ -188,10 +189,18 @@ npm run verify     # 改完代码、push 前的完整自检
        - ⚠️ 折算复用 `careerItemsFromDaily(t, o)`（与点「生成日报」自动归档**同一套口径**），所以日报文本导入的结果与归档完全一致。
        - 覆盖策略：**按侧覆盖**——粘了工单日报就清工单侧旧值、粘了海外日报就清海外侧旧值，没粘的那侧保留（避免只补一段把另一段清空）。
   - **统计项**（用户要"更能量化工作成果"，已去掉面试/简历相关表述）：累计工作量、完整记录天数、日均、中位数、最高单日+日期、最低单日、标准差+变异系数、最长连续记录+当前连续、记录区间+断档天数、近 7/30 记录日日均、环比上月、月度汇总（天数/总量/日均/最高单日/环比）、**工单侧/海外侧各自的累计·占比·侧内日均·侧内最高单日·有产出项数**、逐项累计+占比+结构条、渠道覆盖广度（几项有产出 + 单日最多触达）、数据质量（待确认天数+日期明细、特殊问题清单）、CSV/JSON 导出。
-  - **持久化**：走 `/api/data/careerData`（= 服务端 `data.json`，仓库在 G 盘所以是非 C 盘，多设备打开同一地址即共享；localStorage 兜底）。`DATA_FILE` 环境变量可把数据文件指定到别的盘。
-  - **测试**：`tools/smoke.cjs` 有 **8c**（自动归档折算、两侧拆分、工单日报全部字段进工单侧、海外日报 4 个新字段参与统计、两处异世界互不干扰、别名、登记表导入、补录、删除、导出）与 **8d**（真去点「生成日报」拿到两段日报正文 → 删掉当天 → 粘回去导入，断言还原的数字/姓名/班次与归档一致、且「只粘工单那段时海外侧不被清空」）两节，冒烟 60 → **116**；`tools/verify.mjs` 有整块客服生涯断言（工单侧由 DAILY_TICKET_FIELDS 生成且不排除字段 + 29 项 + 海外侧 10 项覆盖海外日报全部 11 个数值字段 + 海外侧不读 `ticket.g7_*` + 14 列列名对得上（含别名）+ 只存档 4 项 + 日报标签映射/解析函数 + 持久化 key 等）。
+  - **持久化：只存本机浏览器，不走服务端**（⚠️ 用户明确要求，2026-09 改的）。`careerData` 是 **localStorage-only**：归档 / 补录 / 删除 / 粘贴导入都只调 `careerSaveLocal()`，加载走 `careerLoadLocal()`（`applyState` 里写死 `careerData = normalizeCareer(careerLoadLocal())`，**不看服务端 bundle**；启动的 `Promise.all` 里也刻意不 `loadData(CAREER_KEY)`）。
+    - **为什么**：不同客服在不同设备上打开工作台、各记各的日报，谁的数据都不该同步给别人。旧实现走 `/api/data/careerData`（落 `data.json`），换台设备打开时本机没有缓存 → `loadData` 去服务端兜底 → 看到的是「最后同步上来那个人」的统计（用户报的 bug 就是这个）。
+    - ⚠️ **不要再把它改回 `loadData`/`saveData(CAREER_KEY…)`**（那两个会读写 `/api/data`）——`verify.mjs` 有 4 条静态断言锁死：helper 存在 + 不出现 `loadData(CAREER_KEY` / `saveData(CAREER_KEY` + `applyState` 不取 `b.careerData` + `careerSaveLocal();` ≥3 处；`smoke.cjs` 还会断言「整场跑下来**一次都没请求**过 careerData」＋「数据确实落在 localStorage」。
+    - 换设备的办法：页面上的 **JSON 导出 / 导入**（导出的是同一份 `careerData`）。服务端 `data.json` 里可能还留着历史 `careerData` 键，但**已经没人读它**。
+    - 其它数据（`dailyData`/映射表/短语…）仍是「localStorage 优先 + 服务端兜底」，**没动**。
+  - **测试**：`tools/smoke.cjs` 有 **8c**（自动归档折算、两侧拆分、工单日报全部字段进工单侧、海外日报 4 个新字段参与统计、两处异世界互不干扰、别名、登记表导入、补录、删除、导出、**只落本机不碰服务端**）与 **8d**（真去点「生成日报」拿到两段日报正文 → 删掉当天 → 粘回去导入，断言还原的数字/姓名/班次与归档一致、且「只粘工单那段时海外侧不被清空」）两节；`tools/verify.mjs` 有整块客服生涯断言（工单侧由 DAILY_TICKET_FIELDS 生成且不排除字段 + 29 项 + 海外侧 10 项覆盖海外日报全部 11 个数值字段 + 海外侧不读 `ticket.g7_*` + 14 列列名对得上（含别名）+ 只存档 4 项 + 日报标签映射/解析函数 + **只读本机 localStorage** 共 4 条）。
   - **✅ 真实数据对账**：把上传的登记表 81 行（80 天）原样喂进粘贴导入，与表格自己的「月度汇总」「个人指标看板」逐项比对，**38/38 全对，且所有指标都跟原表一致**——79 完整记录天；**工单侧 22 + 海外侧 5,601 = 累计 5,623（= 原表累计工作量）**；海外侧含「异世界群维系 7」（登记表那列）+「（梦幻/繁花/乐缤纷）群维系 142」（别名那列）；**日均 71.2、最高单日 191 @ 2026-08-05、月度 1,312 / 1,614 / 1,572 / 1,125** 全部与原表看板一致；14 列逐项累计吻合；只存档 4 列都是 0。回放脚本是一次性的（`tools/out/`，未入库）。
 - 本轮：**「重置模板」不再重置姓名**（用户需求）。`resetDailyBtn` 先把当前栏的 `name` 记下来，重建默认对象后再写回（原本空着就保持空着）；其余字段照旧回默认、自定义附加项照旧清空。确认文案由「含姓名」改成「姓名保留」。冒烟加 **8e** 节 5 条（工单栏保留 / 工单栏其余回默认 / 海外栏保留 / 海外栏其余回默认 / 重置海外栏不动工单栏），`tools/verify.mjs` 加 1 条静态断言；冒烟 116 → **121**。
+- 本轮：**客服生涯改成「只存本机」**（用户报的 bug：别的设备打开看到的是我这边的统计）。原因：`careerData` 原来走 `loadData/saveData(CAREER_KEY…)` → `/api/data/careerData` ↔ `data.json`，**本机没有缓存时会拿服务端那份**（`loadData` 的兜底），于是所有设备共享同一份、谁最后同步谁的。
+  - 改法：新增 `careerLoadLocal()` / `careerSaveLocal()`（只碰 `localStorage`），把 3 处 `saveData(CAREER_KEY, careerData)` 换成 `careerSaveLocal()`；`applyState` 里 `careerData = normalizeCareer(careerLoadLocal())`（**不看服务端 bundle**）；启动的 `Promise.all` 去掉 `loadData(CAREER_KEY, null)`、`raw` 不再带 `careerData`。**localStorage 键名仍是 `careerData`** → 各设备本地已有的记录照样在（`saveData` 以前是先写 localStorage 再 POST，所以本机那份一直是最新的）。
+  - 结果：各客服各设备的数据**互不同步**；换设备要带数据就用页面上的 **JSON 导出 / 导入**。服务端 `data.json` 里可能还留着历史 `careerData` 键，但已无人读取。
+  - 测试：`smoke.cjs` 的 career 读取从「POST 体」改为「读 localStorage」，并把「每次回写服务端」那条断言换成 3 条：**整场一次都没请求过 careerData** / 数据确实落在 localStorage / localStorage 记录数与界面一致；`verify.mjs` 把「走服务端持久化」那条换成 4 条**只准本机**的静态断言。冒烟 121 → **123**。
 - 本轮：**油猴脚本 0.4.0 就发在原链接上**（用户要求：`E:\ai\gemjy-openid-helper.user.js` 那份不存在 → 把 0.4.0 全文贴过来；随后又要求「不能改到 `gemjy-openid-helper.user.js` 里面吗」→ 不另开新链接）。
   - `public/gemjy-openid-helper.user.js` 的内容**整体换成 0.4.0**，并把 `@updateURL`/`@downloadURL` 改回**这一条原链接**；曾经临时建的 `public/gemjy-openid-helper-0.4.user.js` **已删除**（那个 URL 一直 404，没人装上，删掉不会影响任何已安装的脚本）。
   - 效果：**装过 0.3.0 的人，Tampermonkey 检查更新时会自动升到 0.4.0**（同一 URL + `@version` 变大）；不需要重新安装、也不会多出一条链接。
