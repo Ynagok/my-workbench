@@ -2045,6 +2045,73 @@
             overflow: auto;
         }
 
+            .career-kpi.mini {
+                padding: 8px 11px;
+            }
+
+                .career-kpi.mini .k-value {
+                    font-size: 17px;
+                }
+
+        /* 两侧占比：一条堆叠条 + 图例，一眼看出工单/海外各占多少 */
+        .career-split-bar {
+            display: flex;
+            height: 18px;
+            border-radius: var(--r-pill);
+            overflow: hidden;
+            background: var(--line-0);
+        }
+
+            .career-split-bar > i {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-style: normal;
+                font-size: 10px;
+                font-weight: 700;
+                letter-spacing: 0.04em;
+                white-space: nowrap;
+                overflow: hidden;
+            }
+
+                .career-split-bar > i.ticket {
+                    background: var(--accent);
+                    color: var(--ink-0);
+                }
+
+                .career-split-bar > i.overseas {
+                    background: #3d7bd6;
+                    color: #fff;
+                }
+
+        .career-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            margin-top: 6px;
+            font-size: 12px;
+            color: var(--ink-2);
+        }
+
+            .career-legend i {
+                display: inline-block;
+                width: 9px;
+                height: 9px;
+                border-radius: 2px;
+                margin-right: 5px;
+            }
+
+                .career-legend i.ticket { background: var(--accent); }
+                .career-legend i.overseas { background: #3d7bd6; }
+
+        .career-table td.career-group-cell {
+            background: var(--surface-2);
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            color: var(--ink-2);
+        }
+
         .career-tag {
             display: inline-block;
             font-size: 10px;
@@ -2298,7 +2365,7 @@
             <div class="card">
                 <div class="flex-row" style="justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
                     <label style="margin:0;">🎖️ 客服生涯 · 工作量总览
-                        <span class="hint-text" style="margin-left:8px;">日报「工单」「海外」两栏自动折算入账，按登记表 14 项工作类型统计</span>
+                        <span class="hint-text" style="margin-left:8px;">日报「工单」「海外」两栏自动折算入账；数据只存本机浏览器</span>
                     </label>
                     <div class="flex-row">
                         <button id="careerArchiveBtn" class="secondary">🗂️ 归档今日日报</button>
@@ -2310,7 +2377,11 @@
                     </div>
                 </div>
                 <div id="careerKpi" class="career-kpi-grid" style="margin-top: 14px;"></div>
-                <div id="careerSheetHint" class="hint-text" style="margin-top: 10px;"></div>
+                <div style="margin-top: 14px;">
+                    <div class="career-split-bar" id="careerSplitBar"></div>
+                    <div class="career-legend" id="careerSplitLegend"></div>
+                </div>
+                <div id="careerSheetHint" class="hint-text" style="margin-top: 8px;"></div>
                 <div id="careerArchiveHint" class="hint-text" style="margin-top: 4px;"></div>
             </div>
 
@@ -2329,22 +2400,12 @@
             </div>
 
             <div class="card">
-                <label>🧩 对外报表口径（登记表 14 项）
-                    <span class="hint-text" style="margin-left:8px;">跟外部《工作量登记表》对账 / 粘贴导入用</span>
+                <label>📈 趋势 · 月度汇总
+                    <span class="hint-text" style="margin-left:8px;">最近 30 个记录日的单日工作量 + 按月汇总</span>
                 </label>
-                <div class="career-scroll" style="margin-top: 10px;"><table class="career-table" id="careerItemTable"></table></div>
-            </div>
-
-            <div class="card">
-                <label>📈 月度汇总</label>
-                <div class="career-scroll" style="margin-top: 10px;"><table class="career-table" id="careerMonthlyTable"></table></div>
-            </div>
-
-            <div class="card">
-                <label>📉 渠道覆盖 · 趋势</label>
+                <div class="career-trend" id="careerTrend" style="margin-top: 12px;"></div>
                 <div id="careerCoverBox" style="margin-top: 10px;"></div>
-                <div class="hint-text" style="margin-top: 14px;">最近 30 个记录日的单日工作量</div>
-                <div class="career-trend" id="careerTrend"></div>
+                <div class="career-scroll" style="margin-top: 12px; max-height: 300px;"><table class="career-table" id="careerMonthlyTable"></table></div>
             </div>
 
             <div class="card">
@@ -9049,8 +9110,8 @@
                                         };
                                     }
 
-                                    function careerKpiCard(label, value, sub, accent) {
-                                        return '<div class="career-kpi' + (accent ? ' accent' : '') + '">'
+                                    function careerKpiCard(label, value, sub, accent, mini) {
+                                        return '<div class="career-kpi' + (accent ? ' accent' : '') + (mini ? ' mini' : '') + '">'
                                             + '<div class="k-label">' + escapeHtml(label) + '</div>'
                                             + '<div class="k-value">' + escapeHtml(String(value)) + '</div>'
                                             + '<div class="k-sub">' + escapeHtml(sub || '') + '</div></div>';
@@ -9061,24 +9122,47 @@
 
                                         const kpi = document.getElementById('careerKpi');
                                         if (kpi) {
+                                            const tSum = s.sideStats.ticket.sum, oSum = s.sideStats.overseas.sum;
                                             kpi.innerHTML = [
-                                                careerKpiCard('累计工作量', careerNum(s.sum), s.days ? '完整记录 ' + s.days + ' 天' : '还没有记录', true),
-                                                careerKpiCard('完整记录天数', s.days, s.pending.length ? '另有 ' + s.pending.length + ' 天待确认' : '无待确认'),
-                                                careerKpiCard('日均工作量', careerNum(s.avg, 1), s.days ? '中位数 ' + careerNum(s.median, 1) : '—'),
-                                                careerKpiCard('最高单日', careerNum(s.max), s.maxDate || '—'),
-                                                careerKpiCard('波动（标准差）', careerNum(s.sd, 1), s.avg ? '变异系数 ' + careerPct(s.cv) : '—'),
-                                                careerKpiCard('最长连续记录', s.best + ' 天', '当前连续 ' + s.curStreak + ' 天'),
-                                                careerKpiCard('记录区间', s.days ? (s.dates[0] + ' → ' + s.dates[s.dates.length - 1]) : '—', '区间 ' + s.spanDays + ' 天 · 断档 ' + s.gapDays + ' 天'),
-                                                careerKpiCard('近 30 记录日日均', careerNum(s.recent30.avg, 1), '近 7 日 ' + careerNum(s.recent7.avg, 1) + (s.mom ? ' · 环比 ' + (s.mom.delta >= 0 ? '+' : '') + careerPct(s.mom.delta) : ''))
+                                                // 先给最该看的 4 个：累计 / 日均 / 最高单日 / 完整记录天数
+                                                careerKpiCard('累计工作量', careerNum(s.sum), s.days ? '工单 ' + careerNum(tSum) + ' + 海外 ' + careerNum(oSum) : '还没有记录', true),
+                                                careerKpiCard('日均工作量', careerNum(s.avg, 1), s.days ? '中位数 ' + careerNum(s.median, 1) : '—', true),
+                                                careerKpiCard('最高单日', careerNum(s.max), s.maxDate || '—', true),
+                                                careerKpiCard('完整记录天数', s.days, s.pending.length ? '另有 ' + s.pending.length + ' 天待确认' : '无待确认', true),
+                                                // 其余是次要指标，用小一号卡片
+                                                careerKpiCard('最低单日', careerNum(s.min), (s.good.filter(r => r.total === s.min)[0] || {}).date || '—', false, true),
+                                                careerKpiCard('波动（标准差）', careerNum(s.sd, 1), s.avg ? '变异系数 ' + careerPct(s.cv) : '—', false, true),
+                                                careerKpiCard('最长连续记录', s.best + ' 天', '当前连续 ' + s.curStreak + ' 天', false, true),
+                                                careerKpiCard('记录区间', s.days ? (s.dates[0] + ' → ' + s.dates[s.dates.length - 1]) : '—', '区间 ' + s.spanDays + ' 天 · 断档 ' + s.gapDays + ' 天', false, true),
+                                                careerKpiCard('近 30 记录日日均', careerNum(s.recent30.avg, 1), '近 7 日 ' + careerNum(s.recent7.avg, 1) + (s.mom ? ' · 环比 ' + (s.mom.delta >= 0 ? '+' : '') + careerPct(s.mom.delta) : ''), false, true)
                                             ].join('');
+                                        }
+                                        // 两侧占比：一条堆叠条 + 图例（比一行文字直观）
+                                        const bar = document.getElementById('careerSplitBar');
+                                        const legend = document.getElementById('careerSplitLegend');
+                                        if (bar && legend) {
+                                            const tSum = s.sideStats.ticket.sum, oSum = s.sideStats.overseas.sum;
+                                            const total = tSum + oSum;
+                                            if (!total) {
+                                                bar.innerHTML = '';
+                                                legend.innerHTML = '<span>还没有记录，先在上面「每日日报」点一次「生成日报」，或在下面粘贴导入。</span>';
+                                            } else {
+                                                const pct = (v) => total ? ((v / total) * 100) : 0;
+                                                bar.innerHTML = '<i class="ticket" style="width:' + pct(tSum).toFixed(2) + '%" title="工单侧 ' + careerNum(tSum) + '">'
+                                                    + (pct(tSum) >= 12 ? '工单 ' + careerPct(pct(tSum) / 100) : '') + '</i>'
+                                                    + '<i class="overseas" style="width:' + pct(oSum).toFixed(2) + '%" title="海外侧 ' + careerNum(oSum) + '">'
+                                                    + (pct(oSum) >= 12 ? '海外 ' + careerPct(pct(oSum) / 100) : '') + '</i>';
+                                                legend.innerHTML = '<span><i class="ticket"></i>工单侧 ' + careerNum(tSum) + '（' + careerPct(pct(tSum) / 100) + '）</span>'
+                                                    + '<span><i class="overseas"></i>海外侧 ' + careerNum(oSum) + '（' + careerPct(pct(oSum) / 100) + '）</span>'
+                                                    + '<span>合计 ' + careerNum(total) + '</span>';
+                                            }
                                         }
                                         const sheetHint = document.getElementById('careerSheetHint');
                                         if (sheetHint) {
-                                            sheetHint.textContent = '工单侧 ' + careerNum(s.sideStats.ticket.sum) + ' + 海外侧 ' + careerNum(s.sideStats.overseas.sum)
-                                                + ' = ' + careerNum(s.sum) + '；其中「对外登记表 14 项口径」累计 ' + careerNum(s.sheetSum)
-                                                + (s.sum === s.sheetSum ? '' : (s.sum > s.sheetSum
-                                                    ? '（差额 ' + careerNum(s.sum - s.sheetSum) + ' 来自日报有、登记表未列的项）'
-                                                    : '（比累计多 ' + careerNum(s.sheetSum - s.sum) + '：表里有几列只存档、不计入统计）'));
+                                            const tSum = s.sideStats.ticket.sum, oSum = s.sideStats.overseas.sum;
+                                            sheetHint.textContent = '工单侧 ' + careerNum(tSum) + ' + 海外侧 ' + careerNum(oSum) + ' = 累计 ' + careerNum(s.sum)
+                                                + '；日均 ' + careerNum(s.avg, 1) + '（按 ' + s.days + ' 个完整记录日）'
+                                                + '；数据只存在这台设备的浏览器里，不会同步给别的设备。';
                                         }
 
                                         const mt = document.getElementById('careerMonthlyTable');
@@ -9108,58 +9192,40 @@
                                             const sideMax = rows.reduce((m, r) => Math.max(m, s.itemTotals[r.key] || 0), 0) || 1;
                                             let h = '<div class="career-kpi-grid" style="margin-bottom:12px;">'
                                                 + careerKpiCard(side.label + '侧累计', careerNum(st.sum), s.sum ? '占累计 ' + careerPct(st.sum / s.sum) : '—', true)
-                                                + careerKpiCard('侧内日均', careerNum(st.avg, 1), s.days ? '按 ' + s.days + ' 个完整记录日' : '—')
-                                                + careerKpiCard('侧内最高单日', careerNum(st.max), st.maxDate || '—')
-                                                + careerKpiCard('有产出的项', st.active + ' / ' + st.itemCount, '数据取自「' + side.label + '日报」')
+                                                + careerKpiCard('侧内日均', careerNum(st.avg, 1), s.days ? '按 ' + s.days + ' 个完整记录日' : '—', false, true)
+                                                + careerKpiCard('侧内最高单日', careerNum(st.max), st.maxDate || '—', false, true)
+                                                + careerKpiCard('有产出的项', st.active + ' / ' + st.itemCount, '数据取自「' + side.label + '日报」', false, true)
                                                 + '</div>';
-                                            h += '<div class="career-scroll"><table class="career-table"><thead><tr><th>统计项</th><th>类别</th><th>数据来源</th><th class="num">累计</th><th class="num">占比</th><th style="width:110px;">结构</th></tr></thead><tbody>';
-                                            if (!s.days) h += '<tr><td colspan="6" style="color:var(--ink-3);">暂无数据</td></tr>';
+                                            // 按「类别」分组显示：每组一行小标题 + 组内各项，比一张宽表好读
+                                            let lastKind = null;
+                                            const kindSum = {};
+                                            rows.forEach(r => { kindSum[r.kind] = (kindSum[r.kind] || 0) + (s.itemTotals[r.key] || 0); });
+                                            h += '<div class="career-scroll"><table class="career-table"><thead><tr><th>统计项</th><th class="num">累计</th><th class="num">占本侧</th><th style="width:120px;">结构</th></tr></thead><tbody>';
+                                            if (!s.days) h += '<tr><td colspan="4" style="color:var(--ink-3);">暂无数据</td></tr>';
                                             for (const item of rows) {
                                                 const v = s.itemTotals[item.key] || 0;
                                                 const pct = st.sum ? v / st.sum : 0;
-                                                const srcText = item.from.length ? '日报自动' : '需补录';
+                                                if (item.kind !== lastKind) {
+                                                    lastKind = item.kind;
+                                                    h += '<tr><td class="career-group-cell" colspan="3">' + escapeHtml(item.kind)
+                                                        + '（' + careerNum(kindSum[item.kind] || 0) + '）</td>'
+                                                        + '<td class="career-group-cell num">' + (st.sum ? careerPct((kindSum[item.kind] || 0) / st.sum) : '—') + '</td></tr>';
+                                                }
                                                 h += '<tr><td>' + escapeHtml(item.label) + (item.from.length ? '' : ' <span class="career-tag">需补录</span>')
-                                                    + '</td><td class="hint-text">' + escapeHtml(item.kind)
-                                                    + '</td><td class="hint-text">' + srcText
                                                     + '</td><td class="num">' + careerNum(v)
                                                     + '</td><td class="num">' + careerPct(pct)
                                                     + '</td><td><div class="career-bar"><i style="width:' + ((v / sideMax) * 100).toFixed(1) + '%"></i></div></td></tr>';
                                             }
-                                            h += '</tbody><tfoot><tr class="total-row"><td colspan="3">' + side.label + '侧合计</td><td class="num">' + careerNum(st.sum)
+                                            h += '</tbody><tfoot><tr class="total-row"><td>' + side.label + '侧合计</td><td class="num">' + careerNum(st.sum)
                                                 + '</td><td class="num">100.0%</td><td></td></tr></tfoot></table></div>';
                                             box.innerHTML = h;
                                         }
 
-                                        // 对外登记表 14 项口径（跟外部表格对账用；含撤出统计、只存档的那 5 列）
-                                        const it = document.getElementById('careerItemTable');
-                                        if (it) {
-                                            const rows = CAREER_SHEET_ITEMS.map(k => careerItemByKey(k)).filter(Boolean);
-                                            const maxV = rows.reduce((m, r) => Math.max(m, s.itemTotals[r.key] || 0), 0) || 1;
-                                            let h = '<thead><tr><th>登记表列</th><th>归属</th><th class="num">累计</th><th class="num">占比</th><th style="width:110px;">结构</th></tr></thead><tbody>';
-                                            if (!s.days) h += '<tr><td colspan="5" style="color:var(--ink-3);">暂无数据</td></tr>';
-                                            for (const item of rows) {
-                                                const v = s.itemTotals[item.key] || 0;
-                                                const pct = s.sheetSum ? v / s.sheetSum : 0;
-                                                const hidden = CAREER_SHEET_HIDDEN.indexOf(item.key) !== -1;
-                                                const sideLabel = hidden ? '仅存档' : (item.side === 'overseas' ? '海外' : '工单');
-                                                h += '<tr><td>' + escapeHtml(item.label) + (hidden ? ' <span class="career-tag">不计入统计</span>' : '')
-                                                    + '</td><td class="hint-text">' + sideLabel
-                                                    + '</td><td class="num">' + careerNum(v)
-                                                    + '</td><td class="num">' + careerPct(pct)
-                                                    + '</td><td><div class="career-bar"><i style="width:' + ((v / maxV) * 100).toFixed(1) + '%"></i></div></td></tr>';
-                                            }
-                                            h += '</tbody><tfoot><tr class="total-row"><td colspan="2">14 列合计（对账口径）</td><td class="num">' + careerNum(s.sheetSum) + '</td><td class="num">100.0%</td><td></td></tr></tfoot>';
-                                            it.innerHTML = h;
-                                        }
-
                                         const cb = document.getElementById('careerCoverBox');
                                         if (cb) {
-                                            let h = '<div class="hint-text">渠道覆盖：' + CAREER_ITEMS.length + ' 个统计项里有 <b>' + s.activeKinds
+                                            cb.innerHTML = '<div class="hint-text">渠道覆盖：' + CAREER_ITEMS.length + ' 个统计项里有 <b>' + s.activeKinds
                                                 + '</b> 项有产出；单日最多同时触达 ' + s.dayMaxKinds.n + ' 项'
                                                 + (s.dayMaxKinds.date ? '（' + escapeHtml(s.dayMaxKinds.date) + '）' : '') + '</div>';
-                                            h += '<div class="hint-text" style="margin-top:6px;">两侧占比：工单侧 ' + careerPct(s.sum ? s.sideStats.ticket.sum / s.sum : 0)
-                                                + ' / 海外侧 ' + careerPct(s.sum ? s.sideStats.overseas.sum / s.sum : 0) + '</div>';
-                                            cb.innerHTML = h;
                                         }
 
                                         const tr = document.getElementById('careerTrend');

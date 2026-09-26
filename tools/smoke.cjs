@@ -461,9 +461,12 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
   check(/最长连续记录\s*1 天/.test(kpiText()), 'KPI：连续记录天数');
   check(/环比|近 30 记录日日均/.test(kpiText()), 'KPI：趋势类指标已渲染');
   check($('careerTrend').querySelectorAll('span').length === 1, '趋势条 = 1 根', $('careerTrend').querySelectorAll('span').length);
-  check(/工单侧\s*17 \+ 海外侧\s*51 = 68/.test($('careerSheetHint').textContent)
-    && /登记表 14 项口径.*53/.test($('careerSheetHint').textContent),
-    '口径拆分：工单17 + 海外51 = 68；登记表 14 列口径 53（差额 = 不在登记表里的项）', $('careerSheetHint').textContent);
+  check(/工单侧\s*17 \+ 海外侧\s*51 = 累计\s*68/.test($('careerSheetHint').textContent)
+    && !/登记表/.test($('careerSheetHint').textContent),
+    '汇总行：工单17 + 海外51 = 累计 68（不再提「登记表 14 项口径」）', $('careerSheetHint').textContent);
+  check(!!$('careerSplitBar') && doc.querySelectorAll('#careerSplitBar > i').length === 2
+    && /工单侧\s*17/.test($('careerSplitLegend').textContent) && /海外侧\s*51/.test($('careerSplitLegend').textContent),
+    '两侧占比堆叠条：两段 + 图例（工单17 / 海外51）', $('careerSplitLegend').textContent);
   const sideTicket = $('careerSideTicket').textContent;
   const sideOverseas = $('careerSideOverseas').textContent;
   check(/工单侧累计\s*17/.test(sideTicket), '工单侧单独统计：累计 17', sideTicket.slice(0, 40));
@@ -475,9 +478,11 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
   check(/异世界群维系/.test(sideOverseas) && /（梦幻\/繁花\/乐缤纷）群维系/.test(sideOverseas)
     && /国内工单/.test(sideOverseas) && /海外CP后台工单/.test(sideOverseas) && /监控禁言/.test(sideOverseas),
     '海外侧含 异世界群维系 /（梦幻/繁花/乐缤纷）群维系 / 国内工单 / 海外CP后台工单 / 禁言封号');
-  const itemTbl = $('careerItemTable').textContent;
-  check(itemTbl.includes('商店回复') && itemTbl.includes('（梦幻/繁花/乐缤纷）群维系') && itemTbl.includes('不计入统计'),
-    '登记表 14 列口径表在，只存档的列标了「不计入统计」', itemTbl.slice(0, 50));
+  check($('careerItemTable') === null && !/对外报表口径/.test(doc.body.textContent)
+    && !/登记表 14 项/.test(doc.body.textContent),
+    '对外报表口径那一块已从页面上移除');
+  check(/在线客服/.test(sideTicket) && /群维系/.test(sideTicket),
+    '两侧表格按「类别」分组（组标题行 + 组内小计）', sideTicket.slice(0, 60));
 
   // 粘贴导入：故意打乱表头顺序，验证按列名对齐；日期用 Excel 序列号
   const tsv = [
@@ -497,7 +502,7 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
   check(recs['2026-06-03'] && recs['2026-06-03'].total === 42, '导入行总计 = 各列之和 42', recs['2026-06-03'] && recs['2026-06-03'].total);
   check(recs['2026-06-04'] && recs['2026-06-04'].note === '测试备注', '特殊问题列已带入');
   check(/累计工作量\s*130/.test(kpiText()), 'KPI 更新：68 + 42 + 20 = 130', kpiText().slice(0, 40));
-  check(/登记表 14 项口径.*115/.test($('careerSheetHint').textContent), '登记表口径同步为 115（53+62）', $('careerSheetHint').textContent);
+  check(/=\s*累计\s*130/.test($('careerSheetHint').textContent), '汇总行同步为累计 130（68+42+20）', $('careerSheetHint').textContent);
   check(/待确认 1 天/.test($('careerQuality').textContent), '「总计为空/待确认」不入统计，单列提示', $('careerQuality').textContent.slice(0, 60));
   const monthTbl = $('careerMonthlyTable').textContent;
   check(monthTbl.includes('2026-06') && monthTbl.includes(bjToday.slice(0, 7)), '月度汇总含 2026-06 与本月', monthTbl.slice(0, 60));
