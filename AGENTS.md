@@ -48,7 +48,7 @@ npm run verify     # 改完代码、push 前的完整自检
 
 | 命令 | 内容 |
 |---|---|
-| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 135 项 + 「接口挂起时界面仍可用」+ 服务端冒烟 12 项 + 油猴脚本语法 + 单测 169 项 |
+| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 156 项 + 「接口挂起时界面仍可用」+ 服务端冒烟 12 项 + 油猴脚本语法 + 单测 169 项 |
 | `npm run verify:static` | 只要静态校验 + 语法检查（最快） |
 | `npm run report` | 打印一份真实生成的日报，肉眼确认排版（含 ⑥伙伴弹途 / ⑦异世界勇者） |
 | `npm run build:data` | 从 GM 玩家页快照提取 4 张权威映射表 + 与硬编码常量的**差异报告**（见下「游戏数据管线」） |
@@ -56,7 +56,7 @@ npm run verify     # 改完代码、push 前的完整自检
 | `npm run test:helper` | 反馈提取助手（油猴脚本 0.4.0）单测，169 项 |
 | `npm test` | = `npm run verify` |
 
-`npm run verify` 失败就不要提交。它一共 7 段：静态结构 → 语法 → jsdom 集成冒烟 **135 项** → 接口挂起时界面仍可用 → 服务端冒烟 **12 项** → 油猴脚本语法（`node --check`）→ 油猴脚本单测 **169 项**。
+`npm run verify` 失败就不要提交。它一共 7 段：静态结构 → 语法 → jsdom 集成冒烟 **156 项** → 接口挂起时界面仍可用 → 服务端冒烟 **12 项** → 油猴脚本语法（`node --check`）→ 油猴脚本单测 **169 项**。
 
 - jsdom 未安装时前端冒烟会自动回落到本机 DSH 自带的那份。
 - `tools/smoke-server.cjs` 用 `PORT` + `DATA_FILE` 环境变量把服务端指到随机端口和 `tools/out/` 里的临时文件，**不会碰真实 `data.json`**；子进程 stdio 必须用 `ignore`/`inherit`（沙箱禁管道，`pipe` 会 EPERM）。
@@ -172,7 +172,9 @@ npm run verify     # 改完代码、push 前的完整自检
       - ⚠️ 商店回复是**合并项**（ios+google），因为登记表那列是合并的；海外侧其余项与海外日报字段一一对应。
       - ⚠️ 登记表里那个群维系列写作「（繁花+乐缤纷+梦幻）群维系」（同一个东西、顺序不同）——见 `CAREER_IMPORT_ALIASES`。
       - ⚠️ 海外侧这 4 个群维系/CP后台/国内工单字段（`sj_group`/`mhl_group`/`cp_ticket`/`cn_ticket`）**都在海外日报表单里手填**，工单侧没有任何一项读它们；反过来海外侧也**不读** `ticket.g7_*`。所以两边不会互相重复。
-  - **日报改动（用户明确要求）**：`DAILY_OVERSEAS_FIELDS` 新增 **4** 个 number 字段 `sj_group`（异世界群维系）/ `mhl_group`（（梦幻/繁花/乐缤纷）群维系）/ `cp_ticket`（海外CP后台工单）/ `cn_ticket`（国内工单），`DAILY_DEFAULT_DATA.overseas` 同步加默认值 0，`generateDailyReport()` 的海外分支在「禁言/封号」那行后**新增 4 行正文**（异世界群维系 → （梦幻/繁花/乐缤纷）群维系 → 海外CP后台工单 → 国内工单）。所以**海外日报的正文输出变了**（多 4 行），海外表单从 8 个字段变 12 个。
+      - ⚠️ **SDk 工单（2026-09 起拆三项填、合并成一个数算）**：海外日报表单里是 `sdk_mh`（梦幻）/ `sdk_ajs`（爱江山）/ `sdk_yl`（月光）三个输入框，`careerSdkTotal(o)` = 三项之和（**三项都是 0 时退回旧字段 `overseas.sdk`** —— 历史日报/登记表里只有总量、没有明细，不能丢）。日报正文与「来访总计」用的都是这个合并值，所以**正文格式没变**（还是 `SDk工单：N例` 一行）。海外侧统计里 `ov_sso`（海外SSO工单量）读的仍是 `overseas.sdk`（合并值），**合计里只算一次**；三项明细单独放在 `CAREER_SDK_BREAKDOWN`（梦幻/爱江山/月光），**只在 `careerAllItems()` 里（能导入导出/查看/补录），不进 `CAREER_ITEMS`** → 不重复计入合计。海外侧表格里它们是最后一组「SDk 明细（其中项，不重复计入合计）」的 3 行（`tr.career-sub-row`，占本侧一列显示 —）；补录表单里也有这三项，**保存时只要填了明细就把 `ov_sso` 改成三项之和**（跟归档口径一致）。
+      - ⚠️ 粘贴导入日报文本时，正文只有合并后的 `SDk工单：N例` → `CAREER_OVERSEAS_LABEL_TO_KEY` 里手工补了 `'SDk工单' → 'sdk'`（表单已拆项，这个映射不再是自动推导出来的），导入后明细为空、总量正确（**这是有意的**，按侧覆盖时会连三项明细一起清掉，不留脏数据）。
+  - **日报改动（用户明确要求）**：`DAILY_OVERSEAS_FIELDS` 新增 **4** 个 number 字段 `sj_group`（异世界群维系）/ `mhl_group`（（梦幻/繁花/乐缤纷）群维系）/ `cp_ticket`（海外CP后台工单）/ `cn_ticket`（国内工单），`DAILY_DEFAULT_DATA.overseas` 同步加默认值 0，`generateDailyReport()` 的海外分支在「禁言/封号」那行后**新增 4 行正文**（异世界群维系 → （梦幻/繁花/乐缤纷）群维系 → 海外CP后台工单 → 国内工单）。所以**海外日报的正文输出变了**（多 4 行），海外表单从 8 个字段变 12 个；**2026-09 又把 `SDk工单（来访）` 拆成 `sdk_mh`/`sdk_ajs`/`sdk_yl` 三个输入框（正文仍只写合并后的一行）→ 海外表单共 14 个字段（含姓名）**。
   - **`CAREER_HIDDEN_ITEMS`（只存档、不计入统计）= 4 项**：登记表里有、日报里没有对应字段的那几列——猫之城ios&B站评论回复、国内动物领主VIP、邮件+SDK（猫旅馆物语）、塔防FB（一直为 0）。
     - ⚠️ 它们可导入、**不进两侧卡片、不进「累计工作量」**；**2026-09 起页面上不再单独展示**（原来那张「🧩 对外报表口径（登记表 14 项）」卡片按用户要求删掉了），只继续参与**粘贴导入的「总计」对账**与 **CSV 导出**——数据模型 `CAREER_SHEET_ITEMS` / `CAREER_HIDDEN_ITEMS` / `careerSheetSum` 全部保留。
   - **`CAREER_IMPORT_ALIASES`**：登记表列名跟本系统标签写法不同的，导入时按别名对齐。目前两条：`（繁花+乐缤纷+梦幻）群维系` → `mhl_group`（海外侧群维系项）、`SSO国内工单` → `t_sso`（工单侧 SSO工单）。**所以历史数据的 142 会进海外侧统计、22 会进工单侧统计。**
@@ -189,10 +191,13 @@ npm run verify     # 改完代码、push 前的完整自检
        - ⚠️ 标签→字段 key 的映射是**从 `DAILY_TICKET_FIELDS`/`DAILY_OVERSEAS_FIELDS` 推导**的（去掉 `·`、去掉末尾括号），日报改字段这里自动跟着变。
        - ⚠️ 折算复用 `careerItemsFromDaily(t, o)`（与点「生成日报」自动归档**同一套口径**），所以日报文本导入的结果与归档完全一致。
        - 覆盖策略：**按侧覆盖**——粘了工单日报就清工单侧旧值、粘了海外日报就清海外侧旧值，没粘的那侧保留（避免只补一段把另一段清空）。
-  - **统计项**（用户要"更能量化工作成果"，已去掉面试/简历相关表述；**2026-09 按用户「更直观一点」重排过版式**）：
-    - 顶部 `#careerKpi` 是**两档 KPI 卡**（`careerKpiCard(label, value, sub, accent, mini)`，第 5 个参数 `mini` = 小一号的次要卡 `.career-kpi.mini`）：**主档 4 个**（黄底 `accent`）= 累计工作量（副标题「工单 X + 海外 Y」）/ 日均工作量（中位数）/ 最高单日（日期）/ 完整记录天数（待确认天数）；**次档 5 个**（`mini`）= 最低单日 / 波动（标准差+变异系数）/ 最长连续记录（+当前连续）/ 记录区间（区间天数+断档天数）/ 近 30 记录日日均（近 7 日 + 环比上月）。
-    - 然后依次是：两侧占比条 + 图例 + `careerSheetHint`（见上「两套口径」）→ **工单统计 / 海外统计两张卡**（每张先 4 个 KPI：侧累计 / 侧内日均 / 侧内最高单日 / 有产出的项；再一张 4 列表格「统计项 / 累计 / 占本侧 / 结构」，**按 `kind` 分组**——每组一行 `td.career-group-cell`（colspan=3，写组名 + 组小计 + 组占本侧 %），组内各项按累计降序，行内还有结构条）→ **一张合并卡「📈 趋势 · 月度汇总」**（`#careerTrend` 最近 30 个记录日的单日柱 + `#careerCoverBox` 渠道覆盖一行 + `#careerMonthlyTable` 月度汇总：月份/完整天数/总工作量/日均/最高单日+日期/环比日均 + 合计行）→ **「🧪 数据质量与备注」**（待确认天数+日期明细、特殊问题清单）→ 「✍️ 补录 / 修正某一天」→ CSV / JSON 导出。
-    - ⚠️ 原来单列的「月度汇总」卡和「渠道覆盖」卡**已并入「趋势 · 月度汇总」这一张**（渠道覆盖现在只剩 `careerCoverBox` 一行字，其余内容去掉了）。
+  - **统计项**（用户要"更能量化工作成果"，已去掉面试/简历相关表述；**2026-09 按用户「更直观一点」重排过版式，又加了身份筛选 / 指标详情 / 折叠面板**）：
+    - **身份筛选**：顶部 `#careerScopeBar` 三个按钮「全部 / 📋工单 / 🌐海外」（`data-scope`，选中的加 `.active`）。`careerScopeState` 存在本机 `localStorage['careerScope']`（**不是 careerData，也不走服务端**）。`careerStats(scope)` 是唯一的开关：scope=某一侧时，每条记录的「工作量」改成**该侧项之和**（`careerSideTotal(rec, scope)`），于是日均 / 最高单日 / 连续记录 / 月度 / 趋势全部自动跟着身份走；scope=all 时和以前一模一样。选某一侧时：另一侧的统计卡 `#careerCardTicket`/`#careerCardOverseas` 隐藏、两侧占比条 `#careerSplitWrap` 隐藏、`#careerSheetHint` 只讲那一侧。
+    - **指标详情** `#careerDetailItem`（范围：全部工作量 / 工单侧 / 海外侧 / 逐项，含 SDk 三项明细）+ `#careerDetailGrain`（按日 / 按月）→ `#careerDetailSummary` 5 张小卡（总量 / 日均 / **按日时是中位数、按月时是月均** / 最高单日或最高月 / 记录天数或月数）+ `#careerDetailChart` 柱状（按日只画最近 90 个记录日）+ `#careerDetailTable`（期间 / 合计 / 日均 / 占总量）。取值走 `careerDetailValue(rec, sel)`。
+    - 顶部 `#careerKpi` 是**两档 KPI 卡**（`careerKpiCard(label, value, sub, accent, mini)`，第 5 个参数 `mini` = 小一号的次要卡 `.career-kpi.mini`）：**主档 4 个**（黄底 `accent`）= 累计工作量（副标题「工单 X + 海外 Y」，选某一侧时变「占全部 X%」）/ 日均工作量（中位数）/ 最高单日（日期）/ 完整记录天数（待确认天数）；**次档 5 个**（`mini`）= 最低单日 / 波动（标准差+变异系数）/ 最长连续记录（+当前连续）/ 记录区间（区间天数+断档天数）/ 近 30 记录日日均（近 7 日 + 环比上月）。
+    - 然后依次是：两侧占比条 + 图例 + `careerSheetHint`（见上「两套口径」）→ **工单统计 / 海外统计两张卡**（每张先 4 个 KPI：侧累计 / 侧内日均 / 侧内最高单日 / 有产出的项；再一张 4 列表格「统计项 / 累计 / 占本侧 / 结构」）→ **一张合并卡「📈 趋势 · 月度汇总」**（`#careerTrend` 最近 30 个记录日的单日柱 + `#careerCoverBox` 渠道覆盖一行 + `#careerMonthlyTable` 月度汇总：月份/完整天数/总工作量/日均/最高单日+日期/环比日均 + 合计行）→ **「🧪 数据质量与备注」**（待确认天数+日期明细、特殊问题清单）→ **「✍️ 补录 / 修正某一天」与「📋 粘贴导入」两张卡**（`careerEditToggleBtn`/`careerEditBody`、`careerImportToggleBtn`/`careerImportBody`，**默认 `display:none` 收起**，点标题才展开，`bindCollapse()` 绑定）→ CSV / JSON 导出。
+    - **分组规则**：表格**先按 `kind` 分组、组内按累计降序**（`CAREER_KIND_ORDER` 决定组的先后），所以同一组的项必然连续、组小计只出现一次（以前按全局累计降序排、组标题会重复出现好几次）。工单侧 `careerTicketKind`：`kf53`/`alipay` → 「在线客服」，`sso` + `*_cp`（CP后台）+ `g1..g7`（群维系）→ **统一「工单/后台」**（用户要求把 CP后台与群维系并进来，所以工单侧现在只有 2 个分组），其余 → 「其他」。海外侧 `ov_cp` 也归「工单/后台」；`CAREER_SDK_BREAKDOWN` 那组永远排在最后（组标题带说明，`占本侧` 列显示 —，行是 `tr.career-sub-row` 缩进灰字）。
+    - ⚠️ 原来单列的「月度汇总」卡和「渠道覆盖」卡**已并入「趋势 · 月度汇总」这一张**（渠道覆盖现在只剩 `careerCoverBox` 一行字；选某一侧时它变成「X 侧覆盖：N 项里有 M 项有产出」）。
   - **持久化：只存本机浏览器，不走服务端**（⚠️ 用户明确要求，2026-09 改的）。`careerData` 是 **localStorage-only**：归档 / 补录 / 删除 / 粘贴导入都只调 `careerSaveLocal()`，加载走 `careerLoadLocal()`（`applyState` 里写死 `careerData = normalizeCareer(careerLoadLocal())`，**不看服务端 bundle**；启动的 `Promise.all` 里也刻意不 `loadData(CAREER_KEY)`）。
     - **为什么**：不同客服在不同设备上打开工作台、各记各的日报，谁的数据都不该同步给别人。旧实现走 `/api/data/careerData`（落 `data.json`），换台设备打开时本机没有缓存 → `loadData` 去服务端兜底 → 看到的是「最后同步上来那个人」的统计（用户报的 bug 就是这个）。
     - ⚠️ **不要再把它改回 `loadData`/`saveData(CAREER_KEY…)`**（那两个会读写 `/api/data`）——`verify.mjs` 有 4 条静态断言锁死：helper 存在 + 不出现 `loadData(CAREER_KEY` / `saveData(CAREER_KEY` + `applyState` 不取 `b.careerData` + `careerSaveLocal();` ≥3 处；`smoke.cjs` 还会断言「整场跑下来**一次都没请求**过 careerData」＋「数据确实落在 localStorage」。
@@ -200,7 +205,7 @@ npm run verify     # 改完代码、push 前的完整自检
     - ⚠️ **「别的设备已经有我的数据了」怎么办**：旧版 `loadData` 在拉服务端数据时会顺手把值**缓存进那台设备的 localStorage**，所以那些设备本地也有一份副本 —— 改完之后它们读本机，**不会自动消失**。要么让那台设备点一次 `🧹 清空本机数据`，要么在它的控制台跑 `localStorage.removeItem('careerData')` 再刷新。反过来，自己这台设备的数据一直在本机、不受影响。
     - 服务端 `data.json` 里可能还留着历史 `careerData` 键，但**已经没人读它**。
     - 其它数据（`dailyData`/映射表/短语…）仍是「localStorage 优先 + 服务端兜底」，**没动**。
-  - **测试**：`tools/smoke.cjs` 有 **8c**（自动归档折算、两侧拆分、工单日报全部字段进工单侧、海外日报 4 个新字段参与统计、两处异世界互不干扰、别名、登记表导入、补录、删除、导出、**只落本机不碰服务端**、`careerSheetHint` 文案只提统计口径（不许出现「登记表」）、`#careerSplitBar` 恰好两段 + 图例两侧的数、**「对外报表口径」整块已从页面移除**（`#careerItemTable` 为 null 且全文无该字样）、两侧表格按类别分组）→ **8d**（真去点「生成日报」拿到两段日报正文 → 删掉当天 → 粘回去导入，断言还原的数字/姓名/班次与归档一致、且「只粘工单那段时海外侧不被清空」）→ **8e**（重置模板保姓名）→ **8f**（10 条：`📤 导入JSON` 吃导出的文件 → 新日期进账 / 同一天以文件为准 / 提示写在 `careerArchiveHint`；`🧹 清空本机数据` → 记录归零 / localStorage 键删掉 / 有提示 / **一次都没碰服务端** / 空状态文案）四节；`tools/verify.mjs` 有整块客服生涯断言（工单侧由 DAILY_TICKET_FIELDS 生成且不排除字段 + 29 项 + 海外侧 10 项覆盖海外日报全部 11 个数值字段 + 海外侧不读 `ticket.g7_*` + 14 列列名对得上（含别名）+ 只存档 4 项 + 日报标签映射/解析函数 + **只读本机 localStorage** 共 4 条 + 导入JSON/清空本机两个按钮存在）。
+  - **测试**：`tools/smoke.cjs` 有 **8c**（自动归档折算、两侧拆分、工单日报全部字段进工单侧、海外日报 4 个新字段参与统计、两处异世界互不干扰、别名、登记表导入、补录、删除、导出、**只落本机不碰服务端**、`careerSheetHint` 文案只提统计口径（不许出现「登记表」）、`#careerSplitBar` 恰好两段 + 图例两侧的数、**「对外报表口径」整块已从页面移除**（`#careerItemTable` 为 null 且全文无该字样）、**SDk 三项明细各自留存 + 日报正文合并成 `SDk工单：12例`**、**工单侧只剩 2 个分组标题（CP后台+群维系已并进「工单/后台」）**、**海外侧 SDk 明细组 3 行 `tr.career-sub-row`**、**身份筛选 7 条**（海外 → 累计 51 / 工单卡隐藏 / 占比条隐藏 / 汇总行只讲海外 / localStorage 记住身份；工单 → 17 + 海外卡隐藏；全部 → 回到 68）、**指标详情 5 条**（范围下拉、全部按日总量 68、单项 `ov_sso` 按月 12、SDk 明细 `sdk_mh` = 5、按月表格）、**折叠面板 4 条**（默认收起 / 点标题展开 / 补录表单里有 t_sso、ov_sso、sdk_mh））→ **8d**（真去点「生成日报」拿到两段日报正文 → 删掉当天 → 粘回去导入，断言还原的数字/姓名/班次与归档一致、且「只粘工单那段时海外侧不被清空」）→ **8e**（重置模板保姓名）→ **8f**（10 条：`📤 导入JSON` 吃导出的文件 → 新日期进账 / 同一天以文件为准 / 提示写在 `careerArchiveHint`；`🧹 清空本机数据` → 记录归零 / localStorage 键删掉 / 有提示 / **一次都没碰服务端** / 空状态文案）四节，共 **156 项**；`tools/verify.mjs` 有整块客服生涯断言（工单侧由 DAILY_TICKET_FIELDS 生成且不排除字段 + 29 项 + 海外侧 10 项覆盖海外日报全部 13 个数值字段（含 SDk 三项）+ 海外侧不读 `ticket.g7_*` + 14 列列名对得上（含别名）+ 只存档 4 项 + 日报标签映射/解析函数 + **只读本机 localStorage** 共 4 条 + 导入JSON/清空本机两个按钮 + **SDk 拆三项/合并总量/明细不计入合计** + **身份筛选 / 指标详情 / 折叠面板 / 工单分组合并**）。
   - **✅ 真实数据对账**：把上传的登记表 81 行（80 天）原样喂进粘贴导入，与表格自己的「月度汇总」「个人指标看板」逐项比对，**38/38 全对，且所有指标都跟原表一致**——79 完整记录天；**工单侧 22 + 海外侧 5,601 = 累计 5,623（= 原表累计工作量）**；海外侧含「异世界群维系 7」（登记表那列）+「（梦幻/繁花/乐缤纷）群维系 142」（别名那列）；**日均 71.2、最高单日 191 @ 2026-08-05、月度 1,312 / 1,614 / 1,572 / 1,125** 全部与原表看板一致；14 列逐项累计吻合；只存档 4 列都是 0。回放脚本是一次性的（`tools/out/`，未入库）。
 - 本轮：**「重置模板」不再重置姓名**（用户需求）。`resetDailyBtn` 先把当前栏的 `name` 记下来，重建默认对象后再写回（原本空着就保持空着）；其余字段照旧回默认、自定义附加项照旧清空。确认文案由「含姓名」改成「姓名保留」。冒烟加 **8e** 节 5 条（工单栏保留 / 工单栏其余回默认 / 海外栏保留 / 海外栏其余回默认 / 重置海外栏不动工单栏），`tools/verify.mjs` 加 1 条静态断言；冒烟 116 → **121**。
 - 本轮：**客服生涯改成「只存本机」**（用户报的 bug：别的设备打开看到的是我这边的统计）。原因：`careerData` 原来走 `loadData/saveData(CAREER_KEY…)` → `/api/data/careerData` ↔ `data.json`，**本机没有缓存时会拿服务端那份**（`loadData` 的兜底），于是所有设备共享同一份、谁最后同步谁的。
@@ -220,6 +225,14 @@ npm run verify     # 改完代码、push 前的完整自检
   3. **重排统计页面**：新增 `#careerSplitBar`（两段堆叠条）+ `#careerSplitLegend`；`careerKpiCard` 加第 5 个参数 `mini`（次要卡 `.career-kpi.mini`，小一号），KPI 分两档（主档 4 个黄底 + 次档 5 个）；`#careerSheetHint` 文案改成只讲统计口径 + 「数据只存在这台设备的浏览器里」；两侧表格从 3 列扩成 **4 列**（统计项 / 累计 / 占本侧 / 结构）并**按 `kind` 分组**（`td.career-group-cell` 组标题行，colspan=3，带组小计与组占本侧 %）；原「月度汇总」卡 + 「渠道覆盖」卡**合并进「📈 趋势 · 月度汇总」**一张（`careerCoverBox` 现在只剩覆盖那一行字）。新增 CSS：`.career-kpi.mini` / `.career-split-bar`（含 `>i.ticket`、`>i.overseas`）/ `.career-legend` / `.career-table td.career-group-cell`。
   - 测试：`smoke.cjs` 的 **8c** 补了 5 条（`careerSheetHint` 只提统计口径且**不许出现「登记表」**、堆叠条恰好两段 + 图例两侧的数、**「对外报表口径」整块已消失**、两侧表格按类别分组）、导入后的断言数字随之改成 `/=\s*累计\s*130/`；`verify.mjs` 加 1 条（导入JSON/清空本机两个按钮存在）。冒烟 **123 → 135**（其中 8f 10 条是上一提交的 JSON/清空测试）。
   - ⚠️ 这两个提交（JSON 导入/清空 + 本次重排）**都还没推**，`origin/main` 落后两个提交。
+- 本轮：**客服生涯：身份筛选 + 指标详情 + 折叠面板 + SDk 工单拆三项**（用户要求）。`public/index.html` + `tools/smoke.cjs` + `tools/verify.mjs` 三个文件：
+  1. **身份筛选**（`#careerScopeBar` 全部/工单/海外）：`careerStats(scope)` 接一个 scope，`careerSideTotal(rec, scope)` 决定每条记录算哪一侧的工作量，于是总览 KPI、趋势、月度、数据质量、汇总行全部跟着走；选某一侧时另一侧的统计卡 + 两侧占比条隐藏。身份存 `localStorage['careerScope']`（**第二个本机 key，不是 careerData、不走服务端**）。
+  2. **指标详情**（新卡 `🔎 指标详情`）：范围（全部 / 工单侧 / 海外侧 / 逐项，含 SDk 三项明细）× 粒度（按日 / 按月）→ 5 张汇总小卡（总量 / 日均 / 期均或月均 / 最高 / 记录天数或月数）+ 柱状趋势 + 一张「期间 / 合计 / 日均 / 占总量」表；按日时柱状只画最近 90 个记录日，表格仍列全。取值 `careerDetailValue(rec, sel)`。
+  3. **补录 / 粘贴导入改成折叠**：标题是 `button.career-collapse-btn`（带 `▾` 箭头 + `aria-expanded`），内容在 `#careerEditBody` / `#careerImportBody`，**默认 `display:none`**，`bindCollapse()` 绑定点开/收起。
+  4. **工单统计的 CP后台 + 群维系 并进「工单/后台」**：`careerTicketKind` 改掉（只剩「工单/后台」「在线客服」「其他」三种，实际上只出现前两种）；顺带把海外侧的「海外CP后台工单」也归进「工单/后台」，免得它单开一个只有一行的组。**表格改成先按 kind 分组、组内按累计降序**（`CAREER_KIND_ORDER`），组标题不再重复出现。
+  5. **海外 SDk 工单拆三项**：`DAILY_OVERSEAS_FIELDS` 的 `sdk` 换成 `sdk_mh`（梦幻）/ `sdk_ajs`（爱江山）/ `sdk_yl`（月光），**日报正文格式不变**（`careerSdkTotal()` 合并后仍写 `SDk工单：N例`，来访总计同样用合并值）；生涯侧新增 `CAREER_SDK_BREAKDOWN` 三项明细（在 `careerAllItems` 里、**不进 `CAREER_ITEMS`**，所以合计不重复计），海外侧表格最后一组展示、指标详情里可单独选、补录表单里可填（填了就同步 `ov_sso` = 三项之和）；`CAREER_OVERSEAS_LABEL_TO_KEY` 手工补 `'SDk工单' → 'sdk'` 以保住日报文本的往返导入。
+  - 测试：`smoke.cjs` 加 **21 条**（海外表单 14 字段、SDk 三项各自留存、正文合并成 `SDk工单：12例`、工单侧只剩 2 个分组标题、SDk 明细 3 行、身份筛选 7 条、指标详情 5 条、折叠面板 4 条），**135 → 156**；`verify.mjs` 把「海外数值字段覆盖」改成 13 个（含 SDk 三项）、`careerStats()` 断言改成 `careerStats(scope)`，另加 6 条新断言（SDk 拆项 / 合并总量 / 明细不进合计 / 身份筛选 / 指标详情 / 折叠 / 工单分组合并）。
+  - ⚠️ 本轮的 commit **也还没推**。
 
 ## 已定语义（改之前先问用户）
 
@@ -241,7 +254,7 @@ npm run verify     # 改完代码、push 前的完整自检
 ## 目录结构
 
 ```
-public/index.html          全部前端（单文件，约 9890 行：内联 CSS + 内联 JS 的 async IIFE；含「客服生涯」标签页）
+public/index.html          全部前端（单文件，约 10700 行：内联 CSS + 内联 JS 的 async IIFE；含「客服生涯」标签页）
 public/gemjy-openid-helper.user.js  油猴脚本（反馈后台：卡片式悬浮窗，提取 头像/昵称/图片/openid，一键复制 openid；当前内容 0.4.0，就发在这一条链接上；与前端无代码耦合）
 server.js                  express：静态托管 public/ + GET/POST /api/data/:key ↔ data.json（含 key 白名单）
 data.json                  服务端数据（随使用增长；前端字段缺失会被默认值自动补齐）

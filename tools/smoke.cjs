@@ -414,16 +414,17 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
 
   $('dailyTabOverseas').click();          // 海外表单要先切过去才渲染
   await sleep(40);
-  check($('dailyFormOverseas').querySelectorAll('[data-key]').length === 12, '海外日报表单 12 个字段（含新增的 异世界群维系/（梦幻/繁花/乐缤纷）群维系/海外CP后台工单/国内工单）',
+  check($('dailyFormOverseas').querySelectorAll('[data-key]').length === 14, '海外日报表单 14 个字段（SDk 工单拆成梦幻/爱江山/月光三项）',
     $('dailyFormOverseas').querySelectorAll('[data-key]').length);
 
   // 工单栏：g7=异世界群维系(3+1)、①②⑤群维系(只为只存档层)、sso=SSO国内(5)
-  // 海外栏：sdk=海外SSO(12)、email=海外邮件(4)、ios+google=商店回复(14)、mute=禁言(7)、ban=封号(3)
+  // 海外栏：SDk 三项合计 12（梦幻5+爱江山4+月光3）、email=海外邮件(4)、ios+google=商店回复(14)、mute=禁言(7)、ban=封号(3)
   //        新增三项：mhl_group=6、cp_ticket=2、cn_ticket=3
   const dailySets = [['dailyFormTicket', 'name', '测试员'], ['dailyFormTicket', 'shift', 'F'],
     ['dailyFormTicket', 'g7_wx', 3], ['dailyFormTicket', 'g7_dy', 1],
     ['dailyFormTicket', 'g1_wx', 2], ['dailyFormTicket', 'g2_dy', 1], ['dailyFormTicket', 'sso', 5],
-    ['dailyFormOverseas', 'sdk', 12], ['dailyFormOverseas', 'email', 4],
+    ['dailyFormOverseas', 'sdk_mh', 5], ['dailyFormOverseas', 'sdk_ajs', 4], ['dailyFormOverseas', 'sdk_yl', 3],
+    ['dailyFormOverseas', 'email', 4],
     ['dailyFormOverseas', 'ios', 9], ['dailyFormOverseas', 'google', 5],
     ['dailyFormOverseas', 'mute', 7], ['dailyFormOverseas', 'ban', 3],
     ['dailyFormOverseas', 'mhl_group', 6], ['dailyFormOverseas', 'cp_ticket', 2], ['dailyFormOverseas', 'cn_ticket', 3]];
@@ -441,7 +442,10 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     '逐项折算正确（工单侧 SSO5/⑦工单来访3+1、海外侧 商店14/海外SSO12/邮件4/禁言7/封号3）', rec0 && rec0.items);
   check(rec0 && rec0.items.mhl_group === 6 && rec0.items.ov_cp === 2 && rec0.items.cn_ticket === 3,
     '海外日报新增的三项已计入海外侧（群维系6/CP后台2/国内工单3）', rec0 && rec0.items);
+  check(rec0 && rec0.items.sdk_mh === 5 && rec0.items.sdk_ajs === 4 && rec0.items.sdk_yl === 3,
+    'SDk 三项明细各自留存（梦幻5/爱江山4/月光3）', rec0 && rec0.items);
   const ovReport = $('dailyResultArea').value;
+  check(ovReport.includes('SDk工单：12例'), '日报正文里 SDk 三项已合并成一个「SDk工单」数', ovReport.slice(-160));
   check(ovReport.includes('（梦幻/繁花/乐缤纷）群维系：6') && ovReport.includes('海外CP后台工单：2') && ovReport.includes('国内工单：3'),
     '海外日报正文已输出这 3 行', ovReport.slice(-110));
   check(rec0 && rec0.status === '已完成记录' && rec0.src === 'daily', '状态与来源标记正确', rec0 && [rec0.status, rec0.src]);
@@ -481,8 +485,78 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
   check($('careerItemTable') === null && !/对外报表口径/.test(doc.body.textContent)
     && !/登记表 14 项/.test(doc.body.textContent),
     '对外报表口径那一块已从页面上移除');
-  check(/在线客服/.test(sideTicket) && /群维系/.test(sideTicket),
-    '两侧表格按「类别」分组（组标题行 + 组内小计）', sideTicket.slice(0, 60));
+  check(/在线客服/.test(sideTicket) && /工单\/后台/.test(sideTicket) && !/CP后台（|群维系（/.test(sideTicket),
+    '工单表格按「类别」分组：CP后台 + 群维系 已并进「工单/后台」', sideTicket.slice(0, 80));
+  check(doc.querySelectorAll('#careerSideTicket td.career-group-cell[colspan]').length === 2,
+    '工单侧只剩 2 个分组标题行（工单/后台〔含 CP后台 + 群维系〕· 在线客服）',
+    doc.querySelectorAll('#careerSideTicket td.career-group-cell[colspan]').length);
+  check(/SDk 明细/.test(sideOverseas) && /SDk工单·梦幻/.test(sideOverseas) && /SDk工单·爱江山/.test(sideOverseas)
+    && /SDk工单·月光/.test(sideOverseas),
+    '海外侧多出一组 SDk 三项明细（可分别查看）', sideOverseas.slice(-90));
+  check(doc.querySelectorAll('#careerSideOverseas tr.career-sub-row').length === 3,
+    'SDk 三项明细各占一行', doc.querySelectorAll('#careerSideOverseas tr.career-sub-row').length);
+  // 身份筛选：只看海外时，工单卡藏起来、总览只算海外那 51
+  const scopeBtn = (scope) => doc.querySelector('#careerScopeBar button[data-scope="' + scope + '"]');
+  scopeBtn('overseas').click();
+  await sleep(40);
+  check(/海外侧累计\s*51/.test(kpiText()) && /完整记录天数\s*1/.test(kpiText()),
+    '身份=海外：总览只算海外侧（累计 51）', kpiText().slice(0, 60));
+  check($('careerCardTicket').style.display === 'none' && $('careerCardOverseas').style.display !== 'none',
+    '身份=海外：工单统计卡隐藏、海外统计卡显示');
+  check($('careerSplitWrap').style.display === 'none', '身份=海外：两侧占比条隐藏（只剩一侧没意义）');
+  check(/海外侧累计\s*51/.test($('careerSheetHint').textContent) && /只统计「海外日报」里的项/.test($('careerSheetHint').textContent),
+    '身份=海外：汇总行只讲海外侧', $('careerSheetHint').textContent);
+  check(window.localStorage.getItem('careerScope') === 'overseas', '身份选择记在本机（刷新后保持）');
+  scopeBtn('ticket').click();
+  await sleep(40);
+  check(/工单侧累计\s*17/.test(kpiText()) && $('careerCardOverseas').style.display === 'none',
+    '身份=工单：总览只算工单侧（累计 17）+ 海外卡隐藏', kpiText().slice(0, 60));
+  scopeBtn('all').click();
+  await sleep(40);
+  check(/累计工作量\s*68/.test(kpiText()) && $('careerCardTicket').style.display !== 'none'
+    && $('careerCardOverseas').style.display !== 'none',
+    '身份=全部：回到两侧合计 68');
+  // 指标详情：默认全部 / 按日；换成某一项时应能算出那一项的总量与平均
+  check(!!$('careerDetailItem') && !!$('careerDetailGrain') && /全部工作量/.test($('careerDetailItem').textContent),
+    '指标详情：范围下拉有「全部工作量」等选项');
+  check(/总量\s*68/.test($('careerDetailSummary').textContent) && /日均\s*68/.test($('careerDetailSummary').textContent),
+    '指标详情：全部 / 按日 → 总量 68、日均 68', $('careerDetailSummary').textContent.slice(0, 60));
+  $('careerDetailItem').value = 'ov_sso';
+  fire($('careerDetailItem'), 'change');
+  await sleep(30);
+  $('careerDetailGrain').value = 'month';
+  fire($('careerDetailGrain'), 'change');
+  await sleep(30);
+  check(/总量\s*12/.test($('careerDetailSummary').textContent) && /月均\s*12/.test($('careerDetailSummary').textContent),
+    '指标详情：单项（海外SSO工单量）+ 按月 → 总量 12 / 月均 12', $('careerDetailSummary').textContent.slice(0, 80));
+  check(/海外SSO工单量/.test($('careerDetailTable').textContent) === false
+    && /2026-\d\d/.test($('careerDetailTable').textContent),
+    '指标详情：按月表格列出月份', $('careerDetailTable').textContent.slice(0, 60));
+  $('careerDetailItem').value = 'sdk_mh';
+  fire($('careerDetailItem'), 'change');
+  await sleep(30);
+  $('careerDetailGrain').value = 'day';
+  fire($('careerDetailGrain'), 'change');
+  await sleep(30);
+  check(/总量\s*5/.test($('careerDetailSummary').textContent),
+    '指标详情：SDk 明细也能单独看（梦幻 = 5）', $('careerDetailSummary').textContent.slice(0, 60));
+  $('careerDetailItem').value = 'all';
+  fire($('careerDetailItem'), 'change');
+  await sleep(20);
+  // 补录 / 粘贴导入：默认收起，点标题展开
+  check($('careerEditBody').style.display === 'none' && $('careerImportBody').style.display === 'none',
+    '补录 / 粘贴导入默认收起');
+  $('careerImportToggleBtn').click();
+  await sleep(20);
+  check($('careerImportBody').style.display !== 'none' && $('careerImportToggleBtn').getAttribute('aria-expanded') === 'true',
+    '点「粘贴导入」标题后展开');
+  $('careerEditToggleBtn').click();
+  await sleep(20);
+  check($('careerEditBody').style.display !== 'none', '点「补录 / 修正」标题后展开');
+  check(!!$('careerEditGrid').querySelector('[data-career-key="t_sso"]')
+    && !!$('careerEditGrid').querySelector('[data-career-key="ov_sso"]')
+    && !!$('careerEditGrid').querySelector('[data-career-key="sdk_mh"]'),
+    '补录表单里有全部项（工单 SSO / 海外 SSO / SDk 梦幻明细）');
 
   // 粘贴导入：故意打乱表头顺序，验证按列名对齐；日期用 Excel 序列号
   const tsv = [

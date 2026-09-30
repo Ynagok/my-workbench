@@ -76,12 +76,13 @@ ok(/data-tab="career"/.test(s) && /id="tab-career"/.test(s), '客服生涯标签
   ok(/key: 'sj_group', label: '异世界群维系', type: 'number'/.test(ovDailyBlk),
     '海外日报表单新增「异世界群维系」字段');
   ok(/异世界群维系：\$\{d\.sj_group/.test(s), '海外日报正文已加「异世界群维系」行');
-  // 海外日报的数值字段必须被海外侧项一一覆盖
+  // 海外日报的数值字段必须被海外侧项一一覆盖（SDk 三项明细也算覆盖）
+  const sdkBlk = (s.match(/const CAREER_SDK_BREAKDOWN = \[[\s\S]*?\r?\n\s*\];/) || [''])[0];
   const ovCovered = new Set();
-  for (const m of ovBlk.matchAll(/'overseas\.([a-zA-Z0-9_]+)'/g)) ovCovered.add(m[1]);
+  for (const m of (ovBlk + sdkBlk).matchAll(/'overseas\.([a-zA-Z0-9_]+)'/g)) ovCovered.add(m[1]);
   const ovMissed = ovFields.filter(k => !ovCovered.has(k));
-  ok(ovFields.length === 11 && !ovMissed.length,
-    `海外侧覆盖海外日报全部 ${ovFields.length} 个数值字段` + (ovMissed.length ? '，漏：' + ovMissed.join('/') : ''));
+  ok(ovFields.length === 13 && !ovMissed.length,
+    `海外侧覆盖海外日报全部 ${ovFields.length} 个数值字段（含 SDk 三项）` + (ovMissed.length ? '，漏：' + ovMissed.join('/') : ''));
   const ovN = (ovBlk.match(/side: 'overseas'/g) || []).length;
   ok(ovN === 10, `海外侧 = ${ovN} 项（含异世界群维系 + （梦幻/繁花/乐缤纷）群维系）`);
   ok(/const CAREER_ITEMS = CAREER_TICKET_ITEMS\.concat\(CAREER_OVERSEAS_ITEMS\)/.test(s),
@@ -134,7 +135,42 @@ ok((s.match(/careerSaveLocal\(\);/g) || []).length >= 3,
 ok(/function careerImportJsonFile\(/.test(s) && /function careerClearLocal\(/.test(s)
   && /careerImportJsonBtn/.test(s) && /careerClearLocalBtn/.test(s) && /careerImportJsonInput/.test(s),
   '客服生涯：导入 JSON（按日期合并）+ 清空本机数据 已注入');
-ok(/function careerStats\(\)/.test(s) && /function careerImport\(\)/.test(s) && /function careerCsvText\(\)/.test(s), '统计 / 粘贴导入 / CSV 导出 已注入');
+ok(/function careerStats\(scope\)/.test(s) && /function careerImport\(\)/.test(s) && /function careerCsvText\(\)/.test(s), '统计 / 粘贴导入 / CSV 导出 已注入');
+// SDk 工单：日报表单拆三项（梦幻/爱江山/月光），日报正文与统计总量合并成一个「SDk工单」
+ok(/key: 'sdk_mh', label: 'SDk工单·梦幻'/.test(s) && /key: 'sdk_ajs', label: 'SDk工单·爱江山'/.test(s)
+  && /key: 'sdk_yl', label: 'SDk工单·月光'/.test(s),
+  '海外日报表单：SDk工单拆成三项（梦幻 / 爱江山 / 月光）');
+ok(/function careerSdkTotal\(o\)/.test(s) && /SDk工单：\$\{careerSdkTotal\(d\)\}例/.test(s)
+  && /\+ \(parseFloat\(d\.email\) \|\| 0\) \+ careerSdkTotal\(d\)/.test(s),
+  '生成日报时三项合并成一个「SDk工单」（来访总计也跟着合并）');
+ok(/const CAREER_SDK_BREAKDOWN = \[/.test(s) && ((s.match(/const CAREER_SDK_BREAKDOWN = \[[\s\S]*?\r?\n\s*\];/) || [''])[0].match(/side: 'overseas'/g) || []).length === 3,
+  '生涯里 SDk 三项明细可单独查看（CAREER_SDK_BREAKDOWN 3 项）');
+ok(/const careerAllItems = \(\) => CAREER_ITEMS\.concat\(CAREER_SDK_BREAKDOWN\)\.concat\(CAREER_HIDDEN_ITEMS\)/.test(s)
+  && /const careerSum = \(items\) => CAREER_ITEMS\.reduce/.test(s)
+  && /const careerEditableItems = \(\) => CAREER_ITEMS\.concat\(CAREER_SDK_BREAKDOWN\)/.test(s),
+  'SDk 三项明细只做展示（careerAllItems 里，但不进 CAREER_ITEMS → 合计不重复计）');
+// 身份筛选：全部 / 工单 / 海外（整页统计只算选中那一侧）
+ok(/id="careerScopeBar"/.test(s) && /data-scope="overseas"/.test(s) && /function careerSetScope\(scope\)/.test(s)
+  && /function careerSideTotal\(rec, scope\)/.test(s) && /careerStats\(scope\)/.test(s),
+  '身份筛选已注入（全部 / 工单 / 海外 驱动整页统计）');
+ok(/id="careerCardTicket"/.test(s) && /id="careerCardOverseas"/.test(s)
+  && /cardTicket\.style\.display = \(!scoped \|\| scope === 'ticket'\)/.test(s),
+  '选某一侧时另一侧统计卡隐藏');
+// 指标详情：选范围（某一侧 / 某一项）+ 按日·按月 + 总量 / 平均值
+ok(/function careerDetailValue\(rec, sel\)/.test(s) && /function renderCareerDetail\(\)/.test(s)
+  && /id="careerDetailItem"/.test(s) && /id="careerDetailGrain"/.test(s) && /id="careerDetailSummary"/.test(s),
+  '指标详情面板已注入（选某一侧或某一项，按日/按月看总量与平均值）');
+// 补录 / 粘贴导入：默认收起，点标题才展开
+ok(/id="careerEditToggleBtn"/.test(s) && /id="careerEditBody"/.test(s)
+  && /id="careerImportToggleBtn"/.test(s) && /id="careerImportBody"/.test(s)
+  && /bindCollapse\('careerEditToggleBtn', 'careerEditBody'\)/.test(s)
+  && /bindCollapse\('careerImportToggleBtn', 'careerImportBody'\)/.test(s)
+  && /id="careerEditBody" style="display: none;"/.test(s) && /id="careerImportBody" style="display: none;"/.test(s),
+  '补录 / 粘贴导入已改成「点击展开」（默认收起）');
+// 工单侧分组：CP后台 与 ①~⑦群维系 都并进「工单/后台」
+ok(/function careerTicketKind\(key\) \{[\s\S]{0,320}?if \(key === 'sso' \|\| \/_cp\$\/\.test\(key\) \|\| \/\^g\\d\/\.test\(key\)\) return '工单\/后台';/.test(s)
+  && !/return 'CP后台'/.test(s) && !/return '群维系'/.test(s.slice(s.indexOf('function careerTicketKind'), s.indexOf('function careerTicketKind') + 400)),
+  '工单统计：CP后台 + 群维系 已合并进「工单/后台」分组');
 // 重置模板不清姓名（用户需求）：只有当旧数据里真有 name 键时才把值带过去
 ok(/const keepName = \(prevTab && Object\.prototype\.hasOwnProperty\.call\(prevTab, 'name'\)\) \? prevTab\.name : undefined;/.test(s)
   && /if \(keepName !== undefined\) dailyData\[tab\]\.name = keepName;/.test(s)

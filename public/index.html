@@ -2104,6 +2104,80 @@
                 .career-legend i.ticket { background: var(--accent); }
                 .career-legend i.overseas { background: #3d7bd6; }
 
+        /* 身份筛选（全部 / 工单 / 海外）：切换后整页只统计那一侧 */
+        .career-scope-bar {
+            display: inline-flex;
+            gap: 4px;
+            padding: 3px;
+            border: 1px solid var(--line-0);
+            border-radius: var(--r-pill);
+            background: var(--surface-2);
+        }
+
+            .career-scope-bar > button {
+                border: 0;
+                background: transparent;
+                color: var(--ink-2);
+                font-size: 13px;
+                font-weight: 700;
+                padding: 5px 14px;
+                border-radius: var(--r-pill);
+                cursor: pointer;
+            }
+
+                .career-scope-bar > button.active {
+                    background: var(--accent);
+                    color: var(--ink-0);
+                }
+
+        /* 补录 / 粘贴导入：默认收起，点标题才展开 */
+        .career-collapse-btn {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin: 0;
+            padding: 2px 0;
+            border: 0;
+            background: transparent;
+            color: var(--ink-0);
+            font-size: 14px;
+            font-weight: 700;
+            text-align: left;
+            cursor: pointer;
+        }
+
+            .career-collapse-btn .career-arrow {
+                flex: none;
+                font-size: 12px;
+                color: var(--ink-3);
+                transition: transform 0.15s ease;
+            }
+
+            .career-collapse-btn.open .career-arrow {
+                transform: rotate(180deg);
+            }
+
+        .career-detail-controls {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 10px;
+            margin: 10px 0;
+        }
+
+        .career-table tr.career-sub-row td:first-child {
+            padding-left: 22px;
+            color: var(--ink-2);
+        }
+
+            .career-table td.career-group-cell.sub {
+                font-weight: 600;
+                letter-spacing: 0.02em;
+                color: var(--ink-3);
+            }
+
         .career-table td.career-group-cell {
             background: var(--surface-2);
             font-size: 11px;
@@ -2376,8 +2450,17 @@
                         <input type="file" id="careerImportJsonInput" accept=".json,application/json" style="display:none;" />
                     </div>
                 </div>
+                <div class="flex-row" style="margin-top: 12px; gap: 10px; flex-wrap: wrap; align-items: center;">
+                    <span class="hint-text">身份：</span>
+                    <div class="career-scope-bar" id="careerScopeBar">
+                        <button type="button" data-scope="all" class="active">全部</button>
+                        <button type="button" data-scope="ticket">📋 工单</button>
+                        <button type="button" data-scope="overseas">🌐 海外</button>
+                    </div>
+                    <span class="hint-text" id="careerScopeHint">选「工单」或「海外」，整页统计只算那一侧</span>
+                </div>
                 <div id="careerKpi" class="career-kpi-grid" style="margin-top: 14px;"></div>
-                <div style="margin-top: 14px;">
+                <div id="careerSplitWrap" style="margin-top: 14px;">
                     <div class="career-split-bar" id="careerSplitBar"></div>
                     <div class="career-legend" id="careerSplitLegend"></div>
                 </div>
@@ -2385,18 +2468,35 @@
                 <div id="careerArchiveHint" class="hint-text" style="margin-top: 4px;"></div>
             </div>
 
-            <div class="card">
+            <div class="card" id="careerCardTicket">
                 <label>📋 工单统计
                     <span class="hint-text" style="margin-left:8px;">统计项与数据都取自「工单日报」（含 CP 后台、在线客服、各组群维系）</span>
                 </label>
                 <div id="careerSideTicket" style="margin-top: 12px;"></div>
             </div>
 
-            <div class="card">
+            <div class="card" id="careerCardOverseas">
                 <label>🌐 海外统计
                     <span class="hint-text" style="margin-left:8px;">统计项与数据都取自「海外日报」</span>
                 </label>
                 <div id="careerSideOverseas" style="margin-top: 12px;"></div>
+            </div>
+
+            <div class="card">
+                <label>🔎 指标详情
+                    <span class="hint-text" style="margin-left:8px;">挑一项（或某一侧）看它的总量、平均值，以及按日 / 按月的趋势</span>
+                </label>
+                <div class="career-detail-controls">
+                    <select id="careerDetailItem" style="min-width: 240px;"></select>
+                    <select id="careerDetailGrain" style="width: 118px;">
+                        <option value="day">按日</option>
+                        <option value="month">按月</option>
+                    </select>
+                    <span class="hint-text" id="careerDetailHint"></span>
+                </div>
+                <div id="careerDetailSummary" class="career-kpi-grid"></div>
+                <div class="career-trend" id="careerDetailChart" style="margin-top: 12px;"></div>
+                <div class="career-scroll" style="margin-top: 12px; max-height: 300px;"><table class="career-table" id="careerDetailTable"></table></div>
             </div>
 
             <div class="card">
@@ -2414,9 +2514,11 @@
             </div>
 
             <div class="card">
-                <label>✍️ 补录 / 修正某一天
-                    <span class="hint-text" style="margin-left:8px;">日期可改，用来补历史或改掉误归档的那天</span>
-                </label>
+                <button type="button" class="career-collapse-btn" id="careerEditToggleBtn" aria-expanded="false">
+                    <span>✍️ 补录 / 修正某一天 <span class="hint-text" style="font-weight:400;">（点这里展开；日期可改，用来补历史或改掉误归档的那天）</span></span>
+                    <span class="career-arrow">▾</span>
+                </button>
+                <div id="careerEditBody" style="display: none;">
                 <div class="flex-row" style="margin: 10px 0;">
                     <input type="date" id="careerEditDate" style="width: 168px;">
                     <input type="text" id="careerEditName" placeholder="人员" style="width: 104px;">
@@ -2441,10 +2543,15 @@
                     <input type="text" id="careerEditNote" placeholder="例：活动峰值、异常工单">
                 </div>
                 <div class="hint-text" id="careerEditHint" style="margin-top: 8px;">选个日期点「载入该日」，或直接填数字后「保存该日」。</div>
+                </div>
             </div>
 
             <div class="card">
-                <label>📋 粘贴导入</label>
+                <button type="button" class="career-collapse-btn" id="careerImportToggleBtn" aria-expanded="false">
+                    <span>📋 粘贴导入 <span class="hint-text" style="font-weight:400;">（点这里展开；支持登记表 TSV 与工作台生成的日报文本）</span></span>
+                    <span class="career-arrow">▾</span>
+                </button>
+                <div id="careerImportBody" style="display: none;">
                 <div class="hint-text" style="margin: 8px 0;">
                     支持两种内容：<b>① 从 Excel 复制登记表那段</b>（带表头按列名对齐、顺序随意；不带表头按 A~T 顺序）；<b>② 直接粘工作台生成的日报文本</b>（工单日报 / 海外日报，两段可以一起粘，也可粘多天）。<br>
                     日期接受 Excel 序列号或 2026-06-03、2026/6/3；日报文本按「N月N日」识别，年份取当前年。同一天的已有记录会被覆盖（只覆盖你粘的那一侧）。
@@ -2454,6 +2561,7 @@
                     <button id="careerImportBtn">📥 导入</button>
                     <button id="careerClearImportBtn" class="secondary">清空</button>
                     <span class="hint-text" id="careerImportHint"></span>
+                </div>
                 </div>
             </div>
         </div>
@@ -4851,7 +4959,10 @@
                                         overseas: {
                                             name: '客服',
                                             ios: 0, google: 0,
-                                            fb: 0, email: 0, sdk: 0,
+                                            fb: 0, email: 0,
+                                            // SDk工单在表单里分三项填（梦幻/爱江山/月光），生成日报与统计总量时合并成一个「SDk工单」
+                                            sdk_mh: 0, sdk_ajs: 0, sdk_yl: 0,
+                                            sdk: 0,   // [兼容] 旧数据/登记表里的「SDk工单（海外SSO工单量）」合并总量，表单不再直接填
                                             mute: 0, ban: 0,
                                             cp_ticket: 0, cn_ticket: 0, mhl_group: 0, sj_group: 0
                                         },
@@ -4901,7 +5012,10 @@
                                         { key: 'google', label: 'Google Play（评价）', type: 'number' },
                                         { key: 'fb', label: 'FB（来访）', type: 'number' },
                                         { key: 'email', label: '邮箱（来访）', type: 'number' },
-                                        { key: 'sdk', label: 'SDk工单（来访）', type: 'number' },
+                                        // SDk工单（来访）按用户要求分三项填；日报正文与统计总量里合并成「SDk工单」一个数
+                                        { key: 'sdk_mh', label: 'SDk工单·梦幻', type: 'number' },
+                                        { key: 'sdk_ajs', label: 'SDk工单·爱江山', type: 'number' },
+                                        { key: 'sdk_yl', label: 'SDk工单·月光', type: 'number' },
                                         { key: 'mute', label: '禁言', type: 'number' },
                                         { key: 'ban', label: '封号', type: 'number' },
                                         { key: 'cp_ticket', label: '海外CP后台工单', type: 'number' },
@@ -4926,10 +5040,9 @@
                                     //    （⑦、①②⑤ 的业务归属见下面「只存档」层与海外侧说明：统计只算一次。）
                                     const CAREER_TICKET_EXCLUDE_PREFIX = [];
                                     function careerTicketKind(key) {
-                                        if (/_cp$/.test(key)) return 'CP后台';
-                                        if (key === 'sso') return '工单/后台';
+                                        // [需求] CP后台 与 ①~⑦群维系 都并进「工单/后台」这一组，不再单独分组
                                         if (key === 'kf53' || key === 'alipay') return '在线客服';
-                                        if (/^g\d/.test(key)) return '群维系';
+                                        if (key === 'sso' || /_cp$/.test(key) || /^g\d/.test(key)) return '工单/后台';
                                         return '其他';
                                     }
                                     const CAREER_TICKET_ITEMS = DAILY_TICKET_FIELDS
@@ -4942,7 +5055,7 @@
                                         { key: 'sj_group', label: '异世界群维系', side: 'overseas', kind: '群维系', from: ['overseas.sj_group'] },
                                         { key: 'mhl_group', label: '（梦幻/繁花/乐缤纷）群维系', side: 'overseas', kind: '群维系', from: ['overseas.mhl_group'] },
                                         { key: 'ov_sso', label: '海外SSO工单量（全产品）', side: 'overseas', kind: '工单/后台', from: ['overseas.sdk'] },
-                                        { key: 'ov_cp', label: '海外CP后台工单（全产品）', side: 'overseas', kind: 'CP后台', from: ['overseas.cp_ticket'] },
+                                        { key: 'ov_cp', label: '海外CP后台工单（全产品）', side: 'overseas', kind: '工单/后台', from: ['overseas.cp_ticket'] },
                                         { key: 'cn_ticket', label: '国内工单', side: 'overseas', kind: '工单/后台', from: ['overseas.cn_ticket'] },
                                         { key: 'store_reply', label: '商店回复', side: 'overseas', kind: '评价回复', from: ['overseas.ios', 'overseas.google'] },
                                         { key: 'ov_email', label: '海外邮件（全产品）', side: 'overseas', kind: '来访', from: ['overseas.email'] },
@@ -4951,6 +5064,19 @@
                                         { key: 'ban', label: '监控封号', side: 'overseas', kind: '监控', from: ['overseas.ban'] }
                                     ];
                                     const CAREER_ITEMS = CAREER_TICKET_ITEMS.concat(CAREER_OVERSEAS_ITEMS);
+                                    // SDk工单明细：日报表单里分「梦幻 / 爱江山 / 月光」三项填，**合计仍是 ov_sso 那一个数**
+                                    // （ov_sso 读 overseas.sdk = 三项之和；登记表只给总量的历史数据照样算得对）。
+                                    // 所以这三项只作为**明细**展示与查看（不进 CAREER_ITEMS）——合计里已经含过一次，不重复计。
+                                    const CAREER_SDK_BREAKDOWN = [
+                                        { key: 'sdk_mh', label: 'SDk工单·梦幻', side: 'overseas', kind: 'SDk 明细（其中项，不重复计入合计）', from: ['overseas.sdk_mh'] },
+                                        { key: 'sdk_ajs', label: 'SDk工单·爱江山', side: 'overseas', kind: 'SDk 明细（其中项，不重复计入合计）', from: ['overseas.sdk_ajs'] },
+                                        { key: 'sdk_yl', label: 'SDk工单·月光', side: 'overseas', kind: 'SDk 明细（其中项，不重复计入合计）', from: ['overseas.sdk_yl'] }
+                                    ];
+                                    // 侧内分组的显示顺序（表里同组的项保证挨在一起，组小计只出现一次）
+                                    const CAREER_KIND_ORDER = {
+                                        ticket: ['工单/后台', '在线客服', '其他'],
+                                        overseas: ['工单/后台', '群维系', '评价回复', '来访', '监控', CAREER_SDK_BREAKDOWN[0].kind]
+                                    };
                                     // 按用户要求撤出统计的项：**只存档、不计入统计**，但照样导入/折算，只用于「对外登记表口径」对账表。
                                     // 都是登记表里有、日报里没有对应字段的列（一直为 0）
                                     const CAREER_HIDDEN_ITEMS = [
@@ -4966,20 +5092,43 @@
                                         'SSO国内工单': 't_sso'
                                     };
                                     const CAREER_SHEET_HIDDEN = CAREER_HIDDEN_ITEMS.map(it => it.key);
-                                    const careerAllItems = () => CAREER_ITEMS.concat(CAREER_HIDDEN_ITEMS);
+                                    const careerAllItems = () => CAREER_ITEMS.concat(CAREER_SDK_BREAKDOWN).concat(CAREER_HIDDEN_ITEMS);
+                                    // 补录表单能编辑的项：计入统计的 + SDk 明细
+                                    const careerEditableItems = () => CAREER_ITEMS.concat(CAREER_SDK_BREAKDOWN);
                                     const careerItemByKey = (k) => careerAllItems().filter(it => it.key === k)[0] || null;
                                     // 对外《工作量登记表》的 14 列口径（粘贴导入按这些列名对齐；也用于跟外部表格对账）
                                     const CAREER_SHEET_ITEMS = ['sj_group', 'catcity', 'dwlz_vip', 'mhl_group', 'catinn_sdk', 'ov_sso', 'ov_cp', 'td_fb', 'ov_email', 'ov_fb', 'store_reply', 't_sso', 'mute', 'ban'];
                                     const CAREER_STATUS_DONE = '已完成记录';
                                     const CAREER_STATUS_PENDING = '总计为空/待确认';
 
-                                    // 累计工作量 = 只算计入统计的 15 项
+                                    // 累计工作量 = 只算计入统计的项（工单 29 + 海外 10 = 39；SDk 三项明细不计，合计里已含）
                                     const careerSum = (items) => CAREER_ITEMS.reduce((s, it) => s + (parseFloat(items && items[it.key]) || 0), 0);
+                                    // 海外 SDk 工单的**合并总量**：表单里分三项填，日报正文与统计总量按一个「SDk工单」算。
+                                    // 三项都是空时退回旧字段 sdk —— 历史日报/登记表里只有总量、没有明细，不能丢。
+                                    function careerSdkTotal(o) {
+                                        const parts = (parseFloat(o && o.sdk_mh) || 0)
+                                            + (parseFloat(o && o.sdk_ajs) || 0)
+                                            + (parseFloat(o && o.sdk_yl) || 0);
+                                        return parts || (parseFloat(o && o.sdk) || 0);
+                                    }
                                     // 登记表 14 列口径（含只存档的那 5 列），用于跟外部表格对账
                                     const careerSheetSum = (items) => CAREER_SHEET_ITEMS.reduce((s, k) => s + (parseFloat(items && items[k]) || 0), 0);
                                     const careerItemsOfSide = (side) => CAREER_ITEMS.filter(it => it.side === side);
 
                                     let careerData = { records: {}, updatedAt: null };
+                                    // 「身份」筛选：全部 / 只看工单 / 只看海外（只影响显示，不改数据）。存在本机，刷新后保持。
+                                    const CAREER_SCOPE_KEY = 'careerScope';
+                                    let careerScopeState = (function () {
+                                        try {
+                                            const v = localStorage.getItem(CAREER_SCOPE_KEY);
+                                            return (v === 'ticket' || v === 'overseas') ? v : 'all';
+                                        } catch (e) { return 'all'; }
+                                    })();
+                                    function careerSetScope(scope) {
+                                        careerScopeState = (scope === 'ticket' || scope === 'overseas') ? scope : 'all';
+                                        try { localStorage.setItem(CAREER_SCOPE_KEY, careerScopeState); } catch (e) { /* 存不了就只影响本次 */ }
+                                        renderCareer();
+                                    }
 
                                     // ⚠️ 客服生涯的数据**只存本机**（浏览器 localStorage），**不走服务端**。
                                     //    原因：不同客服在不同设备上打开工作台、各记各的日报，谁的数据都不该同步给别人。
@@ -5041,11 +5190,14 @@
 
                                     // 把「日报字段值」折算成生涯项（自动归档与「粘贴日报文本」共用，保证两条路口径一致）
                                     function careerItemsFromDaily(t, o) {
+                                        // SDk 三项先合并成一个总量再折算（ov_sso 的 from 是 overseas.sdk）
+                                        const tt = t || {};
+                                        const oo = Object.assign({}, o || {}, { sdk: careerSdkTotal(o) });
                                         const pick = (path) => {
                                             const i = path.indexOf('.');
                                             const tab = path.slice(0, i);
                                             const field = path.slice(i + 1);
-                                            return parseFloat((tab === 'ticket' ? t : o)[field]) || 0;
+                                            return parseFloat((tab === 'ticket' ? tt : oo)[field]) || 0;
                                         };
                                         const items = {};
                                         for (const it of careerAllItems()) {
@@ -8932,7 +9084,7 @@
                                             }
                                         } else {
                                             const ratingTotal = (parseFloat(d.ios) || 0) + (parseFloat(d.google) || 0);
-                                            const visitTotal = (parseFloat(d.fb) || 0) + (parseFloat(d.email) || 0) + (parseFloat(d.sdk) || 0);
+                                            const visitTotal = (parseFloat(d.fb) || 0) + (parseFloat(d.email) || 0) + careerSdkTotal(d);
                                             text += `${d.name || ''}  ${date.month}月${date.day}日\n\n`;
                                             text += `评价，\n`;
                                             text += `ios商店：${d.ios || 0}\n`;
@@ -8941,7 +9093,7 @@
                                             text += `来访，\n`;
                                             text += `FB：${d.fb || 0}例\n`;
                                             text += `邮箱：${d.email || 0}例\n`;
-                                            text += `SDk工单：${d.sdk || 0}例\n`;
+                                            text += `SDk工单：${careerSdkTotal(d)}例\n`;
                                             text += `总计：${visitTotal}例\n\n`;
                                             text += `禁言：${d.mute || 0}，封号：${d.ban || 0}\n`;
                                             text += `异世界群维系：${d.sj_group || 0}\n`;
@@ -8999,9 +9151,22 @@
                                     }
                                     function careerPct(x) { return ((Number(x) || 0) * 100).toFixed(1) + '%'; }
 
-                                    function careerStats() {
+                                    // 某条记录在某个「身份」下的工作量：全部 = 39 项之和；某一侧 = 该侧项之和
+                                    function careerSideTotal(rec, scope) {
+                                        const items = (rec && rec.items) || {};
+                                        if (scope !== 'ticket' && scope !== 'overseas') return careerSum(items);
+                                        return careerItemsOfSide(scope).reduce((a, it) => a + (parseFloat(items[it.key]) || 0), 0);
+                                    }
+
+                                    function careerStats(scope) {
+                                        scope = (scope === 'ticket' || scope === 'overseas') ? scope : 'all';
                                         const dates = Object.keys(careerData.records).sort();
-                                        const all = dates.map(d => Object.assign({ date: d }, careerData.records[d]));
+                                        // scope 决定每条记录参与统计的「工作量」：全部=两侧之和，某侧=该侧之和。
+                                        // 这样日均/最高单日/连续记录/月度/趋势…全都自动跟着身份走（口径只有这一处）。
+                                        const all = dates.map(d => {
+                                            const r = careerData.records[d];
+                                            return Object.assign({}, r, { date: d, totalAll: careerSum(r.items), total: careerSideTotal(r, scope) });
+                                        });
                                         const good = all.filter(r => r.status !== CAREER_STATUS_PENDING && r.total > 0);
                                         const totals = good.map(r => r.total);
                                         const sum = totals.reduce((a, b) => a + b, 0);
@@ -9098,7 +9263,7 @@
                                             : good.length;
 
                                         return {
-                                            dates, all, good, days, sum, avg, median, min, max, sd,
+                                            dates, all, good, days, sum, avg, median, min, max, sd, scope,
                                             maxDate: maxRec ? maxRec.date : '',
                                             cv: avg ? sd / avg : 0,
                                             itemTotals, sideStats, sheetSum, activeItems,
@@ -9118,14 +9283,37 @@
                                     }
 
                                     function renderCareer() {
-                                        const s = careerStats();
+                                        const scope = careerScopeState;
+                                        const scoped = scope !== 'all';
+                                        const scopeLabel = scope === 'ticket' ? '工单' : (scope === 'overseas' ? '海外' : '');
+                                        const s = careerStats(scope);
+                                        const tSumAll = s.sideStats.ticket.sum, oSumAll = s.sideStats.overseas.sum, allSum = tSumAll + oSumAll;
+                                        // 身份按钮高亮 + 提示语
+                                        const scopeBar = document.getElementById('careerScopeBar');
+                                        if (scopeBar) {
+                                            scopeBar.querySelectorAll('button[data-scope]').forEach(b => b.classList.toggle('active', b.dataset.scope === scope));
+                                        }
+                                        const scopeHint = document.getElementById('careerScopeHint');
+                                        if (scopeHint) {
+                                            scopeHint.textContent = scoped
+                                                ? '当前身份只看「' + scopeLabel + '」：总览 / 趋势 / 月度都只算这一侧'
+                                                : '选「工单」或「海外」，整页统计只算那一侧';
+                                        }
+                                        // 不是「全部」时，某一侧统计卡藏起来
+                                        const cardTicket = document.getElementById('careerCardTicket');
+                                        const cardOverseas = document.getElementById('careerCardOverseas');
+                                        if (cardTicket) cardTicket.style.display = (!scoped || scope === 'ticket') ? '' : 'none';
+                                        if (cardOverseas) cardOverseas.style.display = (!scoped || scope === 'overseas') ? '' : 'none';
 
                                         const kpi = document.getElementById('careerKpi');
                                         if (kpi) {
-                                            const tSum = s.sideStats.ticket.sum, oSum = s.sideStats.overseas.sum;
+                                            // 「工作量总览」还是那 9 项，只是数字按选中的身份算（累计那栏的副标题跟着变）
+                                            const sumSub = scoped
+                                                ? (allSum ? '占全部 ' + careerPct(s.sum / allSum) : '还没有记录')
+                                                : (s.days ? '工单 ' + careerNum(tSumAll) + ' + 海外 ' + careerNum(oSumAll) : '还没有记录');
                                             kpi.innerHTML = [
                                                 // 先给最该看的 4 个：累计 / 日均 / 最高单日 / 完整记录天数
-                                                careerKpiCard('累计工作量', careerNum(s.sum), s.days ? '工单 ' + careerNum(tSum) + ' + 海外 ' + careerNum(oSum) : '还没有记录', true),
+                                                careerKpiCard(scoped ? scopeLabel + '侧累计' : '累计工作量', careerNum(s.sum), sumSub, true),
                                                 careerKpiCard('日均工作量', careerNum(s.avg, 1), s.days ? '中位数 ' + careerNum(s.median, 1) : '—', true),
                                                 careerKpiCard('最高单日', careerNum(s.max), s.maxDate || '—', true),
                                                 careerKpiCard('完整记录天数', s.days, s.pending.length ? '另有 ' + s.pending.length + ' 天待确认' : '无待确认', true),
@@ -9133,11 +9321,13 @@
                                                 careerKpiCard('最低单日', careerNum(s.min), (s.good.filter(r => r.total === s.min)[0] || {}).date || '—', false, true),
                                                 careerKpiCard('波动（标准差）', careerNum(s.sd, 1), s.avg ? '变异系数 ' + careerPct(s.cv) : '—', false, true),
                                                 careerKpiCard('最长连续记录', s.best + ' 天', '当前连续 ' + s.curStreak + ' 天', false, true),
-                                                careerKpiCard('记录区间', s.days ? (s.dates[0] + ' → ' + s.dates[s.dates.length - 1]) : '—', '区间 ' + s.spanDays + ' 天 · 断档 ' + s.gapDays + ' 天', false, true),
+                                                careerKpiCard('记录区间', s.days ? (s.good[0].date + ' → ' + s.good[s.good.length - 1].date) : '—', '区间 ' + s.spanDays + ' 天 · 断档 ' + s.gapDays + ' 天', false, true),
                                                 careerKpiCard('近 30 记录日日均', careerNum(s.recent30.avg, 1), '近 7 日 ' + careerNum(s.recent7.avg, 1) + (s.mom ? ' · 环比 ' + (s.mom.delta >= 0 ? '+' : '') + careerPct(s.mom.delta) : ''), false, true)
                                             ].join('');
                                         }
-                                        // 两侧占比：一条堆叠条 + 图例（比一行文字直观）
+                                        // 两侧占比：一条堆叠条 + 图例（比一行文字直观；只看某一侧时没意义，藏起来）
+                                        const splitWrap = document.getElementById('careerSplitWrap');
+                                        if (splitWrap) splitWrap.style.display = scoped ? 'none' : '';
                                         const bar = document.getElementById('careerSplitBar');
                                         const legend = document.getElementById('careerSplitLegend');
                                         if (bar && legend) {
@@ -9160,9 +9350,12 @@
                                         const sheetHint = document.getElementById('careerSheetHint');
                                         if (sheetHint) {
                                             const tSum = s.sideStats.ticket.sum, oSum = s.sideStats.overseas.sum;
-                                            sheetHint.textContent = '工单侧 ' + careerNum(tSum) + ' + 海外侧 ' + careerNum(oSum) + ' = 累计 ' + careerNum(s.sum)
-                                                + '；日均 ' + careerNum(s.avg, 1) + '（按 ' + s.days + ' 个完整记录日）'
-                                                + '；数据只存在这台设备的浏览器里，不会同步给别的设备。';
+                                            sheetHint.textContent = scoped
+                                                ? scopeLabel + '侧累计 ' + careerNum(s.sum) + '；日均 ' + careerNum(s.avg, 1) + '（按 ' + s.days + ' 个完整记录日）'
+                                                    + '；只统计「' + scopeLabel + '日报」里的项；数据只存在这台设备的浏览器里，不会同步给别的设备。'
+                                                : '工单侧 ' + careerNum(tSum) + ' + 海外侧 ' + careerNum(oSum) + ' = 累计 ' + careerNum(s.sum)
+                                                    + '；日均 ' + careerNum(s.avg, 1) + '（按 ' + s.days + ' 个完整记录日）'
+                                                    + '；数据只存在这台设备的浏览器里，不会同步给别的设备。';
                                         }
 
                                         const mt = document.getElementById('careerMonthlyTable');
@@ -9182,18 +9375,29 @@
                                             mt.innerHTML = h;
                                         }
 
-                                        // 两侧分开统计：工单 / 海外，各自的项与合计
+                                        // 两侧分开统计：工单 / 海外，各自的项与合计（按类别分组，组内按累计降序，组小计只出现一次）
                                         for (const side of CAREER_SIDES) {
                                             const box = document.getElementById('careerSide' + side.key.charAt(0).toUpperCase() + side.key.slice(1));
                                             if (!box) continue;
                                             const st = s.sideStats[side.key];
-                                            const list = careerItemsOfSide(side.key);
-                                            const rows = list.slice().sort((a, b) => (s.itemTotals[b.key] || 0) - (s.itemTotals[a.key] || 0));
+                                            const isScopedSide = scoped && scope === side.key;
+                                            // 只看某一侧时，这一侧卡片用「该身份」的口径（天数/日均/最高单日都跟上面的总览一致）
+                                            const kSum = isScopedSide ? s.sum : st.sum;
+                                            const kAvg = isScopedSide ? s.avg : st.avg;
+                                            const kMax = isScopedSide ? s.max : st.max;
+                                            const kMaxDate = isScopedSide ? s.maxDate : st.maxDate;
+                                            const kPct = isScopedSide ? (allSum ? kSum / allSum : 0) : (s.sum ? st.sum / s.sum : 0);
+                                            // 计入统计的项 + （海外侧）SDk 三项明细
+                                            const list = careerItemsOfSide(side.key).concat(side.key === 'overseas' ? CAREER_SDK_BREAKDOWN : []);
+                                            const order = CAREER_KIND_ORDER[side.key] || [];
+                                            const kindIdx = (k) => { const i = order.indexOf(k); return i === -1 ? order.length : i; };
+                                            const rows = list.slice().sort((a, b) => (kindIdx(a.kind) - kindIdx(b.kind)) || ((s.itemTotals[b.key] || 0) - (s.itemTotals[a.key] || 0)));
+                                            const subKind = CAREER_SDK_BREAKDOWN[0].kind;
                                             const sideMax = rows.reduce((m, r) => Math.max(m, s.itemTotals[r.key] || 0), 0) || 1;
                                             let h = '<div class="career-kpi-grid" style="margin-bottom:12px;">'
-                                                + careerKpiCard(side.label + '侧累计', careerNum(st.sum), s.sum ? '占累计 ' + careerPct(st.sum / s.sum) : '—', true)
-                                                + careerKpiCard('侧内日均', careerNum(st.avg, 1), s.days ? '按 ' + s.days + ' 个完整记录日' : '—', false, true)
-                                                + careerKpiCard('侧内最高单日', careerNum(st.max), st.maxDate || '—', false, true)
+                                                + careerKpiCard(side.label + '侧累计', careerNum(kSum), s.days ? (isScopedSide ? '占全部 ' : '占累计 ') + careerPct(kPct) : '—', true)
+                                                + careerKpiCard('侧内日均', careerNum(kAvg, 1), s.days ? '按 ' + s.days + ' 个完整记录日' : '—', false, true)
+                                                + careerKpiCard('侧内最高单日', careerNum(kMax), kMaxDate || '—', false, true)
                                                 + careerKpiCard('有产出的项', st.active + ' / ' + st.itemCount, '数据取自「' + side.label + '日报」', false, true)
                                                 + '</div>';
                                             // 按「类别」分组显示：每组一行小标题 + 组内各项，比一张宽表好读
@@ -9204,16 +9408,18 @@
                                             if (!s.days) h += '<tr><td colspan="4" style="color:var(--ink-3);">暂无数据</td></tr>';
                                             for (const item of rows) {
                                                 const v = s.itemTotals[item.key] || 0;
+                                                const isSub = item.kind === subKind;
                                                 const pct = st.sum ? v / st.sum : 0;
                                                 if (item.kind !== lastKind) {
                                                     lastKind = item.kind;
-                                                    h += '<tr><td class="career-group-cell" colspan="3">' + escapeHtml(item.kind)
+                                                    h += '<tr><td class="career-group-cell' + (isSub ? ' sub' : '') + '" colspan="3">' + escapeHtml(item.kind)
                                                         + '（' + careerNum(kindSum[item.kind] || 0) + '）</td>'
-                                                        + '<td class="career-group-cell num">' + (st.sum ? careerPct((kindSum[item.kind] || 0) / st.sum) : '—') + '</td></tr>';
+                                                        + '<td class="career-group-cell num' + (isSub ? ' sub' : '') + '">'
+                                                        + (isSub ? '—' : (st.sum ? careerPct((kindSum[item.kind] || 0) / st.sum) : '—')) + '</td></tr>';
                                                 }
-                                                h += '<tr><td>' + escapeHtml(item.label) + (item.from.length ? '' : ' <span class="career-tag">需补录</span>')
+                                                h += '<tr' + (isSub ? ' class="career-sub-row"' : '') + '><td>' + escapeHtml(item.label) + (item.from.length ? '' : ' <span class="career-tag">需补录</span>')
                                                     + '</td><td class="num">' + careerNum(v)
-                                                    + '</td><td class="num">' + careerPct(pct)
+                                                    + '</td><td class="num">' + (isSub ? '—' : careerPct(pct))
                                                     + '</td><td><div class="career-bar"><i style="width:' + ((v / sideMax) * 100).toFixed(1) + '%"></i></div></td></tr>';
                                             }
                                             h += '</tbody><tfoot><tr class="total-row"><td>' + side.label + '侧合计</td><td class="num">' + careerNum(st.sum)
@@ -9223,9 +9429,15 @@
 
                                         const cb = document.getElementById('careerCoverBox');
                                         if (cb) {
-                                            cb.innerHTML = '<div class="hint-text">渠道覆盖：' + CAREER_ITEMS.length + ' 个统计项里有 <b>' + s.activeKinds
-                                                + '</b> 项有产出；单日最多同时触达 ' + s.dayMaxKinds.n + ' 项'
-                                                + (s.dayMaxKinds.date ? '（' + escapeHtml(s.dayMaxKinds.date) + '）' : '') + '</div>';
+                                            if (scoped) {
+                                                const st = s.sideStats[scope];
+                                                cb.innerHTML = '<div class="hint-text">' + scopeLabel + '侧覆盖：' + st.itemCount + ' 个统计项里有 <b>'
+                                                    + st.active + '</b> 项有产出</div>';
+                                            } else {
+                                                cb.innerHTML = '<div class="hint-text">渠道覆盖：' + CAREER_ITEMS.length + ' 个统计项里有 <b>' + s.activeKinds
+                                                    + '</b> 项有产出；单日最多同时触达 ' + s.dayMaxKinds.n + ' 项'
+                                                    + (s.dayMaxKinds.date ? '（' + escapeHtml(s.dayMaxKinds.date) + '）' : '') + '</div>';
+                                            }
                                         }
 
                                         const tr = document.getElementById('careerTrend');
@@ -9254,6 +9466,119 @@
 
                                         const ed = document.getElementById('careerEditDate');
                                         if (ed && !ed.value) ed.value = careerToday();
+
+                                        renderCareerDetail();
+                                    }
+
+                                    // ---------- 指标详情：挑一项（或某一侧），看它的总量 / 平均值 / 按日·按月的趋势 ----------
+                                    function careerDetailValue(rec, sel) {
+                                        const items = (rec && rec.items) || {};
+                                        if (sel === 'ticket' || sel === 'overseas') {
+                                            return careerItemsOfSide(sel).reduce((a, it) => a + (parseFloat(items[it.key]) || 0), 0);
+                                        }
+                                        if (sel && sel !== 'all') return parseFloat(items[sel]) || 0;
+                                        return careerSum(items);
+                                    }
+                                    function careerDetailOptions() {
+                                        const sel = document.getElementById('careerDetailItem');
+                                        if (!sel || sel.dataset.built === '1') return;
+                                        let html = '<optgroup label="总览">'
+                                            + '<option value="all">全部工作量（工单 + 海外）</option>'
+                                            + '<option value="ticket">工单侧合计</option>'
+                                            + '<option value="overseas">海外侧合计</option></optgroup>';
+                                        for (const side of CAREER_SIDES) {
+                                            const list = careerItemsOfSide(side.key).concat(side.key === 'overseas' ? CAREER_SDK_BREAKDOWN : []);
+                                            html += '<optgroup label="' + escapeHtml(side.label) + '侧 · 逐项">'
+                                                + list.map(it => '<option value="' + it.key + '">' + escapeHtml(it.label) + '</option>').join('')
+                                                + '</optgroup>';
+                                        }
+                                        sel.innerHTML = html;
+                                        sel.dataset.built = '1';
+                                    }
+                                    function renderCareerDetail() {
+                                        careerDetailOptions();
+                                        const selEl = document.getElementById('careerDetailItem');
+                                        const grainEl = document.getElementById('careerDetailGrain');
+                                        const sel = (selEl && selEl.value) || 'all';
+                                        const grain = (grainEl && grainEl.value) === 'month' ? 'month' : 'day';
+                                        const item = (sel !== 'all' && sel !== 'ticket' && sel !== 'overseas') ? careerItemByKey(sel) : null;
+                                        const scopeName = sel === 'all' ? '全部工作量' : (sel === 'ticket' ? '工单侧' : (sel === 'overseas' ? '海外侧' : ((item && item.label) || sel)));
+
+                                        // 逐期汇总（只算「已完成记录」那几天；某期该范围是 0 就跳过）
+                                        const periods = [];
+                                        const map = {};
+                                        for (const d of Object.keys(careerData.records).sort()) {
+                                            const rec = careerData.records[d];
+                                            if (!rec || rec.status === CAREER_STATUS_PENDING) continue;
+                                            const v = careerDetailValue(rec, sel);
+                                            if (!v) continue;
+                                            if (grain === 'month') {
+                                                const k = d.slice(0, 7);
+                                                const o = map[k] || (map[k] = { label: k, sum: 0, days: 0 });
+                                                o.sum += v; o.days++;
+                                            } else {
+                                                periods.push({ label: d, sum: v, days: 1 });
+                                            }
+                                        }
+                                        if (grain === 'month') Object.keys(map).sort().forEach(k => periods.push(map[k]));
+
+                                        const total = periods.reduce((a, p) => a + p.sum, 0);
+                                        const dayCount = periods.reduce((a, p) => a + p.days, 0);
+                                        const avgDay = dayCount ? total / dayCount : 0;
+                                        const avgPeriod = periods.length ? total / periods.length : 0;
+                                        const best = periods.reduce((b, p) => (!b || p.sum > b.sum ? p : b), null);
+                                        const maxSum = periods.reduce((m, p) => Math.max(m, p.sum), 0) || 1;
+
+                                        const sum = document.getElementById('careerDetailSummary');
+                                        if (sum) {
+                                            // 按日时「期均」和「日均」是同一个数，换成中位数更有信息量
+                                            const sortedSums = periods.map(p => p.sum).sort((a, b) => a - b);
+                                            const med = sortedSums.length
+                                                ? (sortedSums.length % 2 ? sortedSums[(sortedSums.length - 1) / 2]
+                                                    : (sortedSums[sortedSums.length / 2 - 1] + sortedSums[sortedSums.length / 2]) / 2)
+                                                : 0;
+                                            sum.innerHTML = periods.length
+                                                ? [
+                                                    careerKpiCard('总量', careerNum(total), scopeName, true),
+                                                    careerKpiCard('日均', careerNum(avgDay, 1), '按 ' + dayCount + ' 个记录日', false, true),
+                                                    grain === 'month'
+                                                        ? careerKpiCard('月均', careerNum(avgPeriod, 1), '按 ' + periods.length + ' 个月', false, true)
+                                                        : careerKpiCard('中位数', careerNum(med, 1), '按 ' + periods.length + ' 个记录日', false, true),
+                                                    careerKpiCard('最高' + (grain === 'month' ? '月' : '单日'), careerNum(maxSum), best ? best.label : '—', false, true),
+                                                    careerKpiCard(grain === 'month' ? '记录月数' : '记录天数', periods.length, grain === 'month' ? dayCount + ' 个记录日' : scopeName, false, true)
+                                                ].join('')
+                                                : '<div class="hint-text">这个范围内还没有数据。</div>';
+                                        }
+                                        const chart = document.getElementById('careerDetailChart');
+                                        if (chart) {
+                                            // 按日太多的话只画最近 90 个记录日（表格里仍列全）
+                                            const bars = grain === 'day' ? periods.slice(-90) : periods;
+                                            chart.innerHTML = bars.length
+                                                ? bars.map(p => '<span title="' + escapeHtml(p.label + ' · ' + careerNum(p.sum) + (p.days > 1 ? '（日均 ' + careerNum(p.sum / p.days, 1) + '）' : ''))
+                                                    + '" style="height:' + Math.max(3, (p.sum / maxSum) * 100).toFixed(1) + '%"></span>').join('')
+                                                : '<span class="hint-text" style="height:auto;background:none;">暂无数据</span>';
+                                        }
+                                        const hint = document.getElementById('careerDetailHint');
+                                        if (hint) {
+                                            hint.textContent = periods.length
+                                                ? (grain === 'day' ? periods.length + ' 个记录日' : periods.length + ' 个月')
+                                                    + (grain === 'day' && periods.length > 90 ? '（图里只画最近 90 个）' : '')
+                                                : '';
+                                        }
+                                        const table = document.getElementById('careerDetailTable');
+                                        if (table) {
+                                            let h = '<thead><tr><th>' + (grain === 'month' ? '月份' : '日期') + '</th><th class="num">合计</th><th class="num">日均</th><th class="num">占总量</th></tr></thead><tbody>';
+                                            if (!periods.length) h += '<tr><td colspan="4" style="color:var(--ink-3);">暂无数据</td></tr>';
+                                            const list = grain === 'day' ? periods.slice().reverse() : periods;
+                                            for (const p of list) {
+                                                h += '<tr><td>' + escapeHtml(p.label) + '</td><td class="num">' + careerNum(p.sum)
+                                                    + '</td><td class="num">' + careerNum(p.days ? p.sum / p.days : 0, 1)
+                                                    + '</td><td class="num">' + (total ? careerPct(p.sum / total) : '—') + '</td></tr>';
+                                            }
+                                            h += '</tbody><tfoot><tr class="total-row"><td>合计</td><td class="num">' + careerNum(total)
+                                                + '</td><td class="num">' + careerNum(avgDay, 1) + '</td><td class="num">100.0%</td></tr></tfoot>';
+                                            table.innerHTML = h;
+                                        }
                                     }
 
                                     function renderCareerEditGrid() {
@@ -9261,9 +9586,11 @@
                                         if (!box || box.dataset.built === '1') return;
                                         let html = '';
                                         for (const side of CAREER_SIDES) {
+                                            const list = careerItemsOfSide(side.key).concat(side.key === 'overseas' ? CAREER_SDK_BREAKDOWN : []);
                                             html += '<div class="daily-field full-width" style="margin-top:6px;"><label style="color:var(--accent-ink);">'
-                                                + side.icon + ' ' + escapeHtml(side.label) + '侧（' + careerItemsOfSide(side.key).length + ' 项）</label></div>';
-                                            html += careerItemsOfSide(side.key).map(it =>
+                                                + side.icon + ' ' + escapeHtml(side.label) + '侧（' + careerItemsOfSide(side.key).length + ' 项'
+                                                + (side.key === 'overseas' ? ' + SDk 三项明细' : '') + '）</label></div>';
+                                            html += list.map(it =>
                                                 '<div class="daily-field"><label>' + escapeHtml(it.label)
                                                 + (it.from.length ? '' : ' <span class="career-tag">需补录</span>') + '</label>'
                                                 + '<input type="number" min="0" data-career-key="' + it.key + '" value="0"></div>'
@@ -9324,6 +9651,10 @@
                                         const d = (document.getElementById('careerEditDate') || {}).value || '';
                                         if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) { careerSetHint('请先选一个合法日期'); return; }
                                         const items = careerReadEditForm();
+                                        // 补录时填了 SDk 三项明细，就把「海外SSO工单量」跟着改成三项之和（跟归档口径一致）
+                                        if (items.sdk_mh || items.sdk_ajs || items.sdk_yl) {
+                                            items.ov_sso = (items.sdk_mh || 0) + (items.sdk_ajs || 0) + (items.sdk_yl || 0);
+                                        }
                                         const total = careerSum(items);
                                         const prev = careerData.records[d] || {};
                                         const statusEl = document.getElementById('careerEditStatus');
@@ -9421,6 +9752,9 @@
                                             m[f.label] = f.key;
                                             m[f.label.replace(/（[^）]*）$/, '')] = f.key;   // 「ios商店（评价）」→ 正文里写「ios商店：」
                                         }
+                                        // 日报正文里的「SDk工单：N例」是三项之和（表单已拆成三项，正文仍写合并后的一个数）
+                                        m['SDk工单'] = 'sdk';
+                                        m['SDk工单（来访）'] = 'sdk';
                                         return m;
                                     })();
                                     function careerReportDate(month, day) {
@@ -9511,7 +9845,7 @@
                                                 const items = Object.assign({}, prev.items || {});
                                                 // 这次粘贴覆盖了哪一侧，就把那一侧的旧值清掉（避免残留旧数）
                                                 if (r.hasTicket) for (const it of CAREER_TICKET_ITEMS) delete items[it.key];
-                                                if (r.hasOverseas) for (const it of CAREER_OVERSEAS_ITEMS) delete items[it.key];
+                                                if (r.hasOverseas) for (const it of CAREER_OVERSEAS_ITEMS.concat(CAREER_SDK_BREAKDOWN)) delete items[it.key];
                                                 Object.assign(items, r.items);
                                                 const total = careerSum(items);
                                                 careerCommit({
@@ -10028,6 +10362,30 @@
                                         (function initCareer() {
                                             const ed = document.getElementById('careerEditDate');
                                             if (ed && !ed.value) ed.value = careerToday();
+                                            // 身份筛选按钮（全部 / 工单 / 海外）
+                                            const scopeBar = document.getElementById('careerScopeBar');
+                                            if (scopeBar) {
+                                                scopeBar.querySelectorAll('button[data-scope]').forEach(b => {
+                                                    b.addEventListener('click', () => careerSetScope(b.dataset.scope));
+                                                });
+                                            }
+                                            // 指标详情的两个下拉
+                                            addEvent('careerDetailItem', 'change', renderCareerDetail);
+                                            addEvent('careerDetailGrain', 'change', renderCareerDetail);
+                                            // 补录 / 粘贴导入：默认收起，点标题展开收起
+                                            const bindCollapse = (btnId, bodyId) => {
+                                                const btn = document.getElementById(btnId);
+                                                const body = document.getElementById(bodyId);
+                                                if (!btn || !body) return;
+                                                btn.addEventListener('click', () => {
+                                                    const open = body.style.display === 'none';
+                                                    body.style.display = open ? '' : 'none';
+                                                    btn.classList.toggle('open', open);
+                                                    btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+                                                });
+                                            };
+                                            bindCollapse('careerEditToggleBtn', 'careerEditBody');
+                                            bindCollapse('careerImportToggleBtn', 'careerImportBody');
                                             renderCareer();
                                         })();
                                         setClick('careerArchiveBtn', careerArchiveToday);
