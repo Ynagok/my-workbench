@@ -2746,6 +2746,7 @@
             <button class="tab-btn" data-tab="reply"> 工单回复</button>
             <button class="tab-btn" data-tab="daily"> 每日日报</button>
             <button class="tab-btn" data-tab="career"> 客服生涯</button>
+            <button class="tab-btn" data-tab="overseas"> 海外业务统计</button>
             <button class="tab-btn" data-tab="script">小游戏</button>
         </div>
 
@@ -3128,6 +3129,68 @@
                     <span class="hint-text" id="careerImportHint"></span>
                 </div>
                 </div>
+            </div>
+        </div>
+
+        <!-- ==================== 海外业务统计 ==================== -->
+        <div id="tab-overseas" class="tab-content">
+            <div class="career-report-head">
+                <div>
+                    <div class="crh-kicker">OVERSEAS OPS REPORT / 海外岗位周报统计</div>
+                    <div class="crh-title">海外业务统计</div>
+                    <div class="crh-sub" id="ovbizReportSub">—</div>
+                </div>
+                <div class="crh-meta" id="ovbizReportMeta"></div>
+            </div>
+
+            <div class="card">
+                <label>📋 粘贴周报数据
+                    <span class="hint-text" style="font-weight:400;">把「群维系+监控+海外工单+FB塔防周报」整张表复制进来（CSV / TSV 都行；带表头按列名对齐、顺序随意，不带表头按原列序）</span>
+                </label>
+                <div class="hint-text" style="margin: 8px 0;">
+                    一行 = 某天某人：<b>日期 · 人员 · 班次</b> + 11 个统计项（异世界群维系 /（繁花+乐缤纷+梦幻）群维系 / 邮件+SDK（猫旅馆物语）/ 海外SSO工单量（全产品）/ 海外CP后台工单（全产品）/ 海外邮件（全产品）/ 海外FB（全产品）/ 商店回复 / SSO国内工单 / 监控禁言 / 监控封号）+ 总计 + 特殊问题。<br>
+                    同一天两行（两个人同班）会<b>按天合计</b>；重复导入同一天同一个人＝覆盖那一条；「总计」与各项之和对不上时会提示，并按各项之和入账；空白行自动跳过。数据只存在这台设备的浏览器里。
+                </div>
+                <textarea id="ovbizPasteArea" rows="7" placeholder="日期,人员,班次,异世界群维系,（繁花+乐缤纷+梦幻）群维系,…&#10;2026/1/1,陈智锋,,0,35,,11,5,1,1,,,13,19,85,"></textarea>
+                <div class="flex-row" style="margin-top: 10px;">
+                    <button id="ovbizImportBtn">📥 解析导入</button>
+                    <button id="ovbizExportBtn" class="secondary">📊 导出CSV</button>
+                    <button id="ovbizClearBtn" class="reset-btn">🧹 清空本机数据</button>
+                    <span class="hint-text" id="ovbizHint"></span>
+                </div>
+            </div>
+
+            <div class="card">
+                <label>📊 岗位总览 <span class="hint-text" style="font-weight:400;">按天合计后的整体口径</span></label>
+                <div id="ovbizKpi" class="career-kpi-grid" style="margin-top: 12px;"></div>
+                <div id="ovbizSheetHint" class="hint-text" style="margin-top: 8px;"></div>
+            </div>
+
+            <div class="card">
+                <label>🧩 逐项统计 <span class="hint-text" style="font-weight:400;">11 个统计项各自的累计、占比与结构</span></label>
+                <div class="career-scroll" style="margin-top: 10px;"><table class="career-table" id="ovbizItemTable"></table></div>
+                <div id="ovbizStructureBox" style="margin-top: 12px;"></div>
+            </div>
+
+            <div class="card">
+                <label>🗓️ 月度汇总 <span class="hint-text" style="font-weight:400;">按月的总量与各项（横向可滚动）</span></label>
+                <div class="career-scroll" style="margin-top: 10px; max-height: 340px;"><table class="career-table" id="ovbizMonthlyTable"></table></div>
+            </div>
+
+            <div class="card">
+                <label>📅 周维度 <span class="hint-text" style="font-weight:400;">按周（周一～周日）：周环比 + 同比（4 周前代理）</span></label>
+                <div class="career-scroll" style="margin-top: 10px; max-height: 340px;"><table class="career-table" id="ovbizWeeklyTable"></table></div>
+            </div>
+
+            <div class="card">
+                <label>👥 按人员统计 <span class="hint-text" style="font-weight:400;">三个人各自的工作量</span></label>
+                <div class="career-scroll" style="margin-top: 10px;"><table class="career-table" id="ovbizPeopleTable"></table></div>
+            </div>
+
+            <div class="card">
+                <label>📆 每日明细 <span class="hint-text" style="font-weight:400;">按天合计（含当天值班人员），最新在最上面</span></label>
+                <div class="career-scroll" style="margin-top: 10px; max-height: 400px;"><table class="career-table" id="ovbizDailyTable"></table></div>
+                <div id="ovbizAnomalyBox" style="margin-top: 10px;"></div>
             </div>
         </div>
 
@@ -10714,6 +10777,502 @@
                                         return '\ufeff' + rows.join('\r\n');
                                     }
 
+                                    // ==================== 海外业务统计（岗位周报整表粘贴） ====================
+                                    // 一行 = 某天某人；算指标前先**按天合计**（同一天两个人同班）
+                                    // ⚠️ 跟 careerData 一样**只存本机 localStorage**，不走服务端
+                                    const OVBIZ_KEY = 'overseasBizData';
+                                    const OVBIZ_ITEMS = [
+                                        { key: 'sj_group', label: '异世界群维系', short: '异世界群维系' },
+                                        { key: 'mhl_group', label: '（繁花+乐缤纷+梦幻）群维系', short: '群维系(繁花+)' },
+                                        { key: 'catinn_sdk', label: '邮件+SDK（猫旅馆物语）', short: '邮件+SDK' },
+                                        { key: 'ov_sso', label: '海外SSO工单量（全产品）', short: '海外SSO' },
+                                        { key: 'ov_cp', label: '海外CP后台工单（全产品）', short: 'CP后台' },
+                                        { key: 'ov_email', label: '海外邮件（全产品）', short: '海外邮件' },
+                                        { key: 'ov_fb', label: '海外FB（全产品）', short: '海外FB' },
+                                        { key: 'store_reply', label: '商店回复', short: '商店回复' },
+                                        { key: 't_sso', label: 'SSO国内工单', short: '国内SSO' },
+                                        { key: 'mute', label: '监控禁言', short: '禁言' },
+                                        { key: 'ban', label: '监控封号', short: '封号' }
+                                    ];
+                                    // 表头写法跟本表不一致时的别名（比对前会去掉空白、把全角括号归一成半角）
+                                    const OVBIZ_ALIASES = {
+                                        '（梦幻/繁花/乐缤纷）群维系': 'mhl_group',
+                                        '繁花+乐缤纷+梦幻群维系': 'mhl_group',
+                                        '邮件+SDK': 'catinn_sdk',
+                                        'SSO工单': 't_sso',
+                                        '国内SSO工单': 't_sso'
+                                    };
+                                    const OVBIZ_COLUMNS = (function () {
+                                        const m = {};
+                                        m['22'] = '@date';          // ⚠️ 这份周报表头第一格写的是「22」，其实是日期列
+                                        m[careerNormHeader('日期')] = '@date';
+                                        m[careerNormHeader('人员')] = '@name';
+                                        m[careerNormHeader('班次')] = '@shift';
+                                        m[careerNormHeader('总计')] = '@total';
+                                        m[careerNormHeader('特殊问题')] = '@note';
+                                        for (const it of OVBIZ_ITEMS) {
+                                            const nk = careerNormHeader(it.label);
+                                            m[nk] = it.key;
+                                            m[nk.replace(/\([^)]*\)/g, '')] = it.key;   // 「海外SSO工单量(全产品)」→「海外SSO工单量」
+                                        }
+                                        for (const k of Object.keys(OVBIZ_ALIASES)) m[careerNormHeader(k)] = OVBIZ_ALIASES[k];
+                                        return m;
+                                    })();
+                                    let ovbizData = { rows: {}, updatedAt: null };
+                                    // ⚠️ 本机数据**懒加载**：applyState() 在初始化早期就会跑（那时本模块的 const 还在 TDZ），
+                                    //    所以不能在那里读 localStorage —— 统一由 ovbizEnsureLoaded() 在首次用到时读一次。
+                                    let ovbizLoaded = false;
+                                    function ovbizEnsureLoaded() {
+                                        if (ovbizLoaded) return;
+                                        ovbizLoaded = true;
+                                        ovbizData = ovbizNormalize(ovbizLoadLocal());
+                                    }
+                                    function ovbizLoadLocal() {
+                                        try {
+                                            const raw = localStorage.getItem(OVBIZ_KEY);
+                                            return raw === null ? null : JSON.parse(raw);
+                                        } catch (e) { console.warn('读取本机海外业务数据失败（按空处理）', e); return null; }
+                                    }
+                                    function ovbizSaveLocal() {
+                                        try {
+                                            localStorage.setItem(OVBIZ_KEY, JSON.stringify(ovbizData));
+                                            return true;
+                                        } catch (e) { console.warn('写入本机海外业务数据失败', e); return false; }
+                                    }
+                                    function ovbizNormalize(v) {
+                                        const o = asObject(v) || {};
+                                        const src = asObject(o.rows) || {};
+                                        const rows = {};
+                                        for (const k of Object.keys(src)) {
+                                            const r = asObject(src[k]);
+                                            if (!r) continue;
+                                            const date = /^\d{4}-\d{2}-\d{2}$/.test(r.date) ? r.date : '';
+                                            if (!date) continue;
+                                            const items = {};
+                                            const si = asObject(r.items) || {};
+                                            for (const it of OVBIZ_ITEMS) {
+                                                const n = parseFloat(si[it.key]);
+                                                if (n) items[it.key] = n;
+                                            }
+                                            const name = typeof r.name === 'string' ? r.name : '';
+                                            rows[date + '|' + name] = {
+                                                date: date, name: name,
+                                                shift: typeof r.shift === 'string' ? r.shift : '',
+                                                items: items,
+                                                total: OVBIZ_ITEMS.reduce((a, it) => a + (items[it.key] || 0), 0),
+                                                note: typeof r.note === 'string' ? r.note : '',
+                                                at: typeof r.at === 'string' ? r.at : ''
+                                            };
+                                        }
+                                        return { rows: rows, updatedAt: typeof o.updatedAt === 'string' ? o.updatedAt : null };
+                                    }
+                                    // 一行 → 单元格数组：含制表符按 TSV 切，否则按 CSV 切（支持 "…" 包裹与 "" 转义）
+                                    function ovbizSplitLine(line) {
+                                        if (line.indexOf('\t') !== -1) return line.split('\t').map(c => c.trim());
+                                        const out = [];
+                                        let cur = '', q = false;
+                                        for (let i = 0; i < line.length; i++) {
+                                            const ch = line[i];
+                                            if (q) {
+                                                if (ch === '"') { if (line[i + 1] === '"') { cur += '"'; i++; } else q = false; }
+                                                else cur += ch;
+                                            } else if (ch === '"') q = true;
+                                            else if (ch === ',') { out.push(cur); cur = ''; }
+                                            else cur += ch;
+                                        }
+                                        out.push(cur);
+                                        return out.map(c => c.trim());
+                                    }
+                                    function ovbizParse(text) {
+                                        const lines = String(text || '').split(/\r?\n/).filter(l => l.trim());
+                                        if (!lines.length) return { rows: [], skipped: 0, mismatch: 0 };
+                                        const first = ovbizSplitLine(lines[0]);
+                                        const hasHeader = first.some(c => /人员|班次|总计|特殊问题|群维系|工单|监控|商店回复/.test(c));
+                                        const cols = hasHeader
+                                            ? first.map(c => OVBIZ_COLUMNS[careerNormHeader(c)] || null)
+                                            : ['@date', '@name', '@shift'].concat(OVBIZ_ITEMS.map(i => i.key), ['@total', '@note']);
+                                        const out = [];
+                                        let skipped = 0, mismatch = 0;
+                                        for (let i = hasHeader ? 1 : 0; i < lines.length; i++) {
+                                            const cells = ovbizSplitLine(lines[i]);
+                                            if (!cells.join('').trim()) continue;   // 空白行直接跳过
+                                            const rec = { date: '', name: '', shift: '', items: {}, total: 0, note: '', sheetTotal: null };
+                                            for (let c = 0; c < cols.length; c++) {
+                                                const ck = cols[c], raw = cells[c];
+                                                if (!ck || raw === undefined || raw === '') continue;
+                                                if (ck === '@date') rec.date = careerParseDate(raw);
+                                                else if (ck === '@name') rec.name = raw;
+                                                else if (ck === '@shift') rec.shift = raw;
+                                                else if (ck === '@note') rec.note = raw;
+                                                else if (ck === '@total') { const n = parseFloat(String(raw).replace(/,/g, '')); rec.sheetTotal = isNaN(n) ? null : n; }
+                                                else { const n = parseFloat(String(raw).replace(/[^\d.\-]/g, '')); if (n) rec.items[ck] = n; }
+                                            }
+                                            if (!/^\d{4}-\d{2}-\d{2}$/.test(rec.date)) { skipped++; continue; }
+                                            rec.total = OVBIZ_ITEMS.reduce((a, it) => a + (rec.items[it.key] || 0), 0);
+                                            if (rec.sheetTotal !== null && Math.abs(rec.sheetTotal - rec.total) > 0.5) mismatch++;
+                                            out.push(rec);
+                                        }
+                                        return { rows: out, skipped: skipped, mismatch: mismatch };
+                                    }
+                                    function ovbizWeekStart(d) {
+                                        const ts = Date.parse(d + 'T00:00:00Z');
+                                        const back = (new Date(ts).getUTCDay() + 6) % 7;
+                                        return new Date(ts - back * 86400000).toISOString().slice(0, 10);
+                                    }
+                                    function ovbizStats() {
+                                        ovbizEnsureLoaded();
+                                        const rawRows = Object.keys(ovbizData.rows).map(k => ovbizData.rows[k]);
+                                        const dayMap = {}, peopleMap = {}, itemTotals = {};
+                                        OVBIZ_ITEMS.forEach(it => { itemTotals[it.key] = 0; });
+                                        for (const r of rawRows) {
+                                            const d = dayMap[r.date] || (dayMap[r.date] = { date: r.date, names: [], shift: '', items: {}, total: 0, notes: [] });
+                                            if (r.name && d.names.indexOf(r.name) === -1) d.names.push(r.name);
+                                            if (r.shift && !d.shift) d.shift = r.shift;
+                                            if (r.note) d.notes.push(r.note);
+                                            for (const it of OVBIZ_ITEMS) {
+                                                const v = r.items[it.key] || 0;
+                                                if (!v) continue;
+                                                d.items[it.key] = (d.items[it.key] || 0) + v;
+                                                itemTotals[it.key] += v;
+                                            }
+                                            d.total += r.total;
+                                            const pn = r.name || '（未填人员）';
+                                            const p = peopleMap[pn] || (peopleMap[pn] = { name: pn, days: {}, total: 0, rows: 0, max: 0, maxDate: '' });
+                                            p.days[r.date] = (p.days[r.date] || 0) + r.total;
+                                            p.total += r.total;
+                                            p.rows++;
+                                            if (p.days[r.date] > p.max) { p.max = p.days[r.date]; p.maxDate = r.date; }
+                                        }
+                                        const days = Object.keys(dayMap).sort().map(x => dayMap[x]);
+                                        const good = days.filter(x => x.total > 0);
+                                        const totals = good.map(x => x.total);
+                                        const sum = totals.reduce((a, b) => a + b, 0);
+                                        const n = good.length;
+                                        const avg = n ? sum / n : 0;
+                                        const sorted = totals.slice().sort((a, b) => a - b);
+                                        const median = n ? (n % 2 ? sorted[(n - 1) / 2] : (sorted[n / 2 - 1] + sorted[n / 2]) / 2) : 0;
+                                        const max = n ? sorted[sorted.length - 1] : 0;
+                                        const min = n ? sorted[0] : 0;
+                                        const maxRec = good.filter(x => x.total === max)[0] || null;
+                                        const variance = n ? totals.reduce((a, v) => a + (v - avg) * (v - avg), 0) / n : 0;
+                                        const sd = Math.sqrt(variance);
+                                        const monthMap = {};
+                                        for (const d of good) {
+                                            const m = d.date.slice(0, 7);
+                                            const o = monthMap[m] || (monthMap[m] = { month: m, days: 0, sum: 0, max: 0, maxDate: '', items: {} });
+                                            o.days++;
+                                            o.sum += d.total;
+                                            for (const it of OVBIZ_ITEMS) o.items[it.key] = (o.items[it.key] || 0) + (d.items[it.key] || 0);
+                                            if (d.total > o.max) { o.max = d.total; o.maxDate = d.date; }
+                                        }
+                                        const months = Object.keys(monthMap).sort().map(m => {
+                                            const o = monthMap[m];
+                                            return { month: m, days: o.days, sum: o.sum, max: o.max, maxDate: o.maxDate, items: o.items, avg: o.days ? o.sum / o.days : 0 };
+                                        });
+                                        const weekMap = {};
+                                        for (const d of good) {
+                                            const k = ovbizWeekStart(d.date);
+                                            const o = weekMap[k] || (weekMap[k] = { week: k, days: 0, sum: 0, max: 0, maxDate: '' });
+                                            o.days++;
+                                            o.sum += d.total;
+                                            if (d.total > o.max) { o.max = d.total; o.maxDate = d.date; }
+                                        }
+                                        const weeks = Object.keys(weekMap).sort().map(k => {
+                                            const o = weekMap[k];
+                                            return {
+                                                week: k, end: new Date(Date.parse(k + 'T00:00:00Z') + 6 * 86400000).toISOString().slice(0, 10),
+                                                days: o.days, sum: o.sum, max: o.max, maxDate: o.maxDate, avg: o.days ? o.sum / o.days : 0
+                                            };
+                                        });
+                                        const dayMs = 86400000, toTs = (x) => Date.parse(x + 'T00:00:00Z');
+                                        let best = 0, streak = 0, prevTs = null, gapDays = 0;
+                                        for (const d of good) {
+                                            const ts = toTs(d.date);
+                                            if (prevTs === null) streak = 1;
+                                            else {
+                                                const diff = Math.round((ts - prevTs) / dayMs);
+                                                if (diff === 1) streak++;
+                                                else { gapDays += diff - 1; if (streak > best) best = streak; streak = 1; }
+                                            }
+                                            prevTs = ts;
+                                        }
+                                        if (streak > best) best = streak;
+                                        let curStreak = 0;
+                                        for (let i = good.length - 1; i >= 0; i--) {
+                                            if (i === good.length - 1) { curStreak = 1; continue; }
+                                            if (Math.round((toTs(good[i + 1].date) - toTs(good[i].date)) / dayMs) === 1) curStreak++; else break;
+                                        }
+                                        const spanDays = good.length > 1 ? Math.round((toTs(good[good.length - 1].date) - toTs(good[0].date)) / dayMs) + 1 : good.length;
+                                        const recent = (k) => {
+                                            const s = good.slice(-k), t = s.reduce((a, d) => a + d.total, 0);
+                                            return { days: s.length, sum: t, avg: s.length ? t / s.length : 0 };
+                                        };
+                                        const anomalyLine = n > 1 && sd > 0 ? avg + 2 * sd : null;
+                                        const anomalies = anomalyLine
+                                            ? good.filter(d => d.total > anomalyLine).map(d => ({ date: d.date, total: d.total, sigma: sd ? (d.total - avg) / sd : 0 }))
+                                            : [];
+                                        const people = Object.keys(peopleMap).map(k => {
+                                            const p = peopleMap[k];
+                                            const pd = Object.keys(p.days).length;
+                                            return { name: p.name, days: pd, rows: p.rows, total: p.total, avg: pd ? p.total / pd : 0, max: p.max, maxDate: p.maxDate, share: sum ? p.total / sum : 0 };
+                                        }).sort((a, b) => b.total - a.total);
+                                        const notes = days.filter(d => d.notes.length)
+                                            .map(d => ({ date: d.date, note: d.notes.join('；') }))
+                                            .sort((a, b) => b.date.localeCompare(a.date));
+                                        return {
+                                            rawRows: rawRows, days: days, good: good, n: n, sum: sum, avg: avg, median: median, min: min, max: max,
+                                            maxDate: maxRec ? maxRec.date : '', sd: sd, cv: avg ? sd / avg : 0, itemTotals: itemTotals,
+                                            months: months, weeks: weeks, people: people, notes: notes,
+                                            best: best, curStreak: curStreak, gapDays: gapDays, spanDays: spanDays,
+                                            recent7: recent(7), recent30: recent(30), anomalies: anomalies, anomalyLine: anomalyLine,
+                                            peopleCount: people.filter(p => p.name !== '（未填人员）').length
+                                        };
+                                    }
+                                    function ovbizSetHint(t) {
+                                        const h = document.getElementById('ovbizHint');
+                                        if (h) h.textContent = t || '';
+                                    }
+                                    function ovbizItemHead() {
+                                        return OVBIZ_ITEMS.map(it => '<th class="num" title="' + escapeHtml(it.label) + '">' + escapeHtml(it.short) + '</th>').join('');
+                                    }
+                                    function ovbizRender() {
+                                        const s = ovbizStats();
+                                        const names = s.people.filter(p => p.name !== '（未填人员）').map(p => p.name);
+                                        // ---- 报表抬头 ----
+                                        const sub = document.getElementById('ovbizReportSub');
+                                        if (sub) {
+                                            sub.textContent = '数据范围 ' + (s.n ? (s.good[0].date + ' ～ ' + s.good[s.good.length - 1].date) : '还没有数据')
+                                                + '　·　岗位人员：' + (names.length ? names.join('、') : '—')
+                                                + '　·　口径：' + OVBIZ_ITEMS.length + ' 项按天合计　·　来源：周报整表粘贴';
+                                        }
+                                        const meta = document.getElementById('ovbizReportMeta');
+                                        if (meta) {
+                                            const now = getBeijingDate();
+                                            const stamp = now.year + '-' + String(now.month).padStart(2, '0') + '-' + String(now.day).padStart(2, '0');
+                                            const cells = [
+                                                ['覆盖人员', s.peopleCount + ' 人'],
+                                                ['记录天数', s.n + ' 天'],
+                                                ['累计工作量', careerNum(s.sum)],
+                                                ['日均', careerNum(s.avg, 1)],
+                                                ['出具日期', stamp]
+                                            ];
+                                            meta.innerHTML = cells.map(c => '<div><span class="m-k">' + escapeHtml(String(c[0]))
+                                                + '</span><span class="m-v">' + escapeHtml(String(c[1])) + '</span></div>').join('');
+                                        }
+                                        // ---- KPI ----
+                                        const kpi = document.getElementById('ovbizKpi');
+                                        if (kpi) {
+                                            kpi.innerHTML = [
+                                                careerKpiCard('累计工作量', careerNum(s.sum), s.n ? (s.peopleCount + ' 人 · ' + s.n + ' 个记录日') : '还没有数据', true),
+                                                careerKpiCard('日均工作量', careerNum(s.avg, 1), s.n ? '中位数 ' + careerNum(s.median, 1) : '—', true),
+                                                careerKpiCard('最高单日', careerNum(s.max), s.maxDate || '—', true),
+                                                careerKpiCard('完整记录天数', s.n, s.rawRows.length ? '原始 ' + s.rawRows.length + ' 行（含同日多人）' : '无记录', true),
+                                                careerKpiCard('最低单日', careerNum(s.min), (s.good.filter(d => d.total === s.min)[0] || {}).date || '—', false, true),
+                                                careerKpiCard('波动（标准差）', careerNum(s.sd, 1), s.avg ? '变异系数 ' + careerPct(s.cv) : '—', false, true),
+                                                careerKpiCard('最长连续记录', s.best + ' 天', '当前连续 ' + s.curStreak + ' 天', false, true),
+                                                careerKpiCard('记录区间', s.n ? (s.good[0].date + ' → ' + s.good[s.good.length - 1].date) : '—', '区间 ' + s.spanDays + ' 天 · 断档 ' + s.gapDays + ' 天', false, true),
+                                                careerKpiCard('近 30 记录日日均', careerNum(s.recent30.avg, 1), '近 7 日 ' + careerNum(s.recent7.avg, 1), false, true)
+                                            ].join('');
+                                        }
+                                        const sheetHint = document.getElementById('ovbizSheetHint');
+                                        if (sheetHint) {
+                                            sheetHint.textContent = s.n
+                                                ? ('合计 ' + careerNum(s.sum) + '（' + s.n + ' 个完整记录日 · 日均 ' + careerNum(s.avg, 1) + '）'
+                                                    + '；覆盖 ' + (names.length ? names.join('、') : '未填人员') + ' 共 ' + s.peopleCount + ' 人'
+                                                    + '；数据只存在这台设备的浏览器里，不会同步给别的设备。')
+                                                : '还没有数据 —— 把周报整表粘贴到上面「📋 粘贴周报数据」再点「解析导入」。';
+                                        }
+                                        // ---- 逐项统计 ----
+                                        const it = document.getElementById('ovbizItemTable');
+                                        if (it) {
+                                            const rows = OVBIZ_ITEMS.map(x => ({ it: x, v: s.itemTotals[x.key] || 0 })).sort((a, b) => b.v - a.v);
+                                            const mx = rows.reduce((m, r) => Math.max(m, r.v), 0) || 1;
+                                            let h = '<thead><tr><th>统计项</th><th class="num">累计</th><th class="num">占比</th><th style="width:130px;">结构</th></tr></thead><tbody>';
+                                            if (!s.sum) h += '<tr><td colspan="4" style="color:var(--ink-3);">暂无数据</td></tr>';
+                                            for (const r of rows) {
+                                                h += '<tr><td>' + escapeHtml(r.it.label) + '</td><td class="num">' + careerNum(r.v)
+                                                    + '</td><td class="num">' + (s.sum ? careerPct(r.v / s.sum) : '—')
+                                                    + '</td><td><div class="career-bar"><i style="width:' + ((r.v / mx) * 100).toFixed(1) + '%"></i></div></td></tr>';
+                                            }
+                                            h += '</tbody><tfoot><tr class="total-row"><td>合计</td><td class="num">' + careerNum(s.sum)
+                                                + '</td><td class="num">100.0%</td><td></td></tr></tfoot>';
+                                            it.innerHTML = h;
+                                        }
+                                        const stb = document.getElementById('ovbizStructureBox');
+                                        if (stb) {
+                                            const top = OVBIZ_ITEMS.map(x => ({ it: x, v: s.itemTotals[x.key] || 0 })).sort((a, b) => b.v - a.v).slice(0, 3);
+                                            const topSum = top.reduce((a, r) => a + r.v, 0);
+                                            const active = OVBIZ_ITEMS.filter(x => (s.itemTotals[x.key] || 0) > 0).length;
+                                            stb.innerHTML = s.sum
+                                                ? '<div class="hint-text">Top3 集中度：' + top.map(r => escapeHtml(r.it.label) + ' ' + careerNum(r.v)).join(' · ')
+                                                    + ' —— 合计占 <b>' + careerPct(topSum / s.sum) + '</b>；' + active + ' / ' + OVBIZ_ITEMS.length + ' 项有产出</div>'
+                                                : '';
+                                        }
+                                        // ---- 月度汇总（含各项） ----
+                                        const mt = document.getElementById('ovbizMonthlyTable');
+                                        if (mt) {
+                                            let h = '<thead><tr><th>月份</th><th class="num">记录天数</th><th class="num">总量</th><th class="num">日均</th><th class="num">最高单日</th><th class="num">环比日均</th>'
+                                                + ovbizItemHead() + '</tr></thead><tbody>';
+                                            if (!s.months.length) h += '<tr><td colspan="' + (6 + OVBIZ_ITEMS.length) + '" style="color:var(--ink-3);">暂无数据</td></tr>';
+                                            s.months.forEach((m, i) => {
+                                                const prev = i > 0 ? s.months[i - 1] : null;
+                                                const delta = (prev && prev.avg) ? (m.avg - prev.avg) / prev.avg : null;
+                                                h += '<tr><td>' + m.month + '</td><td class="num">' + m.days + '</td><td class="num">' + careerNum(m.sum)
+                                                    + '</td><td class="num">' + careerNum(m.avg, 1)
+                                                    + '</td><td class="num">' + careerNum(m.max) + ' <span class="hint-text">' + escapeHtml(m.maxDate.slice(5)) + '</span>'
+                                                    + '</td><td class="num">' + (delta === null ? '—' : (delta >= 0 ? '+' : '') + careerPct(delta)) + '</td>'
+                                                    + OVBIZ_ITEMS.map(x => '<td class="num">' + careerNum(m.items[x.key] || 0) + '</td>').join('')
+                                                    + '</tr>';
+                                            });
+                                            h += '</tbody><tfoot><tr class="total-row"><td>合计</td><td class="num">' + s.n + '</td><td class="num">' + careerNum(s.sum)
+                                                + '</td><td class="num">' + careerNum(s.avg, 1) + '</td><td class="num">' + careerNum(s.max) + '</td><td class="num">—</td>'
+                                                + OVBIZ_ITEMS.map(x => '<td class="num">' + careerNum(s.itemTotals[x.key] || 0) + '</td>').join('')
+                                                + '</tr></tfoot>';
+                                            mt.innerHTML = h;
+                                        }
+                                        // ---- 周维度 ----
+                                        const wt = document.getElementById('ovbizWeeklyTable');
+                                        if (wt) {
+                                            let h = '<thead><tr><th>周（周一～周日）</th><th class="num">记录天数</th><th class="num">总量</th><th class="num">日均</th><th class="num">最高单日</th><th class="num">环比上周</th><th class="num">同比（4 周前）</th></tr></thead><tbody>';
+                                            if (!s.weeks.length) h += '<tr><td colspan="7" style="color:var(--ink-3);">暂无数据</td></tr>';
+                                            const list = s.weeks.slice().reverse();
+                                            list.forEach((w) => {
+                                                const i = s.weeks.indexOf(w);
+                                                const prev = i > 0 ? s.weeks[i - 1] : null;
+                                                const wow = (prev && prev.avg) ? (w.avg - prev.avg) / prev.avg : null;
+                                                const base = i >= 4 ? s.weeks[i - 4] : null;
+                                                const yoy = (base && base.avg) ? (w.avg - base.avg) / base.avg : null;
+                                                const fmt = (v) => (v === null ? '—' : (v >= 0 ? '+' : '') + careerPct(v));
+                                                h += '<tr><td>' + w.week + ' ～ ' + w.end.slice(5) + '</td><td class="num">' + w.days
+                                                    + '</td><td class="num">' + careerNum(w.sum)
+                                                    + '</td><td class="num">' + careerNum(w.avg, 1)
+                                                    + '</td><td class="num">' + careerNum(w.max) + ' <span class="hint-text">' + escapeHtml(w.maxDate.slice(5)) + '</span>'
+                                                    + '</td><td class="num">' + fmt(wow) + '</td><td class="num">' + fmt(yoy) + '</td></tr>';
+                                            });
+                                            const wSum = s.weeks.reduce((a, w) => a + w.sum, 0);
+                                            const wDays = s.weeks.reduce((a, w) => a + w.days, 0);
+                                            h += '</tbody><tfoot><tr class="total-row"><td>合计</td><td class="num">' + wDays + '</td><td class="num">' + careerNum(wSum)
+                                                + '</td><td class="num">' + careerNum(wDays ? wSum / wDays : 0, 1) + '</td><td class="num">' + careerNum(s.max)
+                                                + '</td><td class="num">—</td><td class="num">—</td></tr></tfoot>';
+                                            wt.innerHTML = h;
+                                        }
+                                        // ---- 按人员 ----
+                                        const pt = document.getElementById('ovbizPeopleTable');
+                                        if (pt) {
+                                            let h = '<thead><tr><th>人员</th><th class="num">记录天数</th><th class="num">总量</th><th class="num">日均</th><th class="num">最高单日</th><th class="num">占岗位</th><th>结构</th></tr></thead><tbody>';
+                                            if (!s.people.length) h += '<tr><td colspan="7" style="color:var(--ink-3);">暂无数据</td></tr>';
+                                            const mx = s.people.reduce((m, p) => Math.max(m, p.total), 0) || 1;
+                                            for (const p of s.people) {
+                                                h += '<tr><td>' + escapeHtml(p.name) + '</td><td class="num">' + p.days
+                                                    + '</td><td class="num">' + careerNum(p.total)
+                                                    + '</td><td class="num">' + careerNum(p.avg, 1)
+                                                    + '</td><td class="num">' + careerNum(p.max) + ' <span class="hint-text">' + escapeHtml((p.maxDate || '').slice(5)) + '</span>'
+                                                    + '</td><td class="num">' + careerPct(p.share)
+                                                    + '</td><td><div class="career-bar"><i style="width:' + ((p.total / mx) * 100).toFixed(1) + '%"></i></div></td></tr>';
+                                            }
+                                            h += '</tbody><tfoot><tr class="total-row"><td>岗位合计</td><td class="num">' + s.n + '</td><td class="num">' + careerNum(s.sum)
+                                                + '</td><td class="num">' + careerNum(s.avg, 1) + '</td><td class="num">' + careerNum(s.max) + '</td><td class="num">100.0%</td><td></td></tr></tfoot>';
+                                            pt.innerHTML = h;
+                                        }
+                                        // ---- 每日明细（含各项） ----
+                                        const dt = document.getElementById('ovbizDailyTable');
+                                        if (dt) {
+                                            let h = '<thead><tr><th>日期</th><th>人员</th><th class="num">总量</th>' + ovbizItemHead() + '<th>特殊问题</th></tr></thead><tbody>';
+                                            if (!s.days.length) h += '<tr><td colspan="' + (4 + OVBIZ_ITEMS.length) + '" style="color:var(--ink-3);">暂无数据</td></tr>';
+                                            const list = s.days.slice().reverse();
+                                            for (const d of list) {
+                                                h += '<tr><td>' + d.date + '</td><td>' + escapeHtml(d.names.join('、') || '—')
+                                                    + '</td><td class="num">' + careerNum(d.total) + '</td>'
+                                                    + OVBIZ_ITEMS.map(x => {
+                                                        const v = d.items[x.key] || 0;
+                                                        return '<td class="num">' + (v ? careerNum(v) : '<span style="color:var(--ink-3);">·</span>') + '</td>';
+                                                    }).join('')
+                                                    + '<td>' + escapeHtml(d.notes.join('；')) + '</td></tr>';
+                                            }
+                                            h += '</tbody><tfoot><tr class="total-row"><td>合计</td><td>' + s.peopleCount + ' 人</td><td class="num">' + careerNum(s.sum) + '</td>'
+                                                + OVBIZ_ITEMS.map(x => '<td class="num">' + careerNum(s.itemTotals[x.key] || 0) + '</td>').join('')
+                                                + '<td></td></tr></tfoot>';
+                                            dt.innerHTML = h;
+                                        }
+                                        // ---- 异常日 & 备注 ----
+                                        const ab = document.getElementById('ovbizAnomalyBox');
+                                        if (ab) {
+                                            let h = '<div class="hint-text">';
+                                            if (s.anomalyLine) {
+                                                h += '异常线 μ+2σ = ' + careerNum(s.anomalyLine, 1) + '；'
+                                                    + (s.anomalies.length
+                                                        ? '异常 <b>' + s.anomalies.length + '</b> 天：' + s.anomalies.slice(0, 12).map(a => escapeHtml(a.date) + '（' + careerNum(a.total) + '，' + a.sigma.toFixed(1) + 'σ）').join('、')
+                                                            + (s.anomalies.length > 12 ? ' 等 ' + s.anomalies.length + ' 天' : '')
+                                                        : '没有超过这条线的日子（都算平稳）');
+                                            } else {
+                                                h += '记录少于 2 天或波动为 0，暂时算不出异常线 μ+2σ';
+                                            }
+                                            h += '</div>';
+                                            if (s.notes.length) {
+                                                h += '<div style="margin-top:8px;font-size:13px;">特殊问题：<ul style="margin:6px 0 0 18px;">'
+                                                    + s.notes.slice(0, 30).map(x => '<li>' + escapeHtml(x.date) + ' — ' + escapeHtml(x.note) + '</li>').join('') + '</ul></div>';
+                                            }
+                                            ab.innerHTML = h;
+                                        }
+                                    }
+                                    function ovbizImport() {
+                                        ovbizEnsureLoaded();
+                                        const area = document.getElementById('ovbizPasteArea');
+                                        const text = (area && area.value) || '';
+                                        if (!text.trim()) { ovbizSetHint('没有内容可导入'); return; }
+                                        const res = ovbizParse(text);
+                                        if (!res.rows.length) {
+                                            ovbizSetHint('没识别出有效行' + (res.skipped ? '（' + res.skipped + ' 行日期不合法）' : '') + ' —— 第一行可以是表头也可以直接是数据');
+                                            return;
+                                        }
+                                        let add = 0, over = 0;
+                                        const daySet = {};
+                                        for (const r of res.rows) {
+                                            const key = r.date + '|' + r.name;
+                                            if (ovbizData.rows[key]) over++; else add++;
+                                            ovbizData.rows[key] = {
+                                                date: r.date, name: r.name, shift: r.shift, items: r.items,
+                                                total: r.total, note: r.note, at: new Date().toISOString()
+                                            };
+                                            daySet[r.date] = 1;
+                                        }
+                                        ovbizData.updatedAt = new Date().toISOString();
+                                        ovbizSaveLocal();
+                                        ovbizRender();
+                                        ovbizSetHint('已导入 ' + res.rows.length + ' 行（新增 ' + add + '，覆盖同人同日 ' + over + '）· 覆盖 '
+                                            + Object.keys(daySet).length + ' 天'
+                                            + (res.skipped ? '，跳过 ' + res.skipped + ' 行（日期无法识别）' : '')
+                                            + (res.mismatch ? '；有 ' + res.mismatch + ' 行「总计」与各项之和对不上，已按各项之和入账' : ''));
+                                    }
+                                    function ovbizCsvText() {
+                                        ovbizEnsureLoaded();
+                                        const q = (v) => {
+                                            const t = String(v == null ? '' : v);
+                                            return /[",\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t;
+                                        };
+                                        const head = ['日期', '人员', '班次'].concat(OVBIZ_ITEMS.map(x => x.label), ['总计', '特殊问题']);
+                                        const rows = [head.map(q).join(',')];
+                                        const keys = Object.keys(ovbizData.rows).sort((a, b) => {
+                                            const ra = ovbizData.rows[a], rb = ovbizData.rows[b];
+                                            return ra.date === rb.date ? String(ra.name).localeCompare(String(rb.name)) : ra.date.localeCompare(rb.date);
+                                        });
+                                        for (const k of keys) {
+                                            const r = ovbizData.rows[k];
+                                            rows.push([r.date, r.name, r.shift].concat(OVBIZ_ITEMS.map(x => r.items[x.key] || 0), [r.total, r.note]).map(q).join(','));
+                                        }
+                                        return '\ufeff' + rows.join('\r\n');
+                                    }
+                                    function ovbizClearLocal() {
+                                        ovbizEnsureLoaded();
+                                        const n = Object.keys(ovbizData.rows).length;
+                                        if (!n) { ovbizSetHint('本机没有海外业务数据'); return; }
+                                        if (!confirm('确认清空本机的海外业务统计？共 ' + n + ' 行（只影响这台设备，服务端没有副本）')) return;
+                                        ovbizData = { rows: {}, updatedAt: null };
+                                        try { localStorage.removeItem(OVBIZ_KEY); } catch (e) { /* 忽略 */ }
+                                        ovbizRender();
+                                        ovbizSetHint('已清空本机的 ' + n + ' 行海外业务数据');
+                                    }
+
                                     // ==================== 事件绑定 ====================
                                     function setClick(id, handler) {
                                         const el = document.getElementById(id);
@@ -10978,6 +11537,7 @@
                                             const targetTab = document.getElementById(`tab-${this.dataset.tab}`);
                                             if (targetTab) targetTab.classList.add('active');
                                             if (this.dataset.tab === 'career') renderCareer();
+                                            if (this.dataset.tab === 'overseas') ovbizRender();
                                         });
 
                                         // 规则搜索
@@ -11121,6 +11681,12 @@
                                         })();
                                         setClick('careerClearLocalBtn', careerClearLocal);
                                         setClick('careerImportBtn', careerImport);
+                                        // 海外业务统计
+                                        setClick('ovbizImportBtn', ovbizImport);
+                                        setClick('ovbizExportBtn', () => {
+                                            if (!careerDownload('海外业务统计_' + careerToday() + '.csv', ovbizCsvText(), 'text/csv')) alert('当前环境不支持导出');
+                                        });
+                                        setClick('ovbizClearBtn', ovbizClearLocal);
                                         setClick('careerClearImportBtn', () => {
                                             const a = document.getElementById('careerImportArea');
                                             if (a) a.value = '';
@@ -11392,6 +11958,7 @@
                                             renderReplySelects();
                                             renderReplyPresetList();
                                             renderCareer();
+                                            ovbizRender();
                                         } catch (e) {
                                             console.warn('刷新界面数据失败', e);
                                         }

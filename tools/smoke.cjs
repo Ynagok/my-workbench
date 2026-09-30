@@ -789,6 +789,74 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     check(/本来就没有/.test($('careerArchiveHint').textContent), '空数据时再点清空 → 提示本来就是空的', $('careerArchiveHint').textContent);
   }
 
+  console.log('--- 8g. 海外业务统计：整表粘贴导入（只存本机，不碰服务端）---');
+  {
+    const ovbizSaved = () => {
+      try { return JSON.parse(window.localStorage.getItem('overseasBizData') || 'null'); } catch (_) { return null; }
+    };
+    const ovbizReqs = () => posts.filter(p => p.url.includes('overseasBizData'));
+    // 表头故意打乱顺序 + 用真实周报的表头写法；同一天两行（两个人同班）
+    const csv = [
+      '人员,22,班次,（繁花+乐缤纷+梦幻）群维系,异世界群维系,海外SSO工单量（全产品）,海外CP后台工单（全产品）,海外邮件（全产品）,海外FB（全产品）,商店回复,SSO国内工单,监控禁言,监控封号,邮件+SDK（猫旅馆物语）,总计,特殊问题',
+      '陈智锋,2026/1/1,,35,0,11,5,1,1,,,13,19,,85,',
+      '温泽鸿,2026/1/1,,20,1,9,3,2,0,,,7,25,,68,春节值班',
+      '陈智锋,2026/2/3,,23,0,18,4,3,4,,,11,62,,139,',
+      ',,,,,,,,,,,,,,0,'
+    ].join('\n');
+    $('ovbizPasteArea').value = csv;
+    $('ovbizImportBtn').click();
+    await sleep(60);
+    check(/已导入 3 行/.test($('ovbizHint').textContent) && /覆盖 2 天/.test($('ovbizHint').textContent),
+      '海外业务：粘贴整表导入 3 行 / 2 天（空白行自动跳过）', $('ovbizHint').textContent);
+    const saved0 = ovbizSaved();
+    check(!!saved0 && Object.keys(saved0.rows || {}).length === 3, '海外业务：落进本机 localStorage（键 overseasBizData）',
+      saved0 && Object.keys(saved0.rows || {}).length);
+    check(ovbizSaved().rows['2026-01-01|陈智锋'].total === 85 && ovbizSaved().rows['2026-01-01|温泽鸿'].total === 67,
+      '海外业务：每行按 11 项之和入账（陈 85 / 温 67）',
+      ovbizSaved().rows['2026-01-01|陈智锋'].total + '/' + ovbizSaved().rows['2026-01-01|温泽鸿'].total);
+    // 1/1 两个人同班 → 按天合计 152
+    check(/累计工作量\s*277/.test($('ovbizKpi').textContent), '海外业务：累计 = 85+67+125 = 277（1/1 两人合计 152）', $('ovbizKpi').textContent.slice(0, 60));
+    check(/完整记录天数\s*2/.test($('ovbizKpi').textContent) && /最高单日\s*152/.test($('ovbizKpi').textContent),
+      '海外业务：记录天数 2、最高单日 152（1/1 两人合计）', $('ovbizKpi').textContent.slice(0, 120));
+    check(doc.querySelectorAll('#ovbizDailyTable tbody tr').length === 2
+      && /温泽鸿、陈智锋|陈智锋、温泽鸿/.test($('ovbizDailyTable').textContent)
+      && /春节值班/.test($('ovbizDailyTable').textContent),
+      '海外业务：每日表按天合计并列出当天人员与备注', $('ovbizDailyTable').textContent.slice(0, 90));
+    check(doc.querySelectorAll('#ovbizPeopleTable tbody tr').length === 2
+      && /陈智锋/.test($('ovbizPeopleTable').textContent) && /占岗位/.test($('ovbizPeopleTable').textContent),
+      '海外业务：按人员统计 2 人', $('ovbizPeopleTable').textContent.slice(0, 80));
+    check(doc.querySelectorAll('#ovbizItemTable tbody tr').length === 11
+      && /合计\s*277/.test($('ovbizItemTable').textContent.replace(/\s+/g, ' ')),
+      '海外业务：逐项统计 11 项 + 合计 277', $('ovbizItemTable').textContent.replace(/\s+/g, ' ').slice(-60));
+    check(doc.querySelectorAll('#ovbizMonthlyTable tbody tr').length === 2
+      && /2026-01/.test($('ovbizMonthlyTable').textContent) && /2026-02/.test($('ovbizMonthlyTable').textContent),
+      '海外业务：月度表按月汇总（1 月 / 2 月各一行）');
+    check(doc.querySelectorAll('#ovbizReportMeta > div').length === 5
+      && /覆盖人员/.test($('ovbizReportMeta').textContent) && /累计工作量/.test($('ovbizReportMeta').textContent),
+      '海外业务：报表抬头 5 格元数据（覆盖人员/记录天数/累计/日均/出具日期）', $('ovbizReportMeta').textContent.slice(0, 80));
+    check(ovbizReqs().length === 0, '海外业务：整场没有请求过服务端（只存本机）', ovbizReqs().length);
+    // 重复导入：覆盖而不是累加
+    $('ovbizImportBtn').click();
+    await sleep(60);
+    check(/覆盖同人同日 3/.test($('ovbizHint').textContent) && Object.keys(ovbizSaved().rows).length === 3,
+      '海外业务：重复导入覆盖同人同日、不产生重复行', $('ovbizHint').textContent);
+    check(/累计工作量\s*277/.test($('ovbizKpi').textContent), '海外业务：重复导入后累计仍是 277');
+    // 总计对不上：提示并按各项之和入账（陈智锋 2026/3/1 表里写 999）
+    $('ovbizPasteArea').value = '日期,人员,班次,异世界群维系,（繁花+乐缤纷+梦幻）群维系,邮件+SDK（猫旅馆物语）,海外SSO工单量（全产品）,海外CP后台工单（全产品）,海外邮件（全产品）,海外FB（全产品）,商店回复,SSO国内工单,监控禁言,监控封号,总计,特殊问题\n2026/3/1,陈智锋,,0,10,,,,,,,,,,999,';
+    $('ovbizImportBtn').click();
+    await sleep(60);
+    check(/总计」与各项之和对不上/.test($('ovbizHint').textContent)
+      && ovbizSaved().rows['2026-03-01|陈智锋'].total === 10,
+      '海外业务：「总计」对不上时提示并按各项之和入账', $('ovbizHint').textContent);
+    // 清空本机
+    $('ovbizClearBtn').click();
+    await sleep(40);
+    check(Object.keys((ovbizSaved() || { rows: {} }).rows).length === 0 && window.localStorage.getItem('overseasBizData') === null,
+      '海外业务：清空本机 → 记录归零且 localStorage 键删掉');
+    check(/已清空本机的 4 行/.test($('ovbizHint').textContent), '海外业务：清空有提示', $('ovbizHint').textContent);
+    check(ovbizReqs().length === 0, '海外业务：清空也不碰服务端', ovbizReqs().length);
+  }
+
   console.log('--- 9. 无未捕获异常 ---');
   check(!warns.some(w => w.startsWith('ERROR')), 'console.error 未被调用：' + warns.filter(w => w.startsWith('ERROR')).join(' | '));
   check(jsdomErrors.length === 0, '页面无未捕获异常（jsdomError）', jsdomErrors.slice(0, 3));

@@ -192,6 +192,32 @@ ok(/counter\(career-card, decimal-leading-zero\)/.test(s) && /counter\(nav-item,
 ok(/id="careerReportSub"/.test(s) && /id="careerReportMeta"/.test(s) && /getElementById\('careerReportMeta'\)/.test(s)
   && /WORKLOAD REPORT \/ 工作量统计报表/.test(s),
   '客服生涯报表抬头（英文 kicker + 标题 + 数据范围 + 右上元数据格）已注入并在渲染时填充');
+// ---- 3d. 海外业务统计（岗位周报整表粘贴）----
+ok(/data-tab="overseas"/.test(s) && /id="tab-overseas"/.test(s) && /海外业务统计/.test(s),
+  '「海外业务统计」标签页已注入（侧边栏 + 页面）');
+{
+  const ovbizBlk = (s.match(/const OVBIZ_ITEMS = \[[\s\S]*?\r?\n\s*\];/) || [''])[0];
+  ok(/const OVBIZ_KEY = 'overseasBizData';/.test(s) && (ovbizBlk.match(/\{ key: '/g) || []).length === 11,
+    '海外业务：11 个统计项已定义（异世界群维系…监控封号）');
+}
+ok(/function ovbizSplitLine\(line\)/.test(s) && /indexOf\('\\t'\) !== -1/.test(s) && /careerParseDate\(raw\)/.test(s)
+  && /'22'\] = '@date'/.test(s),
+  '海外业务：解析支持 CSV / TSV、日期 2026/1/1 与 Excel 序列号，并认得周报表头第一格的「22」');
+ok(/function ovbizLoadLocal\(\)/.test(s) && /function ovbizSaveLocal\(\)/.test(s)
+  && !/loadData\('overseasBizData'/.test(s) && !/saveData\('overseasBizData'/.test(s),
+  '海外业务：只读写本机 localStorage（不走 /api/data）');
+ok(/function ovbizEnsureLoaded\(\)/.test(s) && /ovbizEnsureLoaded\(\);/.test(s) && /let ovbizLoaded = false;/.test(s),
+  '海外业务：本机数据懒加载（避开 applyState 早于 const 初始化的 TDZ 坑）');
+ok(/function ovbizStats\(\)/.test(s) && /d\.total \+= r\.total;/.test(s) && /function ovbizWeekStart\(d\)/.test(s)
+  && /anomalyLine = n > 1 && sd > 0/.test(s),
+  '海外业务：统计按天合计（同日多人）+ 周维度 + μ+2σ 异常线');
+ok(['ovbizKpi', 'ovbizItemTable', 'ovbizMonthlyTable', 'ovbizWeeklyTable', 'ovbizPeopleTable', 'ovbizDailyTable', 'ovbizAnomalyBox', 'ovbizReportMeta']
+  .every(id => s.includes('id="' + id + '"')),
+  '海外业务：总览 / 逐项 / 月度 / 周 / 按人员 / 每日明细 / 异常 / 报表抬头 容器齐全');
+ok(/setClick\('ovbizImportBtn', ovbizImport\)/.test(s) && /setClick\('ovbizExportBtn'/.test(s)
+  && /setClick\('ovbizClearBtn', ovbizClearLocal\)/.test(s)
+  && /this\.dataset\.tab === 'overseas'\) ovbizRender\(\)/.test(s) && /renderCareer\(\);\s*\n\s*ovbizRender\(\);/.test(s),
+  '海外业务：导入 / 导出 / 清空按钮与标签页刷新、启动刷新都已挂上');
 // 工单侧分组：CP后台 与 ①~⑦群维系 都并进「工单/后台」
 ok(/function careerTicketKind\(key\) \{[\s\S]{0,320}?if \(key === 'sso' \|\| \/_cp\$\/\.test\(key\) \|\| \/\^g\\d\/\.test\(key\)\) return '工单\/后台';/.test(s)
   && !/return 'CP后台'/.test(s) && !/return '群维系'/.test(s.slice(s.indexOf('function careerTicketKind'), s.indexOf('function careerTicketKind') + 400)),

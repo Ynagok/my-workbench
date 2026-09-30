@@ -48,7 +48,7 @@ npm run verify     # 改完代码、push 前的完整自检
 
 | 命令 | 内容 |
 |---|---|
-| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 167 项 + 「接口挂起时界面仍可用」+ 服务端冒烟 12 项 + 油猴脚本语法 + 单测 169 项 |
+| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 184 项 + 「接口挂起时界面仍可用」+ 服务端冒烟 12 项 + 油猴脚本语法 + 单测 169 项 |
 | `npm run verify:static` | 只要静态校验 + 语法检查（最快） |
 | `npm run report` | 打印一份真实生成的日报，肉眼确认排版（含 ⑥伙伴弹途 / ⑦异世界勇者） |
 | `npm run build:data` | 从 GM 玩家页快照提取 4 张权威映射表 + 与硬编码常量的**差异报告**（见下「游戏数据管线」） |
@@ -56,7 +56,7 @@ npm run verify     # 改完代码、push 前的完整自检
 | `npm run test:helper` | 反馈提取助手（油猴脚本 0.4.0）单测，169 项 |
 | `npm test` | = `npm run verify` |
 
-`npm run verify` 失败就不要提交。它一共 7 段：静态结构 → 语法 → jsdom 集成冒烟 **167 项** → 接口挂起时界面仍可用 → 服务端冒烟 **12 项** → 油猴脚本语法（`node --check`）→ 油猴脚本单测 **169 项**。
+`npm run verify` 失败就不要提交。它一共 7 段：静态结构 → 语法 → jsdom 集成冒烟 **184 项** → 接口挂起时界面仍可用 → 服务端冒烟 **12 项** → 油猴脚本语法（`node --check`）→ 油猴脚本单测 **169 项**。
 
 - jsdom 未安装时前端冒烟会自动回落到本机 DSH 自带的那份。
 - `tools/smoke-server.cjs` 用 `PORT` + `DATA_FILE` 环境变量把服务端指到随机端口和 `tools/out/` 里的临时文件，**不会碰真实 `data.json`**；子进程 stdio 必须用 `ignore`/`inherit`（沙箱禁管道，`pipe` 会 EPERM）。
@@ -121,6 +121,21 @@ npm run verify     # 改完代码、push 前的完整自检
 - **客服生涯 · 报表版式**：`.career-report-head`（英文 kicker `WORKLOAD REPORT / 工作量统计报表` + 标题 + `#careerReportSub` 数据范围/口径 + 右上 `#careerReportMeta` 5 格元数据：身份/记录天数/累计/日均/出具日期，由 `renderCareer()` 填）；卡片自动编号 `01…`（`#tab-career` 上 `counter-reset: career-card`，编号画在 `.card > label::before` / `.flex-row > label::before` / `.career-collapse-btn::before`）；KPI 卡改成等宽大数字 + 右上角刻度线（`.career-kpi::after`）；报表页**关掉了卡片的斜纹底**（`#tab-career .card::after { display:none }`）。
 - ⚠️ 想回到浅色：把 `:root` 的 `--bg-0/--surface*/--ink*/--line*/--accent*` 换成浅色值即可，但**收口层里有几处硬编码的深色字（`#0a0c0e`）和 `color-scheme: dark` 需要一起调**。
 
+## 海外业务统计（岗位周报整表粘贴）
+
+**「🌏 海外业务统计」标签页**（`data-tab="overseas"` / `#tab-overseas`）——海外岗 3 个人共用的岗位级统计：把《群维系+监控+海外工单+FB塔防周报》**整张表粘进来**，按天 / 按月算总量与逐项。
+
+- **数据模型**：`overseasBizData`（localStorage 键同名）`= { rows: { '日期|人员': {date,name,shift,items,total,note,at} }, updatedAt }` —— **一行 = 某天某人**；**只存本机**，不走 `/api/data`（跟 `careerData` 一个规矩，静态断言锁死不出现 `loadData/saveData('overseasBizData'`）。
+- **11 个统计项** `OVBIZ_ITEMS`（就是周报的 11 列）：异世界群维系 / （繁花+乐缤纷+梦幻）群维系 / 邮件+SDK（猫旅馆物语）/ 海外SSO工单量（全产品）/ 海外CP后台工单（全产品）/ 海外邮件（全产品）/ 海外FB（全产品）/ 商店回复 / SSO国内工单 / 监控禁言 / 监控封号。**独立于客服生涯的项表**（自己一套 key，两边互不影响）。
+- **解析**（`ovbizParse` + `ovbizSplitLine`）：**CSV 和 TSV 都吃**（含制表符按 TSV，否则按 CSV，支持 `"…"` 引号与 `""` 转义）；**表头按列名对齐、顺序随意**；比对前用 `careerNormHeader` 归一（去空白、全角括号→半角），并**去掉括号内容再匹配一次**（「海外SSO工单量（全产品）」和「海外SSO工单量」都认）。
+  - ⚠️ **这份周报表头第一格写的是 `22` 而不是「日期」**，所以 `OVBIZ_COLUMNS['22'] = '@date'` 是必须的；日期复用 `careerParseDate`（`2026/1/1`、`2026-01-01`、Excel 序列号都行）；不带表头时按原列序（日期,人员,班次,11 项,总计,特殊问题）。
+  - ⚠️ **本机数据是懒加载的**：`applyState()` 在初始化早期就会跑（那时本模块的 `const` 还在 TDZ），所以由 `ovbizEnsureLoaded()` 在首次 `ovbizStats/ovbizRender/ovbizImport/ovbizCsvText/ovbizClearLocal` 时读一次。**别把 `ovbizData = ovbizNormalize(ovbizLoadLocal())` 塞回 `applyState`**（会 `ReferenceError: Cannot access 'OVBIZ_KEY' before initialization`，整个工作台初始化失败、冒烟直接红）。
+- **合并规则**：key = `日期 + '|' + 人员` → 同一天同一个人**覆盖**、不同人保留（**同一天两个人同班是常态**，文件里 111 天都是两行）；**空白行自动跳过**（不计入「跳过」数）；「总计」与 11 项之和对不上时**提示一句并仍按各项之和入账**。
+- **统计口径**（`ovbizStats`）：**先按天合计**（同日多人的项与总量相加，`names` 记当天都有谁）再算指标，跟客服生涯同一套公式 —— 累计 / 日均 / 中位数 / 最高单日+日期 / 最低单日 / 标准差+变异系数 / 最长连续+当前连续 / 记录区间+断档 / 近 7·30 记录日日均 / **μ+2σ 异常日**；另有**月度**（含逐项）、**周维度**（周一为起点，周环比 +「4 周前」同比代理）、**按人员**（记录天数/总量/日均/最高单日/占岗位比/结构条）、**逐项**（累计/占比/结构条 + Top3 集中度）、**每日明细**（日期/人员/总量/11 项/特殊问题，最新在上）。
+- **落盘/导出**：`📥 解析导入`（`ovbizImport`）、`📊 导出CSV`（`ovbizCsvText`，带 BOM + 表头，导出的文件能再粘回来）、`🧹 清空本机数据`（`ovbizClearLocal`）。报表抬头 `#ovbizReportSub` / `#ovbizReportMeta`（覆盖人员 / 记录天数 / 累计 / 日均 / 出具日期）。
+- **真实数据对账**（用户给的这份周报，402 行原始数据）：解析出 **392 行 / 271 天**（10 行空白跳过），**1 行总计对不上**（2026/8/14 陈智锋，表里 92、各项之和 91）→ 提示并按 91 入账；**累计 40,685**、日均 150.1、中位数 143、最高单日 623@2026-04-11、异常 8 天（最高 2026-04-11 的 8.2σ）；三人 温泽鸿 156 天/17,444（42.9%）、陈智锋 152 天/17,436（42.9%）、姚宏杰 84 天/5,805（14.3%）；月度 9 个月、周 40 周。
+- **测试**：`tools/smoke.cjs` 第 **8g** 节 17 条（乱序表头 + 同一天两行 → 3 行入账 / 2 天 / 单行 85+67 按 11 项之和 / 累计 277 / 最高单日 152 / 每日表带人员与备注 / 人员表 2 人 / 逐项 11 行合计 277 / 月度 2 行 / 抬头 5 格 / **整场零服务端请求** / 重复导入覆盖不翻倍 / 总计对不上提示 / 清空归零且删键）；`tools/verify.mjs` 另有 8 条静态断言（标签页、11 项、CSV+TSV+「22」表头、只存本机、懒加载、按天合计+周+异常线、8 个容器、按钮与刷新挂载）。
+
 ## 硬约定
 
 1. `public/index.html` 必须用 **UTF-8** 保存（不能用 GBK）。
@@ -148,7 +163,7 @@ npm run verify     # 改完代码、push 前的完整自检
 ## 目录结构
 
 ```
-public/index.html          全部前端（单文件，约 10800 行：内联 CSS + 内联 JS 的 async IIFE；含「客服生涯」标签页）
+public/index.html          全部前端（单文件，约 11900 行：内联 CSS + 内联 JS 的 async IIFE；含「客服生涯」「海外业务统计」标签页）
 public/gemjy-openid-helper.user.js  油猴脚本（反馈后台：卡片式悬浮窗，提取 头像/昵称/图片/openid，一键复制 openid；当前内容 0.4.0，就发在这一条链接上；与前端无代码耦合）
 server.js                  express：静态托管 public/ + GET/POST /api/data/:key ↔ data.json（含 key 白名单）
 data.json                  服务端数据（随使用增长；前端字段缺失会被默认值自动补齐）
