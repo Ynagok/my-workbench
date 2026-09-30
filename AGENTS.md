@@ -48,7 +48,7 @@ npm run verify     # 改完代码、push 前的完整自检
 
 | 命令 | 内容 |
 |---|---|
-| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 165 项 + 「接口挂起时界面仍可用」+ 服务端冒烟 12 项 + 油猴脚本语法 + 单测 169 项 |
+| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 167 项 + 「接口挂起时界面仍可用」+ 服务端冒烟 12 项 + 油猴脚本语法 + 单测 169 项 |
 | `npm run verify:static` | 只要静态校验 + 语法检查（最快） |
 | `npm run report` | 打印一份真实生成的日报，肉眼确认排版（含 ⑥伙伴弹途 / ⑦异世界勇者） |
 | `npm run build:data` | 从 GM 玩家页快照提取 4 张权威映射表 + 与硬编码常量的**差异报告**（见下「游戏数据管线」） |
@@ -56,7 +56,7 @@ npm run verify     # 改完代码、push 前的完整自检
 | `npm run test:helper` | 反馈提取助手（油猴脚本 0.4.0）单测，169 项 |
 | `npm test` | = `npm run verify` |
 
-`npm run verify` 失败就不要提交。它一共 7 段：静态结构 → 语法 → jsdom 集成冒烟 **165 项** → 接口挂起时界面仍可用 → 服务端冒烟 **12 项** → 油猴脚本语法（`node --check`）→ 油猴脚本单测 **169 项**。
+`npm run verify` 失败就不要提交。它一共 7 段：静态结构 → 语法 → jsdom 集成冒烟 **167 项** → 接口挂起时界面仍可用 → 服务端冒烟 **12 项** → 油猴脚本语法（`node --check`）→ 油猴脚本单测 **169 项**。
 
 - jsdom 未安装时前端冒烟会自动回落到本机 DSH 自带的那份。
 - `tools/smoke-server.cjs` 用 `PORT` + `DATA_FILE` 环境变量把服务端指到随机端口和 `tools/out/` 里的临时文件，**不会碰真实 `data.json`**；子进程 stdio 必须用 `ignore`/`inherit`（沙箱禁管道，`pipe` 会 EPERM）。
@@ -102,6 +102,25 @@ npm run verify     # 改完代码、push 前的完整自检
   - ⚠️ 单测会断言「`@updateURL`/`@downloadURL` 的文件名 == 实际文件名」＋「文件里不出现 `-0.4` 这类临时链接」——**改文件名就得同步改这两行**，否则 `npm run test:helper` 直接红。
 - 单测：`tools/test-openid-helper.cjs`（**169 项**）= 纯函数层（openid 边界与宽松计数、行切分、时间行/噪声行、猜昵称、取问题与截断、图片绝对化/过滤/去重/上限、**头像 `isAvatarish`/`pickAvatar`（线索/尺寸/方形/取最小/去重/相对地址/data URI/字符串候选）**、记录组装与 upsert 语义（**含头像：新记录没头像不覆盖旧头像、换头像会覆盖、旧记录没这字段补空串**）、`hits` 与 `firstSeen`、复制文本、诊断 JSON）+ 脚本头约束（`@version` 与内部 `API.version` 一致且 = **0.4.0**、`@match` 只有反馈后台一处、元数据里无 `@connect`、全文件无 `GM_xmlhttpRequest`/`fetch`/`XMLHttpRequest`、**`@updateURL`/`@downloadURL` 指向原链接且文件名对得上、不含 -0.4 临时链接**、`@grant` 声明）+ **不许碰工作台的静态断言**（代码里没有 `/api/data`、没有 `data.json`、没有工作台任何数据键、localStorage 只用变量键）+ **jsdom 端到端**（造一张假反馈页：卡片带头像 img，另有 14×14 噪声小图标 → 注入脚本 → 断言头像/昵称/图片/openid 真的提出来了、头像被单独挑出且不重复进截图、卡片式面板建出来（有头像 img、没头像退化成首字圆底、**面板里没有 `.gj-q`**）、面板里的 openid 不会被自己再收一遍、非反馈站点不注入、localStorage 里只出现 `gemjyHelper:` 前缀的键、落盘与清空）。
 
+## 界面主题（暗色 · 明日方舟 / 终末地 视觉语言）
+
+**整个工作台是暗色的，只靠 `:root` 令牌驱动**（2026-09 从浅色主题整体翻过来）。改观感先改令牌，再动「收口层」。
+
+- **令牌**（`public/index.html` 顶部 `<style>` 里的 `:root`）：`--bg-0 #090b0d`（页面底）/ `--surface #0e1216` / `--surface-2 #161b21` / `--surface-3 #1d242b`（次级面、斑马、分组标题）/ `--sidebar #0b0e11`；文字 `--ink-0 #e9eef3`（主）/ `--ink-1 #d5dde4` / `--ink-2 #94a0ac`（次要）/ `--ink-3 #66727e`（三级、placeholder）；线 `--line-0 #1d252c` / `--line-1 #2b343d` / `--line-2 #3d4854`。
+  - **强调色只有一个：`--accent #ffd60a`（终末地黄）**，配套 `--accent-hi` / `--accent-ink`（暗底上的强调文字=黄）/ `--accent-dim`(10%) / `--accent-line`(42%) / `--accent-glow`(24%)。`--dark #0a0c0e` 是**黄底/亮底上的文字色**。
+  - 圆角令牌全部≈直角：`--r-sm 2px` / `--r-md 3px` / `--r-lg 4px` / `--r-pill 3px`。阴影改成纯黑低透明（`--shadow-1/2/3`）。
+  - 新增：`--grid-line`（页面网格线）/ `--hazard`（45° 警示条纹）/ `--clip-card`、`--clip-btn`（切角 polygon）。
+- **收口层**：`<style>` 末尾一大段「暗色主题收口层 · 明日方舟 / 终末地 视觉语言」+「客服生涯 · 报表版式」，**后置覆盖前面的规则**（同特异性后者胜）。风格要点：
+  - 直角/切角：`.container` 边框+警示条纹顶条；`.card` / `.modal-content` 用 `--clip-card` 切右上右下角；`button` 用 `--clip-btn`。
+  - 侧边栏：编号 `01…06`（`.tab-btn::before` + `counter(nav-item, decimal-leading-zero)`）；hover 淡白、active 黄字+左侧黄条+菱形点（旋转 45°）。
+  - 按钮：默认半透明面板底+细边+浅字；hover 变**黄底黑字**。`.secondary` 更弱、`.reset-btn` 红字、`.paste-btn` 黄淡底。⚠️ **`.career-collapse-btn` 单独豁免**（`:hover` 也是透明底），否则折叠卡标题一 hover 就变黄块。
+  - 表单：输入框暗底、focus 才出现黄边+yellow-dim 光圈；`color-scheme: dark` 让原生日期/下拉/滚动条也是暗色。
+  - 表格：`th` 深色表头带+字距，`tbody tr:nth-child(even) td` 极淡斑马，`.career-table` 另加分组标题行（`--surface-3` 底+黄字）与合计行（黄淡底+顶部黄线+等宽字）。
+  - ⚠️ **黄底上的文字要用 `#0a0c0e` / `var(--dark)`**，别用 `--ink-0`（浅色！）—— `.career-split-bar > i.ticket`、`.career-scope-bar > button.active` 这两处已单独改成深色字。
+  - ⚠️ `clip-path` 会**吃掉 box-shadow**，所以按钮的 hover 光圈基本看不到（只有换色）；想要光圈就别用 clip-path。
+- **客服生涯 · 报表版式**：`.career-report-head`（英文 kicker `WORKLOAD REPORT / 工作量统计报表` + 标题 + `#careerReportSub` 数据范围/口径 + 右上 `#careerReportMeta` 5 格元数据：身份/记录天数/累计/日均/出具日期，由 `renderCareer()` 填）；卡片自动编号 `01…`（`#tab-career` 上 `counter-reset: career-card`，编号画在 `.card > label::before` / `.flex-row > label::before` / `.career-collapse-btn::before`）；KPI 卡改成等宽大数字 + 右上角刻度线（`.career-kpi::after`）；报表页**关掉了卡片的斜纹底**（`#tab-career .card::after { display:none }`）。
+- ⚠️ 想回到浅色：把 `:root` 的 `--bg-0/--surface*/--ink*/--line*/--accent*` 换成浅色值即可，但**收口层里有几处硬编码的深色字（`#0a0c0e`）和 `color-scheme: dark` 需要一起调**。
+
 ## 硬约定
 
 1. `public/index.html` 必须用 **UTF-8** 保存（不能用 GBK）。
@@ -109,6 +128,35 @@ npm run verify     # 改完代码、push 前的完整自检
 3. 改完先 `npm run verify`，再 `git add` + `git commit`。
 4. 后端**不需要重启**：`express.static` 每次请求读磁盘，覆盖文件后浏览器 `Ctrl+F5` 即可生效。
 
+## 已定语义（改之前先问用户）
+
+1. `resolveItemName(id, name)`：**日志里已有非纯数字名字时优先用日志的**（映射表被绕过），只有名字是纯数字或空时才查 `itemNameMap`。结果就是**「映射管理」里改的棋子名，对日志中已带名字的记录不生效**。
+   - 本轮已确认**保持现状**，并由 `tools/smoke.cjs` 第 **6b** 节用两条断言锁定：A 日志自带名字 → 用日志名且不查映射；B 日志只有纯数字 ID → 查映射。
+   - 要改成「映射优先」会改变已有话术输出，**必须先问用户**，并同步改 6b 的断言。
+2. **资源类型「选什么就出什么」**：`parseSmartLog` 里 `if (['体力','红钻','金币','好评点'].includes(userSelectedType))` 会把**每一条**记录的 `道具名称` 与 `_资源类型` 都改写成下拉框选中的类型，所以日志里同时有体力和金币时，选「体力」会把金币那行也输出成体力话术。
+   - 用户已确认**这是有意行为**，不做「按日志真实类型筛选」。由 `tools/smoke.cjs` 第 **2d** 节两条断言锁定：混合日志选体力 → 两行都按体力出；选金币 → 两行都按金币出。
+   - 要改成「按日志真实类型筛选」会改变已有输出，**必须先问用户**，并同步改 2d 的断言。
+   - **例外：「活动奖励（集合）」不适用这条**。它不强制单一类型，而是按「时间+来源」把**一次活动结算**的多种资源合并成一句：`在X，通过【来源】获得A*1，B*20`；同一动作只写一次动词，同一组里既有消耗又有获得时各自带动词（`消耗体力*1，获得金币*20`）。时间或来源不同则不合并。见 `tools/smoke.cjs` **2e** 节 3 条断言。
+3. **集卡卡包名沿用手写风格，不对齐游戏官方名**：`PACK_NAME_MAP` 里 `176–179` 是 `幻狐2星锦囊…幻狐5星锦囊`（沿用该表 `霞光3星锦囊` 的「系列+星+锦囊」写法），而游戏源码里的官方名是 `2星幻狐锦囊…5星幻狐锦囊`（`DEFAULT_ITEM_NAME_MAP` 用的正是官方写法）。
+   - 已问过用户：**保持现状**，不改（改它会改变集卡话术输出）。
+   - 所以 `npm run build:data` 的 `diff-report.md` 里，`PACK_NAME_MAP` 这一栏会长期有「名称不一致」条目（幻狐 4 条，霞光 3 条同理）——**看到不要顺手改**。
+
+## 待确认（改之前先问用户）
+
+1. 解析完会自动 `safeCopy(...)` **写入系统剪贴板**（5 处：`5556 / 5565 / 5579 / 5657 / 5819`，会覆盖用户原有的剪贴板内容）。是否需要改成显式按钮触发或加开关，待确认。
+
+## 目录结构
+
+```
+public/index.html          全部前端（单文件，约 10800 行：内联 CSS + 内联 JS 的 async IIFE；含「客服生涯」标签页）
+public/gemjy-openid-helper.user.js  油猴脚本（反馈后台：卡片式悬浮窗，提取 头像/昵称/图片/openid，一键复制 openid；当前内容 0.4.0，就发在这一条链接上；与前端无代码耦合）
+server.js                  express：静态托管 public/ + GET/POST /api/data/:key ↔ data.json（含 key 白名单）
+data.json                  服务端数据（随使用增长；前端字段缺失会被默认值自动补齐）
+tools/                     自检脚本（verify / smoke / smoke-nonblocking / smoke-server / test-openid-helper / print-report / build-game-data）
+tools/fixtures/            build:data 的输入；player-page.html 含玩家隐私已 gitignore，样例已入库
+tools/out/                 build:data 的产出（4 张表 + 差异报告），已 gitignore
+package.json               scripts: start / verify / verify:static / smoke:server / report / build:data / test
+```
 ## 已完成的关键改动
 
 - **`b459151`** 工作台优化：
@@ -243,33 +291,10 @@ npm run verify     # 改完代码、push 前的完整自检
   4. **活动峰值标注**：备注命中 `PEAK_RE = /活动|版本|开服|更新|维护|上线|联动|新服/` 的日子涂橙（`.peak`），`#careerAnomalyBox` 里也列出来。**触发方式是「补录 / 修正某一天」里写备注** —— 这是个隐式约定，别改关键词。
   - 测试：`smoke.cjs` 加 **9 条**（周维度表有周区间/环比/同比列 + 合计行；来源结构 5 段 + Top3；异常线 + 峰值块；假数据里把 2026-06-04 的备注改成「开服活动」→ 断言峰值被标出且趋势条上恰好 1 根 `.peak`），**156 → 165**；`verify.mjs` 加 4 条静态断言（周分组函数 + 周表、来源结构 + 配色、异常线 + PEAK_RE + 趋势条上色）。`AGENTS.md` 同步。
   - ⚠️ 这一条 commit 同样**还没推**（连同上面的身份筛选/指标详情/折叠/SDk 拆项一起）。
+- 本轮：**整体换暗色主题（明日方舟 / 终末地 视觉语言）+ 客服生涯改成报表版式**（用户要求「更像专业的报表」「暗色系为主、眼睛舒服」）。只动了 `public/index.html` 的 CSS/HTML + 两处 JS 填充，**没有改任何业务口径与数据**：
+  1. **`:root` 令牌整体翻成暗色**：页面底 `#090b0d`、面板 `#0e1216`、次级面 `#161b21`/`#1d242b`、侧栏 `#0b0e11`；文字 `#e9eef3 / #d5dde4 / #94a0ac / #66727e`（**不用纯白**，降低刺眼）；线 `#1d252c / #2b343d / #3d4854`；强调色统一成终末地黄 `#ffd60a`；圆角令牌全改直角（2/3/4/3px）；阴影改纯黑低透明。`body` 背景加网格线 + 两处极淡径向光斑，并设 `color-scheme: dark`（原生日期/下拉/滚动条也变暗）。侧边栏选中态由「深黄字」改成「黄字 + 左侧黄条 + 45° 菱形点」。
+  2. **新增「暗色主题收口层」**（`<style>` 末尾，后置覆盖）：容器警示条纹顶条、卡片/模态框切角 `clip-path`、卡片黄竖条 + 更暗斜纹、按钮 hover 黄底黑字、输入框 focus 黄边光圈、表头深色带 + 斑马纹、侧边栏编号 `01…06`、滚动条直角。
+  3. **客服生涯报表版式**：新增报表抬头（`WORKLOAD REPORT / 工作量统计报表` 英文 kicker + 标题 + 数据范围/口径 + 右上 5 格元数据：身份/记录天数/累计/日均/出具日期，`renderCareer()` 填）；卡片自动编号 `01…`；KPI 卡改等宽大数字 + 右上角刻度线；表格分组标题行黄字、合计行黄线；报表页关掉斜纹底。顺手把 `#e0e0e0`/`#ccc`/`#f8f9fa` 四处硬编码浅色换成令牌（拼豆工具栏、导入结果框、分隔线）。
+  - 测试：`smoke.cjs` 加 **2 条**（报表抬头的 kicker/数据范围/口径、右上 5 格元数据），**165 → 167**；`verify.mjs` 加 **5 条**静态断言（暗色令牌值、浅色令牌已清除、暗色基底要素、编号体系、报表抬头 + 渲染时填充）。CSS 花括号平衡已核（333/333）。
+  - ⚠️ **沙箱里没法截图验证**（`vision_html_screenshot` 找不到 chrome；Edge headless 因禁命名管道 `mojo platform_channel` 失败），所以暗色观感是按令牌逐项推演的 —— **上线后如果哪块对比度不合适，直接说哪一块，改收口层那一小节即可**。
 
-## 已定语义（改之前先问用户）
-
-1. `resolveItemName(id, name)`：**日志里已有非纯数字名字时优先用日志的**（映射表被绕过），只有名字是纯数字或空时才查 `itemNameMap`。结果就是**「映射管理」里改的棋子名，对日志中已带名字的记录不生效**。
-   - 本轮已确认**保持现状**，并由 `tools/smoke.cjs` 第 **6b** 节用两条断言锁定：A 日志自带名字 → 用日志名且不查映射；B 日志只有纯数字 ID → 查映射。
-   - 要改成「映射优先」会改变已有话术输出，**必须先问用户**，并同步改 6b 的断言。
-2. **资源类型「选什么就出什么」**：`parseSmartLog` 里 `if (['体力','红钻','金币','好评点'].includes(userSelectedType))` 会把**每一条**记录的 `道具名称` 与 `_资源类型` 都改写成下拉框选中的类型，所以日志里同时有体力和金币时，选「体力」会把金币那行也输出成体力话术。
-   - 用户已确认**这是有意行为**，不做「按日志真实类型筛选」。由 `tools/smoke.cjs` 第 **2d** 节两条断言锁定：混合日志选体力 → 两行都按体力出；选金币 → 两行都按金币出。
-   - 要改成「按日志真实类型筛选」会改变已有输出，**必须先问用户**，并同步改 2d 的断言。
-   - **例外：「活动奖励（集合）」不适用这条**。它不强制单一类型，而是按「时间+来源」把**一次活动结算**的多种资源合并成一句：`在X，通过【来源】获得A*1，B*20`；同一动作只写一次动词，同一组里既有消耗又有获得时各自带动词（`消耗体力*1，获得金币*20`）。时间或来源不同则不合并。见 `tools/smoke.cjs` **2e** 节 3 条断言。
-3. **集卡卡包名沿用手写风格，不对齐游戏官方名**：`PACK_NAME_MAP` 里 `176–179` 是 `幻狐2星锦囊…幻狐5星锦囊`（沿用该表 `霞光3星锦囊` 的「系列+星+锦囊」写法），而游戏源码里的官方名是 `2星幻狐锦囊…5星幻狐锦囊`（`DEFAULT_ITEM_NAME_MAP` 用的正是官方写法）。
-   - 已问过用户：**保持现状**，不改（改它会改变集卡话术输出）。
-   - 所以 `npm run build:data` 的 `diff-report.md` 里，`PACK_NAME_MAP` 这一栏会长期有「名称不一致」条目（幻狐 4 条，霞光 3 条同理）——**看到不要顺手改**。
-
-## 待确认（改之前先问用户）
-
-1. 解析完会自动 `safeCopy(...)` **写入系统剪贴板**（5 处：`5556 / 5565 / 5579 / 5657 / 5819`，会覆盖用户原有的剪贴板内容）。是否需要改成显式按钮触发或加开关，待确认。
-
-## 目录结构
-
-```
-public/index.html          全部前端（单文件，约 10800 行：内联 CSS + 内联 JS 的 async IIFE；含「客服生涯」标签页）
-public/gemjy-openid-helper.user.js  油猴脚本（反馈后台：卡片式悬浮窗，提取 头像/昵称/图片/openid，一键复制 openid；当前内容 0.4.0，就发在这一条链接上；与前端无代码耦合）
-server.js                  express：静态托管 public/ + GET/POST /api/data/:key ↔ data.json（含 key 白名单）
-data.json                  服务端数据（随使用增长；前端字段缺失会被默认值自动补齐）
-tools/                     自检脚本（verify / smoke / smoke-nonblocking / smoke-server / test-openid-helper / print-report / build-game-data）
-tools/fixtures/            build:data 的输入；player-page.html 含玩家隐私已 gitignore，样例已入库
-tools/out/                 build:data 的产出（4 张表 + 差异报告），已 gitignore
-package.json               scripts: start / verify / verify:static / smoke:server / report / build:data / test
-```

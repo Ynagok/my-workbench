@@ -13,56 +13,62 @@
     <script defer src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
     <style>
         /* ============================================================
-        明日方舟：终末地 官网风格 · 浅色工作台主题（黄色强调版）
-        风格：白色侧边栏 + 浅灰底 + 明黄强调 + 黑底日期标签 + 斜线纹理
-        [优化] 保留原视觉，仅做可维护性微调
+        暗色工作台主题 · 明日方舟 / 明日方舟：终末地 视觉语言
+        特征：炭黑底 + 单一明黄强调 + 直角/切角 + 细线框 + 等宽数字 + 网格纹理
+        ⚠️ 只改 :root 里的令牌即可整体换肤（组件都引用这些变量）
         ============================================================ */
 
         :root {
-            --bg-0: #eef0f3;
-            --bg-1: #f6f7f9;
-            --surface: #ffffff;
-            --surface-2: #fafbfc;
-            --sidebar: #ffffff;
-            --ink-0: #0f1419;
-            --ink-1: #1a1d22;
-            --ink-2: #5f6673;
-            --ink-3: #9ca3af;
-            --line-0: #e8ebef;
-            --line-1: #d6dae0;
-            --line-2: #b8bec7;
-            --accent: #ffcc00;
-            --accent-hi: #ffe066;
-            --accent-ink: #a67c00;
-            --accent-dim: rgba(255,204,0,0.14);
-            --accent-line: rgba(255,204,0,0.6);
-            --accent-glow: rgba(255,204,0,0.4);
-            --dark: #0f1419;
-            --dark-2: #1f242a;
-            --warn: #f5a623;
-            --danger: #e53935;
-            --r-sm: 6px;
-            --r-md: 10px;
-            --r-lg: 14px;
-            --r-pill: 999px;
-            --shadow-1: 0 1px 2px rgba(15,20,25,0.04);
-            --shadow-2: 0 4px 16px rgba(15,20,25,0.08);
-            --shadow-3: 0 20px 50px rgba(15,20,25,0.22);
+            --bg-0: #090b0d;
+            --bg-1: #12161a;
+            --surface: #0e1216;
+            --surface-2: #161b21;
+            --surface-3: #1d242b;
+            --sidebar: #0b0e11;
+            --ink-0: #e9eef3;
+            --ink-1: #d5dde4;
+            --ink-2: #94a0ac;
+            --ink-3: #66727e;
+            --line-0: #1d252c;
+            --line-1: #2b343d;
+            --line-2: #3d4854;
+            --accent: #ffd60a;
+            --accent-hi: #ffe873;
+            --accent-ink: #ffd60a;
+            --accent-dim: rgba(255,214,10,0.10);
+            --accent-line: rgba(255,214,10,0.42);
+            --accent-glow: rgba(255,214,10,0.24);
+            --dark: #0a0c0e;
+            --dark-2: #1a2026;
+            --warn: #ffab2e;
+            --danger: #ff5f57;
+            --r-sm: 2px;
+            --r-md: 3px;
+            --r-lg: 4px;
+            --r-pill: 3px;
+            --shadow-1: 0 1px 2px rgba(0,0,0,0.45);
+            --shadow-2: 0 8px 26px rgba(0,0,0,0.5);
+            --shadow-3: 0 26px 64px rgba(0,0,0,0.72);
             --font-sans: "Rajdhani", "Noto Sans SC", -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", Roboto, sans-serif;
             --font-display: "Rajdhani", "Noto Sans SC", sans-serif;
             --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", "Courier New", monospace;
-            --ak-primary: #ffcc00;
-            --ak-danger: #e53935;
-            --ak-border: #d6dae0;
+            --ak-primary: #ffd60a;
+            --ak-danger: #ff5f57;
+            --ak-border: #2b343d;
             --ak-mono: var(--font-mono);
-            --ak-text-mute: #9ca3af;
-            --primary: #ffcc00;
-            --primary-hover: #ffe066;
-            --bg: #eef0f3;
-            --border: #d6dae0;
-            --text: #1a1d22;
-            --radius: 10px;
-            --shadow: 0 4px 16px rgba(15,20,25,0.08);
+            --ak-text-mute: #94a0ac;
+            --primary: #ffd60a;
+            --primary-hover: #ffe873;
+            --bg: #090b0d;
+            --border: #2b343d;
+            --text: #d5dde4;
+            --radius: 3px;
+            --shadow: 0 8px 26px rgba(0,0,0,0.5);
+            /* 暗色主题专用 */
+            --grid-line: rgba(255,255,255,0.026);
+            --hazard: repeating-linear-gradient(135deg, var(--accent) 0 10px, transparent 10px 20px);
+            --clip-card: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
+            --clip-btn: polygon(0 0, calc(100% - 7px) 0, 100% 7px, 100% 100%, 7px 100%, 0 calc(100% - 7px));
         }
 
         * {
@@ -82,10 +88,16 @@
             line-height: 1.55;
             color: var(--ink-1);
             background-color: var(--bg-0);
-            background-image: linear-gradient(rgba(15,20,25,0.022) 1px, transparent 1px), linear-gradient(90deg, rgba(15,20,25,0.022) 1px, transparent 1px);
-            background-size: 40px 40px, 40px 40px;
+            background-image:
+                radial-gradient(1200px 600px at 78% -10%, rgba(255,214,10,0.045), transparent 60%),
+                radial-gradient(900px 500px at 0% 110%, rgba(90,140,190,0.05), transparent 55%),
+                linear-gradient(var(--grid-line) 1px, transparent 1px),
+                linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+            background-size: 100% 100%, 100% 100%, 44px 44px, 44px 44px;
+            background-attachment: fixed;
             padding: 22px 20px;
             min-height: 100vh;
+            color-scheme: dark;
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
             font-feature-settings: "tnum" 1, "kern" 1;
@@ -308,7 +320,7 @@
             appearance: none;
             -webkit-appearance: none;
             background-color: var(--bg-1);
-            background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'><path fill='%23a67c00' d='M2 4l4 4 4-4z'/></svg>");
+            background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'><path fill='%23ffd60a' d='M2 4l4 4 4-4z'/></svg>");
             background-repeat: no-repeat;
             background-position: right 10px center;
             background-size: 10px;
@@ -2079,7 +2091,7 @@
 
                 .career-split-bar > i.ticket {
                     background: var(--accent);
-                    color: var(--ink-0);
+                    color: #0a0c0e;
                 }
 
                 .career-split-bar > i.overseas {
@@ -2132,7 +2144,7 @@
 
                 .career-scope-bar > button.active {
                     background: var(--accent);
-                    color: var(--ink-0);
+                    color: #0a0c0e;
                 }
 
         /* 补录 / 粘贴导入：默认收起，点标题才展开 */
@@ -2201,6 +2213,526 @@
             color: var(--ink-3);
             letter-spacing: 0.04em;
         }
+
+        /* ============================================================
+           暗色主题收口层 · 明日方舟 / 终末地 视觉语言
+           （后置覆盖：微调整体观感只改 :root + 这一层）
+           要点：直角切角、细线框、单一明黄强调、等宽数字、克制发光
+           ============================================================ */
+
+        /* ---------- 容器 / 侧边栏 ---------- */
+        .container {
+            border: 1px solid var(--line-1);
+            border-radius: 0;
+            box-shadow: var(--shadow-3);
+            position: relative;
+        }
+
+            .container::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                height: 2px;
+                background: var(--hazard);
+                opacity: 0.45;
+                pointer-events: none;
+                z-index: 3;
+            }
+
+        .tabs {
+            background: var(--sidebar);
+            border-right: 1px solid var(--line-0);
+        }
+
+            .tabs::before {
+                color: var(--ink-0);
+                letter-spacing: 0.26em;
+                border-bottom: 1px solid var(--line-0);
+            }
+
+            .tabs::after {
+                border-radius: 0;
+                box-shadow: 0 0 10px var(--accent-glow);
+            }
+
+        .tab-group-title {
+            color: var(--ink-3);
+            letter-spacing: 0.24em;
+        }
+
+        /* 侧边栏编号 01 / 02 …（方舟式导航刻度） */
+        .tabs {
+            counter-reset: nav-item;
+        }
+
+        .tab-btn {
+            counter-increment: nav-item;
+        }
+
+            .tab-btn::before {
+                content: counter(nav-item, decimal-leading-zero);
+                flex: none;
+                font-family: var(--font-mono);
+                font-size: 10px;
+                font-weight: 700;
+                letter-spacing: 0.06em;
+                color: var(--ink-3);
+            }
+
+            .tab-btn.active::before {
+                color: var(--accent);
+            }
+
+        .tab-btn {
+            border-left-width: 2px;
+            letter-spacing: 0.12em;
+        }
+
+            .tab-btn:hover {
+                background: rgba(255,255,255,0.025);
+                color: var(--ink-0);
+            }
+
+            .tab-btn.active {
+                background: linear-gradient(90deg, var(--accent-dim), transparent 88%);
+                color: var(--accent);
+                border-left-color: var(--accent);
+            }
+
+                .tab-btn.active::after {
+                    border-radius: 0;
+                    transform: translateY(-50%) rotate(45deg);
+                    box-shadow: 0 0 6px var(--accent-glow);
+                }
+
+        .tab-content::before {
+            height: 2px;
+            background: linear-gradient(90deg, var(--accent) 0%, var(--accent) 10%, transparent 45%);
+        }
+
+        /* ---------- 按钮：直角切角 + 黄底黑字 hover ---------- */
+        button {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--line-1);
+            color: var(--ink-0);
+            border-radius: 0;
+            clip-path: var(--clip-btn);
+            letter-spacing: 0.14em;
+        }
+
+            button:hover {
+                background: var(--accent);
+                border-color: var(--accent);
+                color: #0a0c0e;
+                box-shadow: 0 0 0 3px var(--accent-dim);
+            }
+
+            button:active {
+                transform: translateY(1px);
+            }
+
+            button:disabled {
+                opacity: 0.35;
+            }
+
+        .secondary {
+            background: transparent;
+            color: var(--ink-2);
+            border-color: var(--line-1);
+        }
+
+            .secondary:hover {
+                background: rgba(255,255,255,0.05);
+                color: var(--ink-0);
+                border-color: var(--line-2);
+                box-shadow: none;
+            }
+
+        .reset-btn {
+            background: transparent;
+            color: var(--danger);
+            border-color: rgba(255,95,87,0.4);
+        }
+
+            .reset-btn:hover {
+                background: var(--danger);
+                color: #0a0c0e;
+                border-color: var(--danger);
+                box-shadow: 0 0 0 3px rgba(255,95,87,0.14);
+            }
+
+        .paste-btn {
+            background: var(--accent-dim);
+            border-color: var(--accent-line);
+            color: var(--accent);
+        }
+
+        /* ---------- 表单控件：暗色输入，focus 才发光 ---------- */
+        input[type="text"],
+        input[type="number"],
+        input[type="date"],
+        input[type="file"],
+        select,
+        textarea {
+            background: var(--bg-1);
+            border: 1px solid var(--line-0);
+            border-radius: 0;
+            color: var(--ink-0);
+        }
+
+            input[type="text"]:hover,
+            input[type="number"]:hover,
+            input[type="date"]:hover,
+            select:hover,
+            textarea:hover {
+                border-color: var(--line-1);
+            }
+
+            input[type="text"]:focus,
+            input[type="number"]:focus,
+            input[type="date"]:focus,
+            select:focus,
+            textarea:focus {
+                border-color: var(--accent-line);
+                background: var(--surface-2);
+                box-shadow: 0 0 0 2px var(--accent-dim);
+            }
+
+            input[type="file"]::file-selector-button {
+                background: rgba(255,255,255,0.03);
+                border: 1px solid var(--line-1);
+                color: var(--ink-0);
+                border-radius: 0;
+            }
+
+        input[type="checkbox"],
+        input[type="radio"],
+        progress {
+            accent-color: var(--accent);
+        }
+
+        /* ---------- 卡片：切角面板 + 更暗的斜纹 ---------- */
+        .card,
+        .inline-card {
+            background: var(--surface);
+            border: 1px solid var(--line-0);
+            border-radius: 0;
+            clip-path: var(--clip-card);
+            box-shadow: var(--shadow-1);
+        }
+
+            .card::after,
+            .inline-card::after {
+                background-image: repeating-linear-gradient(-45deg, transparent 0, transparent 9px, rgba(255,255,255,0.014) 9px, rgba(255,255,255,0.014) 10px);
+            }
+
+            .card::before,
+            .inline-card::before {
+                width: 2px;
+                border-radius: 0;
+                background: linear-gradient(180deg, var(--accent), rgba(255,214,10,0.12));
+                box-shadow: none;
+            }
+
+            .card:hover,
+            .inline-card:hover {
+                border-color: var(--line-1);
+                box-shadow: var(--shadow-2);
+            }
+
+        /* 卡片标题：黄色小竖条 + 字距（报表分节感） */
+        .card > label,
+        .inline-card > label {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            font-size: 12.5px;
+            letter-spacing: 0.16em;
+            color: var(--ink-1);
+        }
+
+            .card > label::before,
+            .inline-card > label::before {
+                content: '';
+                flex: none;
+                width: 3px;
+                height: 13px;
+                background: var(--accent);
+            }
+
+        /* ---------- 表格：深色表头带 + 斑马纹 ---------- */
+        th {
+            background: var(--surface-2);
+            color: var(--ink-2);
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-align: left;
+            border-bottom: 1px solid var(--line-1);
+        }
+
+        td {
+            color: var(--ink-1);
+            border-bottom: 1px solid var(--line-0);
+        }
+
+        tbody tr:nth-child(even) td {
+            background: rgba(255,255,255,0.012);
+        }
+
+        /* ---------- 模态框 / 徽标 / 提示 ---------- */
+        .modal {
+            background: rgba(4,6,8,0.72);
+            backdrop-filter: blur(3px);
+        }
+
+        .modal-content {
+            background: var(--surface);
+            border: 1px solid var(--line-1);
+            border-radius: 0;
+            clip-path: var(--clip-card);
+            box-shadow: var(--shadow-3);
+        }
+
+        .badge {
+            background: var(--surface-2);
+            border: 1px solid var(--line-1);
+            border-radius: 0;
+            color: var(--ink-1);
+            font-family: var(--font-mono);
+            letter-spacing: 0.08em;
+        }
+
+        .hint-text {
+            color: var(--ink-3);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            border-radius: 0;
+            background: var(--line-1);
+        }
+
+            ::-webkit-scrollbar-thumb:hover {
+                background: var(--line-2);
+            }
+
+        /* ============================================================
+           客服生涯 · 报表版式
+           ============================================================ */
+
+        /* 报表抬头：标题 + 英文 kicker + 右侧元数据格 */
+        .career-report-head {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 18px;
+            flex-wrap: wrap;
+            padding: 2px 2px 14px;
+            margin-bottom: 14px;
+            border-bottom: 1px solid var(--line-1);
+        }
+
+        .career-report-head .crh-kicker {
+            font-family: var(--font-mono);
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.26em;
+            color: var(--accent);
+        }
+
+        .career-report-head .crh-title {
+            font-family: var(--font-display);
+            font-size: 23px;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            line-height: 1.2;
+            color: var(--ink-0);
+            margin: 6px 0 5px;
+        }
+
+        .career-report-head .crh-sub {
+            font-size: 12px;
+            color: var(--ink-3);
+        }
+
+        .career-report-head .crh-meta {
+            display: flex;
+            flex-wrap: wrap;
+            border: 1px solid var(--line-0);
+            background: var(--surface-2);
+        }
+
+            .career-report-head .crh-meta > div {
+                padding: 6px 13px;
+                border-left: 1px solid var(--line-0);
+                min-width: 96px;
+            }
+
+                .career-report-head .crh-meta > div:first-child {
+                    border-left: 0;
+                }
+
+                .career-report-head .crh-meta .m-k {
+                    display: block;
+                    font-family: var(--font-mono);
+                    font-size: 9.5px;
+                    font-weight: 700;
+                    letter-spacing: 0.16em;
+                    color: var(--ink-3);
+                }
+
+                .career-report-head .crh-meta .m-v {
+                    font-family: var(--font-mono);
+                    font-size: 13px;
+                    color: var(--ink-0);
+                }
+
+        /* 卡片编号 01 / 02 …（报表分节） */
+        #tab-career {
+            counter-reset: career-card;
+        }
+
+            #tab-career .card {
+                counter-increment: career-card;
+            }
+
+            #tab-career .card::after {
+                display: none;   /* 报表页去掉斜纹，保持干净 */
+            }
+
+            #tab-career .card > label::before,
+            #tab-career .card > .flex-row > label::before,
+            #tab-career .card > .career-collapse-btn::before {
+                content: counter(career-card, decimal-leading-zero);
+                flex: none;
+                width: auto;
+                height: auto;
+                padding: 2px 6px;
+                background: var(--accent-dim);
+                border: 1px solid var(--accent-line);
+                color: var(--accent);
+                font-family: var(--font-mono);
+                font-size: 10px;
+                font-weight: 700;
+                letter-spacing: 0.06em;
+                line-height: 1.3;
+            }
+
+            #tab-career .card > .career-collapse-btn::before {
+                margin-right: 2px;
+            }
+
+        /* KPI 卡：等宽数字 + 右上角刻度 */
+        .career-kpi {
+            border-radius: 0;
+            background: var(--surface-2);
+            border: 1px solid var(--line-0);
+            position: relative;
+        }
+
+            .career-kpi::after {
+                content: '';
+                position: absolute;
+                top: 0;
+                right: 0;
+                width: 7px;
+                height: 7px;
+                border-top: 1px solid var(--line-2);
+                border-right: 1px solid var(--line-2);
+            }
+
+            .career-kpi.accent {
+                background: linear-gradient(180deg, var(--accent-dim), rgba(255,214,10,0.02));
+                border-color: var(--accent-line);
+            }
+
+                .career-kpi.accent::after {
+                    border-color: var(--accent);
+                }
+
+            .career-kpi .k-label {
+                font-family: var(--font-mono);
+                font-size: 10px;
+                letter-spacing: 0.14em;
+            }
+
+            .career-kpi .k-value {
+                font-family: var(--font-mono);
+                font-size: 22px;
+                font-weight: 700;
+                letter-spacing: -0.01em;
+            }
+
+                .career-kpi.mini .k-value {
+                    font-size: 16px;
+                }
+
+        /* 表格：分组标题行做成小分节条 */
+        .career-table th {
+            background: var(--surface-2);
+            letter-spacing: 0.12em;
+        }
+
+        .career-table td.career-group-cell {
+            background: var(--surface-3);
+            color: var(--accent);
+            letter-spacing: 0.1em;
+        }
+
+            .career-table td.career-group-cell.sub {
+                color: var(--ink-3);
+            }
+
+        .career-table tr.total-row td {
+            background: var(--accent-dim);
+            box-shadow: inset 0 1px 0 var(--accent-line);
+            color: var(--ink-0);
+            font-family: var(--font-mono);
+        }
+
+        .career-bar,
+        .career-split-bar,
+        .career-scope-bar,
+        .career-scope-bar > button {
+            border-radius: 0;
+        }
+
+        .career-trend {
+            background-image: repeating-linear-gradient(0deg, transparent 0 21px, rgba(255,255,255,0.03) 21px 22px);
+        }
+
+            .career-trend > span {
+                border-radius: 0;
+            }
+
+        .career-detail-controls select {
+            font-family: var(--font-display);
+        }
+
+        /* 折叠卡标题：编号在最左，箭头推到最右；hover 不要变成黄块 */
+        #tab-career .card > .career-collapse-btn {
+            justify-content: flex-start;
+            gap: 9px;
+        }
+
+            #tab-career .card > .career-collapse-btn .career-arrow {
+                margin-left: auto;
+            }
+
+        .career-collapse-btn,
+        .career-collapse-btn:hover {
+            background: transparent;
+            border: 0;
+            color: var(--ink-0);
+            box-shadow: none;
+            clip-path: none;
+        }
+
+            .career-collapse-btn:hover .career-arrow {
+                color: var(--accent);
+            }
     </style>
 </head>
 
@@ -2233,7 +2765,7 @@
                         <label class="checkbox-label"><input type="radio" name="parseMode" value="review"> 好评奖励</label>
                     </div>
                 </div>
-                <div style="border-top: 1px solid #e0e0e0; margin: 16px 0;"></div>
+                <div style="border-top: 1px solid var(--line-0); margin: 16px 0;"></div>
                 <div class="rule-bar">
                     <div>
                         <label style="margin:0; font-weight:600;">资源类型</label>
@@ -2441,6 +2973,14 @@
 
         <!-- ==================== 客服生涯 ==================== -->
         <div id="tab-career" class="tab-content">
+            <div class="career-report-head">
+                <div>
+                    <div class="crh-kicker">WORKLOAD REPORT / 工作量统计报表</div>
+                    <div class="crh-title">客服生涯</div>
+                    <div class="crh-sub" id="careerReportSub">—</div>
+                </div>
+                <div class="crh-meta" id="careerReportMeta"></div>
+            </div>
             <div class="card">
                 <div class="flex-row" style="justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
                     <label style="margin:0;">🎖️ 客服生涯 · 工作量总览
@@ -2603,7 +3143,7 @@
                 <div style="display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap;">
                     <div style="flex: 1; min-width: 300px; display: flex; flex-direction: column; gap: 12px;">
                         <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-                            <input type="color" id="pixelColor" value="#ff0000" style="width:40px;height:40px;padding:0;border:1px solid #ccc;border-radius:6px;cursor:pointer;">
+                            <input type="color" id="pixelColor" value="#ff0000" style="width:40px;height:40px;padding:0;border:1px solid var(--line-1);border-radius:0;cursor:pointer;">
                             <button id="pixelPaletteToggleBtn" class="secondary" style="background:#6c757d;">🎨 色卡</button>
                             <button id="pixelEraserBtn" class="secondary" style="background:#6c757d;">橡皮擦</button>
                             <button id="pixelClearBtn" class="reset-btn">清空画布</button>
@@ -2621,9 +3161,9 @@
                             <span style="font-size:12px;color:#6c757d;">支持Ctrl+V粘贴截图</span>
                             <button id="pixelExportBtn" class="secondary" style="background:#007bff;">导出图纸</button>
                         </div>
-                        <div id="pixelColorPalette" style="display:none; flex-wrap:wrap; gap:4px; margin-top:8px; padding:8px; border:1px solid #ccc; border-radius:8px; background:#f8f9fa; max-width:100%;"></div>
+                        <div id="pixelColorPalette" style="display:none; flex-wrap:wrap; gap:4px; margin-top:8px; padding:8px; border:1px solid var(--line-1); border-radius:0; background:var(--surface-2); max-width:100%;"></div>
                         <div data-pixel-wrap="canvas-box" style="position: relative; display: inline-block; overflow: auto; max-width: 100%; max-height: 80vh;">
-                            <div data-pixel-wrap="corner" style="position: absolute; top: 0; left: 0; width: 20px; height: 20px; background: #f8f9fa; z-index: 3;"></div>
+                            <div data-pixel-wrap="corner" style="position: absolute; top: 0; left: 0; width: 20px; height: 20px; background: var(--surface-3); z-index: 3;"></div>
                             <div id="pixelRowLabels" style="position: absolute; left: 0; top: 20px; width: 20px; pointer-events: none; z-index: 2;"></div>
                             <div id="pixelColLabels" style="position: absolute; top: 0; left: 20px; right: 0; height: 20px; pointer-events: none; z-index: 2;"></div>
                             <canvas id="pixelCanvas" width="600" height="600" style="display:block; margin-left:20px; margin-top:20px; cursor:crosshair; image-rendering:pixelated; position: relative; z-index: 1;"></canvas>
@@ -2839,7 +3379,7 @@
                 <button id="previewImportMappingBtn" class="secondary"> 预览</button>
                 <button id="clearImportMappingBtn" class="secondary">清空</button>
             </div>
-            <div id="importMappingResult" style="display:none; margin-top:12px; padding:12px; background:#f8f9fa; border-radius:8px; font-family:monospace; font-size:12px; white-space:pre-wrap; max-height:300px; overflow:auto;"></div>
+            <div id="importMappingResult" style="display:none; margin-top:12px; padding:12px; background:var(--surface-2); border:1px solid var(--line-0); border-radius:var(--r-sm); font-family:monospace; font-size:12px; white-space:pre-wrap; max-height:300px; overflow:auto;"></div>
         </div>
     </div>
 
@@ -9366,6 +9906,29 @@
                                         const cardOverseas = document.getElementById('careerCardOverseas');
                                         if (cardTicket) cardTicket.style.display = (!scoped || scope === 'ticket') ? '' : 'none';
                                         if (cardOverseas) cardOverseas.style.display = (!scoped || scope === 'overseas') ? '' : 'none';
+
+                                        // 报表抬头：数据范围（标题下）+ 右上角元数据格
+                                        const rhSub = document.getElementById('careerReportSub');
+                                        if (rhSub) {
+                                            const range = s.days ? (s.good[0].date + ' ～ ' + s.good[s.good.length - 1].date) : '还没有记录';
+                                            rhSub.textContent = '数据范围 ' + range + '　·　口径：'
+                                                + (scoped ? '只看「' + scopeLabel + '」侧' : '工单 + 海外两侧合计')
+                                                + '　·　来源：本机日报归档 / 补录 / 粘贴导入';
+                                        }
+                                        const rhMeta = document.getElementById('careerReportMeta');
+                                        if (rhMeta) {
+                                            const now = getBeijingDate();
+                                            const stamp = now.year + '-' + String(now.month).padStart(2, '0') + '-' + String(now.day).padStart(2, '0');
+                                            const cells = [
+                                                ['身份', scoped ? scopeLabel : '全部'],
+                                                ['记录天数', s.days],
+                                                [scoped ? '侧累计' : '累计', careerNum(s.sum)],
+                                                ['日均', careerNum(s.avg, 1)],
+                                                ['出具日期', stamp]
+                                            ];
+                                            rhMeta.innerHTML = cells.map(c => '<div><span class="m-k">' + escapeHtml(String(c[0]))
+                                                + '</span><span class="m-v">' + escapeHtml(String(c[1])) + '</span></div>').join('');
+                                        }
 
                                         const kpi = document.getElementById('careerKpi');
                                         if (kpi) {

@@ -510,6 +510,15 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     const anom = $('careerAnomalyBox').textContent;
     check(/异常线 μ\+2σ/.test(anom) && /活动 \/ 版本峰值标注/.test(anom),
       '异常日 & 峰值标注两块都在（1 天数据算不出异常线，也给说明）', anom.slice(0, 90));
+    // 报表抬头（暗色主题 · 报表版式）
+    check(/WORKLOAD REPORT/.test(doc.body.textContent) && /数据范围 \d{4}-\d\d-\d\d/.test($('careerReportSub').textContent)
+      && /口径/.test($('careerReportSub').textContent),
+      '报表抬头：英文 kicker + 数据范围 + 口径', $('careerReportSub').textContent.slice(0, 90));
+    check(doc.querySelectorAll('#careerReportMeta > div').length === 5
+      && /身份/.test($('careerReportMeta').textContent) && /记录天数/.test($('careerReportMeta').textContent)
+      && /出具日期/.test($('careerReportMeta').textContent),
+      '报表抬头右上 5 格元数据（身份 / 记录天数 / 累计 / 日均 / 出具日期）',
+      $('careerReportMeta').textContent.slice(0, 90));
   }
   // 身份筛选：只看海外时，工单卡藏起来、总览只算海外那 51
   const scopeBtn = (scope) => doc.querySelector('#careerScopeBar button[data-scope="' + scope + '"]');

@@ -178,6 +178,20 @@ ok(/const anomalyLine = days > 1 && sd > 0 \? avg \+ 2 \* sd : null;/.test(s)
   && /const an = s\.anomalyDates\[r\.date\], pk = s\.peakDates\[r\.date\];/.test(s)
   && /const cls = an \? ' class="anomaly"' : \(pk \? ' class="peak"' : ''\);/.test(s),
   '异常日（μ+2σ）与活动/版本峰值标注都已接进趋势条与说明块');
+// ---- 3c. 暗色主题（明日方舟 / 终末地 视觉语言）----
+ok(/--accent: #ffd60a;/.test(s) && /--surface: #0e1216;/.test(s) && /--ink-0: #e9eef3;/.test(s)
+  && /--bg-0: #090b0d;/.test(s),
+  '暗色主题令牌已生效（炭黑面 + 明黄强调 + 柔白文字）');
+ok(!/--surface: #ffffff;/.test(s) && !/--bg-0: #eef0f3;/.test(s) && !/--accent: #ffcc00;/.test(s),
+  '浅色主题令牌已彻底移除（不会回退成白底）');
+ok(/color-scheme: dark;/.test(s) && /--clip-card: polygon\(/.test(s) && /--hazard: repeating-linear-gradient/.test(s)
+  && /\.career-kpi::after/.test(s),
+  '暗色基底：原生控件暗色 + 卡片切角 + 警示条纹 + KPI 角落刻度');
+ok(/counter\(career-card, decimal-leading-zero\)/.test(s) && /counter\(nav-item, decimal-leading-zero\)/.test(s),
+  '编号体系：侧边栏 01… + 客服生涯分节 01…（报表感）');
+ok(/id="careerReportSub"/.test(s) && /id="careerReportMeta"/.test(s) && /getElementById\('careerReportMeta'\)/.test(s)
+  && /WORKLOAD REPORT \/ 工作量统计报表/.test(s),
+  '客服生涯报表抬头（英文 kicker + 标题 + 数据范围 + 右上元数据格）已注入并在渲染时填充');
 // 工单侧分组：CP后台 与 ①~⑦群维系 都并进「工单/后台」
 ok(/function careerTicketKind\(key\) \{[\s\S]{0,320}?if \(key === 'sso' \|\| \/_cp\$\/\.test\(key\) \|\| \/\^g\\d\/\.test\(key\)\) return '工单\/后台';/.test(s)
   && !/return 'CP后台'/.test(s) && !/return '群维系'/.test(s.slice(s.indexOf('function careerTicketKind'), s.indexOf('function careerTicketKind') + 400)),
