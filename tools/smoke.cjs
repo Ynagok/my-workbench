@@ -495,6 +495,22 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     '海外侧多出一组 SDk 三项明细（可分别查看）', sideOverseas.slice(-90));
   check(doc.querySelectorAll('#careerSideOverseas tr.career-sub-row').length === 3,
     'SDk 三项明细各占一行', doc.querySelectorAll('#careerSideOverseas tr.career-sub-row').length);
+  // 周维度 / 来源结构 / 异常日 / 峰值标注
+  {
+    const weekRows = $('careerWeeklyTable').querySelectorAll('tbody tr');
+    const weekTxt = $('careerWeeklyTable').textContent;
+    check(weekRows.length === 1 && /周（周一～周日）/.test(weekTxt) && /记录天数/.test(weekTxt)
+      && /环比上周/.test(weekTxt) && /同比（4 周前）/.test(weekTxt) && /～/.test(weekRows[0].textContent),
+      '周维度表：所在周（周一～周日）+ 环比/同比列', weekTxt.slice(0, 80));
+    check(/合计/.test(weekTxt), '周维度表有合计行');
+    const struct = $('careerStructureBox').textContent;
+    check(/工单\/后台/.test(struct) && /评价回复/.test(struct) && /监控/.test(struct) && /群维系/.test(struct) && /Top3 集中度/.test(struct)
+      && doc.querySelectorAll('#careerStructureBox .career-split-bar > i').length === 5,
+      '来源结构：5 个来源大类占比 + Top3 集中度', struct.slice(0, 110));
+    const anom = $('careerAnomalyBox').textContent;
+    check(/异常线 μ\+2σ/.test(anom) && /活动 \/ 版本峰值标注/.test(anom),
+      '异常日 & 峰值标注两块都在（1 天数据算不出异常线，也给说明）', anom.slice(0, 90));
+  }
   // 身份筛选：只看海外时，工单卡藏起来、总览只算海外那 51
   const scopeBtn = (scope) => doc.querySelector('#careerScopeBar button[data-scope="' + scope + '"]');
   scopeBtn('overseas').click();
@@ -562,7 +578,7 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
   const tsv = [
     '日期\t人员\t班次\t商店回复\t海外SSO工单量（全产品）\t（繁花+乐缤纷+梦幻）群维系\t监控禁言\t监控封号\t总计\t数据状态\t特殊问题',
     '46176\t姚宏杰\tF\t14\t12\t0\t9\t7\t42\t已完成记录\t',
-    '2026-06-04\t姚宏杰\tH\t10\t8\t2\t0\t0\t20\t已完成记录\t测试备注',
+    '2026-06-04\t姚宏杰\tH\t10\t8\t2\t0\t0\t20\t已完成记录\t开服活动',
     '2026-07-15\t姚宏杰\tH\t0\t0\t0\t0\t0\t\t总计为空/待确认\t',
   ].join('\n');
   $('careerImportArea').value = tsv;
@@ -574,12 +590,26 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
   check(recs['2026-06-03'] && recs['2026-06-03'].items.store_reply === 14 && recs['2026-06-03'].items.ov_sso === 12,
     '打乱列顺序仍按表头正确落位', recs['2026-06-03'] && recs['2026-06-03'].items);
   check(recs['2026-06-03'] && recs['2026-06-03'].total === 42, '导入行总计 = 各列之和 42', recs['2026-06-03'] && recs['2026-06-03'].total);
-  check(recs['2026-06-04'] && recs['2026-06-04'].note === '测试备注', '特殊问题列已带入');
+  check(recs['2026-06-04'] && recs['2026-06-04'].note === '开服活动', '特殊问题列已带入');
   check(/累计工作量\s*130/.test(kpiText()), 'KPI 更新：68 + 42 + 20 = 130', kpiText().slice(0, 40));
   check(/=\s*累计\s*130/.test($('careerSheetHint').textContent), '汇总行同步为累计 130（68+42+20）', $('careerSheetHint').textContent);
   check(/待确认 1 天/.test($('careerQuality').textContent), '「总计为空/待确认」不入统计，单列提示', $('careerQuality').textContent.slice(0, 60));
   const monthTbl = $('careerMonthlyTable').textContent;
   check(monthTbl.includes('2026-06') && monthTbl.includes(bjToday.slice(0, 7)), '月度汇总含 2026-06 与本月', monthTbl.slice(0, 60));
+  // 周维度 / 来源结构 / 异常日 & 峰值标注（多条数据后）
+  {
+    const peakBox = $('careerAnomalyBox').textContent;
+    check(/开服活动/.test(peakBox) && /2026-06-04/.test(peakBox), '备注里含「活动」的日子被标成峰值', peakBox.slice(0, 130));
+    check(/异常线 μ\+2σ = /.test(peakBox), '异常线 μ+2σ 已算出', peakBox.slice(0, 60));
+    check(doc.querySelectorAll('#careerTrend span.peak').length === 1,
+      '趋势条上那根被标成峰值色（橙）', doc.querySelectorAll('#careerTrend span.peak').length);
+    const wkTxt = $('careerWeeklyTable').textContent;
+    check(/2026-06-01 ～ 06-07/.test(wkTxt) && /合计/.test(wkTxt) && /\+|—/.test(wkTxt),
+      '周维度表：6/3、6/4 归到同一周（2026-06-01 ～ 06-07）且算了环比', wkTxt.slice(0, 100));
+    const stTxt = $('careerStructureBox').textContent;
+    check(doc.querySelectorAll('#careerStructureBox .career-split-bar > i').length >= 3 && /Top3 集中度：/.test(stTxt)
+      && /合计占/.test(stTxt), '来源结构：按来源大类分段 + Top3 集中度', stTxt.slice(0, 120));
+  }
 
   // 重复导入同一天：覆盖而不是累加
   $('careerImportBtn').click();

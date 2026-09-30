@@ -167,6 +167,17 @@ ok(/id="careerEditToggleBtn"/.test(s) && /id="careerEditBody"/.test(s)
   && /bindCollapse\('careerImportToggleBtn', 'careerImportBody'\)/.test(s)
   && /id="careerEditBody" style="display: none;"/.test(s) && /id="careerImportBody" style="display: none;"/.test(s),
   '补录 / 粘贴导入已改成「点击展开」（默认收起）');
+// 周维度 / 来源结构 / 异常日 & 峰值标注（2026-09 加的运营口径）
+ok(/const weekStartOf = \(d\) =>/.test(s) && /weeks, anomalies, peaks/.test(s) && /环比上周/.test(s) && /同比（4 周前）/.test(s)
+  && /id="careerWeeklyTable"/.test(s),
+  '周维度：按周（周一为一周第一天）汇总，含周环比与「4 周前」同比代理');
+ok(/id="careerStructureBox"/.test(s) && /const CAREER_KIND_COLORS = \[/.test(s) && /Top3 集中度：/.test(s),
+  '来源结构：各来源大类占比条 + Top3 单项集中度');
+ok(/const anomalyLine = days > 1 && sd > 0 \? avg \+ 2 \* sd : null;/.test(s)
+  && /const PEAK_RE = \/活动\|版本\|开服\|更新\|维护\|上线\|联动\|新服\/;/.test(s)
+  && /const an = s\.anomalyDates\[r\.date\], pk = s\.peakDates\[r\.date\];/.test(s)
+  && /const cls = an \? ' class="anomaly"' : \(pk \? ' class="peak"' : ''\);/.test(s),
+  '异常日（μ+2σ）与活动/版本峰值标注都已接进趋势条与说明块');
 // 工单侧分组：CP后台 与 ①~⑦群维系 都并进「工单/后台」
 ok(/function careerTicketKind\(key\) \{[\s\S]{0,320}?if \(key === 'sso' \|\| \/_cp\$\/\.test\(key\) \|\| \/\^g\\d\/\.test\(key\)\) return '工单\/后台';/.test(s)
   && !/return 'CP后台'/.test(s) && !/return '群维系'/.test(s.slice(s.indexOf('function careerTicketKind'), s.indexOf('function careerTicketKind') + 400)),

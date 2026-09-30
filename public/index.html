@@ -2040,6 +2040,9 @@
                 border-radius: 2px 2px 0 0;
             }
 
+                .career-trend > span.peak { background: #d97706; }
+                .career-trend > span.anomaly { background: #dc2626; }
+
         .career-scroll {
             max-height: 380px;
             overflow: auto;
@@ -2103,6 +2106,8 @@
 
                 .career-legend i.ticket { background: var(--accent); }
                 .career-legend i.overseas { background: #3d7bd6; }
+                .career-legend i.peak { background: #d97706; }
+                .career-legend i.anomaly { background: #dc2626; }
 
         /* 身份筛选（全部 / 工单 / 海外）：切换后整页只统计那一侧 */
         .career-scope-bar {
@@ -2504,8 +2509,28 @@
                     <span class="hint-text" style="margin-left:8px;">最近 30 个记录日的单日工作量 + 按月汇总</span>
                 </label>
                 <div class="career-trend" id="careerTrend" style="margin-top: 12px;"></div>
+                <div class="career-legend" style="margin-top: 6px;">
+                    <span><i class="peak"></i>备注里标了 活动 / 版本 / 开服… 的日子</span>
+                    <span><i class="anomaly"></i>超过 μ+2σ 的异常日</span>
+                </div>
                 <div id="careerCoverBox" style="margin-top: 10px;"></div>
                 <div class="career-scroll" style="margin-top: 12px; max-height: 300px;"><table class="career-table" id="careerMonthlyTable"></table></div>
+                <div style="margin-top: 16px; border-top: 1px solid var(--line-0); padding-top: 10px;">
+                    <label style="font-size: 13px;">🧩 来源结构 <span class="hint-text" style="font-weight:400;">各来源大类占比 + Top3 集中度</span></label>
+                    <div id="careerStructureBox" style="margin-top: 8px;"></div>
+                </div>
+                <div style="margin-top: 16px; border-top: 1px solid var(--line-0); padding-top: 10px;">
+                    <label style="font-size: 13px;">🚨 异常日 &amp; 活动峰值</label>
+                    <div id="careerAnomalyBox" style="margin-top: 8px;"></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <label>🗓️ 周维度
+                    <span class="hint-text" style="margin-left:8px;">按周（周一～周日）汇总：总量 / 日均 / 周环比 / 同比</span>
+                </label>
+                <div class="career-scroll" style="margin-top: 10px; max-height: 340px;"><table class="career-table" id="careerWeeklyTable"></table></div>
+                <div class="hint-text" style="margin-top: 6px;">同比用「4 周前那一周」（≈ 一个月前）当代理 —— 本机只有日报数据，没有去年同周可比。</div>
             </div>
 
             <div class="card">
@@ -5077,6 +5102,8 @@
                                         ticket: ['工单/后台', '在线客服', '其他'],
                                         overseas: ['工单/后台', '群维系', '评价回复', '来访', '监控', CAREER_SDK_BREAKDOWN[0].kind]
                                     };
+                                    // 「来源结构」条每段一种颜色（按分组顺序取）
+                                    const CAREER_KIND_COLORS = ['#3d7bd6', '#d97706', '#16a34a', '#9333ea', '#dc2626', '#0891b2', '#65a30d', '#db2777'];
                                     // 按用户要求撤出统计的项：**只存档、不计入统计**，但照样导入/折算，只用于「对外登记表口径」对账表。
                                     // 都是登记表里有、日报里没有对应字段的列（一直为 0）
                                     const CAREER_HIDDEN_ITEMS = [
@@ -9225,6 +9252,29 @@
                                             const o = monthMap[m];
                                             return { month: m, days: o.days, sum: o.sum, max: o.max, maxDate: o.maxDate, avg: o.days ? o.sum / o.days : 0 };
                                         });
+                                        // 周维度（周一为一周第一天）：跟月度同一套口径，只换分组键
+                                        const weekMap = {};
+                                        const weekStartOf = (d) => {
+                                            const ts = Date.parse(d + 'T00:00:00Z');
+                                            const back = (new Date(ts).getUTCDay() + 6) % 7;   // 周一 = 0
+                                            return new Date(ts - back * 86400000).toISOString().slice(0, 10);
+                                        };
+                                        for (const r of good) {
+                                            const k = weekStartOf(r.date);
+                                            const o = weekMap[k] || (weekMap[k] = { week: k, days: 0, sum: 0, max: 0, maxDate: '' });
+                                            o.days++;
+                                            o.sum += r.total;
+                                            if (r.total > o.max) { o.max = r.total; o.maxDate = r.date; }
+                                        }
+                                        const weeks = Object.keys(weekMap).sort().map(k => {
+                                            const o = weekMap[k];
+                                            const endTs = Date.parse(k + 'T00:00:00Z') + 6 * 86400000;
+                                            return {
+                                                week: k, end: new Date(endTs).toISOString().slice(0, 10),
+                                                days: o.days, sum: o.sum, max: o.max, maxDate: o.maxDate,
+                                                avg: o.days ? o.sum / o.days : 0
+                                            };
+                                        });
                                         let mom = null;
                                         if (months.length >= 2) {
                                             const cur = months[months.length - 1];
@@ -9262,6 +9312,17 @@
                                             ? Math.round((toTs(good[good.length - 1].date) - toTs(good[0].date)) / dayMs) + 1
                                             : good.length;
 
+                                        // 异常日（超过 μ+2σ）与活动峰值（备注里写了活动/版本/开服…的那几天）
+                                        const anomalyLine = days > 1 && sd > 0 ? avg + 2 * sd : null;
+                                        const anomalies = anomalyLine
+                                            ? good.filter(r => r.total > anomalyLine).map(r => ({ date: r.date, total: r.total, sigma: sd ? (r.total - avg) / sd : 0 }))
+                                            : [];
+                                        const PEAK_RE = /活动|版本|开服|更新|维护|上线|联动|新服/;
+                                        const peaks = good.filter(r => PEAK_RE.test(String(r.note || '')));
+                                        const peakDates = {}, anomalyDates = {};
+                                        peaks.forEach(r => { peakDates[r.date] = r.note; });
+                                        anomalies.forEach(a => { anomalyDates[a.date] = a; });
+
                                         return {
                                             dates, all, good, days, sum, avg, median, min, max, sd, scope,
                                             maxDate: maxRec ? maxRec.date : '',
@@ -9269,6 +9330,7 @@
                                             itemTotals, sideStats, sheetSum, activeItems,
                                             activeKinds: activeItems.size, dayMaxKinds,
                                             months, mom, recent7: recent(7), recent30: recent(30),
+                                            weeks, anomalies, peaks, peakDates, anomalyDates, anomalyLine,
                                             best, curStreak, gapDays, spanDays,
                                             pending: all.filter(r => r.status === CAREER_STATUS_PENDING),
                                             notes: all.filter(r => r.note).sort((a, b) => b.date.localeCompare(a.date))
@@ -9375,6 +9437,86 @@
                                             mt.innerHTML = h;
                                         }
 
+                                        // 周维度：跟月度同一套口径，多两列环比/同比
+                                        const wt = document.getElementById('careerWeeklyTable');
+                                        if (wt) {
+                                            let h = '<thead><tr><th>周（周一～周日）</th><th class="num">记录天数</th><th class="num">总量</th><th class="num">日均</th><th class="num">最高单日</th><th class="num">环比上周</th><th class="num">同比（4 周前）</th></tr></thead><tbody>';
+                                            if (!s.weeks.length) h += '<tr><td colspan="7" style="color:var(--ink-3);">暂无数据</td></tr>';
+                                            const list = s.weeks.slice().reverse();   // 最近的在最上面
+                                            list.forEach((w) => {
+                                                const i = s.weeks.indexOf(w);
+                                                const prev = i > 0 ? s.weeks[i - 1] : null;
+                                                const wow = (prev && prev.avg) ? (w.avg - prev.avg) / prev.avg : null;
+                                                const yoyBase = i >= 4 ? s.weeks[i - 4] : null;
+                                                const yoy = (yoyBase && yoyBase.avg) ? (w.avg - yoyBase.avg) / yoyBase.avg : null;
+                                                const fmt = (d) => (d === null ? '—' : (d >= 0 ? '+' : '') + careerPct(d));
+                                                h += '<tr><td>' + w.week + ' ～ ' + w.end.slice(5) + '</td><td class="num">' + w.days
+                                                    + '</td><td class="num">' + careerNum(w.sum)
+                                                    + '</td><td class="num">' + careerNum(w.avg, 1)
+                                                    + '</td><td class="num">' + careerNum(w.max) + ' <span class="hint-text">' + escapeHtml(w.maxDate.slice(5)) + '</span>'
+                                                    + '</td><td class="num">' + fmt(wow) + '</td><td class="num">' + fmt(yoy) + '</td></tr>';
+                                            });
+                                            const wSum = s.weeks.reduce((a, w) => a + w.sum, 0);
+                                            const wDays = s.weeks.reduce((a, w) => a + w.days, 0);
+                                            h += '</tbody><tfoot><tr class="total-row"><td>合计</td><td class="num">' + wDays + '</td><td class="num">' + careerNum(wSum)
+                                                + '</td><td class="num">' + careerNum(wDays ? wSum / wDays : 0, 1) + '</td><td class="num">' + careerNum(s.max) + '</td><td class="num">—</td><td class="num">—</td></tr></tfoot>';
+                                            wt.innerHTML = h;
+                                        }
+
+                                        // 来源结构：各来源大类（kind）占比 + Top3 单项集中度（跟身份筛选走）
+                                        const sb = document.getElementById('careerStructureBox');
+                                        if (sb) {
+                                            const items = scoped ? careerItemsOfSide(scope) : CAREER_ITEMS;
+                                            const kindTotals = {};
+                                            for (const it of items) {
+                                                const v = s.itemTotals[it.key] || 0;
+                                                if (v) kindTotals[it.kind] = (kindTotals[it.kind] || 0) + v;
+                                            }
+                                            const kinds = Object.keys(kindTotals).sort((a, b) => kindTotals[b] - kindTotals[a]);
+                                            const grand = kinds.reduce((a, k) => a + kindTotals[k], 0);
+                                            const top = items.slice().sort((a, b) => (s.itemTotals[b.key] || 0) - (s.itemTotals[a.key] || 0)).slice(0, 3);
+                                            const topSum = top.reduce((a, it) => a + (s.itemTotals[it.key] || 0), 0);
+                                            if (!grand) {
+                                                sb.innerHTML = '<div class="hint-text">还没有产出，来源结构要等有记录之后才有。</div>';
+                                            } else {
+                                                sb.innerHTML = '<div class="career-split-bar">'
+                                                    + kinds.map((k, i) => '<i style="width:' + ((kindTotals[k] / grand) * 100).toFixed(2) + '%;background:' + CAREER_KIND_COLORS[i % CAREER_KIND_COLORS.length] + ';color:#fff" title="'
+                                                        + escapeHtml(k + ' ' + careerNum(kindTotals[k]) + '（' + careerPct(kindTotals[k] / grand) + '）') + '">'
+                                                        + ((kindTotals[k] / grand) >= 0.12 ? escapeHtml(k) + ' ' + careerPct(kindTotals[k] / grand) : '') + '</i>').join('')
+                                                    + '</div>'
+                                                    + '<div class="career-legend">'
+                                                    + kinds.map((k, i) => '<span><i style="background:' + CAREER_KIND_COLORS[i % CAREER_KIND_COLORS.length] + '"></i>'
+                                                        + escapeHtml(k) + ' ' + careerNum(kindTotals[k]) + '（' + careerPct(kindTotals[k] / grand) + '）</span>').join('')
+                                                    + '</div>'
+                                                    + '<div class="hint-text" style="margin-top:6px;">Top3 集中度：'
+                                                    + top.filter(it => (s.itemTotals[it.key] || 0) > 0).map(it => escapeHtml(it.label) + ' ' + careerNum(s.itemTotals[it.key] || 0)).join(' · ')
+                                                    + ' —— 合计占 <b>' + careerPct(grand ? topSum / grand : 0) + '</b>；'
+                                                    + kinds.length + ' 个来源大类、' + items.filter(it => (s.itemTotals[it.key] || 0) > 0).length + ' 项有产出</div>';
+                                            }
+                                        }
+
+                                        // 异常日（μ+2σ）与活动峰值（备注里的关键词）
+                                        const ab = document.getElementById('careerAnomalyBox');
+                                        if (ab) {
+                                            let h = '<div class="hint-text">';
+                                            if (s.anomalyLine) {
+                                                h += '异常线 μ+2σ = ' + careerNum(s.anomalyLine, 1) + '；'
+                                                    + (s.anomalies.length
+                                                        ? '异常 <b>' + s.anomalies.length + '</b> 天：' + s.anomalies.slice(0, 12).map(a => escapeHtml(a.date) + '（' + careerNum(a.total) + '，' + a.sigma.toFixed(1) + 'σ）').join('、')
+                                                            + (s.anomalies.length > 12 ? ' 等 ' + s.anomalies.length + ' 天' : '')
+                                                        : '没有超过这条线的日子（都算平稳）');
+                                            } else {
+                                                h += '记录少于 2 天或波动为 0，暂时算不出异常线 μ+2σ';
+                                            }
+                                            h += '</div><div class="hint-text" style="margin-top:6px;">活动 / 版本峰值标注：'
+                                                + (s.peaks.length
+                                                    ? s.peaks.slice(0, 12).map(r => escapeHtml(r.date) + '（' + escapeHtml(r.note) + '，' + careerNum(r.total) + '）').join('、')
+                                                        + (s.peaks.length > 12 ? ' 等 ' + s.peaks.length + ' 天' : '')
+                                                    : '暂无 —— 在下面「补录 / 修正某一天」给那天写个备注（写「活动」「版本」这类词）就会自动标出来')
+                                                + '</div>';
+                                            ab.innerHTML = h;
+                                        }
+
                                         // 两侧分开统计：工单 / 海外，各自的项与合计（按类别分组，组内按累计降序，组小计只出现一次）
                                         for (const side of CAREER_SIDES) {
                                             const box = document.getElementById('careerSide' + side.key.charAt(0).toUpperCase() + side.key.slice(1));
@@ -9445,7 +9587,12 @@
                                             const last = s.good.slice(-30);
                                             const mx = last.reduce((m, r) => Math.max(m, r.total), 0) || 1;
                                             tr.innerHTML = last.length
-                                                ? last.map(r => '<span title="' + escapeHtml(r.date + ' · ' + r.total) + '" style="height:' + Math.max(3, (r.total / mx) * 100).toFixed(1) + '%"></span>').join('')
+                                                ? last.map(r => {
+                                                    const an = s.anomalyDates[r.date], pk = s.peakDates[r.date];
+                                                    const cls = an ? ' class="anomaly"' : (pk ? ' class="peak"' : '');
+                                                    const tag = (an ? ' · 异常（' + an.sigma.toFixed(1) + 'σ）' : '') + (pk ? ' · ' + pk : '');
+                                                    return '<span' + cls + ' title="' + escapeHtml(r.date + ' · ' + careerNum(r.total) + tag) + '" style="height:' + Math.max(3, (r.total / mx) * 100).toFixed(1) + '%"></span>';
+                                                }).join('')
                                                 : '<span class="hint-text" style="height:auto;background:none;">暂无数据</span>';
                                         }
 
