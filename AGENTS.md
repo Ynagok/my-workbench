@@ -2,7 +2,8 @@
 
 单文件前端（`public/index.html`）+ 极简同步后端（`server.js` / express）。
 数据走 `/api/data/<key>`（GET 读、POST 写，key 有白名单校验），落盘到 `data.json`；前端 **localStorage 优先、服务端兜底**。
-⚠️ **例外：「客服生涯」的 `careerData` 只存本机浏览器，完全不碰服务端**（不同客服不同设备的数据不能互相串），见下「客服生涯」一节。
+⚠️ **例外一：「客服生涯」的 `careerData` 只存本机浏览器，完全不碰服务端**（不同客服不同设备的数据不能互相串），见下「客服生涯」一节。
+⚠️ **例外二：「海外业务统计」的 `overseasBizData` 反过来 —— 走服务端共享**（海外岗 3 个人共用一份），本机只当离线缓存，见下「海外业务统计」一节。
 
 > 给 AI 助手：接手本仓库前先读这个文件，末尾「已定语义 / 待确认」**不要擅自改**。
 
@@ -38,7 +39,7 @@ npm start          # http://localhost:3000（静态托管 public/ + /api/data �
 npm run verify     # 改完代码、push 前的完整自检
 ```
 
-线上部署：**https://work-bad.onrender.com/**（Render，push 后自动部署；托管同一份 `public/`）。日报模板、映射表、短语等仍走 `/api/data` ↔ `data.json`，注意 Render 的磁盘是**临时的**，重启/重新部署会丢 `data.json`；**「客服生涯」不走服务端**（只在本机 localStorage，见下），所以换设备/换浏览器看不到别人的生涯统计，也丢不了别人的。
+线上部署：**https://work-bad.onrender.com/**（Render，push 后自动部署；托管同一份 `public/`）。日报模板、映射表、短语等仍走 `/api/data` ↔ `data.json`，注意 Render 的磁盘是**临时的**，重启/重新部署会丢 `data.json`；**「客服生涯」不走服务端**（只在本机 localStorage，见下），所以换设备/换浏览器看不到别人的生涯统计，也丢不了别人的；**「海外业务统计」反过来走服务端共享**（三个人的数据合并到一份，重部署丢了也会由还留着缓存的设备自动补回去）。
 油猴脚本安装地址：https://work-bad.onrender.com/gemjy-openid-helper.user.js
 （**就这一条链接**：0.4.0 是覆盖在同一文件名上的，以前装过 0.3.0 的人 Tampermonkey 检查更新时会自动升上来。）
 
@@ -48,7 +49,7 @@ npm run verify     # 改完代码、push 前的完整自检
 
 | 命令 | 内容 |
 |---|---|
-| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 184 项 + 「接口挂起时界面仍可用」+ 服务端冒烟 12 项 + 油猴脚本语法 + 单测 169 项 |
+| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 194 项 + 「接口挂起时界面仍可用」+ 服务端冒烟 12 项 + 油猴脚本语法 + 单测 169 项 |
 | `npm run verify:static` | 只要静态校验 + 语法检查（最快） |
 | `npm run report` | 打印一份真实生成的日报，肉眼确认排版（含 ⑥伙伴弹途 / ⑦异世界勇者） |
 | `npm run build:data` | 从 GM 玩家页快照提取 4 张权威映射表 + 与硬编码常量的**差异报告**（见下「游戏数据管线」） |
@@ -56,7 +57,7 @@ npm run verify     # 改完代码、push 前的完整自检
 | `npm run test:helper` | 反馈提取助手（油猴脚本 0.4.0）单测，169 项 |
 | `npm test` | = `npm run verify` |
 
-`npm run verify` 失败就不要提交。它一共 7 段：静态结构 → 语法 → jsdom 集成冒烟 **184 项** → 接口挂起时界面仍可用 → 服务端冒烟 **12 项** → 油猴脚本语法（`node --check`）→ 油猴脚本单测 **169 项**。
+`npm run verify` 失败就不要提交。它一共 7 段：静态结构 → 语法 → jsdom 集成冒烟 **194 项** → 接口挂起时界面仍可用 → 服务端冒烟 **12 项** → 油猴脚本语法（`node --check`）→ 油猴脚本单测 **169 项**。
 
 - jsdom 未安装时前端冒烟会自动回落到本机 DSH 自带的那份。
 - `tools/smoke-server.cjs` 用 `PORT` + `DATA_FILE` 环境变量把服务端指到随机端口和 `tools/out/` 里的临时文件，**不会碰真实 `data.json`**；子进程 stdio 必须用 `ignore`/`inherit`（沙箱禁管道，`pipe` 会 EPERM）。
@@ -125,16 +126,21 @@ npm run verify     # 改完代码、push 前的完整自检
 
 **「🌏 海外业务统计」标签页**（`data-tab="overseas"` / `#tab-overseas`）——海外岗 3 个人共用的岗位级统计：把《群维系+监控+海外工单+FB塔防周报》**整张表粘进来**，按天 / 按月算总量与逐项。
 
-- **数据模型**：`overseasBizData`（localStorage 键同名）`= { rows: { '日期|人员': {date,name,shift,items,total,note,at} }, updatedAt }` —— **一行 = 某天某人**；**只存本机**，不走 `/api/data`（跟 `careerData` 一个规矩，静态断言锁死不出现 `loadData/saveData('overseasBizData'`）。
+- **数据模型**：`overseasBizData`（localStorage 键同名 + 服务端 `/api/data/overseasBizData`）`= { rows: { '日期|人员': {date,name,shift,items,total,note,at} }, updatedAt, clearedAt }` —— **一行 = 某天某人**。
+  - ⚠️ **这份数据是岗位共享的**（用户明确要求）：**服务端为准，本机只当离线缓存**，三个人谁导入都写进同一份、别人打开就能看到 —— 跟 `careerData`「只存本机」**正好相反**，别把两者的规矩搞混。
 - **11 个统计项** `OVBIZ_ITEMS`（就是周报的 11 列）：异世界群维系 / （繁花+乐缤纷+梦幻）群维系 / 邮件+SDK（猫旅馆物语）/ 海外SSO工单量（全产品）/ 海外CP后台工单（全产品）/ 海外邮件（全产品）/ 海外FB（全产品）/ 商店回复 / SSO国内工单 / 监控禁言 / 监控封号。**独立于客服生涯的项表**（自己一套 key，两边互不影响）。
 - **解析**（`ovbizParse` + `ovbizSplitLine`）：**CSV 和 TSV 都吃**（含制表符按 TSV，否则按 CSV，支持 `"…"` 引号与 `""` 转义）；**表头按列名对齐、顺序随意**；比对前用 `careerNormHeader` 归一（去空白、全角括号→半角），并**去掉括号内容再匹配一次**（「海外SSO工单量（全产品）」和「海外SSO工单量」都认）。
   - ⚠️ **这份周报表头第一格写的是 `22` 而不是「日期」**，所以 `OVBIZ_COLUMNS['22'] = '@date'` 是必须的；日期复用 `careerParseDate`（`2026/1/1`、`2026-01-01`、Excel 序列号都行）；不带表头时按原列序（日期,人员,班次,11 项,总计,特殊问题）。
-  - ⚠️ **本机数据是懒加载的**：`applyState()` 在初始化早期就会跑（那时本模块的 `const` 还在 TDZ），所以由 `ovbizEnsureLoaded()` 在首次 `ovbizStats/ovbizRender/ovbizImport/ovbizCsvText/ovbizClearLocal` 时读一次。**别把 `ovbizData = ovbizNormalize(ovbizLoadLocal())` 塞回 `applyState`**（会 `ReferenceError: Cannot access 'OVBIZ_KEY' before initialization`，整个工作台初始化失败、冒烟直接红）。
+  - ⚠️ **懒加载 + 后台同步**：`applyState()` 在初始化早期就会跑（那时本模块的 `const` 还在 TDZ），所以由 `ovbizEnsureLoaded()` 在首次用到时读一次**本机缓存**先把界面画出来，同时丢一个 `ovbizSyncFromServer()` 在后台合并服务端（不阻塞首屏）。**别把 `ovbizData = ovbizNormalize(ovbizLoadCache())` 塞回 `applyState`**（会 `ReferenceError: Cannot access 'OVBIZ_KEY' before initialization`，整个工作台初始化失败、冒烟直接红）。
 - **合并规则**：key = `日期 + '|' + 人员` → 同一天同一个人**覆盖**、不同人保留（**同一天两个人同班是常态**，文件里 111 天都是两行）；**空白行自动跳过**（不计入「跳过」数）；「总计」与 11 项之和对不上时**提示一句并仍按各项之和入账**。
 - **统计口径**（`ovbizStats`）：**先按天合计**（同日多人的项与总量相加，`names` 记当天都有谁）再算指标，跟客服生涯同一套公式 —— 累计 / 日均 / 中位数 / 最高单日+日期 / 最低单日 / 标准差+变异系数 / 最长连续+当前连续 / 记录区间+断档 / 近 7·30 记录日日均 / **μ+2σ 异常日**；另有**月度**（含逐项）、**周维度**（周一为起点，周环比 +「4 周前」同比代理）、**按人员**（记录天数/总量/日均/最高单日/占岗位比/结构条）、**逐项**（累计/占比/结构条 + Top3 集中度）、**每日明细**（日期/人员/总量/11 项/特殊问题，最新在上）。
-- **落盘/导出**：`📥 解析导入`（`ovbizImport`）、`📊 导出CSV`（`ovbizCsvText`，带 BOM + 表头，导出的文件能再粘回来）、`🧹 清空本机数据`（`ovbizClearLocal`）。报表抬头 `#ovbizReportSub` / `#ovbizReportMeta`（覆盖人员 / 记录天数 / 累计 / 日均 / 出具日期）。
+- **落盘/导出**：`📥 解析导入`（`ovbizImport`，写本机缓存 + POST 服务端）、`📊 导出CSV`（`ovbizCsvText`，带 BOM + 表头，导出的文件能再粘回来）、`🔄 同步服务端`（`ovbizManualSync`，拉一次并合并）、`🧹 清空岗位数据`（`ovbizClearAll`，服务端与本机一起清，并写 `clearedAt`）。报表抬头 `#ovbizReportSub` / `#ovbizReportMeta`；共享状态行 `#ovbizSyncHint`（已同步 / 服务端还没有 / 离线用缓存）。
+- **共享与并发（`ovbizMergeData` + `ovbizSyncFromServer`）**：打开页面、切到该标签页、点「🔄 同步服务端」都会 GET 一次服务端，然后跟本机缓存**按行取并集**（同一个「日期|人员」取 `at` 更新的那行），本机有服务端没有的行就**自动回传**（`ovbizRowSig(merged) !== ovbizRowSig(srv)`）。
+  - ⚠️ **为什么要并集而不是「服务端直接覆盖本机」**：两个人同时各导各的周报时，后 POST 的那次只会带上自己那份，如果直接覆盖就会把前一个人的行冲掉；并集 + 回传能在下次打开时自愈。`smoke.cjs` 8g 节锁了这条（删掉服务端一行 → 同步后自动合并回传成 4 行）。
+  - ⚠️ 「清空」靠 `clearedAt` 挡住别的设备上残留的旧行（`r.at < clearedAt` 的行丢弃），否则别的设备下次打开会把旧数据又传回来。
+  - ⚠️ Render 的磁盘是**临时的**：重新部署会丢 `data.json`。丢了也不要紧 —— 任何一台还留着本机缓存的设备下次打开会把它**自动合并回服务端**（前提是没点过「清空岗位数据」）。
 - **真实数据对账**（用户给的这份周报，402 行原始数据）：解析出 **392 行 / 271 天**（10 行空白跳过），**1 行总计对不上**（2026/8/14 陈智锋，表里 92、各项之和 91）→ 提示并按 91 入账；**累计 40,685**、日均 150.1、中位数 143、最高单日 623@2026-04-11、异常 8 天（最高 2026-04-11 的 8.2σ）；三人 温泽鸿 156 天/17,444（42.9%）、陈智锋 152 天/17,436（42.9%）、姚宏杰 84 天/5,805（14.3%）；月度 9 个月、周 40 周。
-- **测试**：`tools/smoke.cjs` 第 **8g** 节 17 条（乱序表头 + 同一天两行 → 3 行入账 / 2 天 / 单行 85+67 按 11 项之和 / 累计 277 / 最高单日 152 / 每日表带人员与备注 / 人员表 2 人 / 逐项 11 行合计 277 / 月度 2 行 / 抬头 5 格 / **整场零服务端请求** / 重复导入覆盖不翻倍 / 总计对不上提示 / 清空归零且删键）；`tools/verify.mjs` 另有 8 条静态断言（标签页、11 项、CSV+TSV+「22」表头、只存本机、懒加载、按天合计+周+异常线、8 个容器、按钮与刷新挂载）。
+- **测试**：`tools/smoke.cjs` 第 **8g** 节 **27 条**（乱序表头 + 同一天两行 → 3 行入账 / 2 天 / 单行 85+67 按 11 项之和 / 累计 277 / 最高单日 152 / 每日表带人员与备注 / 人员表 2 人 / 逐项 11 行合计 277 / 月度 2 行 / 抬头 5 格 / **导入 POST 到 overseasBizData 且服务端真有这 3 行** / 切标签页 GET 一次 / 汇总行不再说「只存在这台设备」+ 状态行讲「岗位共享」/ **同步别人的行 → 4 行、累计 282、人员表出现第三人** / **服务端缺行时同步并集 + 自动回传** / 重复导入覆盖不翻倍 / 总计对不上提示 / **清空 POST 空结果 + clearedAt、服务端也清空**）；`tools/verify.mjs` 另有 9 条静态断言（标签页、11 项、CSV+TSV+「22」表头、**服务端为准 + 本机缓存**、**并集合并 + clearedAt**、懒加载、按天合计+周+异常线、9 个容器、按钮与刷新挂载）。
 
 ## 硬约定
 

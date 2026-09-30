@@ -3149,15 +3149,18 @@
                 </label>
                 <div class="hint-text" style="margin: 8px 0;">
                     一行 = 某天某人：<b>日期 · 人员 · 班次</b> + 11 个统计项（异世界群维系 /（繁花+乐缤纷+梦幻）群维系 / 邮件+SDK（猫旅馆物语）/ 海外SSO工单量（全产品）/ 海外CP后台工单（全产品）/ 海外邮件（全产品）/ 海外FB（全产品）/ 商店回复 / SSO国内工单 / 监控禁言 / 监控封号）+ 总计 + 特殊问题。<br>
-                    同一天两行（两个人同班）会<b>按天合计</b>；重复导入同一天同一个人＝覆盖那一条；「总计」与各项之和对不上时会提示，并按各项之和入账；空白行自动跳过。数据只存在这台设备的浏览器里。
+                    同一天两行（两个人同班）会<b>按天合计</b>；重复导入同一天同一个人＝覆盖那一条；「总计」与各项之和对不上时会提示，并按各项之和入账；空白行自动跳过。<br>
+                    <b>这份统计是三个人共用的</b>：导入会存到服务端，别人打开就能看到（本机只留一份离线缓存；两个人同时各导各的会自动合并，不会互相冲掉）。
                 </div>
                 <textarea id="ovbizPasteArea" rows="7" placeholder="日期,人员,班次,异世界群维系,（繁花+乐缤纷+梦幻）群维系,…&#10;2026/1/1,陈智锋,,0,35,,11,5,1,1,,,13,19,85,"></textarea>
                 <div class="flex-row" style="margin-top: 10px;">
                     <button id="ovbizImportBtn">📥 解析导入</button>
                     <button id="ovbizExportBtn" class="secondary">📊 导出CSV</button>
-                    <button id="ovbizClearBtn" class="reset-btn">🧹 清空本机数据</button>
+                    <button id="ovbizSyncBtn" class="secondary">🔄 同步服务端</button>
+                    <button id="ovbizClearBtn" class="reset-btn">🧹 清空岗位数据</button>
                     <span class="hint-text" id="ovbizHint"></span>
                 </div>
+                <div class="hint-text" id="ovbizSyncHint" style="margin-top: 8px;"></div>
             </div>
 
             <div class="card">
@@ -10779,7 +10782,8 @@
 
                                     // ==================== 海外业务统计（岗位周报整表粘贴） ====================
                                     // 一行 = 某天某人；算指标前先**按天合计**（同一天两个人同班）
-                                    // ⚠️ 跟 careerData 一样**只存本机 localStorage**，不走服务端
+                                    // ⚠️ 这是**岗位级共享数据**：走 /api/data/overseasBizData（服务端为准，本机只当离线缓存），
+                                    //    三个人谁导入都写进同一份，别人打开就能看到 —— 跟 careerData「只存本机」正好相反。
                                     const OVBIZ_KEY = 'overseasBizData';
                                     const OVBIZ_ITEMS = [
                                         { key: 'sj_group', label: '异世界群维系', short: '异世界群维系' },
@@ -10818,26 +10822,109 @@
                                         for (const k of Object.keys(OVBIZ_ALIASES)) m[careerNormHeader(k)] = OVBIZ_ALIASES[k];
                                         return m;
                                     })();
-                                    let ovbizData = { rows: {}, updatedAt: null };
-                                    // ⚠️ 本机数据**懒加载**：applyState() 在初始化早期就会跑（那时本模块的 const 还在 TDZ），
-                                    //    所以不能在那里读 localStorage —— 统一由 ovbizEnsureLoaded() 在首次用到时读一次。
+                                    let ovbizData = { rows: {}, updatedAt: null, clearedAt: null };
+                                    // ⚠️ **懒加载**：applyState() 在初始化早期就会跑（那时本模块的 const 还在 TDZ），
+                                    //    所以不能在那里读 —— 统一由 ovbizEnsureLoaded() 在首次用到时读一次：
+                                    //    先用本机缓存把界面画出来，再后台跟服务端合并（不阻塞首屏）。
                                     let ovbizLoaded = false;
+                                    let ovbizSyncing = false;
+                                    let ovbizSyncState = 'idle';    // idle | ok | empty | offline
                                     function ovbizEnsureLoaded() {
                                         if (ovbizLoaded) return;
                                         ovbizLoaded = true;
-                                        ovbizData = ovbizNormalize(ovbizLoadLocal());
+                                        ovbizData = ovbizNormalize(ovbizLoadCache());
+                                        ovbizSyncFromServer();
                                     }
-                                    function ovbizLoadLocal() {
+                                    function ovbizLoadCache() {
                                         try {
                                             const raw = localStorage.getItem(OVBIZ_KEY);
                                             return raw === null ? null : JSON.parse(raw);
-                                        } catch (e) { console.warn('读取本机海外业务数据失败（按空处理）', e); return null; }
+                                        } catch (e) { console.warn('读取本机海外业务缓存失败（按空处理）', e); return null; }
                                     }
-                                    function ovbizSaveLocal() {
+                                    function ovbizSaveCache() {
                                         try {
                                             localStorage.setItem(OVBIZ_KEY, JSON.stringify(ovbizData));
                                             return true;
-                                        } catch (e) { console.warn('写入本机海外业务数据失败', e); return false; }
+                                        } catch (e) { console.warn('写入本机海外业务缓存失败', e); return false; }
+                                    }
+                                    // 推服务端（saveData 内部：先写本机缓存，再按 key 串行 POST）
+                                    function ovbizPushServer() { return saveData(OVBIZ_KEY, ovbizData); }
+                                    // 并集合并（服务端 + 本机）：同一个「日期|人员」取 at 更新的那行。
+                                    // ⚠️ 用并集而不是「服务端直接覆盖本机」——两个人同时各导各的周报时，
+                                    //    后 POST 的那次不会把前一个人的行冲掉（下次打开自动合并回服务端）。
+                                    //    「清空」用 clearedAt 挡住更早的本机旧行，避免别的设备又把它们传回来。
+                                    function ovbizMergeData(srv, loc) {
+                                        const a = asObject(srv) || {}, b = asObject(loc) || {};
+                                        const clearedAt = [a.clearedAt, b.clearedAt].filter(x => typeof x === 'string' && x).sort().pop() || null;
+                                        const out = { rows: {}, updatedAt: null, clearedAt: clearedAt };
+                                        const take = (src) => {
+                                            const rows = asObject(src.rows) || {};
+                                            for (const k of Object.keys(rows)) {
+                                                const r = asObject(rows[k]);
+                                                if (!r || !r.date) continue;
+                                                if (clearedAt && r.at && r.at < clearedAt) continue;   // 清空之前的老行作废
+                                                const key = r.date + '|' + r.name;
+                                                const old = out.rows[key];
+                                                if (!old || String(r.at || '') > String(old.at || '')) out.rows[key] = r;
+                                            }
+                                        };
+                                        take(a); take(b);
+                                        out.updatedAt = [a.updatedAt, b.updatedAt].filter(x => typeof x === 'string' && x).sort().pop() || null;
+                                        return out;
+                                    }
+                                    // 只比「有哪些行 + 每行的更新时间」，用来判断合并结果是否需要回传服务端
+                                    function ovbizRowSig(d) {
+                                        const rows = (d && d.rows) || {};
+                                        return Object.keys(rows).sort().map(k => k + '@' + String(rows[k].at || '')).join(';');
+                                    }
+                                    async function ovbizSyncFromServer() {
+                                        if (ovbizSyncing) return;
+                                        ovbizSyncing = true;
+                                        try {
+                                            const resp = await fetchWithTimeout(API_BASE + encodeURIComponent(OVBIZ_KEY));
+                                            if (!resp.ok) throw new Error('HTTP ' + resp.status);
+                                            const json = await resp.json();
+                                            const value = json && json.value;
+                                            if (value === undefined || value === null) {
+                                                // 服务端还没有这份数据 → 把本机缓存里已有的推上去，别人也能看到
+                                                ovbizSyncState = 'empty';
+                                                if (Object.keys(ovbizData.rows).length) { await ovbizPushServer(); ovbizSyncState = 'ok'; }
+                                            } else {
+                                                const srv = ovbizNormalize(value);
+                                                const merged = ovbizMergeData(srv, ovbizData);
+                                                const needPush = ovbizRowSig(merged) !== ovbizRowSig(srv);
+                                                ovbizData = merged;
+                                                ovbizSaveCache();
+                                                if (needPush) await ovbizPushServer();   // 本机有服务端没有的行 → 回传
+                                                ovbizSyncState = 'ok';
+                                            }
+                                            ovbizRender();
+                                        } catch (e) {
+                                            ovbizSyncState = 'offline';
+                                            console.warn('同步海外业务数据失败（继续用本机缓存）', e);
+                                            ovbizRenderSyncHint();
+                                        } finally {
+                                            ovbizSyncing = false;
+                                        }
+                                    }
+                                    function ovbizRenderSyncHint() {
+                                        const el = document.getElementById('ovbizSyncHint');
+                                        if (!el) return;
+                                        const n = Object.keys(ovbizData.rows).length;
+                                        if (ovbizSyncState === 'offline') el.textContent = '⚠️ 跟服务端同步失败（可能离线）：现在显示本机缓存的 ' + n + ' 行，恢复后会自动合并回服务端。';
+                                        else if (ovbizSyncState === 'ok') el.textContent = '☁️ 岗位共享：已与服务端同步，共 ' + n + ' 行 —— 三个人谁导入都会合并进这一份。';
+                                        else if (ovbizSyncState === 'empty') el.textContent = '☁️ 岗位共享：服务端还没有这份数据，第一次「解析导入」就会存到服务端。';
+                                        else el.textContent = '☁️ 岗位共享：数据存在服务端，三个人共用一份（本机只做离线缓存）。';
+                                    }
+                                    async function ovbizManualSync() {
+                                        ovbizEnsureLoaded();
+                                        ovbizSetHint('正在跟服务端同步…');
+                                        ovbizSyncState = 'idle';
+                                        await ovbizSyncFromServer();
+                                        ovbizRenderSyncHint();
+                                        ovbizSetHint(ovbizSyncState === 'offline'
+                                            ? '同步失败（可能离线），当前显示本机缓存的 ' + Object.keys(ovbizData.rows).length + ' 行'
+                                            : '已同步：服务端现在有 ' + Object.keys(ovbizData.rows).length + ' 行');
                                     }
                                     function ovbizNormalize(v) {
                                         const o = asObject(v) || {};
@@ -10864,7 +10951,11 @@
                                                 at: typeof r.at === 'string' ? r.at : ''
                                             };
                                         }
-                                        return { rows: rows, updatedAt: typeof o.updatedAt === 'string' ? o.updatedAt : null };
+                                        return {
+                                            rows: rows,
+                                            updatedAt: typeof o.updatedAt === 'string' ? o.updatedAt : null,
+                                            clearedAt: typeof o.clearedAt === 'string' ? o.clearedAt : null
+                                        };
                                     }
                                     // 一行 → 单元格数组：含制表符按 TSV 切，否则按 CSV 切（支持 "…" 包裹与 "" 转义）
                                     function ovbizSplitLine(line) {
@@ -11079,9 +11170,10 @@
                                             sheetHint.textContent = s.n
                                                 ? ('合计 ' + careerNum(s.sum) + '（' + s.n + ' 个完整记录日 · 日均 ' + careerNum(s.avg, 1) + '）'
                                                     + '；覆盖 ' + (names.length ? names.join('、') : '未填人员') + ' 共 ' + s.peopleCount + ' 人'
-                                                    + '；数据只存在这台设备的浏览器里，不会同步给别的设备。')
+                                                    + '；这份数据存在服务端，三个人共用一份（本机只做离线缓存）。')
                                                 : '还没有数据 —— 把周报整表粘贴到上面「📋 粘贴周报数据」再点「解析导入」。';
                                         }
+                                        ovbizRenderSyncHint();
                                         // ---- 逐项统计 ----
                                         const it = document.getElementById('ovbizItemTable');
                                         if (it) {
@@ -11237,7 +11329,9 @@
                                             daySet[r.date] = 1;
                                         }
                                         ovbizData.updatedAt = new Date().toISOString();
-                                        ovbizSaveLocal();
+                                        ovbizData.clearedAt = ovbizData.clearedAt || null;
+                                        ovbizSyncState = 'ok';
+                                        ovbizPushServer();     // 写本机缓存 + POST 到服务端（三个人共用一份）
                                         ovbizRender();
                                         ovbizSetHint('已导入 ' + res.rows.length + ' 行（新增 ' + add + '，覆盖同人同日 ' + over + '）· 覆盖 '
                                             + Object.keys(daySet).length + ' 天'
@@ -11262,15 +11356,19 @@
                                         }
                                         return '\ufeff' + rows.join('\r\n');
                                     }
-                                    function ovbizClearLocal() {
+                                    function ovbizClearAll() {
                                         ovbizEnsureLoaded();
                                         const n = Object.keys(ovbizData.rows).length;
-                                        if (!n) { ovbizSetHint('本机没有海外业务数据'); return; }
-                                        if (!confirm('确认清空本机的海外业务统计？共 ' + n + ' 行（只影响这台设备，服务端没有副本）')) return;
-                                        ovbizData = { rows: {}, updatedAt: null };
-                                        try { localStorage.removeItem(OVBIZ_KEY); } catch (e) { /* 忽略 */ }
+                                        if (!n) { ovbizSetHint('本来就没有海外业务数据可清'); return; }
+                                        if (!confirm('确认清空海外业务统计？共 ' + n + ' 行。\n'
+                                            + '⚠️ 这份数据是三个人共用的（存在服务端），清空后所有人的界面都会变空，不只是这台设备。')) return;
+                                        const now = new Date().toISOString();
+                                        // clearedAt 挡住别的设备上残留的旧行（否则它们下次打开会把旧数据又传回来）
+                                        ovbizData = { rows: {}, updatedAt: now, clearedAt: now };
+                                        ovbizSyncState = 'ok';
+                                        ovbizPushServer();     // 连同空结果一起 POST，服务端也清掉
                                         ovbizRender();
-                                        ovbizSetHint('已清空本机的 ' + n + ' 行海外业务数据');
+                                        ovbizSetHint('已清空 ' + n + ' 行海外业务数据（服务端与本机一起，三个人都看不到了）');
                                     }
 
                                     // ==================== 事件绑定 ====================
@@ -11537,7 +11635,7 @@
                                             const targetTab = document.getElementById(`tab-${this.dataset.tab}`);
                                             if (targetTab) targetTab.classList.add('active');
                                             if (this.dataset.tab === 'career') renderCareer();
-                                            if (this.dataset.tab === 'overseas') ovbizRender();
+                                            if (this.dataset.tab === 'overseas') { ovbizRender(); ovbizSyncFromServer(); }   // 切进来顺手跟服务端对一次（岗位共享）
                                         });
 
                                         // 规则搜索
@@ -11686,7 +11784,8 @@
                                         setClick('ovbizExportBtn', () => {
                                             if (!careerDownload('海外业务统计_' + careerToday() + '.csv', ovbizCsvText(), 'text/csv')) alert('当前环境不支持导出');
                                         });
-                                        setClick('ovbizClearBtn', ovbizClearLocal);
+                                        setClick('ovbizClearBtn', ovbizClearAll);
+                                        setClick('ovbizSyncBtn', ovbizManualSync);
                                         setClick('careerClearImportBtn', () => {
                                             const a = document.getElementById('careerImportArea');
                                             if (a) a.value = '';

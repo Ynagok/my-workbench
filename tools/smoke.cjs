@@ -789,12 +789,14 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     check(/本来就没有/.test($('careerArchiveHint').textContent), '空数据时再点清空 → 提示本来就是空的', $('careerArchiveHint').textContent);
   }
 
-  console.log('--- 8g. 海外业务统计：整表粘贴导入（只存本机，不碰服务端）---');
+  console.log('--- 8g. 海外业务统计：整表粘贴导入 + 岗位共享（服务端合并）---');
   {
     const ovbizSaved = () => {
       try { return JSON.parse(window.localStorage.getItem('overseasBizData') || 'null'); } catch (_) { return null; }
     };
-    const ovbizReqs = () => posts.filter(p => p.url.includes('overseasBizData'));
+    const ovbizPosts = () => posts.filter(p => p.url.includes('overseasBizData') && p.method === 'POST');
+    const ovbizGets = () => posts.filter(p => p.url.includes('overseasBizData') && p.method === 'GET');
+    const lastOv = () => { const a = ovbizPosts(); return a.length ? a[a.length - 1].body.value : null; };
     // 表头故意打乱顺序 + 用真实周报的表头写法；同一天两行（两个人同班）
     const csv = [
       '人员,22,班次,（繁花+乐缤纷+梦幻）群维系,异世界群维系,海外SSO工单量（全产品）,海外CP后台工单（全产品）,海外邮件（全产品）,海外FB（全产品）,商店回复,SSO国内工单,监控禁言,监控封号,邮件+SDK（猫旅馆物语）,总计,特殊问题',
@@ -809,8 +811,13 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     check(/已导入 3 行/.test($('ovbizHint').textContent) && /覆盖 2 天/.test($('ovbizHint').textContent),
       '海外业务：粘贴整表导入 3 行 / 2 天（空白行自动跳过）', $('ovbizHint').textContent);
     const saved0 = ovbizSaved();
-    check(!!saved0 && Object.keys(saved0.rows || {}).length === 3, '海外业务：落进本机 localStorage（键 overseasBizData）',
+    check(!!saved0 && Object.keys(saved0.rows || {}).length === 3, '海外业务：落进本机 localStorage 缓存（键 overseasBizData）',
       saved0 && Object.keys(saved0.rows || {}).length);
+    check(ovbizPosts().length > 0 && Object.keys(lastOv().rows).length === 3,
+      '海外业务：导入会 POST 到 /api/data/overseasBizData（岗位共享，不再只存本机）', ovbizPosts().length);
+    check(Object.keys((serverData.overseasBizData || { rows: {} }).rows).length === 3,
+      '海外业务：服务端确实存下了这 3 行（别人打开就能看到）');
+    check(ovbizGets().length === 0, '海外业务：导入本身只 POST，不额外拉服务端', ovbizGets().length);
     check(ovbizSaved().rows['2026-01-01|陈智锋'].total === 85 && ovbizSaved().rows['2026-01-01|温泽鸿'].total === 67,
       '海外业务：每行按 11 项之和入账（陈 85 / 温 67）',
       ovbizSaved().rows['2026-01-01|陈智锋'].total + '/' + ovbizSaved().rows['2026-01-01|温泽鸿'].total);
@@ -834,13 +841,41 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     check(doc.querySelectorAll('#ovbizReportMeta > div').length === 5
       && /覆盖人员/.test($('ovbizReportMeta').textContent) && /累计工作量/.test($('ovbizReportMeta').textContent),
       '海外业务：报表抬头 5 格元数据（覆盖人员/记录天数/累计/日均/出具日期）', $('ovbizReportMeta').textContent.slice(0, 80));
-    check(ovbizReqs().length === 0, '海外业务：整场没有请求过服务端（只存本机）', ovbizReqs().length);
-    // 重复导入：覆盖而不是累加
+    check(/岗位共享/.test($('ovbizSyncHint').textContent), '海外业务：同步状态行说明「岗位共享」', $('ovbizSyncHint').textContent.slice(0, 60));
+    // 切到「海外业务统计」标签页 → 会跟服务端对一次（GET），保证看到别人导入的数据
+    const getsBeforeTab = ovbizGets().length;
+    doc.querySelector('.tab-btn[data-tab="overseas"]').click();
+    await sleep(80);
+    check(ovbizGets().length === getsBeforeTab + 1, '海外业务：切到该标签页会 GET 一次服务端（顺手对齐岗位数据）',
+      ovbizGets().length - getsBeforeTab);
+    check(!/只存在这台设备|不会同步给别的设备/.test($('ovbizSheetHint').textContent)
+      && /三个人共用一份/.test($('ovbizSheetHint').textContent),
+      '海外业务：汇总行不再说「只存在这台设备」', $('ovbizSheetHint').textContent.slice(0, 80));
+    // 别人在另一台设备上导入了一行 → 点「同步服务端」把它合并进来
+    serverData.overseasBizData.rows['2026-04-01|姚宏杰'] = {
+      date: '2026-04-01', name: '姚宏杰', shift: '', items: { sj_group: 5 }, total: 5, note: '', at: new Date().toISOString()
+    };
+    $('ovbizSyncBtn').click();
+    await sleep(80);
+    check(/已同步：服务端现在有 4 行/.test($('ovbizHint').textContent) && Object.keys(ovbizSaved().rows).length === 4,
+      '海外业务：点「同步服务端」把别人导入的行合并进来（3 + 1 = 4）', $('ovbizHint').textContent);
+    check(/累计工作量\s*282/.test($('ovbizKpi').textContent) && /姚宏杰/.test($('ovbizPeopleTable').textContent),
+      '海外业务：合并后累计 282（277 + 5）、按人员表出现第三个人', $('ovbizKpi').textContent.slice(0, 40));
+    // 反向：服务端被别人的一次导入冲掉了本机独有的行 → 同步应自动合并并回传（并发导入不丢数据）
+    const postsBefore = ovbizPosts().length;
+    delete serverData.overseasBizData.rows['2026-02-03|陈智锋'];
+    $('ovbizSyncBtn').click();
+    await sleep(80);
+    check(ovbizPosts().length === postsBefore + 1 && Object.keys(lastOv().rows).length === 4,
+      '海外业务：服务端缺行时同步会自动合并并回传（两个并发导入不互相冲掉）',
+      ovbizPosts().length - postsBefore + ' / ' + JSON.stringify(Object.keys(lastOv().rows)));
+    check(Object.keys(serverData.overseasBizData.rows).length === 4, '海外业务：回传后服务端恢复 4 行');
+    // 重复导入：覆盖而不是累加（姚宏杰那行是同步来的，不参与本次导入）
     $('ovbizImportBtn').click();
     await sleep(60);
-    check(/覆盖同人同日 3/.test($('ovbizHint').textContent) && Object.keys(ovbizSaved().rows).length === 3,
+    check(/覆盖同人同日 3/.test($('ovbizHint').textContent) && Object.keys(ovbizSaved().rows).length === 4,
       '海外业务：重复导入覆盖同人同日、不产生重复行', $('ovbizHint').textContent);
-    check(/累计工作量\s*277/.test($('ovbizKpi').textContent), '海外业务：重复导入后累计仍是 277');
+    check(/累计工作量\s*282/.test($('ovbizKpi').textContent), '海外业务：重复导入后累计仍是 282（含同步来的 5）');
     // 总计对不上：提示并按各项之和入账（陈智锋 2026/3/1 表里写 999）
     $('ovbizPasteArea').value = '日期,人员,班次,异世界群维系,（繁花+乐缤纷+梦幻）群维系,邮件+SDK（猫旅馆物语）,海外SSO工单量（全产品）,海外CP后台工单（全产品）,海外邮件（全产品）,海外FB（全产品）,商店回复,SSO国内工单,监控禁言,监控封号,总计,特殊问题\n2026/3/1,陈智锋,,0,10,,,,,,,,,,999,';
     $('ovbizImportBtn').click();
@@ -848,13 +883,17 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     check(/总计」与各项之和对不上/.test($('ovbizHint').textContent)
       && ovbizSaved().rows['2026-03-01|陈智锋'].total === 10,
       '海外业务：「总计」对不上时提示并按各项之和入账', $('ovbizHint').textContent);
-    // 清空本机
+    // 清空：服务端 + 本机一起（三个人共用一份，所以两边都得清）
+    const postsBeforeClear = ovbizPosts().length;
     $('ovbizClearBtn').click();
-    await sleep(40);
-    check(Object.keys((ovbizSaved() || { rows: {} }).rows).length === 0 && window.localStorage.getItem('overseasBizData') === null,
-      '海外业务：清空本机 → 记录归零且 localStorage 键删掉');
-    check(/已清空本机的 4 行/.test($('ovbizHint').textContent), '海外业务：清空有提示', $('ovbizHint').textContent);
-    check(ovbizReqs().length === 0, '海外业务：清空也不碰服务端', ovbizReqs().length);
+    await sleep(80);
+    check(Object.keys((ovbizSaved() || { rows: {} }).rows).length === 0, '海外业务：清空 → 本机缓存归零');
+    check(ovbizPosts().length === postsBeforeClear + 1
+      && Object.keys(lastOv().rows).length === 0 && !!lastOv().clearedAt,
+      '海外业务：清空会把空结果 + clearedAt POST 上去（清服务端，并挡住别的设备上的旧行）',
+      ovbizPosts().length - postsBeforeClear);
+    check(Object.keys((serverData.overseasBizData || { rows: {} }).rows).length === 0, '海外业务：服务端也清空了');
+    check(/已清空 5 行/.test($('ovbizHint').textContent), '海外业务：清空有提示', $('ovbizHint').textContent);
   }
 
   console.log('--- 9. 无未捕获异常 ---');

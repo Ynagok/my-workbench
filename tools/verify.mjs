@@ -203,21 +203,25 @@ ok(/data-tab="overseas"/.test(s) && /id="tab-overseas"/.test(s) && /海外业务
 ok(/function ovbizSplitLine\(line\)/.test(s) && /indexOf\('\\t'\) !== -1/.test(s) && /careerParseDate\(raw\)/.test(s)
   && /'22'\] = '@date'/.test(s),
   '海外业务：解析支持 CSV / TSV、日期 2026/1/1 与 Excel 序列号，并认得周报表头第一格的「22」');
-ok(/function ovbizLoadLocal\(\)/.test(s) && /function ovbizSaveLocal\(\)/.test(s)
-  && !/loadData\('overseasBizData'/.test(s) && !/saveData\('overseasBizData'/.test(s),
-  '海外业务：只读写本机 localStorage（不走 /api/data）');
+ok(/function ovbizSaveCache\(\)/.test(s) && /function ovbizPushServer\(\) \{ return saveData\(OVBIZ_KEY, ovbizData\); \}/.test(s)
+  && /fetchWithTimeout\(API_BASE \+ encodeURIComponent\(OVBIZ_KEY\)\)/.test(s),
+  '海外业务：岗位共享 —— 服务端 /api/data/overseasBizData 为准，本机只做离线缓存（saveData 推 + GET 同步）');
+ok(/function ovbizMergeData\(srv, loc\)/.test(s) && /if \(clearedAt && r\.at && r\.at < clearedAt\) continue;/.test(s)
+  && /ovbizRowSig\(merged\) !== ovbizRowSig\(srv\)/.test(s),
+  '海外业务：服务端与本机按行并集合并（并发导入不互相冲掉），清空用 clearedAt 挡住别的设备的旧行');
 ok(/function ovbizEnsureLoaded\(\)/.test(s) && /ovbizEnsureLoaded\(\);/.test(s) && /let ovbizLoaded = false;/.test(s),
   '海外业务：本机数据懒加载（避开 applyState 早于 const 初始化的 TDZ 坑）');
 ok(/function ovbizStats\(\)/.test(s) && /d\.total \+= r\.total;/.test(s) && /function ovbizWeekStart\(d\)/.test(s)
   && /anomalyLine = n > 1 && sd > 0/.test(s),
   '海外业务：统计按天合计（同日多人）+ 周维度 + μ+2σ 异常线');
-ok(['ovbizKpi', 'ovbizItemTable', 'ovbizMonthlyTable', 'ovbizWeeklyTable', 'ovbizPeopleTable', 'ovbizDailyTable', 'ovbizAnomalyBox', 'ovbizReportMeta']
+ok(['ovbizKpi', 'ovbizItemTable', 'ovbizMonthlyTable', 'ovbizWeeklyTable', 'ovbizPeopleTable', 'ovbizDailyTable', 'ovbizAnomalyBox', 'ovbizReportMeta', 'ovbizSyncHint']
   .every(id => s.includes('id="' + id + '"')),
-  '海外业务：总览 / 逐项 / 月度 / 周 / 按人员 / 每日明细 / 异常 / 报表抬头 容器齐全');
+  '海外业务：总览 / 逐项 / 月度 / 周 / 按人员 / 每日明细 / 异常 / 报表抬头 / 共享状态行 容器齐全');
 ok(/setClick\('ovbizImportBtn', ovbizImport\)/.test(s) && /setClick\('ovbizExportBtn'/.test(s)
-  && /setClick\('ovbizClearBtn', ovbizClearLocal\)/.test(s)
-  && /this\.dataset\.tab === 'overseas'\) ovbizRender\(\)/.test(s) && /renderCareer\(\);\s*\n\s*ovbizRender\(\);/.test(s),
-  '海外业务：导入 / 导出 / 清空按钮与标签页刷新、启动刷新都已挂上');
+  && /setClick\('ovbizClearBtn', ovbizClearAll\)/.test(s) && /setClick\('ovbizSyncBtn', ovbizManualSync\)/.test(s)
+  && /this\.dataset\.tab === 'overseas'\) \{ ovbizRender\(\); ovbizSyncFromServer\(\); \}/.test(s)
+  && /renderCareer\(\);\s*\n\s*ovbizRender\(\);/.test(s),
+  '海外业务：导入 / 导出 / 重同步 / 清空按钮与标签页刷新、启动刷新都已挂上');
 // 工单侧分组：CP后台 与 ①~⑦群维系 都并进「工单/后台」
 ok(/function careerTicketKind\(key\) \{[\s\S]{0,320}?if \(key === 'sso' \|\| \/_cp\$\/\.test\(key\) \|\| \/\^g\\d\/\.test\(key\)\) return '工单\/后台';/.test(s)
   && !/return 'CP后台'/.test(s) && !/return '群维系'/.test(s.slice(s.indexOf('function careerTicketKind'), s.indexOf('function careerTicketKind') + 400)),
