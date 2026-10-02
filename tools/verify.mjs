@@ -252,28 +252,40 @@ ok(['fbTemplateGroup', 'fbSourceGroup', 'fbRawInput', 'fbOutput', 'fbHint', 'fbR
 ok(/setClick\('fbGenerateBtn', fbGenerate\)/.test(s) && /setClick\('fbCopyBtn', fbCopy\)/.test(s)
   && /setClick\('fbClearBtn', fbClear\)/.test(s) && /dataset\.tab === 'feedback'\) fbRenderChips\(\)/.test(s),
   '反馈模板：生成 / 复制 / 清空按钮与标签页刷新都已挂上');
-// ---- 3f. 自定义背景色 ----
-ok(/id="themeBar"/.test(s) && /id="themeSwatches"/.test(s) && /id="themeBgPicker"/.test(s) && /id="themeBgReset"/.test(s),
-  '自定义背景色：侧边栏调色条（色块列表 / 取色器 / 恢复默认）已注入');
+// ---- 3f. 界面设置（齿轮面板：背景色 / 强调色 / 渐变） ----
+ok(/id="themeGear"/.test(s) && /class="tabs-head"/.test(s) && /class="tabs-brand"/.test(s) && /id="themePanel"/.test(s)
+  && /id="themeSwatches"/.test(s) && /id="accentSwatches"/.test(s) && /id="themeEffects"/.test(s)
+  && /id="themeBgPicker"/.test(s) && /id="themeAccentPicker"/.test(s) && /id="themeReset"/.test(s),
+  '界面设置：侧边栏抬头（站名 + 齿轮）与设置面板（背景色 / 强调色 / 渐变 / 恢复默认）已注入');
+ok(!/class="theme-bar"/.test(s) && !/id="themeBar"/.test(s),
+  '界面设置：旧的侧边栏底部调色条已移除（改到齿轮面板里）');
 {
-  const preBlk = (s.match(/const THEME_PRESETS = \[([\s\S]*?)\];/) || ['', ''])[1];
-  ok((preBlk.match(/\{ bg: '/g) || []).length === 8 && /#12161a/.test(preBlk) && /#f6f1e7/.test(preBlk),
-    '背景色预设 8 个（默认 / 纯白 / 暖米 / 豆沙绿 / 浅蓝 / 淡粉 / 深灰 / 炭黑）');
+  const bgBlk = (s.match(/const THEME_BG_PRESETS = \[([\s\S]*?)\];/) || ['', ''])[1];
+  const acBlk = (s.match(/const THEME_ACCENT_PRESETS = \[([\s\S]*?)\];/) || ['', ''])[1];
+  const efBlk = (s.match(/const THEME_EFFECTS = \[([\s\S]*?)\];/) || ['', ''])[1];
+  ok((bgBlk.match(/\{ color: '/g) || []).length === 8 && (acBlk.match(/\{ color: '/g) || []).length === 8
+    && (efBlk.match(/\{ key: '/g) || []).length === 6 && /'mesh'/.test(efBlk) && /'vignette'/.test(efBlk),
+    '界面设置：背景 8 色 + 强调 8 色 + 渐变 6 种（纯色 / 光晕 / 网格 / 斜向渐变 / 边缘压暗）');
 }
-ok(/function themeApply\(bg\)/.test(s) && /function themeLum\(c\)/.test(s) && /THEME_TOKEN_KEYS\.forEach\(k => st\.removeProperty\(k\)\)/.test(s)
-  && /root\.setAttribute\('data-theme', dark \? 'dark' : 'light'\)/.test(s),
-  '背景色：按选的颜色算整套令牌写在 html 行内、按亮度自动切浅色/暗色');
-ok(/html\[data-theme="dark"\] \.modal/.test(s) && /html\[data-theme="dark"\] \.fb-chip/.test(s)
-  && /html\[data-theme="dark"\] \{[\s\S]{0,40}color-scheme: dark;/.test(s),
-  '背景色：深色底有「暗色收口」块（遮罩 / 选择片 / 原生控件配色）');
-ok(/localStorage\.getItem\(THEME_BG_KEY\)/.test(s) && /localStorage\.setItem\(THEME_BG_KEY/.test(s)
-  && /localStorage\.removeItem\(THEME_BG_KEY\)/.test(s)
-  && !/loadData\('themeBgColor'/.test(s) && !/saveData\('themeBgColor'/.test(s),
-  '背景色：选择只存本机（themeBgColor，不走 /api/data）');
-ok(/themeInit\(\);/.test(s) && /addEvent\('themeBgPicker', 'input'/.test(s) && /setClick\('themeBgReset'/.test(s)
-  && /const themed = document\.getElementById\('themeBar'\);/.test(s)
-  && /classList\.contains\('theme-bar'\)/.test(s),
-  '背景色：启动即应用、色块/取色器/重置已挂上，且拖拽排序不会把它挤到中间');
+ok(/function themeApplyBg\(bg\)/.test(s) && /function themeApplyAccent\(accent\)/.test(s)
+  && /function themeApplyEffect\(effect\)/.test(s) && /function themeToLum\(c, target\)/.test(s),
+  '界面设置：背景色 → 整套令牌、强调色 → 按亮度压深/提亮、渐变 → data-bg-effect');
+ok(/THEME_TOKEN_KEYS\.forEach\(k => st\.removeProperty\(k\)\)/.test(s)
+  && /root\.setAttribute\('data-theme', themeDark \? 'dark' : 'light'\)/.test(s)
+  && /root\.setAttribute\('data-bg-effect', themeSettings\.effect\)/.test(s),
+  '界面设置：按选的颜色算令牌写在 html 行内、按亮度自动切浅/暗、渐变挂属性');
+ok(/html\[data-bg-effect="none"\] body/.test(s) && /html\[data-bg-effect="mesh"\] body/.test(s)
+  && /html\[data-bg-effect="vignette"\] body/.test(s) && /html\[data-theme="dark"\] \.theme-effect/.test(s),
+  '界面设置：6 种渐变都有 CSS（含默认那套不动），深色底同样收口');
+ok(/localStorage\.getItem\(THEME_KEY\)/.test(s) && /localStorage\.setItem\(THEME_KEY/.test(s)
+  && /localStorage\.removeItem\(THEME_KEY\)/.test(s) && /THEME_OLD_BG_KEY/.test(s)
+  && !/loadData\('themeSettings'/.test(s) && !/saveData\('themeSettings'/.test(s),
+  '界面设置：只存本机 themeSettings（并兼容迁移旧键 themeBgColor，不走 /api/data）');
+ok(/themeInit\(\);/.test(s) && /setClick\('themeGear'/.test(s) && /setClick\('themePanelClose'/.test(s)
+  && /setClick\('themeReset', themeReset\)/.test(s) && /themeTogglePanel\(false\)/.test(s)
+  && /getElementById\('themePanel'\);\s*\n\s*if \(themed\) tabsEl\.appendChild\(themed\);/.test(s)
+  && /contains\('tabs-head'\)/.test(s),
+  '界面设置：启动即应用、齿轮开合（含点外面 / Esc 收起）、拖拽排序不会把它挤到中间');
 // 工单侧分组：CP后台 与 ①~⑦群维系 都并进「工单/后台」
 ok(/function careerTicketKind\(key\) \{[\s\S]{0,320}?if \(key === 'sso' \|\| \/_cp\$\/\.test\(key\) \|\| \/\^g\\d\/\.test\(key\)\) return '工单\/后台';/.test(s)
   && !/return 'CP后台'/.test(s) && !/return '群维系'/.test(s.slice(s.indexOf('function careerTicketKind'), s.indexOf('function careerTicketKind') + 400)),

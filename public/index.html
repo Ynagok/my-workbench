@@ -157,20 +157,26 @@
             z-index: 2;
         }
 
-            .tabs::before {
-                content: 'work-bad';
-                display: block;
-                font-family: var(--font-display);
-                font-size: 20px;
-                font-weight: 700;
-                letter-spacing: 0.2em;
-                color: var(--ink-0);
-                padding: 24px 22px 22px 28px;
+            /* 侧边栏抬头：站名 + 右侧齿轮（界面设置） */
+            .tabs-head {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 8px;
+                padding: 24px 14px 22px 28px;
                 border-bottom: 1px solid var(--line-0);
                 margin-bottom: 14px;
                 position: relative;
                 line-height: 1;
             }
+
+                .tabs-head .tabs-brand {
+                    font-family: var(--font-display);
+                    font-size: 20px;
+                    font-weight: 700;
+                    letter-spacing: 0.2em;
+                    color: var(--ink-0);
+                }
 
             .tabs::after {
                 content: '';
@@ -2248,9 +2254,12 @@
             border-right: 1px solid var(--line-0);
         }
 
-            .tabs::before {
+            .tabs-head .tabs-brand {
                 color: var(--ink-0);
                 letter-spacing: 0.26em;
+            }
+
+            .tabs-head {
                 border-bottom: 1px solid var(--line-0);
             }
 
@@ -2891,21 +2900,133 @@
             background: var(--surface-2);
         }
 
-        /* ---------- 自定义背景色：侧边栏底部的调色条 ---------- */
-        .theme-bar {
-            margin-top: auto;
-            padding: 14px 16px 2px;
-            border-top: 1px solid var(--line-0);
-            display: flex;
-            flex-direction: column;
-            gap: 9px;
+        /* ---------- 界面设置：抬头齿轮 + 设置面板 ---------- */
+        .theme-gear {
+            flex: none;
+            width: 26px;
+            height: 26px;
+            padding: 0;
+            clip-path: none;
+            font-size: 14px;
+            line-height: 1;
+            letter-spacing: 0;
+            text-transform: none;
+            background: transparent;
+            border: 1px solid transparent;
+            color: var(--ink-2);
         }
 
-            .theme-bar .tb-title {
+            .theme-gear:hover {
+                background: var(--surface-2);
+                border-color: var(--line-1);
+                color: var(--accent);
+                box-shadow: none;
+            }
+
+            .theme-gear.open {
+                background: var(--accent-dim);
+                border-color: var(--accent-line);
+                color: var(--accent-ink);
+            }
+
+        .theme-panel {
+            position: absolute;
+            top: 68px;
+            left: 12px;
+            width: 312px;
+            max-width: calc(100vw - 32px);
+            z-index: 60;
+            padding: 12px 13px 13px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            background: var(--surface);
+            border: 1px solid var(--line-1);
+            box-shadow: var(--shadow-3);
+        }
+
+            .theme-panel[hidden] {
+                display: none;
+            }
+
+            .theme-panel .tp-head {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding-bottom: 9px;
+                border-bottom: 1px solid var(--line-0);
                 font-family: var(--font-mono);
-                font-size: 10px;
+                font-size: 11px;
                 font-weight: 700;
                 letter-spacing: 0.2em;
+                color: var(--ink-1);
+            }
+
+            .theme-panel .tp-close {
+                width: 22px;
+                height: 22px;
+                padding: 0;
+                clip-path: none;
+                font-size: 11px;
+                letter-spacing: 0;
+                background: transparent;
+                border-color: transparent;
+                color: var(--ink-3);
+            }
+
+                .theme-panel .tp-close:hover {
+                    background: var(--surface-2);
+                    color: var(--ink-0);
+                }
+
+            .theme-panel .tp-group {
+                display: flex;
+                flex-direction: column;
+                gap: 7px;
+            }
+
+            .theme-panel .tp-label {
+                font-size: 11.5px;
+                font-weight: 700;
+                letter-spacing: 0.1em;
+                color: var(--ink-2);
+            }
+
+            .theme-panel .tp-note {
+                font-weight: 400;
+                font-size: 10.5px;
+                color: var(--ink-3);
+            }
+
+            .theme-panel .tp-row {
+                display: flex;
+                align-items: center;
+                gap: 9px;
+            }
+
+            .theme-panel .tp-value {
+                font-family: var(--font-mono);
+                font-size: 10.5px;
+                color: var(--ink-3);
+            }
+
+            .theme-panel .tp-foot {
+                display: flex;
+                align-items: center;
+                gap: 9px;
+                padding-top: 10px;
+                border-top: 1px solid var(--line-0);
+            }
+
+            .theme-panel .tp-foot button {
+                padding: 5px 10px;
+                font-size: 10.5px;
+                letter-spacing: 0.08em;
+            }
+
+            .theme-panel .tp-hint {
+                font-size: 10.5px;
+                line-height: 1.5;
                 color: var(--ink-3);
             }
 
@@ -2935,31 +3056,82 @@
                 box-shadow: 0 0 0 2px var(--accent-dim);
             }
 
-        .theme-bar-row {
-            display: flex;
-            align-items: center;
-            gap: 8px;
+        .theme-panel input[type="color"] {
+            width: 44px;
+            height: 26px;
+            padding: 0;
+            border: 1px solid var(--line-1);
+            background: #ffffff;
+            cursor: pointer;
         }
 
-            .theme-bar-row input[type="color"] {
-                width: 44px;
-                height: 26px;
-                padding: 0;
-                border: 1px solid var(--line-1);
-                background: #ffffff;
-                cursor: pointer;
+        .theme-effects {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+
+        .theme-effect {
+            padding: 6px 10px;
+            font-size: 11px;
+            font-weight: 500;
+            letter-spacing: 0.04em;
+            text-transform: none;
+            clip-path: none;
+            background: #ffffff;
+            border: 1px solid var(--line-1);
+            color: var(--ink-1);
+        }
+
+            .theme-effect:hover {
+                background: var(--surface-2);
+                color: var(--ink-0);
+                box-shadow: none;
             }
 
-            .theme-bar-row button {
-                padding: 5px 9px;
-                font-size: 10.5px;
-                letter-spacing: 0.08em;
+            .theme-effect.active {
+                background: var(--accent-dim);
+                border-color: var(--accent);
+                color: var(--accent-ink);
+                font-weight: 700;
+                box-shadow: none;
             }
 
-        .theme-bar .tb-hint {
-            font-size: 10.5px;
-            line-height: 1.5;
-            color: var(--ink-3);
+        /* ---------- 渐变 / 底纹（html[data-bg-effect] 由设置面板挂上）---------- */
+        html[data-bg-effect="none"] body {
+            background-image: none;
+            background-size: auto;
+        }
+
+        html[data-bg-effect="glow"] body {
+            background-image:
+                radial-gradient(1200px 600px at 78% -10%, var(--accent-dim), transparent 60%),
+                radial-gradient(900px 500px at 0% 110%, rgba(90,140,190,0.07), transparent 55%);
+            background-size: 100% 100%, 100% 100%;
+        }
+
+        html[data-bg-effect="grid"] body {
+            background-image:
+                linear-gradient(var(--grid-line) 1px, transparent 1px),
+                linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+            background-size: 44px 44px, 44px 44px;
+        }
+
+        html[data-bg-effect="mesh"] body {
+            background-image:
+                linear-gradient(135deg, var(--accent-dim) 0%, transparent 46%),
+                radial-gradient(1000px 700px at 100% 0%, var(--accent-glow), transparent 62%),
+                linear-gradient(var(--grid-line) 1px, transparent 1px),
+                linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+            background-size: 100% 100%, 100% 100%, 44px 44px, 44px 44px;
+        }
+
+        html[data-bg-effect="vignette"] body {
+            background-image:
+                radial-gradient(130% 120% at 50% 0%, transparent 52%, rgba(12,18,24,0.10) 100%),
+                linear-gradient(var(--grid-line) 1px, transparent 1px),
+                linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+            background-size: 100% 100%, 44px 44px, 44px 44px;
         }
 
         /* ============================================================
@@ -2993,7 +3165,7 @@
             html[data-theme="dark"] input[type="file"],
             html[data-theme="dark"] select,
             html[data-theme="dark"] textarea,
-            html[data-theme="dark"] .theme-bar-row input[type="color"] {
+            html[data-theme="dark"] .theme-panel input[type="color"] {
                 background: var(--bg-1);
                 border-color: var(--line-1);
                 color: var(--ink-0);
@@ -3020,6 +3192,10 @@
                 background: rgba(255,255,255,0.05);
             }
 
+            html[data-theme="dark"] .theme-effect {
+                background: rgba(255,255,255,0.05);
+            }
+
             html[data-theme="dark"] .career-trend {
                 background-image: repeating-linear-gradient(0deg, transparent 0 21px, rgba(255,255,255,0.03) 21px 22px);
             }
@@ -3029,6 +3205,47 @@
 <body>
     <div class="container">
         <div class="tabs" id="tabsContainer">
+            <div class="tabs-head">
+                <span class="tabs-brand">work-bad</span>
+                <button class="theme-gear" id="themeGear" type="button" title="界面设置（背景色 / 强调色 / 渐变）" aria-label="界面设置" aria-expanded="false">⚙</button>
+            </div>
+
+            <!-- 界面设置面板：点齿轮开合 -->
+            <div class="theme-panel" id="themePanel" hidden>
+                <div class="tp-head">
+                    <span>界面设置</span>
+                    <button class="tp-close" id="themePanelClose" type="button" title="收起" aria-label="收起">✕</button>
+                </div>
+
+                <div class="tp-group">
+                    <div class="tp-label">背景色</div>
+                    <div class="theme-swatches" id="themeSwatches"></div>
+                    <div class="tp-row">
+                        <input type="color" id="themeBgPicker" value="#eef1f4" title="自定义背景色">
+                        <span class="tp-value" id="themeBgValue">默认</span>
+                    </div>
+                </div>
+
+                <div class="tp-group">
+                    <div class="tp-label">强调色 <span class="tp-note">（按钮 / 高亮 / 图表）</span></div>
+                    <div class="theme-swatches" id="accentSwatches"></div>
+                    <div class="tp-row">
+                        <input type="color" id="themeAccentPicker" value="#c89500" title="自定义强调色">
+                        <span class="tp-value" id="themeAccentValue">默认</span>
+                    </div>
+                </div>
+
+                <div class="tp-group">
+                    <div class="tp-label">渐变 / 底纹</div>
+                    <div class="tp-effects" id="themeEffects"></div>
+                </div>
+
+                <div class="tp-foot">
+                    <button id="themeReset" class="secondary" type="button">恢复默认</button>
+                    <span class="tp-hint" id="themeHint">只存在这台设备</span>
+                </div>
+            </div>
+
             <div class="tab-group-title">梦幻消除站</div>
             <button class="tab-btn tab-btn-sub active" data-tab="gen"> 话术生成</button>
             <button class="tab-btn tab-btn-sub" data-tab="card"> 集卡分析</button>
@@ -3039,17 +3256,6 @@
             <button class="tab-btn" data-tab="career"> 客服生涯</button>
             <button class="tab-btn" data-tab="overseas"> 海外业务统计</button>
             <button class="tab-btn" data-tab="script">小游戏</button>
-
-            <!-- 自定义背景色（只改本机，可拖拽排序的按钮不会越过它） -->
-            <div class="theme-bar" id="themeBar">
-                <div class="tb-title">背景色</div>
-                <div class="theme-swatches" id="themeSwatches"></div>
-                <div class="theme-bar-row">
-                    <input type="color" id="themeBgPicker" value="#eef1f4" title="选一个背景色">
-                    <button id="themeBgReset" class="secondary">恢复默认</button>
-                </div>
-                <div class="tb-hint" id="themeBgHint"></div>
-            </div>
         </div>
 
         <!-- ==================== 话术生成 gen ==================== -->
@@ -11921,25 +12127,45 @@
                                         fbSetHint('已清空输入与结果');
                                     }
 
-                                    // ==================== 自定义背景色（浅色 / 暗色两套令牌） ====================
-                                    // 用户挑一个背景色，就按它算出整套令牌写在 <html> 行内（覆盖 :root）；
-                                    // 颜色偏深时自动切到暗色那套（挂 data-theme="dark"，颜色见 CSS 的「暗色收口」）。
-                                    // ⚠️ 只存本机 localStorage，不进 /api/data。
-                                    const THEME_BG_KEY = 'themeBgColor';
-                                    const THEME_PRESETS = [
-                                        { bg: '', label: '默认（柔和白）' },
-                                        { bg: '#ffffff', label: '纯白' },
-                                        { bg: '#f6f1e7', label: '暖米' },
-                                        { bg: '#e8f0e6', label: '豆沙绿' },
-                                        { bg: '#e8eef6', label: '浅蓝' },
-                                        { bg: '#f7ecf0', label: '淡粉' },
-                                        { bg: '#3a4047', label: '深灰（暗色）' },
-                                        { bg: '#12161a', label: '炭黑（暗色）' }
+                                    // ==================== 界面设置（背景色 / 强调色 / 渐变） ====================
+                                    // 抬头齿轮打开设置面板：按用户挑的颜色算出整套令牌写在 <html> 行内（覆盖 :root）；
+                                    // 背景偏深时自动切到暗色那套（挂 data-theme="dark"，配色见 CSS 的「暗色收口」）。
+                                    // ⚠️ 只存本机 localStorage（themeSettings），不进 /api/data。
+                                    const THEME_KEY = 'themeSettings';
+                                    const THEME_OLD_BG_KEY = 'themeBgColor';   // 旧版只有背景色，读到就迁进 themeSettings
+                                    const THEME_BG_PRESETS = [
+                                        { color: '', label: '默认（柔和白）' },
+                                        { color: '#ffffff', label: '纯白' },
+                                        { color: '#f6f1e7', label: '暖米' },
+                                        { color: '#e8f0e6', label: '豆沙绿' },
+                                        { color: '#e8eef6', label: '浅蓝' },
+                                        { color: '#f7ecf0', label: '淡粉' },
+                                        { color: '#3a4047', label: '深灰（暗色）' },
+                                        { color: '#12161a', label: '炭黑（暗色）' }
+                                    ];
+                                    const THEME_ACCENT_PRESETS = [
+                                        { color: '', label: '默认（方舟黄）' },
+                                        { color: '#d9532b', label: '橙红' },
+                                        { color: '#c2427a', label: '品红' },
+                                        { color: '#7b5cd6', label: '紫' },
+                                        { color: '#2f7de1', label: '蓝' },
+                                        { color: '#17a2a2', label: '青' },
+                                        { color: '#2e9e5b', label: '绿' },
+                                        { color: '#6b7683', label: '灰' }
+                                    ];
+                                    const THEME_EFFECTS = [
+                                        { key: '', label: '默认（网格+光晕）' },
+                                        { key: 'none', label: '纯色' },
+                                        { key: 'glow', label: '光晕' },
+                                        { key: 'grid', label: '网格' },
+                                        { key: 'mesh', label: '斜向渐变' },
+                                        { key: 'vignette', label: '边缘压暗' }
                                     ];
                                     const THEME_TOKEN_KEYS = ['--bg-0', '--bg-1', '--surface', '--surface-2', '--surface-3', '--sidebar',
                                         '--ink-0', '--ink-1', '--ink-2', '--ink-3', '--line-0', '--line-1', '--line-2',
                                         '--accent', '--accent-hi', '--accent-ink', '--accent-dim', '--accent-line', '--accent-glow',
                                         '--grid-line', '--warn', '--danger', '--shadow-1', '--shadow-2', '--shadow-3'];
+                                    const THEME_ACCENT_KEYS = ['--accent', '--accent-hi', '--accent-ink', '--accent-dim', '--accent-line', '--accent-glow'];
                                     const THEME_LIGHT_INK = { '--ink-0': '#1b2228', '--ink-1': '#2c353d', '--ink-2': '#5b6672', '--ink-3': '#8b959f' };
                                     const THEME_DARK_INK = { '--ink-0': '#e9eef3', '--ink-1': '#d5dde4', '--ink-2': '#94a0ac', '--ink-3': '#66727e' };
                                     const THEME_LIGHT_ACCENT = {
@@ -11950,12 +12176,17 @@
                                         '--accent': '#ffd60a', '--accent-hi': '#ffe873', '--accent-ink': '#ffd60a',
                                         '--accent-dim': 'rgba(255,214,10,0.10)', '--accent-line': 'rgba(255,214,10,0.42)', '--accent-glow': 'rgba(255,214,10,0.24)'
                                     };
-                                    let themeBg = '';
+                                    let themeSettings = { bg: '', accent: '', effect: '' };
+                                    let themeDark = false;
                                     function themeParseHex(hex) {
                                         const m = /^#?([0-9a-f]{6})$/i.exec(String(hex == null ? '' : hex).trim());
                                         if (!m) return null;
                                         const n = parseInt(m[1], 16);
                                         return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+                                    }
+                                    function themeNormHex(hex) {
+                                        const c = themeParseHex(hex);
+                                        return c ? themeHex(c) : '';
                                     }
                                     function themeHex(c) {
                                         const h = (v) => ('0' + Math.max(0, Math.min(255, Math.round(v))).toString(16)).slice(-2);
@@ -11965,97 +12196,215 @@
                                     function themeMix(c, target, ratio) {
                                         return { r: c.r + (target - c.r) * ratio, g: c.g + (target - c.g) * ratio, b: c.b + (target - c.b) * ratio };
                                     }
-                                    function themeRgbCss(c) {
-                                        const h = (v) => Math.round(Math.max(0, Math.min(255, v)));
-                                        return 'rgb(' + h(c.r) + ',' + h(c.g) + ',' + h(c.b) + ')';
-                                    }
-                                    // 相对亮度（判断深底还是浅底）
+                                    // 相对亮度（判断深底还是浅底、以及把颜色压到可读区间）
                                     function themeLum(c) {
                                         const f = (v) => { v = v / 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
                                         return 0.2126 * f(c.r) + 0.7152 * f(c.g) + 0.0722 * f(c.b);
                                     }
-                                    // 按选的颜色算整套令牌并写到 <html> 行内；bg 为空 = 恢复默认（清掉行内令牌）
-                                    function themeApply(bg) {
+                                    // 把颜色混到目标亮度（二分 12 步；target 比当前亮就往白混，反之往黑混）
+                                    function themeToLum(c, target) {
+                                        const lum = themeLum(c);
+                                        if (Math.abs(lum - target) < 0.02) return c;
+                                        const to = lum < target ? { r: 255, g: 255, b: 255 } : { r: 8, g: 12, b: 16 };
+                                        let lo = 0, hi = 1;
+                                        for (let i = 0; i < 12; i++) {
+                                            const mid = (lo + hi) / 2;
+                                            if (themeLum(themeMix(c, to, mid)) < target) lo = mid; else hi = mid;
+                                        }
+                                        return themeMix(c, to, lum < target ? lo : hi);
+                                    }
+                                    function themeRgba(c, a) {
+                                        const h = (v) => Math.round(Math.max(0, Math.min(255, v)));
+                                        return 'rgba(' + h(c.r) + ',' + h(c.g) + ',' + h(c.b) + ',' + a + ')';
+                                    }
+                                    // 背景色 → 整套令牌（bg 为空 = 用 :root 的默认，直接清掉行内令牌）
+                                    function themeApplyBg(bg) {
                                         const root = document.documentElement;
                                         const st = root.style;
                                         THEME_TOKEN_KEYS.forEach(k => st.removeProperty(k));
                                         const rgb = themeParseHex(bg);
-                                        themeBg = rgb ? themeHex(rgb) : '';
+                                        themeSettings.bg = rgb ? themeHex(rgb) : '';
+                                        themeDark = !!rgb && themeLum(rgb) < 0.32;
                                         if (!rgb) {
                                             root.removeAttribute('data-theme');
-                                            themeRenderUI();
-                                            return '';
+                                            themeApplyAccent();
+                                            return;
                                         }
-                                        const dark = themeLum(rgb) < 0.32;
                                         const white = { r: 255, g: 255, b: 255 }, black = { r: 8, g: 12, b: 16 };
                                         const set = (k, v) => st.setProperty(k, v);
                                         set('--bg-0', themeHex(rgb));
-                                        set('--bg-1', themeHex(dark ? themeMix(rgb, white, 0.10) : themeMix(rgb, white, 0.92)));
-                                        set('--surface', themeHex(dark ? themeMix(rgb, white, 0.06) : themeMix(rgb, white, 0.75)));
-                                        set('--surface-2', themeHex(themeMix(rgb, dark ? white : black, 0.035)));
-                                        set('--surface-3', themeHex(themeMix(rgb, dark ? white : black, 0.08)));
-                                        set('--sidebar', themeHex(themeMix(rgb, dark ? white : black, 0.025)));
-                                        set('--line-0', themeHex(themeMix(rgb, dark ? white : black, dark ? 0.10 : 0.09)));
-                                        set('--line-1', themeHex(themeMix(rgb, dark ? white : black, dark ? 0.16 : 0.16)));
-                                        set('--line-2', themeHex(themeMix(rgb, dark ? white : black, dark ? 0.28 : 0.28)));
-                                        Object.keys(dark ? THEME_DARK_INK : THEME_LIGHT_INK).forEach(k => set(k, (dark ? THEME_DARK_INK : THEME_LIGHT_INK)[k]));
-                                        Object.keys(dark ? THEME_DARK_ACCENT : THEME_LIGHT_ACCENT).forEach(k => set(k, (dark ? THEME_DARK_ACCENT : THEME_LIGHT_ACCENT)[k]));
-                                        set('--grid-line', dark ? 'rgba(255,255,255,0.03)' : 'rgba(28,40,52,0.035)');
-                                        set('--warn', dark ? '#ffab2e' : '#bd7300');
-                                        set('--danger', dark ? '#ff5f57' : '#cf3b30');
-                                        set('--shadow-1', dark ? '0 1px 2px rgba(0,0,0,0.45)' : '0 1px 2px rgba(24,32,40,0.07)');
-                                        set('--shadow-2', dark ? '0 8px 26px rgba(0,0,0,0.5)' : '0 6px 20px rgba(24,32,40,0.10)');
-                                        set('--shadow-3', dark ? '0 26px 64px rgba(0,0,0,0.72)' : '0 20px 48px rgba(24,32,40,0.16)');
-                                        root.setAttribute('data-theme', dark ? 'dark' : 'light');
+                                        set('--bg-1', themeHex(themeDark ? themeMix(rgb, white, 0.10) : themeMix(rgb, white, 0.92)));
+                                        set('--surface', themeHex(themeDark ? themeMix(rgb, white, 0.06) : themeMix(rgb, white, 0.75)));
+                                        set('--surface-2', themeHex(themeMix(rgb, themeDark ? white : black, 0.035)));
+                                        set('--surface-3', themeHex(themeMix(rgb, themeDark ? white : black, 0.08)));
+                                        set('--sidebar', themeHex(themeMix(rgb, themeDark ? white : black, 0.025)));
+                                        set('--line-0', themeHex(themeMix(rgb, themeDark ? white : black, themeDark ? 0.10 : 0.09)));
+                                        set('--line-1', themeHex(themeMix(rgb, themeDark ? white : black, themeDark ? 0.16 : 0.16)));
+                                        set('--line-2', themeHex(themeMix(rgb, themeDark ? white : black, themeDark ? 0.28 : 0.28)));
+                                        const ink = themeDark ? THEME_DARK_INK : THEME_LIGHT_INK;
+                                        Object.keys(ink).forEach(k => set(k, ink[k]));
+                                        set('--grid-line', themeDark ? 'rgba(255,255,255,0.03)' : 'rgba(28,40,52,0.035)');
+                                        set('--warn', themeDark ? '#ffab2e' : '#bd7300');
+                                        set('--danger', themeDark ? '#ff5f57' : '#cf3b30');
+                                        set('--shadow-1', themeDark ? '0 1px 2px rgba(0,0,0,0.45)' : '0 1px 2px rgba(24,32,40,0.07)');
+                                        set('--shadow-2', themeDark ? '0 8px 26px rgba(0,0,0,0.5)' : '0 6px 20px rgba(24,32,40,0.10)');
+                                        set('--shadow-3', themeDark ? '0 26px 64px rgba(0,0,0,0.72)' : '0 20px 48px rgba(24,32,40,0.16)');
+                                        root.setAttribute('data-theme', themeDark ? 'dark' : 'light');
+                                        themeApplyAccent();
+                                    }
+                                    // 强调色 → accent 一整套（浅底压深、深底提亮，保证当文字/当填充都能看）
+                                    function themeApplyAccent(accent) {
+                                        const st = document.documentElement.style;
+                                        if (accent !== undefined) themeSettings.accent = themeNormHex(accent);
+                                        const base = themeSettings.accent ? themeParseHex(themeSettings.accent) : null;
+                                        if (!base && !themeSettings.bg) {
+                                            // 背景和强调色都是默认 → 强调色也交回给 :root（行内不留值）
+                                            THEME_ACCENT_KEYS.forEach(k => st.removeProperty(k));
+                                            themeRenderUI();
+                                            return;
+                                        }
+                                        const family = base
+                                            ? (function () {
+                                                const c = themeToLum(base, themeDark ? 0.62 : 0.42);
+                                                const white = { r: 255, g: 255, b: 255 }, black = { r: 8, g: 12, b: 16 };
+                                                return {
+                                                    '--accent': themeHex(c),
+                                                    '--accent-hi': themeHex(themeDark ? themeMix(c, white, 0.22) : themeMix(c, black, 0.14)),
+                                                    '--accent-ink': themeHex(themeDark ? c : themeMix(c, black, 0.18)),
+                                                    '--accent-dim': themeRgba(c, themeDark ? 0.10 : 0.12),
+                                                    '--accent-line': themeRgba(c, 0.42),
+                                                    '--accent-glow': themeRgba(c, themeDark ? 0.24 : 0.20)
+                                                };
+                                            })()
+                                            : (themeDark ? THEME_DARK_ACCENT : THEME_LIGHT_ACCENT);
+                                        Object.keys(family).forEach(k => st.setProperty(k, family[k]));
                                         themeRenderUI();
-                                        return themeBg;
+                                    }
+                                    function themeApplyEffect(effect) {
+                                        const root = document.documentElement;
+                                        themeSettings.effect = THEME_EFFECTS.some(e => e.key === effect) ? effect : '';
+                                        if (themeSettings.effect) root.setAttribute('data-bg-effect', themeSettings.effect);
+                                        else root.removeAttribute('data-bg-effect');
+                                        themeRenderUI();
+                                    }
+                                    function themeApplyAll() {
+                                        themeApplyBg(themeSettings.bg);
+                                        themeApplyAccent();
+                                        themeApplyEffect(themeSettings.effect);
+                                        themeRenderUI();
                                     }
                                     function themeSave() {
                                         try {
-                                            if (themeBg) localStorage.setItem(THEME_BG_KEY, themeBg);
-                                            else localStorage.removeItem(THEME_BG_KEY);
+                                            const any = themeSettings.bg || themeSettings.accent || themeSettings.effect;
+                                            if (any) localStorage.setItem(THEME_KEY, JSON.stringify(themeSettings));
+                                            else localStorage.removeItem(THEME_KEY);
                                         } catch (e) { }
                                     }
-                                    function themePick(bg) {
-                                        themeApply(bg);
+                                    function themePick(kind, value) {
+                                        if (kind === 'bg') themeApplyBg(value); else themeApplyAccent(value);
                                         themeSave();
                                     }
+                                    function themePickEffect(key) {
+                                        themeApplyEffect(key);
+                                        themeSave();
+                                    }
+                                    function themeReset() {
+                                        themeSettings = { bg: '', accent: '', effect: '' };
+                                        try { localStorage.removeItem(THEME_KEY); localStorage.removeItem(THEME_OLD_BG_KEY); } catch (e) { }
+                                        themeApplyAll();
+                                    }
                                     function themeRenderUI() {
-                                        const wrap = document.getElementById('themeSwatches');
-                                        if (wrap) {
+                                        const mark = (wrapId, attr) => {
+                                            const wrap = document.getElementById(wrapId);
+                                            if (!wrap) return;
                                             wrap.querySelectorAll('.theme-swatch').forEach(b => {
-                                                const v = b.dataset.bg || '';
-                                                const hit = v ? (themeParseHex(v) && themeHex(themeParseHex(v)) === themeBg) : themeBg === '';
-                                                b.classList.toggle('active', !!hit);
+                                                const v = themeNormHex(b.dataset[attr]);
+                                                const cur = attr === 'bg' ? themeSettings.bg : themeSettings.accent;
+                                                b.classList.toggle('active', v === cur);
+                                            });
+                                        };
+                                        mark('themeSwatches', 'bg');
+                                        mark('accentSwatches', 'accent');
+                                        const effWrap = document.getElementById('themeEffects');
+                                        if (effWrap) effWrap.querySelectorAll('.theme-effect').forEach(b => b.classList.toggle('active', (b.dataset.effect || '') === themeSettings.effect));
+                                        const bgPicker = document.getElementById('themeBgPicker');
+                                        if (bgPicker && themeSettings.bg) bgPicker.value = themeSettings.bg;
+                                        const acPicker = document.getElementById('themeAccentPicker');
+                                        if (acPicker && themeSettings.accent) acPicker.value = themeSettings.accent;
+                                        const bgVal = document.getElementById('themeBgValue');
+                                        if (bgVal) bgVal.textContent = themeSettings.bg ? themeSettings.bg + (themeDark ? '（暗色）' : '') : '默认';
+                                        const acVal = document.getElementById('themeAccentValue');
+                                        if (acVal) acVal.textContent = themeSettings.accent || '默认';
+                                        const hint = document.getElementById('themeHint');
+                                        if (hint) hint.textContent = '只存在这台设备 · 选深色背景会自动切成暗色文字';
+                                    }
+                                    function themeBuildUI() {
+                                        const bgWrap = document.getElementById('themeSwatches');
+                                        if (bgWrap && !bgWrap.childElementCount) {
+                                            THEME_BG_PRESETS.forEach(p => {
+                                                const b = document.createElement('button');
+                                                b.type = 'button';
+                                                b.className = 'theme-swatch';
+                                                b.dataset.bg = p.color;
+                                                b.title = p.label;
+                                                b.style.background = p.color || 'linear-gradient(135deg, #eef1f4 0 50%, #ffffff 50% 100%)';
+                                                bgWrap.appendChild(b);
                                             });
                                         }
-                                        const picker = document.getElementById('themeBgPicker');
-                                        if (picker && themeBg) picker.value = themeBg;
-                                        const hint = document.getElementById('themeBgHint');
-                                        if (hint) {
-                                            hint.textContent = themeBg
-                                                ? ('当前 ' + themeBg + (document.documentElement.getAttribute('data-theme') === 'dark' ? ' · 深色底，已自动切成暗色文字' : '') + ' · 只存在这台设备')
-                                                : '默认柔和白 · 选深色会自动切成暗色 · 只存在这台设备';
+                                        const acWrap = document.getElementById('accentSwatches');
+                                        if (acWrap && !acWrap.childElementCount) {
+                                            THEME_ACCENT_PRESETS.forEach(p => {
+                                                const b = document.createElement('button');
+                                                b.type = 'button';
+                                                b.className = 'theme-swatch';
+                                                b.dataset.accent = p.color;
+                                                b.title = p.label;
+                                                b.style.background = p.color || 'linear-gradient(135deg, #c89500 0 50%, #ffd60a 50% 100%)';
+                                                acWrap.appendChild(b);
+                                            });
+                                        }
+                                        const effWrap = document.getElementById('themeEffects');
+                                        if (effWrap && !effWrap.childElementCount) {
+                                            THEME_EFFECTS.forEach(e => {
+                                                const b = document.createElement('button');
+                                                b.type = 'button';
+                                                b.className = 'theme-effect';
+                                                b.dataset.effect = e.key;
+                                                b.textContent = e.label;
+                                                effWrap.appendChild(b);
+                                            });
                                         }
                                     }
-                                    function themeBuildSwatches() {
-                                        const wrap = document.getElementById('themeSwatches');
-                                        if (!wrap || wrap.childElementCount) return;
-                                        THEME_PRESETS.forEach(p => {
-                                            const b = document.createElement('button');
-                                            b.className = 'theme-swatch';
-                                            b.dataset.bg = p.bg;
-                                            b.title = p.label;
-                                            if (p.bg) b.style.background = p.bg;
-                                            else b.style.background = 'linear-gradient(135deg, #eef1f4 0 50%, #ffffff 50% 100%)';
-                                            wrap.appendChild(b);
-                                        });
+                                    function themeTogglePanel(open) {
+                                        const panel = document.getElementById('themePanel');
+                                        const gear = document.getElementById('themeGear');
+                                        if (!panel) return;
+                                        const next = (open === undefined) ? !!panel.hidden : !!open;
+                                        panel.hidden = !next;
+                                        if (gear) {
+                                            gear.classList.toggle('open', next);
+                                            gear.setAttribute('aria-expanded', next ? 'true' : 'false');
+                                        }
                                     }
                                     function themeInit() {
-                                        themeBuildSwatches();
-                                        let saved = '';
-                                        try { saved = localStorage.getItem(THEME_BG_KEY) || ''; } catch (e) { }
-                                        themeApply(saved);
+                                        themeBuildUI();
+                                        let saved = null;
+                                        try { saved = JSON.parse(localStorage.getItem(THEME_KEY) || 'null'); } catch (e) { }
+                                        if (!saved) {
+                                            // 旧版只有背景色一个键：迁过来（迁完删旧键）
+                                            let old = '';
+                                            try { old = localStorage.getItem(THEME_OLD_BG_KEY) || ''; } catch (e) { }
+                                            if (old) {
+                                                saved = { bg: old, accent: '', effect: '' };
+                                                try { localStorage.removeItem(THEME_OLD_BG_KEY); } catch (e) { }
+                                            }
+                                        }
+                                        themeSettings = {
+                                            bg: saved && saved.bg ? themeNormHex(saved.bg) : '',
+                                            accent: saved && saved.accent ? themeNormHex(saved.accent) : '',
+                                            effect: saved && saved.effect ? saved.effect : ''
+                                        };
+                                        themeApplyAll();
                                     }
 
                                     // ==================== 事件绑定 ====================
@@ -12490,15 +12839,39 @@
                                         setClick('fbGenerateBtn', fbGenerate);
                                         setClick('fbCopyBtn', fbCopy);
                                         setClick('fbClearBtn', fbClear);
-                                        // 自定义背景色（色块 / 取色器 / 恢复默认）
+                                        // 界面设置（齿轮面板：背景色 / 强调色 / 渐变）
                                         themeInit();
-                                        const swWrap = document.getElementById('themeSwatches');
-                                        if (swWrap) swWrap.addEventListener('click', (e) => {
+                                        setClick('themeGear', () => themeTogglePanel());
+                                        setClick('themePanelClose', () => themeTogglePanel(false));
+                                        setClick('themeReset', themeReset);
+                                        const bgWrap = document.getElementById('themeSwatches');
+                                        if (bgWrap) bgWrap.addEventListener('click', (e) => {
                                             const b = e.target.closest('.theme-swatch');
-                                            if (b) themePick(b.dataset.bg || '');
+                                            if (b) themePick('bg', b.dataset.bg || '');
                                         });
-                                        addEvent('themeBgPicker', 'input', (e) => themePick(e.target.value));
-                                        setClick('themeBgReset', () => themePick(''));
+                                        const acWrap = document.getElementById('accentSwatches');
+                                        if (acWrap) acWrap.addEventListener('click', (e) => {
+                                            const b = e.target.closest('.theme-swatch');
+                                            if (b) themePick('accent', b.dataset.accent || '');
+                                        });
+                                        const effWrap = document.getElementById('themeEffects');
+                                        if (effWrap) effWrap.addEventListener('click', (e) => {
+                                            const b = e.target.closest('.theme-effect');
+                                            if (b) themePickEffect(b.dataset.effect || '');
+                                        });
+                                        addEvent('themeBgPicker', 'input', (e) => themePick('bg', e.target.value));
+                                        addEvent('themeAccentPicker', 'input', (e) => themePick('accent', e.target.value));
+                                        // 点面板外面 / 按 Esc 收起
+                                        document.addEventListener('click', (e) => {
+                                            const panel = document.getElementById('themePanel');
+                                            const gear = document.getElementById('themeGear');
+                                            if (!panel || panel.hidden) return;
+                                            if (panel.contains(e.target) || (gear && gear.contains(e.target))) return;
+                                            themeTogglePanel(false);
+                                        });
+                                        document.addEventListener('keydown', (e) => {
+                                            if (e.key === 'Escape') themeTogglePanel(false);
+                                        });
                                         setClick('careerClearImportBtn', () => {
                                             const a = document.getElementById('careerImportArea');
                                             if (a) a.value = '';
@@ -12708,8 +13081,8 @@
                                                 const btn = tabsEl.querySelector('.tab-btn[data-tab="' + tab + '"]');
                                                 if (btn) tabsEl.appendChild(btn);
                                             });
-                                            // 调色条要留在最后（上面 appendChild 会把按钮挪到它后面）
-                                            const themed = document.getElementById('themeBar');
+                                            // 设置面板要留在最后（上面 appendChild 会把按钮挪到它后面）
+                                            const themed = document.getElementById('themePanel');
                                             if (themed) tabsEl.appendChild(themed);
                                         } catch (_) { }
                                     }
@@ -12720,7 +13093,7 @@
                                             animation: 150,
                                             draggable: '.tab-btn',
                                             filter: '.tab-group-title',
-                                            onMove: (evt) => !evt.related.classList.contains('tab-group-title') && !evt.related.classList.contains('theme-bar'),
+                                            onMove: (evt) => !evt.related.classList.contains('tab-group-title') && !evt.related.classList.contains('tabs-head') && !evt.related.classList.contains('theme-panel'),
                                             onEnd: () => {
                                                 try {
                                                     const order = [...tabsEl.querySelectorAll('.tab-btn')].map(b => b.dataset.tab);
