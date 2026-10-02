@@ -948,24 +948,42 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     $('fbGenerateBtn').click();
     check(/【梦幻消除战问题反馈】/.test(fbOut()) && /【喜扑UID】：12345678/.test(fbOut()) && /【渠道】：微信/.test(fbOut()),
       '反馈模板：梦幻消除战模板（渠道去掉中英文括号内容）', fbLine());
-    // 乐缤纷CP后台：用户给的格式（乐缤纷 / 渠道： / 问题： / 角色ID： / 来源：乐缤纷CP后台）
+    // 乐缤纷CP后台：粘的是后台表格里复制出来的行（用户给的原文就是制表符分隔的一行）
+    // 列序：账号 / 渠道 / 版本号 / 类型 / 问题 / 提交时间 / 状态 / 回复 / 回复人 / 回复时间 / 编辑
     fbPick('fbTemplateGroup', 2);
-    $('fbRawInput').value = '12345678 乐缤纷-抖音 安卓 1001 双线一服 87654321 老王 2026-01-02';
+    const lb1 = '92930999\tweChat (wechat)\t2.1.7.62\t问题反馈\t没有显示也没有发掘币\t2026-10-02 10:05:53\t未查看\t\t\t2026-10-02 10:05:53\t回复 删除';
+    const lb2 = '91819911\tweChat (wechat)\t2.1.7.62\t问题反馈\t9月27号13点40分左右逃跑\t2026-10-01 23:03:49\t未查看\t\t\t2026-10-01 23:03:49\t回复 删除';
+    const lbSeg1 = '乐缤纷\n渠道：weChat (wechat)\n问题：没有显示也没有发掘币\n角色ID：92930999\n来源：乐缤纷CP后台';
+    const lbSeg2 = '乐缤纷\n渠道：weChat (wechat)\n问题：9月27号13点40分左右逃跑\n角色ID：91819911\n来源：乐缤纷CP后台';
+    $('fbRawInput').value = lb1;
     $('fbGenerateBtn').click();
-    check(fbOut() === '乐缤纷\n渠道：抖音\n问题：玩家反馈，麻烦看看\n角色ID：87654321\n来源：乐缤纷CP后台',
-      '反馈模板：乐缤纷CP后台格式（乐缤纷 / 渠道 / 问题 / 角色ID / 来源）', fbLine());
+    check(fbOut() === lbSeg1,
+      '反馈模板：乐缤纷CP后台按后台表格行出五行格式（乐缤纷 / 渠道 / 问题 / 角色ID / 来源）', fbLine());
     check(fbChips('fbSourceGroup')[10].classList.contains('active')
       && (JSON.parse(window.localStorage.getItem('feedbackTplState') || '{}') || {}).source === '乐缤纷CP后台',
       '反馈模板：选「乐缤纷CP后台」模板会把来源一并切到「乐缤纷CP后台」');
-    // 认不出渠道 / 角色ID 时留空（不写「未获取」）
-    $('fbRawInput').value = '乐缤纷';
+    // 一次复制多行 → 多段，段与段之间空一行
+    $('fbRawInput').value = lb1 + '\n' + lb2;
     $('fbGenerateBtn').click();
-    check(fbOut() === '乐缤纷\n渠道：\n问题：玩家反馈，麻烦看看\n角色ID：\n来源：乐缤纷CP后台',
-      '反馈模板：乐缤纷CP后台认不出渠道 / 角色ID 时留空', fbLine());
-    $('fbRawInput').value = '12345678 梦幻消除战-微信 安卓 77 服务器 87654321 老王 2026-01-02';
+    check(fbOut() === lbSeg1 + '\n\n' + lbSeg2 && /生成 2 段/.test($('fbHint').textContent),
+      '反馈模板：乐缤纷CP后台一次粘多行 → 生成多段（段间空一行）', fbLine());
+    // 复制时把表头也带上了 → 跳过表头行
+    $('fbRawInput').value = '账号\t渠道\t版本号\t类型\t问题\t提交时间\t状态\t回复\t回复人\t回复时间\t编辑\n' + lb1;
+    $('fbGenerateBtn').click();
+    check(fbOut() === lbSeg1, '反馈模板：乐缤纷CP后台复制时带上表头 → 表头行被跳过', fbLine());
+    // 只复制了「账号 / 渠道 / 问题」三列 → 按内容认
+    $('fbRawInput').value = '92930999\tweChat (wechat)\t没有显示也没有发掘币';
+    $('fbGenerateBtn').click();
+    check(fbOut() === lbSeg1, '反馈模板：乐缤纷CP后台只复制三列也能认出账号/渠道/问题', fbLine());
+    // 认不出来就不给格式（免得发错）
+    $('fbRawInput').value = '这行不是后台表格';
+    $('fbGenerateBtn').click();
+    check(fbOut() === '' && /没认出/.test($('fbHint').textContent),
+      '反馈模板：乐缤纷CP后台认不出内容 → 不生成并提示粘整行', $('fbHint').textContent);
+    $('fbRawInput').value = '工单号 XXX-1\n游戏 猫旅馆物语\nUID 123';
     $('fbGenerateBtn').click();
     check(fbOut() === '' && /模板选错了/.test($('fbHint').textContent),
-      '反馈模板：乐缤纷CP后台模板遇到梦幻消除战 → 不生成并提示换模板', $('fbHint').textContent);
+      '反馈模板：乐缤纷CP后台模板遇到内部工单 → 不生成并提示换模板', $('fbHint').textContent);
     // 模板选错 → 不生成 + 提示
     fbPick('fbTemplateGroup', 1);
     $('fbRawInput').value = '工单号 XXX-1\n游戏 猫旅馆物语\nUID 123';

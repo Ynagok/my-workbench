@@ -245,6 +245,12 @@ ok(/includes\('异世界勇者'\)/.test(s) && /'联盟契约'/.test(s) && /'tapt
   '异世界勇者区服固定 001、联盟契约 / taptap 固定 000（用户给的规则）');
 ok(/'乐缤纷'\s*\n?\s*\+ '\\n渠道：'/.test(s) && /\\n角色ID：/.test(s) && /fbTemplate === 'lebifen'/.test(s),
   '乐缤纷CP后台格式：乐缤纷 / 渠道： / 问题： / 角色ID： / 来源：（用户给的格式）');
+ok(/function fbLebifenRows\(raw\)/.test(s) && /line\.indexOf\('\\t'\) !== -1\) return line\.split\('\\t'\)/.test(s)
+  && /question: cells\[4\] \|\| ''/.test(s) && /cells\[0\] === '账号'/.test(s)
+  && /rows\.map\(fbLebifenText\)\.join\('\\n\\n'\)/.test(s),
+  '乐缤纷CP后台按后台表格行解析（制表符分列 / 第 5 列是问题 / 跳过表头行 / 多行拼成多段）');
+ok(/const FB_LB_NOISE_RE =/.test(s) && /FB_LB_CHANNEL_RE/.test(s) && /FB_LB_ROLE_ID_RE/.test(s),
+  '乐缤纷CP后台只复制少数几列时按内容认（数字账号 / 渠道关键词 / 其余那句当问题）');
 ok(/if \(k === 'lebifen'\) fbSource = '乐缤纷CP后台'/.test(s),
   '选「乐缤纷CP后台」模板时来源一并切到「乐缤纷CP后台」（格式里来源固定是它）');
 ok(/const FB_ORDER_FIELDS = \{[\s\S]*?'工单号': 'orderId'[\s\S]*?'手机号码': 'phoneNumber'[\s\S]*?\};/.test(s),
