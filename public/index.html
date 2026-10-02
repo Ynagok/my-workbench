@@ -12192,9 +12192,13 @@
                                         const h = (v) => ('0' + Math.max(0, Math.min(255, Math.round(v))).toString(16)).slice(-2);
                                         return '#' + h(c.r) + h(c.g) + h(c.b);
                                     }
-                                    // 把 c 朝 target 方向混 ratio（0=不变，1=全变）
+                                    // 把 c 朝 target 方向混 ratio（0=不变，1=全变）；target 是 {r,g,b}，逐通道混
                                     function themeMix(c, target, ratio) {
-                                        return { r: c.r + (target - c.r) * ratio, g: c.g + (target - c.g) * ratio, b: c.b + (target - c.b) * ratio };
+                                        return {
+                                            r: c.r + (target.r - c.r) * ratio,
+                                            g: c.g + (target.g - c.g) * ratio,
+                                            b: c.b + (target.b - c.b) * ratio
+                                        };
                                     }
                                     // 相对亮度（判断深底还是浅底、以及把颜色压到可读区间）
                                     function themeLum(c) {
@@ -12212,6 +12216,13 @@
                                             if (themeLum(themeMix(c, to, mid)) < target) lo = mid; else hi = mid;
                                         }
                                         return themeMix(c, to, lum < target ? lo : hi);
+                                    }
+                                    // 把颜色压进「可读亮度区间」：区间内原样保留（保住鲜艳度），越界才往白/黑拉
+                                    function themeClampLum(c, lo, hi) {
+                                        const lum = themeLum(c);
+                                        if (lum < lo) return themeToLum(c, lo);
+                                        if (lum > hi) return themeToLum(c, hi);
+                                        return c;
                                     }
                                     function themeRgba(c, a) {
                                         const h = (v) => Math.round(Math.max(0, Math.min(255, v)));
@@ -12265,7 +12276,8 @@
                                         }
                                         const family = base
                                             ? (function () {
-                                                const c = themeToLum(base, themeDark ? 0.62 : 0.42);
+                                                // 浅底：亮度落在 0.14~0.32（当文字看得清、当填充配黑字也够）；深底：0.50~0.72
+                                                const c = themeClampLum(base, themeDark ? 0.50 : 0.14, themeDark ? 0.72 : 0.32);
                                                 const white = { r: 255, g: 255, b: 255 }, black = { r: 8, g: 12, b: 16 };
                                                 return {
                                                     '--accent': themeHex(c),

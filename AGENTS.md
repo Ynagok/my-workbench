@@ -49,7 +49,7 @@ npm run verify     # 改完代码、push 前的完整自检
 
 | 命令 | 内容 |
 |---|---|
-| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 233 项 + 「接口挂起时界面仍可用」+ 服务端冒烟 12 项 + 油猴脚本语法 + 单测 169 项 |
+| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 236 项 + 「接口挂起时界面仍可用」+ 服务端冒烟 12 项 + 油猴脚本语法 + 单测 169 项 |
 | `npm run verify:static` | 只要静态校验 + 语法检查（最快） |
 | `npm run report` | 打印一份真实生成的日报，肉眼确认排版（含 ⑥伙伴弹途 / ⑦异世界勇者） |
 | `npm run build:data` | 从 GM 玩家页快照提取 4 张权威映射表 + 与硬编码常量的**差异报告**（见下「游戏数据管线」） |
@@ -126,14 +126,15 @@ npm run verify     # 改完代码、push 前的完整自检
   - ⚠️ 有几处**故意做黑**的元素（`.debug-console`、`#tab-script` 的拼豆/油炸按钮、`.badge` 的基础色）—— 它们在浅底上是「反色小块」，是有意的，别顺手改白。
 - **界面设置（侧边栏抬头齿轮）**：抬头是 `.tabs-head`（`.tabs-brand` 站名 + `#themeGear` 齿轮），点齿轮开 `#themePanel`。三组可调：
   - **背景色** 8 个色块（`THEME_BG_PRESETS`：默认柔和白 / 纯白 / 暖米 / 豆沙绿 / 浅蓝 / 淡粉 / 深灰 / 炭黑）+ 取色器。
-  - **强调色** 8 个色块（`THEME_ACCENT_PRESETS`：方舟黄 / 橙红 / 品红 / 紫 / 蓝 / 青 / 绿 / 灰）+ 取色器。任意颜色都会先按亮度**压到可读区间**（浅底 → 目标亮度 0.42，深底 → 0.62，`themeToLum` 二分 12 步），再派生 `--accent` / `--accent-hi` / `--accent-ink` / `--accent-dim` / `--accent-line` / `--accent-glow`，所以「当文字」和「当填充配黑字」都看得清。
+  - **强调色** 8 个色块（`THEME_ACCENT_PRESETS`：方舟黄 / 橙红 / 品红 / 紫 / 蓝 / 青 / 绿 / 灰）+ 取色器。任意颜色先按**区间**钳制（`themeClampLum(base, 浅底 0.14~0.32 / 深底 0.50~0.72)`：**区间内原样保留**，所以 8 个预设色都不会被洗白；越界才用 `themeToLum` 二分混到边界），再派生 `--accent` / `--accent-hi` / `--accent-ink` / `--accent-dim` / `--accent-line` / `--accent-glow`，所以「当文字」和「当填充配黑字」都看得清。
+    - ⚠️⚠️ **`themeMix(c, target, ratio)` 的 `target` 是 `{r,g,b}` 对象，必须逐通道混**（`c.r + (target.r - c.r) * ratio`）。曾经写成 `c.r + (target - c.r) * ratio`（把对象当数字）→ 全部算出 `#aNaNaN` / `rgba(NaN,NaN,NaN,…)` → **非法颜色值让整条 CSS 声明失效**，表现就是「选了强调色但界面没变、强调色像被取消了」（背景派生的卡片面/分割线也一起坏，卡片变透明）。`verify.mjs` 有断言锁死这个写法，`smoke.cjs` 还会用 `isColor()` 逐条校验派生令牌，别再写回去。
   - **渐变 / 底纹** 6 种（`THEME_EFFECTS`：默认网格+光晕 / 纯色 / 光晕 / 网格 / 斜向渐变 / 边缘压暗）→ 挂在 `<html data-bg-effect="…">`，具体背景图写在 CSS 的 `html[data-bg-effect="…"] body` 里（默认那个不挂属性，就用 body 的基础背景）。
   - 面板：点齿轮开合、`#themePanelClose` / 点面板外面 / Esc 收起（`themeTogglePanel`），齿轮带 `.open` 与 `aria-expanded`。
   - **令牌计算**：`themeApplyBg` 按背景色算出整套令牌写在 `<html>` 行内（`THEME_TOKEN_KEYS`，行内优先级最高，覆盖 `:root`），卡片面/次级面/分割线都是「背景色往白或往黑混一点」；`themeLum < 0.32` 判为深色 → 换浅色文字（`THEME_DARK_INK`）并挂 `data-theme="dark"`；`themeApplyAccent` 再覆盖强调色那 6 个令牌（**背景与强调色都是默认时会把 accent 令牌也清掉，交回 `:root`**）。
   - ⚠️ **`data-theme="dark"` 的那段 CSS「暗色收口」必须留着**：浅色收口层里有十几处写死的浅色（按钮浅底、白底输入框、淡黑 hover/斑马、白遮罩、`.theme-effect` 白底…），深色底时全靠这一段按更高特异性盖回去。加浅色样式时别往这一段里写，也别删。
   - ⚠️ 抬头从原来的 `.tabs::before`（伪元素写的 'work-bad'）换成了真元素 `.tabs-head`，`.tabs::after` 那道黄条没动；`restoreTabOrder()` 里 `appendChild` 会把 tab 按钮挪到末尾，所以**那之后要把 `#themePanel` 再 append 一次**，Sortable 的 `onMove` 也要挡 `.tabs-head` / `.theme-panel`（都有断言锁）。
   - 只存本机 `localStorage['themeSettings']`（`{bg, accent, effect}`，全默认就删键），**不进 `/api/data`**；启动时 `themeInit()` 立刻应用（避免闪一下默认色），并**兼容迁移旧键 `themeBgColor`**（读到就并进 themeSettings 再删旧键）。
-  - **测试**：`tools/smoke.cjs` 第 **8i** 节 **19 条**（抬头齿轮 + 面板默认收起 / 点齿轮展开（`.open` + aria）/ 8+8+6 个选项 / 默认不动令牌也没本机记录 / 选暖米 → `--bg-0` + 浅色令牌 / 卡片面由底色推导 / 选蓝 → 强调色按亮度压深（不是原色）+ 淡底光圈文字色一起换 / 渐变挂 `data-bg-effect` / 选炭黑 → 自动暗色且强调色提亮 / 两个取色器 / 点外面收起 / 恢复默认清令牌+属性+记录 / 不往服务端存）；`tools/verify.mjs` 另有 7 条静态断言（抬头+面板注入、旧调色条已移除、8+8+6 选项、三个 apply 函数与亮度钳制、令牌派生与属性、6 种渐变的 CSS、只存本机+迁移旧键、齿轮开合与排序守护）。
+  - **测试**：`tools/smoke.cjs` 第 **8i** 节 **22 条**（抬头齿轮 + 面板默认收起 / 点齿轮展开（`.open` + aria）/ 8+8+6 个选项 / 默认不动令牌也没本机记录 / 选暖米 → `--bg-0` + 浅色令牌 / 卡片面由底色推导 / **派生令牌逐条校验是合法颜色（`isColor`，防 `#aNaNaN`）** / 选蓝 → `--accent` 变蓝（合法值、≠默认黄）/ 六个 accent 令牌一起换 / **换绿再换回蓝都不是「取消」** / 渐变挂 `data-bg-effect` / 选炭黑 → 自动暗色且强调色提亮 / 两个取色器 / 点外面收起 / 恢复默认清令牌+属性+记录 / 不往服务端存）；`tools/verify.mjs` 另有 10 条静态断言（抬头+面板注入、旧调色条已移除、8+8+6 选项、三个 apply 函数、**`themeMix` 必须逐通道混**、区间钳制、令牌派生与属性、6 种渐变的 CSS、只存本机+迁移旧键、齿轮开合与排序守护）。
 - **客服生涯 · 报表版式**：`.career-report-head`（英文 kicker `WORKLOAD REPORT / 工作量统计报表` + 标题 + `#careerReportSub` 数据范围/口径 + 右上 `#careerReportMeta` 5 格元数据：身份/记录天数/累计/日均/出具日期，由 `renderCareer()` 填；**「反馈模板」标签页也复用了这套抬头**）；卡片自动编号 `01…`（`#tab-career` 上 `counter-reset: career-card`，编号画在 `.card > label::before` / `.flex-row > label::before` / `.career-collapse-btn::before`）；KPI 卡改成等宽大数字 + 右上角刻度线（`.career-kpi::after`）；报表页**关掉了卡片的斜纹底**（`#tab-career .card::after { display:none }`）。
 - ⚠️ 想再换回暗色：把 `:root` 的 `--bg-0/--surface*/--ink*/--line*/--accent*` 换回深色值即可，但**要同时删掉/改掉「浅色收口层 · 柔和白」这一段 + `color-scheme: light` + select 箭头 SVG 的 `%23c89500`**，否则会有浅底白线。
 

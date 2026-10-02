@@ -270,6 +270,12 @@ ok(!/class="theme-bar"/.test(s) && !/id="themeBar"/.test(s),
 ok(/function themeApplyBg\(bg\)/.test(s) && /function themeApplyAccent\(accent\)/.test(s)
   && /function themeApplyEffect\(effect\)/.test(s) && /function themeToLum\(c, target\)/.test(s),
   '界面设置：背景色 → 整套令牌、强调色 → 按亮度压深/提亮、渐变 → data-bg-effect');
+// ⚠️ themeMix 曾经把 {r,g,b} 当数字用 → 算出 #aNaNaN（非法色 → CSS 整条失效 → 强调色像是被取消）。
+//    这里锁死「逐通道混」的写法，别再写回 c.r + (target - c.r) * ratio。
+ok(/function themeMix\(c, target, ratio\) \{[\s\S]{0,220}?c\.r \+ \(target\.r - c\.r\) \* ratio[\s\S]{0,120}?c\.g \+ \(target\.g - c\.g\) \* ratio/.test(s),
+  '界面设置：themeMix 逐通道混色（不会再把 {r,g,b} 当数字算出 NaN）');
+ok(/function themeClampLum\(c, lo, hi\)/.test(s) && /themeClampLum\(base, themeDark \? 0\.50 : 0\.14, themeDark \? 0\.72 : 0\.32\)/.test(s),
+  '界面设置：强调色按区间钳制（区间内保持原色鲜艳，越界才往白/黑拉）');
 ok(/THEME_TOKEN_KEYS\.forEach\(k => st\.removeProperty\(k\)\)/.test(s)
   && /root\.setAttribute\('data-theme', themeDark \? 'dark' : 'light'\)/.test(s)
   && /root\.setAttribute\('data-bg-effect', themeSettings\.effect\)/.test(s),

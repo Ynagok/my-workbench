@@ -984,6 +984,16 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     const themeOf = () => root.getAttribute('data-theme');
     const stored = () => { try { return JSON.parse(window.localStorage.getItem('themeSettings') || 'null'); } catch (_) { return null; } };
     const pickEffect = (key) => [...effects()].find(b => (b.dataset.effect || '') === key).click();
+    // ⚠️ 只判「以 # 开头」不够：算出 NaN 时会得到 #aNaNaN 这种非法值（曾经真的踩过），
+    //    所以这里逐条校验「是真的颜色」。
+    const HEX_RE = /^#[0-9a-f]{6}$/i;
+    const RGBA_RE = /^rgba?\(\d+,\s*\d+,\s*\d+(,\s*[\d.]+)?\)$/;
+    const isColor = (v) => HEX_RE.test(v) || RGBA_RE.test(v);
+    const COLOR_KEYS = ['--bg-0', '--bg-1', '--surface', '--surface-2', '--surface-3', '--sidebar',
+      '--ink-0', '--ink-1', '--ink-2', '--ink-3', '--line-0', '--line-1', '--line-2',
+      '--accent', '--accent-hi', '--accent-ink', '--accent-dim', '--accent-line', '--accent-glow',
+      '--grid-line', '--warn', '--danger'];
+    const badTokens = () => COLOR_KEYS.filter(k => !isColor(varOf(k)));
     check(!!$('themeGear') && !!$('themePanel') && !!doc.querySelector('.tabs-head .tabs-brand'),
       '界面设置：侧边栏抬头有站名 + 齿轮');
     check($('themePanel').hidden === true, '界面设置：面板默认收起');
@@ -1004,16 +1014,24 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
       '界面设置：选「暖米」→ --bg-0 生效 + data-theme=light + 记住本机', varOf('--bg-0') + '/' + themeOf() + '/' + JSON.stringify(stored()));
     check(/^#/.test(varOf('--surface')) && varOf('--surface') !== '#f6f1e7' && varOf('--ink-0') === '#1b2228',
       '界面设置：卡片面由背景色推导，浅底仍是深色文字', varOf('--surface') + '/' + varOf('--ink-0'));
-    // 强调色：浅底上要压深到能读
+    check(badTokens().length === 0, '界面设置：背景色派生出的令牌全是合法颜色（不会算出 #aNaNaN）', badTokens().join(','));
+    // 强调色：浅底上要压到能读
     const accentDefaultLight = varOf('--accent');
     acSwatches()[4].click();
     await sleep(20);
-    check(/^#/.test(varOf('--accent')) && varOf('--accent') !== accentDefaultLight
-      && varOf('--accent') !== '#2f7de1' && (stored() || {}).accent === '#2f7de1',
-      '界面设置：选「蓝」强调色 → --accent 换成按亮度压深后的蓝（不是原色）', varOf('--accent') + ' ← ' + accentDefaultLight);
-    check(/^rgba\(/.test(varOf('--accent-dim')) && /^rgba\(/.test(varOf('--accent-glow'))
-      && /^#/.test(varOf('--accent-ink')),
-      '界面设置：强调色的淡底 / 光圈 / 文字色一起跟着换', varOf('--accent-dim') + ' / ' + varOf('--accent-ink'));
+    check(isColor(varOf('--accent')) && varOf('--accent') !== accentDefaultLight && (stored() || {}).accent === '#2f7de1',
+      '界面设置：选「蓝」强调色 → --accent 变成蓝色（合法值、不同于默认黄）', varOf('--accent') + ' ← ' + accentDefaultLight);
+    check(isColor(varOf('--accent-dim')) && isColor(varOf('--accent-glow')) && isColor(varOf('--accent-ink'))
+      && isColor(varOf('--accent-hi')) && isColor(varOf('--accent-line')) && badTokens().length === 0,
+      '界面设置：强调色的淡底 / 光圈 / 文字色 / 描边都跟着换且都是合法颜色', badTokens().join(',') || varOf('--accent-dim'));
+    const accentBlue = varOf('--accent');
+    acSwatches()[6].click();
+    await sleep(20);
+    check(isColor(varOf('--accent')) && varOf('--accent') !== accentBlue && varOf('--accent') !== accentDefaultLight,
+      '界面设置：换「绿」强调色 → --accent 跟着换（不是取消、也不是回到默认）',
+      varOf('--accent') + ' ← ' + accentBlue + ' ← ' + accentDefaultLight);
+    acSwatches()[4].click();
+    await sleep(20);
     // 渐变
     pickEffect('none');
     await sleep(20);
@@ -1028,10 +1046,11 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     await sleep(20);
     check(varOf('--bg-0') === '#12161a' && themeOf() === 'dark'
       && varOf('--ink-0') === '#e9eef3'
-      && varOf('--accent') !== '#2f7de1' && /^#/.test(varOf('--accent')),
-      '界面设置：选「炭黑」→ 自动暗色（浅字 + 强调色提亮）',
+      && isColor(varOf('--accent')) && varOf('--accent') !== '#2f7de1' && badTokens().length === 0,
+      '界面设置：选「炭黑」→ 自动暗色（浅字 + 强调色改用暗底那版）',
       varOf('--bg-0') + '/' + themeOf() + '/' + varOf('--ink-0') + '/' + varOf('--accent'));
-    check(varOf('--accent') !== accentDefaultLight, '界面设置：深底下的强调色跟浅底不是同一个值');
+    check(varOf('--accent') !== accentDefaultLight && varOf('--accent') !== accentBlue,
+      '界面设置：深底下的强调色跟浅底不是同一个值（暗底提亮）', varOf('--accent'));
     // 取色器
     $('themeBgPicker').value = '#d9e6d2';
     fire($('themeBgPicker'), 'input');
@@ -1040,8 +1059,10 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     $('themeAccentPicker').value = '#0f9d58';
     fire($('themeAccentPicker'), 'input');
     await sleep(20);
-    check(/^#/.test(varOf('--accent')) && varOf('--accent') !== '#0f9d58' && (stored() || {}).accent === '#0f9d58',
-      '界面设置：取色器选强调色也生效（同样按亮度压深）', varOf('--accent'));
+    check(isColor(varOf('--accent')) && varOf('--accent') !== '#2f7de1' && badTokens().length === 0,
+      '界面设置：取色器选强调色也生效（换成这支绿）', varOf('--accent') + '/' + badTokens().join(','));
+    check((stored() || {}).accent === '#0f9d58',
+      '界面设置：取色器选的强调色记在本机', JSON.stringify(stored()));
     // 点外面 / 收起
     doc.body.click();
     await sleep(10);
