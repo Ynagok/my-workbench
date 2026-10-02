@@ -231,16 +231,22 @@ ok(/data-tab="feedback"/.test(s) && /id="tab-feedback"/.test(s) && /反馈模板
   '「反馈模板」标签页已注入（侧边栏 + 页面）');
 {
   const srcBlk = (s.match(/const FB_SOURCES = \[(.*?)\];/) || ['', ''])[1];
-  ok((srcBlk.match(/'/g) || []).length === 22 && /'企微'/.test(srcBlk) && /'爱江山CP后台'/.test(srcBlk),
-    '反馈来源 11 个且含「企微」（抖音在线…繁花CP后台 / 企微）');
+  ok((srcBlk.match(/'/g) || []).length === 24 && /'企微'/.test(srcBlk) && /'爱江山CP后台'/.test(srcBlk)
+    && /'乐缤纷CP后台'/.test(srcBlk) && /'抖音小店'/.test(srcBlk) && !/抖音在线/.test(srcBlk),
+    '反馈来源 12 个（抖音小店…繁花CP后台 / 乐缤纷CP后台 / 企微），旧的「抖音在线」已改名');
   const tplBlk = (s.match(/const FB_TEMPLATES = \[([\s\S]*?)\];/) || ['', ''])[1];
-  ok((tplBlk.match(/\{ key: '/g) || []).length === 3 && /'menghuan'/.test(tplBlk) && /'changwu'/.test(tplBlk) && /'gongdan'/.test(tplBlk),
-    '反馈模板 3 种（梦幻消除战 / 常规游戏 / 内部工单）');
+  ok((tplBlk.match(/\{ key: '/g) || []).length === 4 && /'menghuan'/.test(tplBlk) && /'changwu'/.test(tplBlk)
+    && /'lebifen'/.test(tplBlk) && /'gongdan'/.test(tplBlk),
+    '反馈模板 4 种（梦幻消除战 / 常规游戏 / 乐缤纷CP后台 / 内部工单）');
 }
 ok(/【梦幻消除战问题反馈】/.test(s) && /【喜扑UID】/.test(s) && /问题：玩家反馈，麻烦看看/.test(s),
   '反馈模板正文与原工具一致（梦幻版 + 常规版两套）');
 ok(/includes\('异世界勇者'\)/.test(s) && /'联盟契约'/.test(s) && /'taptap'/.test(s) && /'001'/.test(s) && /'000'/.test(s),
   '异世界勇者区服固定 001、联盟契约 / taptap 固定 000（用户给的规则）');
+ok(/'乐缤纷'\s*\n?\s*\+ '\\n渠道：'/.test(s) && /\\n角色ID：/.test(s) && /fbTemplate === 'lebifen'/.test(s),
+  '乐缤纷CP后台格式：乐缤纷 / 渠道： / 问题： / 角色ID： / 来源：（用户给的格式）');
+ok(/if \(k === 'lebifen'\) fbSource = '乐缤纷CP后台'/.test(s),
+  '选「乐缤纷CP后台」模板时来源一并切到「乐缤纷CP后台」（格式里来源固定是它）');
 ok(/const FB_ORDER_FIELDS = \{[\s\S]*?'工单号': 'orderId'[\s\S]*?'手机号码': 'phoneNumber'[\s\S]*?\};/.test(s),
   '内部工单字段表齐全（工单号 / 提交人 / 游戏 / 账号 / UID / 角色 / 区服 / 问题 / 联系方式）');
 ok(/localStorage\.getItem\(FB_STATE_KEY\)/.test(s) && /localStorage\.setItem\(FB_STATE_KEY/.test(s)

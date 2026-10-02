@@ -903,11 +903,12 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     const fbChips = (id) => doc.querySelectorAll('#' + id + ' .fb-chip');
     const fbPick = (group, i) => fbChips(group)[i].click();
     check(!!doc.querySelector('.tab-btn[data-tab="feedback"]') && !!$('tab-feedback'), '反馈模板：侧边栏标签页与页面都在');
-    check(fbChips('fbTemplateGroup').length === 3, '反馈模板：三种模板（梦幻消除战 / 常规游戏 / 内部工单）', fbChips('fbTemplateGroup').length);
-    check(fbChips('fbSourceGroup').length === 11 && /企微/.test($('fbSourceGroup').textContent),
-      '反馈模板：来源 11 个且新增「企微」', $('fbSourceGroup').textContent.trim().slice(-16));
+    check(fbChips('fbTemplateGroup').length === 4, '反馈模板：四种模板（梦幻消除战 / 常规游戏 / 乐缤纷CP后台 / 内部工单）', fbChips('fbTemplateGroup').length);
+    check(fbChips('fbSourceGroup').length === 12 && /企微/.test($('fbSourceGroup').textContent)
+      && /乐缤纷CP后台/.test($('fbSourceGroup').textContent),
+      '反馈模板：来源 12 个（抖音小店…繁花CP后台 / 乐缤纷CP后台 / 企微）', $('fbSourceGroup').textContent.trim().slice(-20));
     check(fbChips('fbTemplateGroup')[0].classList.contains('active') && fbChips('fbSourceGroup')[0].classList.contains('active'),
-      '反馈模板：默认选中「梦幻消除战 + 抖音在线」');
+      '反馈模板：默认选中「梦幻消除战 + 抖音小店」');
     check(doc.querySelectorAll('#fbReportMeta > div').length === 3 && /来源总数/.test($('fbReportMeta').textContent),
       '反馈模板：抬头 3 格（模板 / 来源 / 来源总数）', $('fbReportMeta').textContent);
 
@@ -918,7 +919,7 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     $('fbRawInput').value = '12345678 异世界勇者-微信 安卓 77 服务器 87654321 角色名 2026-01-02';
     $('fbGenerateBtn').click();
     check(/游戏：异世界勇者-微信/.test(fbOut()) && /UID：12345678/.test(fbOut()) && /角色ID：87654321/.test(fbOut())
-      && /区服：001/.test(fbOut()) && /问题：玩家反馈，麻烦看看/.test(fbOut()) && /来源：抖音在线/.test(fbOut())
+      && /区服：001/.test(fbOut()) && /问题：玩家反馈，麻烦看看/.test(fbOut()) && /来源：抖音小店/.test(fbOut())
       && /编号：$/.test(fbOut()),
       '反馈模板：常规游戏 + 异世界勇者 → 区服固定 001', fbLine());
     // 联盟契约 → 000
@@ -934,9 +935,9 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     $('fbGenerateBtn').click();
     check(/区服：双线一服/.test(fbOut()) && /角色名：老王/.test(fbOut()), '反馈模板：普通游戏 → 区服取服务器名、角色名对上', fbLine());
     // 切来源 → 已有结果跟着重刷
-    fbPick('fbSourceGroup', 10);
+    fbPick('fbSourceGroup', 11);
     await sleep(20);
-    check(/来源：企微/.test(fbOut()) && fbChips('fbSourceGroup')[10].classList.contains('active'),
+    check(/来源：企微/.test(fbOut()) && fbChips('fbSourceGroup')[11].classList.contains('active'),
       '反馈模板：来源切到「企微」后结果跟着变', fbLine());
     check((JSON.parse(window.localStorage.getItem('feedbackTplState') || '{}') || {}).source === '企微',
       '反馈模板：选中的来源记在本机 localStorage（feedbackTplState）',
@@ -947,6 +948,24 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     $('fbGenerateBtn').click();
     check(/【梦幻消除战问题反馈】/.test(fbOut()) && /【喜扑UID】：12345678/.test(fbOut()) && /【渠道】：微信/.test(fbOut()),
       '反馈模板：梦幻消除战模板（渠道去掉中英文括号内容）', fbLine());
+    // 乐缤纷CP后台：用户给的格式（乐缤纷 / 渠道： / 问题： / 角色ID： / 来源：乐缤纷CP后台）
+    fbPick('fbTemplateGroup', 2);
+    $('fbRawInput').value = '12345678 乐缤纷-抖音 安卓 1001 双线一服 87654321 老王 2026-01-02';
+    $('fbGenerateBtn').click();
+    check(fbOut() === '乐缤纷\n渠道：抖音\n问题：玩家反馈，麻烦看看\n角色ID：87654321\n来源：乐缤纷CP后台',
+      '反馈模板：乐缤纷CP后台格式（乐缤纷 / 渠道 / 问题 / 角色ID / 来源）', fbLine());
+    check(fbChips('fbSourceGroup')[10].classList.contains('active')
+      && (JSON.parse(window.localStorage.getItem('feedbackTplState') || '{}') || {}).source === '乐缤纷CP后台',
+      '反馈模板：选「乐缤纷CP后台」模板会把来源一并切到「乐缤纷CP后台」');
+    // 认不出渠道 / 角色ID 时留空（不写「未获取」）
+    $('fbRawInput').value = '乐缤纷';
+    $('fbGenerateBtn').click();
+    check(fbOut() === '乐缤纷\n渠道：\n问题：玩家反馈，麻烦看看\n角色ID：\n来源：乐缤纷CP后台',
+      '反馈模板：乐缤纷CP后台认不出渠道 / 角色ID 时留空', fbLine());
+    $('fbRawInput').value = '12345678 梦幻消除战-微信 安卓 77 服务器 87654321 老王 2026-01-02';
+    $('fbGenerateBtn').click();
+    check(fbOut() === '' && /模板选错了/.test($('fbHint').textContent),
+      '反馈模板：乐缤纷CP后台模板遇到梦幻消除战 → 不生成并提示换模板', $('fbHint').textContent);
     // 模板选错 → 不生成 + 提示
     fbPick('fbTemplateGroup', 1);
     $('fbRawInput').value = '工单号 XXX-1\n游戏 猫旅馆物语\nUID 123';
@@ -954,7 +973,9 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     check(fbOut() === '' && /模板选错了/.test($('fbHint').textContent),
       '反馈模板：模板选错 → 不生成错格式并提示换哪个模板', $('fbHint').textContent);
     // 内部工单：按「字段名 值」提取，手机号优先
-    fbPick('fbTemplateGroup', 2);
+    // （先切回「企微」：上面选乐缤纷模板时来源被自动切走了，这里顺便验证来源片还能手动切）
+    fbPick('fbSourceGroup', 11);
+    fbPick('fbTemplateGroup', 3);
     $('fbRawInput').value = '工单号 XXX-123\n来源 企微\n游戏 异世界勇者\n区服 77服\nUID 12345678\n账号 abc\n角色ID 87654321\n角色名 张三\n问题描述 玩家反馈，麻烦看看\n提交人 李四\n联系人 王五\n手机号码 13800000000';
     $('fbGenerateBtn').click();
     check(/工单号：XXX-123/.test(fbOut()) && /提交者：李四/.test(fbOut()) && /账号：abc/.test(fbOut())

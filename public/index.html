@@ -3437,6 +3437,7 @@
                 <div class="fb-chip-row" id="fbTemplateGroup">
                     <button class="fb-chip" data-fb-template="menghuan">梦幻消除战</button>
                     <button class="fb-chip" data-fb-template="changwu">常规游戏</button>
+                    <button class="fb-chip" data-fb-template="lebifen">乐缤纷CP后台</button>
                     <button class="fb-chip" data-fb-template="gongdan">内部工单</button>
                 </div>
 
@@ -3444,7 +3445,7 @@
                     <span class="hint-text" style="font-weight:400;">会写进结果的「来源：」那一行</span>
                 </label>
                 <div class="fb-chip-row" id="fbSourceGroup">
-                    <button class="fb-chip" data-fb-source="抖音在线">抖音在线</button>
+                    <button class="fb-chip" data-fb-source="抖音小店">抖音小店</button>
                     <button class="fb-chip" data-fb-source="抖音后台">抖音后台</button>
                     <button class="fb-chip" data-fb-source="53">53</button>
                     <button class="fb-chip" data-fb-source="工单">工单</button>
@@ -3454,6 +3455,7 @@
                     <button class="fb-chip" data-fb-source="电话">电话</button>
                     <button class="fb-chip" data-fb-source="爱江山CP后台">爱江山CP后台</button>
                     <button class="fb-chip" data-fb-source="繁花CP后台">繁花CP后台</button>
+                    <button class="fb-chip" data-fb-source="乐缤纷CP后台">乐缤纷CP后台</button>
                     <button class="fb-chip" data-fb-source="企微">企微</button>
                 </div>
             </div>
@@ -11946,9 +11948,10 @@
                                     const FB_TEMPLATES = [
                                         { key: 'menghuan', label: '梦幻消除战' },
                                         { key: 'changwu', label: '常规游戏' },
+                                        { key: 'lebifen', label: '乐缤纷CP后台' },
                                         { key: 'gongdan', label: '内部工单' }
                                     ];
-                                    const FB_SOURCES = ['抖音在线', '抖音后台', '53', '工单', '支付宝在线', '支付宝后台', '微信后台', '电话', '爱江山CP后台', '繁花CP后台', '企微'];
+                                    const FB_SOURCES = ['抖音小店', '抖音后台', '53', '工单', '支付宝在线', '支付宝后台', '微信后台', '电话', '爱江山CP后台', '繁花CP后台', '乐缤纷CP后台', '企微'];
                                     // 内部工单的中文键名 → 字段名
                                     const FB_ORDER_FIELDS = {
                                         '工单号': 'orderId', '来源': 'source', '游戏': 'game', '区服': 'server', 'UID': 'uid',
@@ -11959,7 +11962,7 @@
                                     const FB_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
                                     const FB_CHARID_RE = /^\d{4,}$/;
                                     let fbTemplate = 'menghuan';
-                                    let fbSource = '抖音在线';
+                                    let fbSource = '抖音小店';
                                     function fbLoadState() {
                                         try {
                                             const s = JSON.parse(localStorage.getItem(FB_STATE_KEY) || 'null');
@@ -12000,6 +12003,8 @@
                                     function fbSetTemplate(k) {
                                         if (!FB_TEMPLATES.some(t => t.key === k)) return;
                                         fbTemplate = k;
+                                        // 乐缤纷CP后台的格式里「来源：」固定就是它自己，选了这个模板就把来源一并切过去
+                                        if (k === 'lebifen') fbSource = '乐缤纷CP后台';
                                         fbSaveState();
                                         fbRenderChips();
                                     }
@@ -12019,6 +12024,9 @@
                                             if (!gameNameRaw.includes('梦幻消除战')) {
                                                 return first === '工单号' ? '这段内容像是【内部工单】，请把模板切成「内部工单」' : '这段内容不是【梦幻消除战】，请把模板切成「常规游戏」';
                                             }
+                                        } else if (fbTemplate === 'lebifen') {
+                                            if (first === '工单号') return '这段内容像是【内部工单】，请把模板切成「内部工单」';
+                                            if (gameNameRaw.includes('梦幻消除战')) return '这段内容属于【梦幻消除战】，请把模板切成「梦幻消除战」';
                                         } else if (fbTemplate === 'gongdan') {
                                             if (first !== '工单号') return '这段内容不是【内部工单】（没找到「工单号」那一行），请换对应模板';
                                         } else if (fbTemplate === 'changwu') {
@@ -12073,6 +12081,15 @@
                                         // 渠道：游戏名里最后一个「-」之后的部分，去掉中英文括号内容
                                         const lastDash = gameNameRaw.lastIndexOf('-');
                                         const channel = ((lastDash !== -1) ? gameNameRaw.substring(lastDash + 1) : gameNameRaw).replace(/[\(\（].*?[\)\）]/g, '').trim();
+                                        // 乐缤纷CP后台：用户给的格式就是「乐缤纷 / 渠道： / 问题： / 角色ID： / 来源：乐缤纷CP后台」
+                                        // 渠道与角色ID 能从粘贴内容里认出来就填上，认不出来留空；游戏名带不出渠道（等于游戏名本身）时也留空
+                                        if (fbTemplate === 'lebifen') {
+                                            return '乐缤纷'
+                                                + '\n渠道：' + ((channel === gameNameRaw) ? '' : channel)
+                                                + '\n问题：玩家反馈，麻烦看看'
+                                                + '\n角色ID：' + ((charId === '（未获取）') ? '' : charId)
+                                                + '\n来源：' + fbSource;
+                                        }
                                         if (fbTemplate === 'menghuan') {
                                             return '【梦幻消除战问题反馈】\n【喜扑UID】：' + uid
                                                 + '\n【角色ID】：' + charId
