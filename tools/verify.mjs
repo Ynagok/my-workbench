@@ -182,14 +182,15 @@ ok(/const anomalyLine = days > 1 && sd > 0 \? avg \+ 2 \* sd : null;/.test(s)
 ok(/--bg-0: #eef1f4;/.test(s) && /--surface: #fbfcfd;/.test(s) && /--ink-0: #1b2228;/.test(s)
   && /--accent: #c89500;/.test(s),
   '柔和白令牌已生效（冷灰白底 + 压深一档的方舟黄 + 深色文字）');
-ok(!/--surface: #0e1216;/.test(s) && !/--bg-0: #090b0d;/.test(s) && !/--accent: #ffd60a;/.test(s)
-  && !/color-scheme: dark;/.test(s),
-  '暗色令牌已彻底移除（不会回退成炭黑底）');
-ok(/color-scheme: light;/.test(s) && /--clip-card: polygon\(/.test(s) && /--hazard: repeating-linear-gradient/.test(s)
+ok(/:root \{[\s\S]{0,1400}?--bg-0: #eef1f4;/.test(s) && !/:root \{[\s\S]{0,1400}?--bg-0: #090b0d;/.test(s)
+  && !/:root \{[\s\S]{0,1400}?--accent: #ffd60a;/.test(s),
+  ':root 里只有浅色令牌（暗色那套已经不在 :root，只在用户选深色背景时由 JS 挂上）');
+ok(/color-scheme: light;/.test(s) && /html\[data-theme="dark"\] \{[\s\S]{0,40}color-scheme: dark;/.test(s)
+  && /--clip-card: polygon\(/.test(s) && /--hazard: repeating-linear-gradient/.test(s)
   && /\.career-kpi::after/.test(s) && /浅色收口层 · 柔和白/.test(s),
-  '浅色基底：原生控件浅色 + 卡片切角 + 警示条纹 + KPI 角落刻度 + 浅色收口层');
-ok(!/rgba\(255,255,255,0\.0[0-9]\)/.test(s.slice(s.indexOf('浅色收口层'), s.lastIndexOf('</style>'))),
-  '浅色收口层里不再残留「白底上的白色 hover / 白线」');
+  '浅色基底：原生控件浅色（深色底时切暗色）+ 卡片切角 + 警示条纹 + KPI 角落刻度 + 浅色收口层');
+ok(!/rgba\(255,255,255,0\.0[0-9]\)/.test(s.slice(s.indexOf('浅色收口层'), s.indexOf('自定义背景色的「暗色收口」'))),
+  '浅色收口层里不再残留「白底上的白色 hover / 白线」（白线只允许出现在 data-theme=dark 的暗色收口里）');
 ok(/counter\(career-card, decimal-leading-zero\)/.test(s) && /counter\(nav-item, decimal-leading-zero\)/.test(s),
   '编号体系：侧边栏 01… + 客服生涯分节 01…（报表感）');
 ok(/id="careerReportSub"/.test(s) && /id="careerReportMeta"/.test(s) && /getElementById\('careerReportMeta'\)/.test(s)
@@ -251,6 +252,28 @@ ok(['fbTemplateGroup', 'fbSourceGroup', 'fbRawInput', 'fbOutput', 'fbHint', 'fbR
 ok(/setClick\('fbGenerateBtn', fbGenerate\)/.test(s) && /setClick\('fbCopyBtn', fbCopy\)/.test(s)
   && /setClick\('fbClearBtn', fbClear\)/.test(s) && /dataset\.tab === 'feedback'\) fbRenderChips\(\)/.test(s),
   '反馈模板：生成 / 复制 / 清空按钮与标签页刷新都已挂上');
+// ---- 3f. 自定义背景色 ----
+ok(/id="themeBar"/.test(s) && /id="themeSwatches"/.test(s) && /id="themeBgPicker"/.test(s) && /id="themeBgReset"/.test(s),
+  '自定义背景色：侧边栏调色条（色块列表 / 取色器 / 恢复默认）已注入');
+{
+  const preBlk = (s.match(/const THEME_PRESETS = \[([\s\S]*?)\];/) || ['', ''])[1];
+  ok((preBlk.match(/\{ bg: '/g) || []).length === 8 && /#12161a/.test(preBlk) && /#f6f1e7/.test(preBlk),
+    '背景色预设 8 个（默认 / 纯白 / 暖米 / 豆沙绿 / 浅蓝 / 淡粉 / 深灰 / 炭黑）');
+}
+ok(/function themeApply\(bg\)/.test(s) && /function themeLum\(c\)/.test(s) && /THEME_TOKEN_KEYS\.forEach\(k => st\.removeProperty\(k\)\)/.test(s)
+  && /root\.setAttribute\('data-theme', dark \? 'dark' : 'light'\)/.test(s),
+  '背景色：按选的颜色算整套令牌写在 html 行内、按亮度自动切浅色/暗色');
+ok(/html\[data-theme="dark"\] \.modal/.test(s) && /html\[data-theme="dark"\] \.fb-chip/.test(s)
+  && /html\[data-theme="dark"\] \{[\s\S]{0,40}color-scheme: dark;/.test(s),
+  '背景色：深色底有「暗色收口」块（遮罩 / 选择片 / 原生控件配色）');
+ok(/localStorage\.getItem\(THEME_BG_KEY\)/.test(s) && /localStorage\.setItem\(THEME_BG_KEY/.test(s)
+  && /localStorage\.removeItem\(THEME_BG_KEY\)/.test(s)
+  && !/loadData\('themeBgColor'/.test(s) && !/saveData\('themeBgColor'/.test(s),
+  '背景色：选择只存本机（themeBgColor，不走 /api/data）');
+ok(/themeInit\(\);/.test(s) && /addEvent\('themeBgPicker', 'input'/.test(s) && /setClick\('themeBgReset'/.test(s)
+  && /const themed = document\.getElementById\('themeBar'\);/.test(s)
+  && /classList\.contains\('theme-bar'\)/.test(s),
+  '背景色：启动即应用、色块/取色器/重置已挂上，且拖拽排序不会把它挤到中间');
 // 工单侧分组：CP后台 与 ①~⑦群维系 都并进「工单/后台」
 ok(/function careerTicketKind\(key\) \{[\s\S]{0,320}?if \(key === 'sso' \|\| \/_cp\$\/\.test\(key\) \|\| \/\^g\\d\/\.test\(key\)\) return '工单\/后台';/.test(s)
   && !/return 'CP后台'/.test(s) && !/return '群维系'/.test(s.slice(s.indexOf('function careerTicketKind'), s.indexOf('function careerTicketKind') + 400)),

@@ -2890,6 +2890,139 @@
         #fbOutput {
             background: var(--surface-2);
         }
+
+        /* ---------- 自定义背景色：侧边栏底部的调色条 ---------- */
+        .theme-bar {
+            margin-top: auto;
+            padding: 14px 16px 2px;
+            border-top: 1px solid var(--line-0);
+            display: flex;
+            flex-direction: column;
+            gap: 9px;
+        }
+
+            .theme-bar .tb-title {
+                font-family: var(--font-mono);
+                font-size: 10px;
+                font-weight: 700;
+                letter-spacing: 0.2em;
+                color: var(--ink-3);
+            }
+
+        .theme-swatches {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .theme-swatch {
+            width: 24px;
+            height: 24px;
+            padding: 0;
+            clip-path: none;
+            border: 1px solid var(--line-1);
+            background: var(--surface-2);
+            cursor: pointer;
+        }
+
+            .theme-swatch:hover {
+                border-color: var(--line-2);
+                box-shadow: 0 0 0 2px var(--accent-dim);
+            }
+
+            .theme-swatch.active {
+                border-color: var(--accent);
+                box-shadow: 0 0 0 2px var(--accent-dim);
+            }
+
+        .theme-bar-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+            .theme-bar-row input[type="color"] {
+                width: 44px;
+                height: 26px;
+                padding: 0;
+                border: 1px solid var(--line-1);
+                background: #ffffff;
+                cursor: pointer;
+            }
+
+            .theme-bar-row button {
+                padding: 5px 9px;
+                font-size: 10.5px;
+                letter-spacing: 0.08em;
+            }
+
+        .theme-bar .tb-hint {
+            font-size: 10.5px;
+            line-height: 1.5;
+            color: var(--ink-3);
+        }
+
+        /* ============================================================
+           自定义背景色的「暗色收口」：选到深色背景时 html 上会有
+           data-theme="dark"（令牌由 JS 按选的颜色算好后写在 html 行内），
+           这里只补浅色收口层里那几处写死的浅色值 + 原生控件配色
+           ============================================================ */
+        html[data-theme="dark"] {
+            color-scheme: dark;
+        }
+
+            html[data-theme="dark"] .tab-btn:hover {
+                background: rgba(255,255,255,0.05);
+            }
+
+            html[data-theme="dark"] button {
+                background: rgba(255,255,255,0.05);
+            }
+
+            html[data-theme="dark"] .secondary {
+                background: transparent;
+            }
+
+                html[data-theme="dark"] .secondary:hover {
+                    background: rgba(255,255,255,0.07);
+                }
+
+            html[data-theme="dark"] input[type="text"],
+            html[data-theme="dark"] input[type="number"],
+            html[data-theme="dark"] input[type="date"],
+            html[data-theme="dark"] input[type="file"],
+            html[data-theme="dark"] select,
+            html[data-theme="dark"] textarea,
+            html[data-theme="dark"] .theme-bar-row input[type="color"] {
+                background: var(--bg-1);
+                border-color: var(--line-1);
+                color: var(--ink-0);
+            }
+
+            html[data-theme="dark"] input[type="file"]::file-selector-button {
+                background: rgba(255,255,255,0.06);
+            }
+
+            html[data-theme="dark"] .card::after,
+            html[data-theme="dark"] .inline-card::after {
+                background-image: repeating-linear-gradient(-45deg, transparent 0, transparent 9px, rgba(255,255,255,0.014) 9px, rgba(255,255,255,0.014) 10px);
+            }
+
+            html[data-theme="dark"] tbody tr:nth-child(even) td {
+                background: rgba(255,255,255,0.015);
+            }
+
+            html[data-theme="dark"] .modal {
+                background: rgba(4,6,8,0.72);
+            }
+
+            html[data-theme="dark"] .fb-chip {
+                background: rgba(255,255,255,0.05);
+            }
+
+            html[data-theme="dark"] .career-trend {
+                background-image: repeating-linear-gradient(0deg, transparent 0 21px, rgba(255,255,255,0.03) 21px 22px);
+            }
     </style>
 </head>
 
@@ -2906,6 +3039,17 @@
             <button class="tab-btn" data-tab="career"> 客服生涯</button>
             <button class="tab-btn" data-tab="overseas"> 海外业务统计</button>
             <button class="tab-btn" data-tab="script">小游戏</button>
+
+            <!-- 自定义背景色（只改本机，可拖拽排序的按钮不会越过它） -->
+            <div class="theme-bar" id="themeBar">
+                <div class="tb-title">背景色</div>
+                <div class="theme-swatches" id="themeSwatches"></div>
+                <div class="theme-bar-row">
+                    <input type="color" id="themeBgPicker" value="#eef1f4" title="选一个背景色">
+                    <button id="themeBgReset" class="secondary">恢复默认</button>
+                </div>
+                <div class="tb-hint" id="themeBgHint"></div>
+            </div>
         </div>
 
         <!-- ==================== 话术生成 gen ==================== -->
@@ -11777,6 +11921,143 @@
                                         fbSetHint('已清空输入与结果');
                                     }
 
+                                    // ==================== 自定义背景色（浅色 / 暗色两套令牌） ====================
+                                    // 用户挑一个背景色，就按它算出整套令牌写在 <html> 行内（覆盖 :root）；
+                                    // 颜色偏深时自动切到暗色那套（挂 data-theme="dark"，颜色见 CSS 的「暗色收口」）。
+                                    // ⚠️ 只存本机 localStorage，不进 /api/data。
+                                    const THEME_BG_KEY = 'themeBgColor';
+                                    const THEME_PRESETS = [
+                                        { bg: '', label: '默认（柔和白）' },
+                                        { bg: '#ffffff', label: '纯白' },
+                                        { bg: '#f6f1e7', label: '暖米' },
+                                        { bg: '#e8f0e6', label: '豆沙绿' },
+                                        { bg: '#e8eef6', label: '浅蓝' },
+                                        { bg: '#f7ecf0', label: '淡粉' },
+                                        { bg: '#3a4047', label: '深灰（暗色）' },
+                                        { bg: '#12161a', label: '炭黑（暗色）' }
+                                    ];
+                                    const THEME_TOKEN_KEYS = ['--bg-0', '--bg-1', '--surface', '--surface-2', '--surface-3', '--sidebar',
+                                        '--ink-0', '--ink-1', '--ink-2', '--ink-3', '--line-0', '--line-1', '--line-2',
+                                        '--accent', '--accent-hi', '--accent-ink', '--accent-dim', '--accent-line', '--accent-glow',
+                                        '--grid-line', '--warn', '--danger', '--shadow-1', '--shadow-2', '--shadow-3'];
+                                    const THEME_LIGHT_INK = { '--ink-0': '#1b2228', '--ink-1': '#2c353d', '--ink-2': '#5b6672', '--ink-3': '#8b959f' };
+                                    const THEME_DARK_INK = { '--ink-0': '#e9eef3', '--ink-1': '#d5dde4', '--ink-2': '#94a0ac', '--ink-3': '#66727e' };
+                                    const THEME_LIGHT_ACCENT = {
+                                        '--accent': '#c89500', '--accent-hi': '#a97c00', '--accent-ink': '#8a6200',
+                                        '--accent-dim': 'rgba(200,149,0,0.12)', '--accent-line': 'rgba(200,149,0,0.42)', '--accent-glow': 'rgba(200,149,0,0.20)'
+                                    };
+                                    const THEME_DARK_ACCENT = {
+                                        '--accent': '#ffd60a', '--accent-hi': '#ffe873', '--accent-ink': '#ffd60a',
+                                        '--accent-dim': 'rgba(255,214,10,0.10)', '--accent-line': 'rgba(255,214,10,0.42)', '--accent-glow': 'rgba(255,214,10,0.24)'
+                                    };
+                                    let themeBg = '';
+                                    function themeParseHex(hex) {
+                                        const m = /^#?([0-9a-f]{6})$/i.exec(String(hex == null ? '' : hex).trim());
+                                        if (!m) return null;
+                                        const n = parseInt(m[1], 16);
+                                        return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+                                    }
+                                    function themeHex(c) {
+                                        const h = (v) => ('0' + Math.max(0, Math.min(255, Math.round(v))).toString(16)).slice(-2);
+                                        return '#' + h(c.r) + h(c.g) + h(c.b);
+                                    }
+                                    // 把 c 朝 target 方向混 ratio（0=不变，1=全变）
+                                    function themeMix(c, target, ratio) {
+                                        return { r: c.r + (target - c.r) * ratio, g: c.g + (target - c.g) * ratio, b: c.b + (target - c.b) * ratio };
+                                    }
+                                    function themeRgbCss(c) {
+                                        const h = (v) => Math.round(Math.max(0, Math.min(255, v)));
+                                        return 'rgb(' + h(c.r) + ',' + h(c.g) + ',' + h(c.b) + ')';
+                                    }
+                                    // 相对亮度（判断深底还是浅底）
+                                    function themeLum(c) {
+                                        const f = (v) => { v = v / 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+                                        return 0.2126 * f(c.r) + 0.7152 * f(c.g) + 0.0722 * f(c.b);
+                                    }
+                                    // 按选的颜色算整套令牌并写到 <html> 行内；bg 为空 = 恢复默认（清掉行内令牌）
+                                    function themeApply(bg) {
+                                        const root = document.documentElement;
+                                        const st = root.style;
+                                        THEME_TOKEN_KEYS.forEach(k => st.removeProperty(k));
+                                        const rgb = themeParseHex(bg);
+                                        themeBg = rgb ? themeHex(rgb) : '';
+                                        if (!rgb) {
+                                            root.removeAttribute('data-theme');
+                                            themeRenderUI();
+                                            return '';
+                                        }
+                                        const dark = themeLum(rgb) < 0.32;
+                                        const white = { r: 255, g: 255, b: 255 }, black = { r: 8, g: 12, b: 16 };
+                                        const set = (k, v) => st.setProperty(k, v);
+                                        set('--bg-0', themeHex(rgb));
+                                        set('--bg-1', themeHex(dark ? themeMix(rgb, white, 0.10) : themeMix(rgb, white, 0.92)));
+                                        set('--surface', themeHex(dark ? themeMix(rgb, white, 0.06) : themeMix(rgb, white, 0.75)));
+                                        set('--surface-2', themeHex(themeMix(rgb, dark ? white : black, 0.035)));
+                                        set('--surface-3', themeHex(themeMix(rgb, dark ? white : black, 0.08)));
+                                        set('--sidebar', themeHex(themeMix(rgb, dark ? white : black, 0.025)));
+                                        set('--line-0', themeHex(themeMix(rgb, dark ? white : black, dark ? 0.10 : 0.09)));
+                                        set('--line-1', themeHex(themeMix(rgb, dark ? white : black, dark ? 0.16 : 0.16)));
+                                        set('--line-2', themeHex(themeMix(rgb, dark ? white : black, dark ? 0.28 : 0.28)));
+                                        Object.keys(dark ? THEME_DARK_INK : THEME_LIGHT_INK).forEach(k => set(k, (dark ? THEME_DARK_INK : THEME_LIGHT_INK)[k]));
+                                        Object.keys(dark ? THEME_DARK_ACCENT : THEME_LIGHT_ACCENT).forEach(k => set(k, (dark ? THEME_DARK_ACCENT : THEME_LIGHT_ACCENT)[k]));
+                                        set('--grid-line', dark ? 'rgba(255,255,255,0.03)' : 'rgba(28,40,52,0.035)');
+                                        set('--warn', dark ? '#ffab2e' : '#bd7300');
+                                        set('--danger', dark ? '#ff5f57' : '#cf3b30');
+                                        set('--shadow-1', dark ? '0 1px 2px rgba(0,0,0,0.45)' : '0 1px 2px rgba(24,32,40,0.07)');
+                                        set('--shadow-2', dark ? '0 8px 26px rgba(0,0,0,0.5)' : '0 6px 20px rgba(24,32,40,0.10)');
+                                        set('--shadow-3', dark ? '0 26px 64px rgba(0,0,0,0.72)' : '0 20px 48px rgba(24,32,40,0.16)');
+                                        root.setAttribute('data-theme', dark ? 'dark' : 'light');
+                                        themeRenderUI();
+                                        return themeBg;
+                                    }
+                                    function themeSave() {
+                                        try {
+                                            if (themeBg) localStorage.setItem(THEME_BG_KEY, themeBg);
+                                            else localStorage.removeItem(THEME_BG_KEY);
+                                        } catch (e) { }
+                                    }
+                                    function themePick(bg) {
+                                        themeApply(bg);
+                                        themeSave();
+                                    }
+                                    function themeRenderUI() {
+                                        const wrap = document.getElementById('themeSwatches');
+                                        if (wrap) {
+                                            wrap.querySelectorAll('.theme-swatch').forEach(b => {
+                                                const v = b.dataset.bg || '';
+                                                const hit = v ? (themeParseHex(v) && themeHex(themeParseHex(v)) === themeBg) : themeBg === '';
+                                                b.classList.toggle('active', !!hit);
+                                            });
+                                        }
+                                        const picker = document.getElementById('themeBgPicker');
+                                        if (picker && themeBg) picker.value = themeBg;
+                                        const hint = document.getElementById('themeBgHint');
+                                        if (hint) {
+                                            hint.textContent = themeBg
+                                                ? ('当前 ' + themeBg + (document.documentElement.getAttribute('data-theme') === 'dark' ? ' · 深色底，已自动切成暗色文字' : '') + ' · 只存在这台设备')
+                                                : '默认柔和白 · 选深色会自动切成暗色 · 只存在这台设备';
+                                        }
+                                    }
+                                    function themeBuildSwatches() {
+                                        const wrap = document.getElementById('themeSwatches');
+                                        if (!wrap || wrap.childElementCount) return;
+                                        THEME_PRESETS.forEach(p => {
+                                            const b = document.createElement('button');
+                                            b.className = 'theme-swatch';
+                                            b.dataset.bg = p.bg;
+                                            b.title = p.label;
+                                            if (p.bg) b.style.background = p.bg;
+                                            else b.style.background = 'linear-gradient(135deg, #eef1f4 0 50%, #ffffff 50% 100%)';
+                                            wrap.appendChild(b);
+                                        });
+                                    }
+                                    function themeInit() {
+                                        themeBuildSwatches();
+                                        let saved = '';
+                                        try { saved = localStorage.getItem(THEME_BG_KEY) || ''; } catch (e) { }
+                                        themeApply(saved);
+                                    }
+
                                     // ==================== 事件绑定 ====================
                                     function setClick(id, handler) {
                                         const el = document.getElementById(id);
@@ -12209,6 +12490,15 @@
                                         setClick('fbGenerateBtn', fbGenerate);
                                         setClick('fbCopyBtn', fbCopy);
                                         setClick('fbClearBtn', fbClear);
+                                        // 自定义背景色（色块 / 取色器 / 恢复默认）
+                                        themeInit();
+                                        const swWrap = document.getElementById('themeSwatches');
+                                        if (swWrap) swWrap.addEventListener('click', (e) => {
+                                            const b = e.target.closest('.theme-swatch');
+                                            if (b) themePick(b.dataset.bg || '');
+                                        });
+                                        addEvent('themeBgPicker', 'input', (e) => themePick(e.target.value));
+                                        setClick('themeBgReset', () => themePick(''));
                                         setClick('careerClearImportBtn', () => {
                                             const a = document.getElementById('careerImportArea');
                                             if (a) a.value = '';
@@ -12418,6 +12708,9 @@
                                                 const btn = tabsEl.querySelector('.tab-btn[data-tab="' + tab + '"]');
                                                 if (btn) tabsEl.appendChild(btn);
                                             });
+                                            // 调色条要留在最后（上面 appendChild 会把按钮挪到它后面）
+                                            const themed = document.getElementById('themeBar');
+                                            if (themed) tabsEl.appendChild(themed);
                                         } catch (_) { }
                                     }
                                     function initSortable() {
@@ -12427,7 +12720,7 @@
                                             animation: 150,
                                             draggable: '.tab-btn',
                                             filter: '.tab-group-title',
-                                            onMove: (evt) => !evt.related.classList.contains('tab-group-title'),
+                                            onMove: (evt) => !evt.related.classList.contains('tab-group-title') && !evt.related.classList.contains('theme-bar'),
                                             onEnd: () => {
                                                 try {
                                                     const order = [...tabsEl.querySelectorAll('.tab-btn')].map(b => b.dataset.tab);

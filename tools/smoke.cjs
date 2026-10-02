@@ -974,6 +974,54 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     check(posts.filter(p => p.url.includes('feedbackTplState')).length === 0, '反馈模板：整场没有把它存到服务端');
   }
 
+  console.log('--- 8i. 自定义背景色（浅色 / 深色自动切换 + 记住本机）---');
+  {
+    const root = doc.documentElement;
+    const varOf = (k) => root.style.getPropertyValue(k).trim();
+    const swatches = () => doc.querySelectorAll('#themeSwatches .theme-swatch');
+    const themeOf = () => root.getAttribute('data-theme');
+    const storedBg = () => window.localStorage.getItem('themeBgColor');
+    check(!!$('themeBar') && swatches().length === 8, '背景色：侧边栏底部有调色条 + 8 个预设色块', swatches().length);
+    check(!!$('themeBgPicker') && !!$('themeBgReset'), '背景色：取色器与「恢复默认」都在');
+    check(varOf('--bg-0') === '' && themeOf() === null, '背景色：默认不动令牌（用 :root 的柔和白）', themeOf() + '/' + varOf('--bg-0'));
+    check(swatches()[0].classList.contains('active'), '背景色：默认色块是选中态');
+    // 点「暖米」→ 整套浅色令牌跟着算出来
+    swatches()[2].click();
+    await sleep(20);
+    check(varOf('--bg-0') === '#f6f1e7' && themeOf() === 'light' && storedBg() === '#f6f1e7',
+      '背景色：选「暖米」→ --bg-0 生效 + data-theme=light + 记住本机', varOf('--bg-0') + '/' + themeOf() + '/' + storedBg());
+    check(/^#/.test(varOf('--surface')) && varOf('--surface') !== '#f6f1e7'
+      && /^#/.test(varOf('--line-0')) && varOf('--ink-0') === '#1b2228',
+      '背景色：卡片面/分割线由背景色推导，浅底仍是深色文字',
+      varOf('--surface') + '/' + varOf('--line-0') + '/' + varOf('--ink-0'));
+    check(swatches()[2].classList.contains('active') && !swatches()[0].classList.contains('active'),
+      '背景色：选中态跟着切换（单选）');
+    check(/暖米|#f6f1e7/.test($('themeBgHint').textContent), '背景色：提示行说明当前颜色', $('themeBgHint').textContent);
+    // 换成深色 → 自动切暗色（文字变浅、强调色回到亮黄）
+    swatches()[7].click();
+    await sleep(20);
+    check(varOf('--bg-0') === '#12161a' && themeOf() === 'dark' && varOf('--ink-0') === '#e9eef3'
+      && varOf('--accent') === '#ffd60a',
+      '背景色：选「炭黑」→ 自动切暗色（浅色文字 + 亮黄强调）',
+      varOf('--bg-0') + '/' + themeOf() + '/' + varOf('--ink-0') + '/' + varOf('--accent'));
+    check(/暗色文字/.test($('themeBgHint').textContent), '背景色：深底时提示已切成暗色', $('themeBgHint').textContent);
+    // 取色器：任意颜色
+    $('themeBgPicker').value = '#d9e6d2';
+    fire($('themeBgPicker'), 'input');
+    await sleep(20);
+    check(varOf('--bg-0') === '#d9e6d2' && themeOf() === 'light' && storedBg() === '#d9e6d2',
+      '背景色：取色器选任意颜色也生效', varOf('--bg-0') + '/' + storedBg());
+    // 恢复默认
+    $('themeBgReset').click();
+    await sleep(20);
+    check(varOf('--bg-0') === '' && themeOf() === null && storedBg() === null
+      && swatches()[0].classList.contains('active'),
+      '背景色：点「恢复默认」→ 清掉行内令牌 + 删掉本机记录 + 默认色块选中',
+      themeOf() + '/' + varOf('--bg-0') + '/' + storedBg());
+    check(posts.filter(p => p.url.includes('themeBgColor') || p.url.includes('themeBg')).length === 0,
+      '背景色：整场没有把它存到服务端');
+  }
+
   console.log('--- 9. 无未捕获异常 ---');
   check(!warns.some(w => w.startsWith('ERROR')), 'console.error 未被调用：' + warns.filter(w => w.startsWith('ERROR')).join(' | '));
   check(jsdomErrors.length === 0, '页面无未捕获异常（jsdomError）', jsdomErrors.slice(0, 3));
