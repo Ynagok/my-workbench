@@ -896,6 +896,84 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     check(/已清空 5 行/.test($('ovbizHint').textContent), '海外业务：清空有提示', $('ovbizHint').textContent);
   }
 
+  console.log('--- 8h. 反馈模板（选模板 / 选来源 → 反馈格式）---');
+  {
+    const fbOut = () => $('fbOutput').value;
+    const fbLine = () => fbOut().replace(/\n/g, ' | ');
+    const fbChips = (id) => doc.querySelectorAll('#' + id + ' .fb-chip');
+    const fbPick = (group, i) => fbChips(group)[i].click();
+    check(!!doc.querySelector('.tab-btn[data-tab="feedback"]') && !!$('tab-feedback'), '反馈模板：侧边栏标签页与页面都在');
+    check(fbChips('fbTemplateGroup').length === 3, '反馈模板：三种模板（梦幻消除战 / 常规游戏 / 内部工单）', fbChips('fbTemplateGroup').length);
+    check(fbChips('fbSourceGroup').length === 11 && /企微/.test($('fbSourceGroup').textContent),
+      '反馈模板：来源 11 个且新增「企微」', $('fbSourceGroup').textContent.trim().slice(-16));
+    check(fbChips('fbTemplateGroup')[0].classList.contains('active') && fbChips('fbSourceGroup')[0].classList.contains('active'),
+      '反馈模板：默认选中「梦幻消除战 + 抖音在线」');
+    check(doc.querySelectorAll('#fbReportMeta > div').length === 3 && /来源总数/.test($('fbReportMeta').textContent),
+      '反馈模板：抬头 3 格（模板 / 来源 / 来源总数）', $('fbReportMeta').textContent);
+
+    // 常规游戏：异世界勇者 → 区服固定 001
+    fbPick('fbTemplateGroup', 1);
+    check(fbChips('fbTemplateGroup')[1].classList.contains('active') && !fbChips('fbTemplateGroup')[0].classList.contains('active'),
+      '反馈模板：点模板片会切换选中（单选）');
+    $('fbRawInput').value = '12345678 异世界勇者-微信 安卓 77 服务器 87654321 角色名 2026-01-02';
+    $('fbGenerateBtn').click();
+    check(/游戏：异世界勇者-微信/.test(fbOut()) && /UID：12345678/.test(fbOut()) && /角色ID：87654321/.test(fbOut())
+      && /区服：001/.test(fbOut()) && /问题：玩家反馈，麻烦看看/.test(fbOut()) && /来源：抖音在线/.test(fbOut())
+      && /编号：$/.test(fbOut()),
+      '反馈模板：常规游戏 + 异世界勇者 → 区服固定 001', fbLine());
+    // 联盟契约 → 000
+    $('fbRawInput').value = '12345678 异世界勇者-联盟契约 安卓 77 服务器 87654321 角色名 2026-01-02';
+    $('fbGenerateBtn').click();
+    check(/区服：000/.test(fbOut()), '反馈模板：异世界勇者 + 联盟契约 → 区服固定 000', fbLine());
+    // 唱舞星计划：区服名是数字时改用「平台列」那个数字区服（原工具的 isFinite 特例）
+    $('fbRawInput').value = '12345678 唱舞星计划-抖音 安卓 1001 999 87654321 老王 2026-01-02';
+    $('fbGenerateBtn').click();
+    check(/区服：1001/.test(fbOut()), '反馈模板：唱舞星计划 + 数字区服名 → 改用平台列的数字区服', fbLine());
+    // 普通游戏 → 区服用服务器名、角色名照抄
+    $('fbRawInput').value = '12345678 猫旅馆物语-微信 安卓 77 双线一服 87654321 老王 2026-01-02';
+    $('fbGenerateBtn').click();
+    check(/区服：双线一服/.test(fbOut()) && /角色名：老王/.test(fbOut()), '反馈模板：普通游戏 → 区服取服务器名、角色名对上', fbLine());
+    // 切来源 → 已有结果跟着重刷
+    fbPick('fbSourceGroup', 10);
+    await sleep(20);
+    check(/来源：企微/.test(fbOut()) && fbChips('fbSourceGroup')[10].classList.contains('active'),
+      '反馈模板：来源切到「企微」后结果跟着变', fbLine());
+    check((JSON.parse(window.localStorage.getItem('feedbackTplState') || '{}') || {}).source === '企微',
+      '反馈模板：选中的来源记在本机 localStorage（feedbackTplState）',
+      window.localStorage.getItem('feedbackTplState'));
+    // 梦幻消除战：渠道去掉括号内容
+    fbPick('fbTemplateGroup', 0);
+    $('fbRawInput').value = '12345678 梦幻消除战-微信(安卓) 安卓 77 服务器 87654321 老王 2026-01-02';
+    $('fbGenerateBtn').click();
+    check(/【梦幻消除战问题反馈】/.test(fbOut()) && /【喜扑UID】：12345678/.test(fbOut()) && /【渠道】：微信/.test(fbOut()),
+      '反馈模板：梦幻消除战模板（渠道去掉中英文括号内容）', fbLine());
+    // 模板选错 → 不生成 + 提示
+    fbPick('fbTemplateGroup', 1);
+    $('fbRawInput').value = '工单号 XXX-1\n游戏 猫旅馆物语\nUID 123';
+    $('fbGenerateBtn').click();
+    check(fbOut() === '' && /模板选错了/.test($('fbHint').textContent),
+      '反馈模板：模板选错 → 不生成错格式并提示换哪个模板', $('fbHint').textContent);
+    // 内部工单：按「字段名 值」提取，手机号优先
+    fbPick('fbTemplateGroup', 2);
+    $('fbRawInput').value = '工单号 XXX-123\n来源 企微\n游戏 异世界勇者\n区服 77服\nUID 12345678\n账号 abc\n角色ID 87654321\n角色名 张三\n问题描述 玩家反馈，麻烦看看\n提交人 李四\n联系人 王五\n手机号码 13800000000';
+    $('fbGenerateBtn').click();
+    check(/工单号：XXX-123/.test(fbOut()) && /提交者：李四/.test(fbOut()) && /账号：abc/.test(fbOut())
+      && /角色id：87654321/.test(fbOut()) && /区服：77服/.test(fbOut()) && /问题：玩家反馈，麻烦看看/.test(fbOut())
+      && /来源：企微/.test(fbOut()) && /联系方式：13800000000/.test(fbOut()),
+      '反馈模板：内部工单按行提取字段（手机号优先于联系人）', fbLine());
+    $('fbRawInput').value = '工单号 XXX-124\n提交人 李四\n联系人 王五';
+    $('fbGenerateBtn').click();
+    check(/联系方式：王五/.test(fbOut()), '反馈模板：没填手机号时联系方式用联系人');
+    // 清空 + 空输入
+    $('fbClearBtn').click();
+    check($('fbRawInput').value === '' && fbOut() === '' && /已清空/.test($('fbHint').textContent), '反馈模板：清空输入与结果');
+    $('fbGenerateBtn').click();
+    check(/先粘贴/.test($('fbHint').textContent), '反馈模板：空输入时提示先粘贴', $('fbHint').textContent);
+    $('fbCopyBtn').click();
+    check(/还没有生成结果/.test($('fbHint').textContent), '反馈模板：没有结果时复制按钮只给提示（不抛错）', $('fbHint').textContent);
+    check(posts.filter(p => p.url.includes('feedbackTplState')).length === 0, '反馈模板：整场没有把它存到服务端');
+  }
+
   console.log('--- 9. 无未捕获异常 ---');
   check(!warns.some(w => w.startsWith('ERROR')), 'console.error 未被调用：' + warns.filter(w => w.startsWith('ERROR')).join(' | '));
   check(jsdomErrors.length === 0, '页面无未捕获异常（jsdomError）', jsdomErrors.slice(0, 3));

@@ -49,7 +49,7 @@ npm run verify     # 改完代码、push 前的完整自检
 
 | 命令 | 内容 |
 |---|---|
-| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 194 项 + 「接口挂起时界面仍可用」+ 服务端冒烟 12 项 + 油猴脚本语法 + 单测 169 项 |
+| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 214 项 + 「接口挂起时界面仍可用」+ 服务端冒烟 12 项 + 油猴脚本语法 + 单测 169 项 |
 | `npm run verify:static` | 只要静态校验 + 语法检查（最快） |
 | `npm run report` | 打印一份真实生成的日报，肉眼确认排版（含 ⑥伙伴弹途 / ⑦异世界勇者） |
 | `npm run build:data` | 从 GM 玩家页快照提取 4 张权威映射表 + 与硬编码常量的**差异报告**（见下「游戏数据管线」） |
@@ -57,7 +57,7 @@ npm run verify     # 改完代码、push 前的完整自检
 | `npm run test:helper` | 反馈提取助手（油猴脚本 0.4.0）单测，169 项 |
 | `npm test` | = `npm run verify` |
 
-`npm run verify` 失败就不要提交。它一共 7 段：静态结构 → 语法 → jsdom 集成冒烟 **194 项** → 接口挂起时界面仍可用 → 服务端冒烟 **12 项** → 油猴脚本语法（`node --check`）→ 油猴脚本单测 **169 项**。
+`npm run verify` 失败就不要提交。它一共 7 段：静态结构 → 语法 → jsdom 集成冒烟 **214 项** → 接口挂起时界面仍可用 → 服务端冒烟 **12 项** → 油猴脚本语法（`node --check`）→ 油猴脚本单测 **169 项**。
 
 - jsdom 未安装时前端冒烟会自动回落到本机 DSH 自带的那份。
 - `tools/smoke-server.cjs` 用 `PORT` + `DATA_FILE` 环境变量把服务端指到随机端口和 `tools/out/` 里的临时文件，**不会碰真实 `data.json`**；子进程 stdio 必须用 `ignore`/`inherit`（沙箱禁管道，`pipe` 会 EPERM）。
@@ -103,24 +103,45 @@ npm run verify     # 改完代码、push 前的完整自检
   - ⚠️ 单测会断言「`@updateURL`/`@downloadURL` 的文件名 == 实际文件名」＋「文件里不出现 `-0.4` 这类临时链接」——**改文件名就得同步改这两行**，否则 `npm run test:helper` 直接红。
 - 单测：`tools/test-openid-helper.cjs`（**169 项**）= 纯函数层（openid 边界与宽松计数、行切分、时间行/噪声行、猜昵称、取问题与截断、图片绝对化/过滤/去重/上限、**头像 `isAvatarish`/`pickAvatar`（线索/尺寸/方形/取最小/去重/相对地址/data URI/字符串候选）**、记录组装与 upsert 语义（**含头像：新记录没头像不覆盖旧头像、换头像会覆盖、旧记录没这字段补空串**）、`hits` 与 `firstSeen`、复制文本、诊断 JSON）+ 脚本头约束（`@version` 与内部 `API.version` 一致且 = **0.4.0**、`@match` 只有反馈后台一处、元数据里无 `@connect`、全文件无 `GM_xmlhttpRequest`/`fetch`/`XMLHttpRequest`、**`@updateURL`/`@downloadURL` 指向原链接且文件名对得上、不含 -0.4 临时链接**、`@grant` 声明）+ **不许碰工作台的静态断言**（代码里没有 `/api/data`、没有 `data.json`、没有工作台任何数据键、localStorage 只用变量键）+ **jsdom 端到端**（造一张假反馈页：卡片带头像 img，另有 14×14 噪声小图标 → 注入脚本 → 断言头像/昵称/图片/openid 真的提出来了、头像被单独挑出且不重复进截图、卡片式面板建出来（有头像 img、没头像退化成首字圆底、**面板里没有 `.gj-q`**）、面板里的 openid 不会被自己再收一遍、非反馈站点不注入、localStorage 里只出现 `gemjyHelper:` 前缀的键、落盘与清空）。
 
-## 界面主题（暗色 · 明日方舟 / 终末地 视觉语言）
+## 界面主题（柔和白 · 明日方舟 / 终末地 视觉语言）
 
-**整个工作台是暗色的，只靠 `:root` 令牌驱动**（2026-09 从浅色主题整体翻过来）。改观感先改令牌，再动「收口层」。
+**整个工作台是浅色「柔和白」的**（用户要求：背景不刺眼，所以底不用纯白，用带一点冷灰的白）。只靠 `:root` 令牌驱动，改观感先改令牌、再动两层「收口层」。
 
-- **令牌**（`public/index.html` 顶部 `<style>` 里的 `:root`）：`--bg-0 #090b0d`（页面底）/ `--surface #0e1216` / `--surface-2 #161b21` / `--surface-3 #1d242b`（次级面、斑马、分组标题）/ `--sidebar #0b0e11`；文字 `--ink-0 #e9eef3`（主）/ `--ink-1 #d5dde4` / `--ink-2 #94a0ac`（次要）/ `--ink-3 #66727e`（三级、placeholder）；线 `--line-0 #1d252c` / `--line-1 #2b343d` / `--line-2 #3d4854`。
-  - **强调色只有一个：`--accent #ffd60a`（终末地黄）**，配套 `--accent-hi` / `--accent-ink`（暗底上的强调文字=黄）/ `--accent-dim`(10%) / `--accent-line`(42%) / `--accent-glow`(24%)。`--dark #0a0c0e` 是**黄底/亮底上的文字色**。
-  - 圆角令牌全部≈直角：`--r-sm 2px` / `--r-md 3px` / `--r-lg 4px` / `--r-pill 3px`。阴影改成纯黑低透明（`--shadow-1/2/3`）。
-  - 新增：`--grid-line`（页面网格线）/ `--hazard`（45° 警示条纹）/ `--clip-card`、`--clip-btn`（切角 polygon）。
-- **收口层**：`<style>` 末尾一大段「暗色主题收口层 · 明日方舟 / 终末地 视觉语言」+「客服生涯 · 报表版式」，**后置覆盖前面的规则**（同特异性后者胜）。风格要点：
-  - 直角/切角：`.container` 边框+警示条纹顶条；`.card` / `.modal-content` 用 `--clip-card` 切右上右下角；`button` 用 `--clip-btn`。
-  - 侧边栏：编号 `01…06`（`.tab-btn::before` + `counter(nav-item, decimal-leading-zero)`）；hover 淡白、active 黄字+左侧黄条+菱形点（旋转 45°）。
-  - 按钮：默认半透明面板底+细边+浅字；hover 变**黄底黑字**。`.secondary` 更弱、`.reset-btn` 红字、`.paste-btn` 黄淡底。⚠️ **`.career-collapse-btn` 单独豁免**（`:hover` 也是透明底），否则折叠卡标题一 hover 就变黄块。
-  - 表单：输入框暗底、focus 才出现黄边+yellow-dim 光圈；`color-scheme: dark` 让原生日期/下拉/滚动条也是暗色。
-  - 表格：`th` 深色表头带+字距，`tbody tr:nth-child(even) td` 极淡斑马，`.career-table` 另加分组标题行（`--surface-3` 底+黄字）与合计行（黄淡底+顶部黄线+等宽字）。
-  - ⚠️ **黄底上的文字要用 `#0a0c0e` / `var(--dark)`**，别用 `--ink-0`（浅色！）—— `.career-split-bar > i.ticket`、`.career-scope-bar > button.active` 这两处已单独改成深色字。
+- **令牌**（`public/index.html` 顶部 `<style>` 里的 `:root`）：`--bg-0 #eef1f4`（页面底，冷灰白）/ `--bg-1 #f7f9fb` / `--surface #fbfcfd`（卡片）/ `--surface-2 #f1f4f7` / `--surface-3 #e6eaee`（次级面、斑马、分组标题）/ `--sidebar #f4f6f9`；文字 `--ink-0 #1b2228`（主）/ `--ink-1 #2c353d` / `--ink-2 #5b6672`（次要）/ `--ink-3 #8b959f`（三级、placeholder）；线 `--line-0 #e3e8ed` / `--line-1 #d3dae1` / `--line-2 #b7c0c9`。
+  - **强调色仍是「方舟黄」，但浅底上压深了一档：`--accent #c89500`**（当文字/描边看得清，当填充配黑字也够）；配套 `--accent-hi #a97c00` / `--accent-ink #8a6200`（浅底上的强调文字）/ `--accent-dim`(12%) / `--accent-line`(42%) / `--accent-glow`(20%)。`--dark #0a0c0e` 仍是**黄底/亮底上的文字色**，也是「小游戏那几个故意做黑的按钮」的底色 —— **别改它**。
+  - `--warn #bd7300` / `--danger #cf3b30`（浅底上压深一档）；阴影改成柔和黑低透明（`--shadow-1/2/3`）。
+  - 圆角令牌全部≈直角：`--r-sm 2px` / `--r-md 3px` / `--r-lg 4px` / `--r-pill 3px`。
+  - `--ak-primary` / `--primary` / `--bg` / `--border` / `--text` / `--shadow` 这些旧别名**已改成引用上面那套令牌**，别再写死颜色。
+  - 新增：`--grid-line`（页面网格线，浅底上是 `rgba(28,40,52,0.035)`）/ `--hazard`（45° 警示条纹）/ `--clip-card`、`--clip-btn`（切角 polygon）。
+- **两层收口层**（都在 `<style>` 末尾，**后置覆盖前面的规则**，同特异性后者胜）：
+  1. **「暗色主题收口层 · 明日方舟 / 终末地 视觉语言」**（含「客服生涯 · 报表版式」）—— 形状/版式层：切角、编号、表头、按钮形状、报表抬头等。⚠️ **它是上一版暗色主题留下的，名字也没改；里面的 `rgba(255,255,255,…)`、`rgba(4,6,8,…)` 这类颜色全是暗色专用值，靠下面第 2 层覆盖**。改版式（不是颜色）就动这一层。
+  2. **「浅色收口层 · 柔和白」**（最后一段）—— 颜色收口：把上面那层的暗色硬编码改回浅色（`.tab-btn:hover` 的淡黑、`button` 的浅底、表单白底、`.card::after` 斜纹、`tbody` 斑马、`.modal` 遮罩、`.career-kpi.accent` / `.career-trend` 的底纹），外加 `.fb-chip`（反馈模板的选择片）。**再加浅色样式就写这一段**，并且**不要用 `rgba(255,255,255,…)`**（verify 有断言锁死这一段里不出现白底白线）。
+  - 直角/切角：`.container` 边框+警示条纹顶条（浅底上 opacity 0.22）；`.card` / `.modal-content` 用 `--clip-card` 切右上右下角；`button` 用 `--clip-btn`。
+  - 侧边栏：编号 `01…`（`.tab-btn::before` + `counter(nav-item, decimal-leading-zero)`）；hover 淡黑、active 黄字+左侧黄条+菱形点（旋转 45°）。
+  - 按钮：默认浅底面板+细边+深字；hover 变**黄底黑字**。`.secondary` 更弱、`.reset-btn` 红字、`.paste-btn` 黄淡底。⚠️ **`.career-collapse-btn` 单独豁免**（`:hover` 也是透明底），否则折叠卡标题一 hover 就变黄块。
+  - 表单：输入框白底细边、focus 才出现黄边+黄淡光圈；`color-scheme: light` 让原生日期/下拉/滚动条也是浅色。
+  - 表格：`th` 浅灰表头带+字距，`tbody tr:nth-child(even) td` 极淡斑马，`.career-table` 另加分组标题行（`--surface-3` 底+黄字）与合计行（黄淡底+顶部黄线+等宽字）。
+  - ⚠️ **黄底上的文字要用 `#0a0c0e` / `var(--dark)`**，别用 `--ink-0`—— `.career-split-bar > i.ticket`、`.career-scope-bar > button.active` 这两处是深色字，保持就行。
   - ⚠️ `clip-path` 会**吃掉 box-shadow**，所以按钮的 hover 光圈基本看不到（只有换色）；想要光圈就别用 clip-path。
-- **客服生涯 · 报表版式**：`.career-report-head`（英文 kicker `WORKLOAD REPORT / 工作量统计报表` + 标题 + `#careerReportSub` 数据范围/口径 + 右上 `#careerReportMeta` 5 格元数据：身份/记录天数/累计/日均/出具日期，由 `renderCareer()` 填）；卡片自动编号 `01…`（`#tab-career` 上 `counter-reset: career-card`，编号画在 `.card > label::before` / `.flex-row > label::before` / `.career-collapse-btn::before`）；KPI 卡改成等宽大数字 + 右上角刻度线（`.career-kpi::after`）；报表页**关掉了卡片的斜纹底**（`#tab-career .card::after { display:none }`）。
-- ⚠️ 想回到浅色：把 `:root` 的 `--bg-0/--surface*/--ink*/--line*/--accent*` 换成浅色值即可，但**收口层里有几处硬编码的深色字（`#0a0c0e`）和 `color-scheme: dark` 需要一起调**。
+  - ⚠️ 有几处**故意做黑**的元素（`.debug-console`、`#tab-script` 的拼豆/油炸按钮、`.badge` 的基础色）—— 它们在浅底上是「反色小块」，是有意的，别顺手改白。
+- **客服生涯 · 报表版式**：`.career-report-head`（英文 kicker `WORKLOAD REPORT / 工作量统计报表` + 标题 + `#careerReportSub` 数据范围/口径 + 右上 `#careerReportMeta` 5 格元数据：身份/记录天数/累计/日均/出具日期，由 `renderCareer()` 填；**「反馈模板」标签页也复用了这套抬头**）；卡片自动编号 `01…`（`#tab-career` 上 `counter-reset: career-card`，编号画在 `.card > label::before` / `.flex-row > label::before` / `.career-collapse-btn::before`）；KPI 卡改成等宽大数字 + 右上角刻度线（`.career-kpi::after`）；报表页**关掉了卡片的斜纹底**（`#tab-career .card::after { display:none }`）。
+- ⚠️ 想再换回暗色：把 `:root` 的 `--bg-0/--surface*/--ink*/--line*/--accent*` 换回深色值即可，但**要同时删掉/改掉「浅色收口层 · 柔和白」这一段 + `color-scheme: light` + select 箭头 SVG 的 `%23c89500`**，否则会有浅底白线。
+
+## 反馈模板（工单信息提取器）
+
+**「📮 反馈模板」标签页**（`data-tab="feedback"` / `#tab-feedback`，侧边栏在「工单回复」下面）—— 口径**照搬用户给的《反馈模板生成器》单页工具**（文件名 `test - 多选生成(🆕) - 修改异世界区服无法正常显示的问题.html`）：选模板 + 选来源 + 粘原始字符串 → 出反馈格式文本。
+
+- **三种模板**（`FB_TEMPLATES`，单选片 `.fb-chip`）：`menghuan` 梦幻消除战 / `changwu` 常规游戏 / `gongdan` 内部工单。
+- **来源 11 个**（`FB_SOURCES`）：抖音在线 / 抖音后台 / 53 / 工单 / 支付宝在线 / 支付宝后台 / 微信后台 / 电话 / 爱江山CP后台 / 繁花CP后台 / **企微**（最后这个是用户本轮要求新加的）。
+- **两种解析**（`fbBuildOrderText` / `fbBuildGameText`）：
+  - **内部工单**：按行 `字段名 值` 提取，字段表 `FB_ORDER_FIELDS`（工单号 / 来源 / 游戏 / 区服 / UID / 账号 / 角色ID / 角色名 / 类型 / 问题描述 / 当前组 / 提交人 / 提交时间 / 工单状态 / 联系人 / 手机号码）；输出 `工单号：… 提交者：… 游戏：… 账号：… uid：… 角色名：… 角色id：… 区服：… 问题：… 来源：<选的来源> 编号： 联系方式：<手机号优先，没填才用联系人>`。
+  - **梦幻 / 常规**：把整行按空格拆（`\s+`），`parts[0]=UID`、`parts[1]=游戏名`、`parts[3]=平台区服`；找 `YYYY-MM-DD` 当发生时间、找第 4 位起第一个「4 位以上纯数字」当角色ID；角色ID 之前那段拼成区服名、之后到日期之前拼成角色名。渠道 = 游戏名里最后一个 `-` 之后、去掉中英文括号内容。
+  - **区服特例（用户给的规则，照搬）**：`唱舞星计划` 且区服名是数字（`isFinite`）→ 用 `parts[3]` 那个数字区服；`异世界勇者` → 固定 `001`，其中 `联盟契约` / `taptap` → 固定 `000`。**这就是原文件名里说的「异世界区服无法正常显示的问题」的修法**。
+- **模板对不上时不生成**（`fbMismatch`）：内容像内部工单却选了常规/梦幻、或选了内部工单但没「工单号」行，都会清空结果 + 在 `#fbHint` 里说明该换成哪个模板（原工具是 `confirm` 弹窗 + `return`，这里换成不打断的提示，**行为仍是「不给错格式」**）。
+- **只存本机**：选中的模板/来源存 `localStorage['feedbackTplState']`（`fbLoadState`/`fbSaveState`），**不进 `/api/data`**；页面启动（`bindAll`）和切到该标签页时都会 `fbRenderChips()` 把选中态画回来。
+- **抬头**：复用 `.career-report-head`，`#fbReportSub` = 当前模板/来源/可选来源数，`#fbReportMeta` 三格 = 模板 / 来源 / 来源总数。
+- **按钮**：`⚡ 生成反馈格式`（`fbGenerate`）/ `📋 复制结果`（`fbCopy`，走 `safeCopy`，空结果只提示不抛错）/ `🧹 清空`（`fbClear`）。
+- **测试**：`tools/smoke.cjs` 第 **8h** 节 **20 条**（标签页 + 3 模板 + 11 来源含企微 + 默认选中 + 抬头 3 格 / 常规游戏各区服特例（001 / 000 / 唱舞数字 / 普通取服务器名）/ 切来源后结果跟着变 + 记住 `feedbackTplState` / 梦幻正文与渠道去括号 / 模板选错不生成并提示 / 内部工单字段提取（手机号优先、没手机号用联系人）/ 清空 / 空输入提示 / 复制按钮不抛错 / 整场不往服务端存）；`tools/verify.mjs` 另有 7 条静态断言（标签页、来源 11 个含企微、模板 3 种、两套正文、区服特例、字段表、只存本机、容器、按钮与标签页刷新）。
 
 ## 海外业务统计（岗位周报整表粘贴）
 
@@ -169,7 +190,7 @@ npm run verify     # 改完代码、push 前的完整自检
 ## 目录结构
 
 ```
-public/index.html          全部前端（单文件，约 11900 行：内联 CSS + 内联 JS 的 async IIFE；含「客服生涯」「海外业务统计」标签页）
+public/index.html          全部前端（单文件，约 12500 行：内联 CSS + 内联 JS 的 async IIFE；含「客服生涯」「海外业务统计」「反馈模板」标签页）
 public/gemjy-openid-helper.user.js  油猴脚本（反馈后台：卡片式悬浮窗，提取 头像/昵称/图片/openid，一键复制 openid；当前内容 0.4.0，就发在这一条链接上；与前端无代码耦合）
 server.js                  express：静态托管 public/ + GET/POST /api/data/:key ↔ data.json（含 key 白名单）
 data.json                  服务端数据（随使用增长；前端字段缺失会被默认值自动补齐）

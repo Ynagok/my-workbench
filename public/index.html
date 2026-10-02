@@ -19,53 +19,55 @@
         ============================================================ */
 
         :root {
-            --bg-0: #090b0d;
-            --bg-1: #12161a;
-            --surface: #0e1216;
-            --surface-2: #161b21;
-            --surface-3: #1d242b;
-            --sidebar: #0b0e11;
-            --ink-0: #e9eef3;
-            --ink-1: #d5dde4;
-            --ink-2: #94a0ac;
-            --ink-3: #66727e;
-            --line-0: #1d252c;
-            --line-1: #2b343d;
-            --line-2: #3d4854;
-            --accent: #ffd60a;
-            --accent-hi: #ffe873;
-            --accent-ink: #ffd60a;
-            --accent-dim: rgba(255,214,10,0.10);
-            --accent-line: rgba(255,214,10,0.42);
-            --accent-glow: rgba(255,214,10,0.24);
+            /* ---- 柔和白（浅色主题；不刺眼：底不用纯白，用带一点冷灰的白）---- */
+            --bg-0: #eef1f4;
+            --bg-1: #f7f9fb;
+            --surface: #fbfcfd;
+            --surface-2: #f1f4f7;
+            --surface-3: #e6eaee;
+            --sidebar: #f4f6f9;
+            --ink-0: #1b2228;
+            --ink-1: #2c353d;
+            --ink-2: #5b6672;
+            --ink-3: #8b959f;
+            --line-0: #e3e8ed;
+            --line-1: #d3dae1;
+            --line-2: #b7c0c9;
+            /* 强调色仍是「方舟黄」，但浅底上要压深一档才看得清 */
+            --accent: #c89500;
+            --accent-hi: #a97c00;
+            --accent-ink: #8a6200;
+            --accent-dim: rgba(200,149,0,0.12);
+            --accent-line: rgba(200,149,0,0.42);
+            --accent-glow: rgba(200,149,0,0.20);
             --dark: #0a0c0e;
             --dark-2: #1a2026;
-            --warn: #ffab2e;
-            --danger: #ff5f57;
+            --warn: #bd7300;
+            --danger: #cf3b30;
             --r-sm: 2px;
             --r-md: 3px;
             --r-lg: 4px;
             --r-pill: 3px;
-            --shadow-1: 0 1px 2px rgba(0,0,0,0.45);
-            --shadow-2: 0 8px 26px rgba(0,0,0,0.5);
-            --shadow-3: 0 26px 64px rgba(0,0,0,0.72);
+            --shadow-1: 0 1px 2px rgba(24,32,40,0.07);
+            --shadow-2: 0 6px 20px rgba(24,32,40,0.10);
+            --shadow-3: 0 20px 48px rgba(24,32,40,0.16);
             --font-sans: "Rajdhani", "Noto Sans SC", -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", Roboto, sans-serif;
             --font-display: "Rajdhani", "Noto Sans SC", sans-serif;
             --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", "Courier New", monospace;
-            --ak-primary: #ffd60a;
-            --ak-danger: #ff5f57;
-            --ak-border: #2b343d;
+            --ak-primary: var(--accent);
+            --ak-danger: var(--danger);
+            --ak-border: var(--line-1);
             --ak-mono: var(--font-mono);
-            --ak-text-mute: #94a0ac;
-            --primary: #ffd60a;
-            --primary-hover: #ffe873;
-            --bg: #090b0d;
-            --border: #2b343d;
-            --text: #d5dde4;
+            --ak-text-mute: var(--ink-2);
+            --primary: var(--accent);
+            --primary-hover: var(--accent-hi);
+            --bg: var(--bg-0);
+            --border: var(--line-1);
+            --text: var(--ink-1);
             --radius: 3px;
-            --shadow: 0 8px 26px rgba(0,0,0,0.5);
-            /* 暗色主题专用 */
-            --grid-line: rgba(255,255,255,0.026);
+            --shadow: var(--shadow-2);
+            /* 主题专用（浅底要用深色淡淡的线，不然网格看不见） */
+            --grid-line: rgba(28,40,52,0.035);
             --hazard: repeating-linear-gradient(135deg, var(--accent) 0 10px, transparent 10px 20px);
             --clip-card: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
             --clip-btn: polygon(0 0, calc(100% - 7px) 0, 100% 7px, 100% 100%, 7px 100%, 0 calc(100% - 7px));
@@ -89,15 +91,15 @@
             color: var(--ink-1);
             background-color: var(--bg-0);
             background-image:
-                radial-gradient(1200px 600px at 78% -10%, rgba(255,214,10,0.045), transparent 60%),
-                radial-gradient(900px 500px at 0% 110%, rgba(90,140,190,0.05), transparent 55%),
+                radial-gradient(1200px 600px at 78% -10%, rgba(200,149,0,0.05), transparent 60%),
+                radial-gradient(900px 500px at 0% 110%, rgba(90,140,190,0.06), transparent 55%),
                 linear-gradient(var(--grid-line) 1px, transparent 1px),
                 linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
             background-size: 100% 100%, 100% 100%, 44px 44px, 44px 44px;
             background-attachment: fixed;
             padding: 22px 20px;
             min-height: 100vh;
-            color-scheme: dark;
+            color-scheme: light;
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
             font-feature-settings: "tnum" 1, "kern" 1;
@@ -320,7 +322,7 @@
             appearance: none;
             -webkit-appearance: none;
             background-color: var(--bg-1);
-            background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'><path fill='%23ffd60a' d='M2 4l4 4 4-4z'/></svg>");
+            background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'><path fill='%23c89500' d='M2 4l4 4 4-4z'/></svg>");
             background-repeat: no-repeat;
             background-position: right 10px center;
             background-size: 10px;
@@ -2432,7 +2434,7 @@
             .inline-card::before {
                 width: 2px;
                 border-radius: 0;
-                background: linear-gradient(180deg, var(--accent), rgba(255,214,10,0.12));
+                background: linear-gradient(180deg, var(--accent), rgba(200,149,0,0.12));
                 box-shadow: none;
             }
 
@@ -2644,7 +2646,7 @@
             }
 
             .career-kpi.accent {
-                background: linear-gradient(180deg, var(--accent-dim), rgba(255,214,10,0.02));
+                background: linear-gradient(180deg, var(--accent-dim), rgba(200,149,0,0.02));
                 border-color: var(--accent-line);
             }
 
@@ -2733,6 +2735,161 @@
             .career-collapse-btn:hover .career-arrow {
                 color: var(--accent);
             }
+
+        /* ============================================================
+           浅色收口层 · 柔和白（后置覆盖上面的暗色硬编码）
+           要再调：只改 :root 令牌 + 这一层里的 rgba(20,30,40,…) 透明度
+           ============================================================ */
+
+        .container::before {
+            opacity: 0.22;   /* 顶部警示条纹在浅底上淡一点 */
+        }
+
+        .tab-btn:hover {
+            background: rgba(20,30,40,0.045);
+        }
+
+        /* 按钮：浅底面板 + 深字；hover 仍是黄底黑字 */
+        button {
+            background: #f7f9fb;
+            border-color: var(--line-1);
+            color: var(--ink-0);
+        }
+
+            button:hover {
+                background: var(--accent);
+                border-color: var(--accent);
+                color: var(--dark);
+            }
+
+        .secondary {
+            background: transparent;
+            color: var(--ink-2);
+        }
+
+            .secondary:hover {
+                background: rgba(20,30,40,0.06);
+                color: var(--ink-0);
+            }
+
+        .reset-btn {
+            background: transparent;
+            color: var(--danger);
+            border-color: rgba(207,59,48,0.45);
+        }
+
+            .reset-btn:hover {
+                background: var(--danger);
+                color: #ffffff;
+                border-color: var(--danger);
+            }
+
+        .paste-btn {
+            background: var(--accent-dim);
+            border-color: var(--accent-line);
+            color: var(--accent-ink);
+        }
+
+        /* 表单：白底细边，focus 才出现黄边 + 淡黄光圈 */
+        input[type="text"],
+        input[type="number"],
+        input[type="date"],
+        input[type="file"],
+        select,
+        textarea {
+            background: #ffffff;
+            border-color: var(--line-1);
+            color: var(--ink-0);
+        }
+
+            input[type="text"]:focus,
+            input[type="number"]:focus,
+            input[type="date"]:focus,
+            select:focus,
+            textarea:focus {
+                background: #ffffff;
+                border-color: var(--accent-line);
+                box-shadow: 0 0 0 2px var(--accent-dim);
+            }
+
+            input[type="file"]::file-selector-button {
+                background: #f0f3f6;
+                border-color: var(--line-1);
+                color: var(--ink-0);
+            }
+
+        /* 卡片：浅底 + 更淡的斜纹 + 黄竖条 */
+        .card::after,
+        .inline-card::after {
+            background-image: repeating-linear-gradient(-45deg, transparent 0, transparent 9px, rgba(20,30,40,0.016) 9px, rgba(20,30,40,0.016) 10px);
+        }
+
+        .card::before,
+        .inline-card::before {
+            background: linear-gradient(180deg, var(--accent), rgba(200,149,0,0.10));
+        }
+
+        tbody tr:nth-child(even) td {
+            background: rgba(20,30,40,0.022);
+        }
+
+        .modal {
+            background: rgba(24,32,40,0.38);
+        }
+
+        .career-kpi.accent {
+            background: linear-gradient(180deg, var(--accent-dim), rgba(200,149,0,0.02));
+        }
+
+        .career-trend {
+            background-image: repeating-linear-gradient(0deg, transparent 0 21px, rgba(20,30,40,0.035) 21px 22px);
+        }
+
+        /* ---------- 反馈模板：模板 / 来源选择片 ---------- */
+        .fb-chip-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 9px;
+        }
+
+        .fb-chip {
+            clip-path: none;
+            text-transform: none;
+            letter-spacing: 0.04em;
+            font-size: 12.5px;
+            font-weight: 500;
+            padding: 7px 13px;
+            background: #ffffff;
+            border: 1px solid var(--line-1);
+            color: var(--ink-1);
+        }
+
+            .fb-chip:hover {
+                background: var(--surface-2);
+                border-color: var(--line-2);
+                color: var(--ink-0);
+                box-shadow: none;
+            }
+
+            .fb-chip.active {
+                background: var(--accent-dim);
+                border-color: var(--accent);
+                color: var(--accent-ink);
+                font-weight: 700;
+                box-shadow: none;
+            }
+
+        #fbRawInput,
+        #fbOutput {
+            font-family: var(--font-mono);
+            font-size: 13px;
+            line-height: 1.7;
+        }
+
+        #fbOutput {
+            background: var(--surface-2);
+        }
     </style>
 </head>
 
@@ -2744,6 +2901,7 @@
             <button class="tab-btn tab-btn-sub" data-tab="card"> 集卡分析</button>
 
             <button class="tab-btn" data-tab="reply"> 工单回复</button>
+            <button class="tab-btn" data-tab="feedback"> 反馈模板</button>
             <button class="tab-btn" data-tab="daily"> 每日日报</button>
             <button class="tab-btn" data-tab="career"> 客服生涯</button>
             <button class="tab-btn" data-tab="overseas"> 海外业务统计</button>
@@ -2908,6 +3066,66 @@
                     </div>
                 </div>
                 <div id="replyPresetList" style="margin-top:12px;"></div>
+            </div>
+        </div>
+
+        <!-- ==================== 反馈模板 feedback ==================== -->
+        <div id="tab-feedback" class="tab-content">
+            <div class="career-report-head">
+                <div>
+                    <div class="crh-kicker">FEEDBACK TEMPLATE / 反馈模板生成</div>
+                    <div class="crh-title">反馈模板</div>
+                    <div class="crh-sub" id="fbReportSub">—</div>
+                </div>
+                <div class="crh-meta" id="fbReportMeta"></div>
+            </div>
+
+            <div class="card">
+                <label>① 选择模板
+                    <span class="hint-text" style="font-weight:400;">粘贴的内容要跟模板对得上：选错了会提示、并告诉你该用哪个</span>
+                </label>
+                <div class="fb-chip-row" id="fbTemplateGroup">
+                    <button class="fb-chip" data-fb-template="menghuan">梦幻消除战</button>
+                    <button class="fb-chip" data-fb-template="changwu">常规游戏</button>
+                    <button class="fb-chip" data-fb-template="gongdan">内部工单</button>
+                </div>
+
+                <label style="margin-top:16px;">② 选择来源
+                    <span class="hint-text" style="font-weight:400;">会写进结果的「来源：」那一行</span>
+                </label>
+                <div class="fb-chip-row" id="fbSourceGroup">
+                    <button class="fb-chip" data-fb-source="抖音在线">抖音在线</button>
+                    <button class="fb-chip" data-fb-source="抖音后台">抖音后台</button>
+                    <button class="fb-chip" data-fb-source="53">53</button>
+                    <button class="fb-chip" data-fb-source="工单">工单</button>
+                    <button class="fb-chip" data-fb-source="支付宝在线">支付宝在线</button>
+                    <button class="fb-chip" data-fb-source="支付宝后台">支付宝后台</button>
+                    <button class="fb-chip" data-fb-source="微信后台">微信后台</button>
+                    <button class="fb-chip" data-fb-source="电话">电话</button>
+                    <button class="fb-chip" data-fb-source="爱江山CP后台">爱江山CP后台</button>
+                    <button class="fb-chip" data-fb-source="繁花CP后台">繁花CP后台</button>
+                    <button class="fb-chip" data-fb-source="企微">企微</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <label>③ 粘贴原始字符串
+                    <span class="hint-text" style="font-weight:400;">内部工单按「字段名 值」多行粘；其余按空格分隔的一整行粘</span>
+                </label>
+                <textarea id="fbRawInput" rows="7" placeholder="例（常规游戏）：12345678 梦幻消除战-微信 安卓 1001 服务器名 87654321 角色名 2026-01-02&#10;例（内部工单）：工单号 XXX-123&#10;来源 企微&#10;游戏 异世界勇者&#10;区服 XX服&#10;UID 12345678&#10;账号 abc&#10;角色ID 87654321&#10;角色名 张三&#10;问题描述 玩家反馈，麻烦看看&#10;提交人 李四&#10;联系人 王五&#10;手机号码 13800000000"></textarea>
+                <div class="flex-row" style="margin-top:10px;">
+                    <button id="fbGenerateBtn">⚡ 生成反馈格式</button>
+                    <button id="fbCopyBtn" class="secondary">📋 复制结果</button>
+                    <button id="fbClearBtn" class="reset-btn">🧹 清空</button>
+                    <span class="hint-text" id="fbHint"></span>
+                </div>
+            </div>
+
+            <div class="card">
+                <label>④ 生成结果
+                    <span class="hint-text" style="font-weight:400;">「编号：」留空自己补</span>
+                </label>
+                <textarea id="fbOutput" rows="11" readonly></textarea>
             </div>
         </div>
 
@@ -11371,6 +11589,194 @@
                                         ovbizSetHint('已清空 ' + n + ' 行海外业务数据（服务端与本机一起，三个人都看不到了）');
                                     }
 
+                                    // ==================== 反馈模板（工单信息提取器） ====================
+                                    // 口径来自「反馈模板生成器」那份单页工具（选模板 / 选来源 / 粘原始字符串 → 反馈格式）
+                                    // ⚠️ 选中的模板与来源只存本机（localStorage），不进 /api/data
+                                    const FB_STATE_KEY = 'feedbackTplState';
+                                    const FB_TEMPLATES = [
+                                        { key: 'menghuan', label: '梦幻消除战' },
+                                        { key: 'changwu', label: '常规游戏' },
+                                        { key: 'gongdan', label: '内部工单' }
+                                    ];
+                                    const FB_SOURCES = ['抖音在线', '抖音后台', '53', '工单', '支付宝在线', '支付宝后台', '微信后台', '电话', '爱江山CP后台', '繁花CP后台', '企微'];
+                                    // 内部工单的中文键名 → 字段名
+                                    const FB_ORDER_FIELDS = {
+                                        '工单号': 'orderId', '来源': 'source', '游戏': 'game', '区服': 'server', 'UID': 'uid',
+                                        '账号': 'account', '角色ID': 'roleId', '角色名': 'roleName', '类型': 'type',
+                                        '问题描述': 'description', '当前组': 'currentGroup', '提交人': 'submitter',
+                                        '提交时间': 'submitTime', '工单状态': 'status', '联系人': 'contactPerson', '手机号码': 'phoneNumber'
+                                    };
+                                    const FB_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+                                    const FB_CHARID_RE = /^\d{4,}$/;
+                                    let fbTemplate = 'menghuan';
+                                    let fbSource = '抖音在线';
+                                    function fbLoadState() {
+                                        try {
+                                            const s = JSON.parse(localStorage.getItem(FB_STATE_KEY) || 'null');
+                                            if (s) {
+                                                if (FB_TEMPLATES.some(t => t.key === s.template)) fbTemplate = s.template;
+                                                if (FB_SOURCES.indexOf(s.source) !== -1) fbSource = s.source;
+                                            }
+                                        } catch (e) { /* 坏了就用默认值 */ }
+                                    }
+                                    function fbSaveState() {
+                                        try { localStorage.setItem(FB_STATE_KEY, JSON.stringify({ template: fbTemplate, source: fbSource })); } catch (e) { }
+                                    }
+                                    function fbSetHint(t) {
+                                        const h = document.getElementById('fbHint');
+                                        if (h) h.textContent = t || '';
+                                    }
+                                    function fbTemplateLabel() {
+                                        const t = FB_TEMPLATES.filter(x => x.key === fbTemplate)[0];
+                                        return t ? t.label : fbTemplate;
+                                    }
+                                    function fbRenderHead() {
+                                        const sub = document.getElementById('fbReportSub');
+                                        if (sub) sub.textContent = '当前模板：' + fbTemplateLabel() + '　·　来源：' + fbSource + '　·　可选来源 ' + FB_SOURCES.length + ' 个';
+                                        const meta = document.getElementById('fbReportMeta');
+                                        if (meta) {
+                                            const cells = [['模板', fbTemplateLabel()], ['来源', fbSource], ['来源总数', FB_SOURCES.length + ' 个']];
+                                            meta.innerHTML = cells.map(c => '<div><span class="m-k">' + escapeHtml(String(c[0]))
+                                                + '</span><span class="m-v">' + escapeHtml(String(c[1])) + '</span></div>').join('');
+                                        }
+                                    }
+                                    function fbRenderChips() {
+                                        const tg = document.getElementById('fbTemplateGroup');
+                                        if (tg) tg.querySelectorAll('.fb-chip').forEach(b => b.classList.toggle('active', b.dataset.fbTemplate === fbTemplate));
+                                        const sg = document.getElementById('fbSourceGroup');
+                                        if (sg) sg.querySelectorAll('.fb-chip').forEach(b => b.classList.toggle('active', b.dataset.fbSource === fbSource));
+                                        fbRenderHead();
+                                    }
+                                    function fbSetTemplate(k) {
+                                        if (!FB_TEMPLATES.some(t => t.key === k)) return;
+                                        fbTemplate = k;
+                                        fbSaveState();
+                                        fbRenderChips();
+                                    }
+                                    function fbSetSource(s) {
+                                        if (FB_SOURCES.indexOf(s) === -1) return;
+                                        fbSource = s;
+                                        fbSaveState();
+                                        fbRenderChips();
+                                        // 已经生成过就按新来源重刷一次，省得再点一下
+                                        const out = document.getElementById('fbOutput');
+                                        if (out && out.value.trim()) fbGenerate();
+                                    }
+                                    // 模板跟粘贴内容对不上时返回「该用哪个模板」，对得上返回空串
+                                    function fbMismatch(parts, gameNameRaw) {
+                                        const first = (parts[0] || '').trim();
+                                        if (fbTemplate === 'menghuan') {
+                                            if (!gameNameRaw.includes('梦幻消除战')) {
+                                                return first === '工单号' ? '这段内容像是【内部工单】，请把模板切成「内部工单」' : '这段内容不是【梦幻消除战】，请把模板切成「常规游戏」';
+                                            }
+                                        } else if (fbTemplate === 'gongdan') {
+                                            if (first !== '工单号') return '这段内容不是【内部工单】（没找到「工单号」那一行），请换对应模板';
+                                        } else if (fbTemplate === 'changwu') {
+                                            if (first === '工单号') return '这段内容属于【内部工单】，请把模板切成「内部工单」';
+                                            if (gameNameRaw.includes('梦幻消除战')) return '这段内容属于【梦幻消除战】，请把模板切成「梦幻消除战」';
+                                        }
+                                        return '';
+                                    }
+                                    // 内部工单：按行「字段名 值」提取
+                                    function fbBuildOrderText(raw) {
+                                        const w = {};
+                                        Object.keys(FB_ORDER_FIELDS).forEach(k => { w[FB_ORDER_FIELDS[k]] = ''; });
+                                        raw.split(/\n/).forEach(line => {
+                                            const m = line.match(/^(.+?)\s+(.*)$/);
+                                            if (!m) return;
+                                            const key = FB_ORDER_FIELDS[m[1].trim()];
+                                            if (key) w[key] = m[2].trim();
+                                        });
+                                        return '工单号：' + w.orderId
+                                            + '\n提交者：' + w.submitter
+                                            + '\n游戏：' + w.game
+                                            + '\n账号：' + w.account
+                                            + '\nuid：' + w.uid
+                                            + '\n角色名：' + w.roleName
+                                            + '\n角色id：' + w.roleId
+                                            + '\n区服：' + w.server
+                                            + '\n问题：' + w.description
+                                            + '\n来源：' + fbSource
+                                            + '\n编号：'
+                                            + '\n联系方式：' + (w.phoneNumber === '' ? w.contactPerson : w.phoneNumber);
+                                    }
+                                    // 梦幻 / 常规：空格分隔的一整行按锚点拆
+                                    function fbBuildGameText(parts, gameNameRaw) {
+                                        const uid = parts[0] || '（未获取）';
+                                        const serverId = parts[3] || '（未获取）';
+                                        let serverName = '';
+                                        let charId = '（未获取）';
+                                        let charName = '';
+                                        const dateIdx = parts.findIndex(p => FB_DATE_RE.test(p));
+                                        const charIdIdx = parts.findIndex((p, i) => i >= 4 && FB_CHARID_RE.test(p));
+                                        if (charIdIdx !== -1) {
+                                            charId = parts[charIdIdx];
+                                            const sNameParts = parts.slice(4, charIdIdx);
+                                            serverName = sNameParts.length > 0 ? sNameParts.join(' ') : '';
+                                            const endIdx = (dateIdx !== -1) ? dateIdx : parts.length;
+                                            if (endIdx > charIdIdx + 1) charName = parts.slice(charIdIdx + 1, endIdx).join(' ');
+                                        } else {
+                                            serverName = parts[4] || '';
+                                            charId = parts[5] || '（未获取）';
+                                            charName = parts[6] || '';
+                                        }
+                                        // 渠道：游戏名里最后一个「-」之后的部分，去掉中英文括号内容
+                                        const lastDash = gameNameRaw.lastIndexOf('-');
+                                        const channel = ((lastDash !== -1) ? gameNameRaw.substring(lastDash + 1) : gameNameRaw).replace(/[\(\（].*?[\)\）]/g, '').trim();
+                                        if (fbTemplate === 'menghuan') {
+                                            return '【梦幻消除战问题反馈】\n【喜扑UID】：' + uid
+                                                + '\n【角色ID】：' + charId
+                                                + '\n【渠道】：' + channel
+                                                + '\n【设备信息】：\n【发生时间】：\n【具体描述】：'
+                                                + '\n来源：' + fbSource
+                                                + '\n编号：';
+                                        }
+                                        const finalServer = serverName ? serverName : serverId;
+                                        let text = '游戏：' + gameNameRaw
+                                            + '\nUID：' + uid
+                                            + '\n角色名：' + (charName || '')
+                                            + '\n角色ID：' + charId
+                                            + '\n区服：' + finalServer
+                                            + '\n问题：玩家反馈，麻烦看看'
+                                            + '\n来源：' + fbSource
+                                            + '\n编号：';
+                                        // 特例：唱舞星计划区服写数字；异世界勇者固定 001、联盟契约 / taptap 固定 000
+                                        if (gameNameRaw.includes('唱舞星计划') && isFinite(serverName)) {
+                                            text = text.replace('区服：' + finalServer, '区服：' + serverId);
+                                        } else if (gameNameRaw.includes('异世界勇者')) {
+                                            const fixed = (gameNameRaw.includes('联盟契约') || gameNameRaw.toLowerCase().includes('taptap')) ? '000' : '001';
+                                            text = text.replace('区服：' + finalServer, '区服：' + fixed);
+                                        }
+                                        return text;
+                                    }
+                                    function fbGenerate() {
+                                        const area = document.getElementById('fbRawInput');
+                                        const out = document.getElementById('fbOutput');
+                                        const raw = ((area && area.value) || '').trim();
+                                        if (out) out.value = '';
+                                        if (!raw) { fbSetHint('先粘贴原始字符串再生成'); return; }
+                                        const parts = raw.split(/\s+/).filter(p => p.trim() !== '');
+                                        const gameNameRaw = parts[1] || '';
+                                        const bad = fbMismatch(parts, gameNameRaw);
+                                        if (bad) { fbSetHint('⚠️ 模板选错了：' + bad + '（停在这里，不生成错格式）'); return; }
+                                        const text = (fbTemplate === 'gongdan') ? fbBuildOrderText(raw) : fbBuildGameText(parts, gameNameRaw);
+                                        if (out) out.value = text;
+                                        fbSetHint('已按「' + fbTemplateLabel() + '」生成 · 来源 ' + fbSource);
+                                    }
+                                    function fbCopy() {
+                                        const out = document.getElementById('fbOutput');
+                                        if (!out || !out.value.trim()) { fbSetHint('还没有生成结果'); return; }
+                                        safeCopy(out.value);
+                                        fbSetHint('已复制生成结果');
+                                    }
+                                    function fbClear() {
+                                        const area = document.getElementById('fbRawInput');
+                                        const out = document.getElementById('fbOutput');
+                                        if (area) area.value = '';
+                                        if (out) out.value = '';
+                                        fbSetHint('已清空输入与结果');
+                                    }
+
                                     // ==================== 事件绑定 ====================
                                     function setClick(id, handler) {
                                         const el = document.getElementById(id);
@@ -11636,6 +12042,7 @@
                                             if (targetTab) targetTab.classList.add('active');
                                             if (this.dataset.tab === 'career') renderCareer();
                                             if (this.dataset.tab === 'overseas') { ovbizRender(); ovbizSyncFromServer(); }   // 切进来顺手跟服务端对一次（岗位共享）
+                                            if (this.dataset.tab === 'feedback') fbRenderChips();
                                         });
 
                                         // 规则搜索
@@ -11786,6 +12193,22 @@
                                         });
                                         setClick('ovbizClearBtn', ovbizClearAll);
                                         setClick('ovbizSyncBtn', ovbizManualSync);
+                                        // 反馈模板（模板 / 来源选择片 + 生成 / 复制 / 清空）
+                                        fbLoadState();
+                                        fbRenderChips();
+                                        const fbTplGroup = document.getElementById('fbTemplateGroup');
+                                        if (fbTplGroup) fbTplGroup.addEventListener('click', (e) => {
+                                            const b = e.target.closest('.fb-chip');
+                                            if (b) { fbSetTemplate(b.dataset.fbTemplate); fbSetHint('模板：' + fbTemplateLabel()); }
+                                        });
+                                        const fbSrcGroup = document.getElementById('fbSourceGroup');
+                                        if (fbSrcGroup) fbSrcGroup.addEventListener('click', (e) => {
+                                            const b = e.target.closest('.fb-chip');
+                                            if (b) fbSetSource(b.dataset.fbSource);
+                                        });
+                                        setClick('fbGenerateBtn', fbGenerate);
+                                        setClick('fbCopyBtn', fbCopy);
+                                        setClick('fbClearBtn', fbClear);
                                         setClick('careerClearImportBtn', () => {
                                             const a = document.getElementById('careerImportArea');
                                             if (a) a.value = '';

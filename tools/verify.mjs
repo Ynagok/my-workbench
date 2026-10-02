@@ -178,15 +178,18 @@ ok(/const anomalyLine = days > 1 && sd > 0 \? avg \+ 2 \* sd : null;/.test(s)
   && /const an = s\.anomalyDates\[r\.date\], pk = s\.peakDates\[r\.date\];/.test(s)
   && /const cls = an \? ' class="anomaly"' : \(pk \? ' class="peak"' : ''\);/.test(s),
   '异常日（μ+2σ）与活动/版本峰值标注都已接进趋势条与说明块');
-// ---- 3c. 暗色主题（明日方舟 / 终末地 视觉语言）----
-ok(/--accent: #ffd60a;/.test(s) && /--surface: #0e1216;/.test(s) && /--ink-0: #e9eef3;/.test(s)
-  && /--bg-0: #090b0d;/.test(s),
-  '暗色主题令牌已生效（炭黑面 + 明黄强调 + 柔白文字）');
-ok(!/--surface: #ffffff;/.test(s) && !/--bg-0: #eef0f3;/.test(s) && !/--accent: #ffcc00;/.test(s),
-  '浅色主题令牌已彻底移除（不会回退成白底）');
-ok(/color-scheme: dark;/.test(s) && /--clip-card: polygon\(/.test(s) && /--hazard: repeating-linear-gradient/.test(s)
-  && /\.career-kpi::after/.test(s),
-  '暗色基底：原生控件暗色 + 卡片切角 + 警示条纹 + KPI 角落刻度');
+// ---- 3c. 柔和白主题（浅色 · 明日方舟 / 终末地 视觉语言）----
+ok(/--bg-0: #eef1f4;/.test(s) && /--surface: #fbfcfd;/.test(s) && /--ink-0: #1b2228;/.test(s)
+  && /--accent: #c89500;/.test(s),
+  '柔和白令牌已生效（冷灰白底 + 压深一档的方舟黄 + 深色文字）');
+ok(!/--surface: #0e1216;/.test(s) && !/--bg-0: #090b0d;/.test(s) && !/--accent: #ffd60a;/.test(s)
+  && !/color-scheme: dark;/.test(s),
+  '暗色令牌已彻底移除（不会回退成炭黑底）');
+ok(/color-scheme: light;/.test(s) && /--clip-card: polygon\(/.test(s) && /--hazard: repeating-linear-gradient/.test(s)
+  && /\.career-kpi::after/.test(s) && /浅色收口层 · 柔和白/.test(s),
+  '浅色基底：原生控件浅色 + 卡片切角 + 警示条纹 + KPI 角落刻度 + 浅色收口层');
+ok(!/rgba\(255,255,255,0\.0[0-9]\)/.test(s.slice(s.indexOf('浅色收口层'), s.lastIndexOf('</style>'))),
+  '浅色收口层里不再残留「白底上的白色 hover / 白线」');
 ok(/counter\(career-card, decimal-leading-zero\)/.test(s) && /counter\(nav-item, decimal-leading-zero\)/.test(s),
   '编号体系：侧边栏 01… + 客服生涯分节 01…（报表感）');
 ok(/id="careerReportSub"/.test(s) && /id="careerReportMeta"/.test(s) && /getElementById\('careerReportMeta'\)/.test(s)
@@ -222,6 +225,32 @@ ok(/setClick\('ovbizImportBtn', ovbizImport\)/.test(s) && /setClick\('ovbizExpor
   && /this\.dataset\.tab === 'overseas'\) \{ ovbizRender\(\); ovbizSyncFromServer\(\); \}/.test(s)
   && /renderCareer\(\);\s*\n\s*ovbizRender\(\);/.test(s),
   '海外业务：导入 / 导出 / 重同步 / 清空按钮与标签页刷新、启动刷新都已挂上');
+// ---- 3e. 反馈模板（工单信息提取器）----
+ok(/data-tab="feedback"/.test(s) && /id="tab-feedback"/.test(s) && /反馈模板/.test(s),
+  '「反馈模板」标签页已注入（侧边栏 + 页面）');
+{
+  const srcBlk = (s.match(/const FB_SOURCES = \[(.*?)\];/) || ['', ''])[1];
+  ok((srcBlk.match(/'/g) || []).length === 22 && /'企微'/.test(srcBlk) && /'爱江山CP后台'/.test(srcBlk),
+    '反馈来源 11 个且含「企微」（抖音在线…繁花CP后台 / 企微）');
+  const tplBlk = (s.match(/const FB_TEMPLATES = \[([\s\S]*?)\];/) || ['', ''])[1];
+  ok((tplBlk.match(/\{ key: '/g) || []).length === 3 && /'menghuan'/.test(tplBlk) && /'changwu'/.test(tplBlk) && /'gongdan'/.test(tplBlk),
+    '反馈模板 3 种（梦幻消除战 / 常规游戏 / 内部工单）');
+}
+ok(/【梦幻消除战问题反馈】/.test(s) && /【喜扑UID】/.test(s) && /问题：玩家反馈，麻烦看看/.test(s),
+  '反馈模板正文与原工具一致（梦幻版 + 常规版两套）');
+ok(/includes\('异世界勇者'\)/.test(s) && /'联盟契约'/.test(s) && /'taptap'/.test(s) && /'001'/.test(s) && /'000'/.test(s),
+  '异世界勇者区服固定 001、联盟契约 / taptap 固定 000（用户给的规则）');
+ok(/const FB_ORDER_FIELDS = \{[\s\S]*?'工单号': 'orderId'[\s\S]*?'手机号码': 'phoneNumber'[\s\S]*?\};/.test(s),
+  '内部工单字段表齐全（工单号 / 提交人 / 游戏 / 账号 / UID / 角色 / 区服 / 问题 / 联系方式）');
+ok(/localStorage\.getItem\(FB_STATE_KEY\)/.test(s) && /localStorage\.setItem\(FB_STATE_KEY/.test(s)
+  && !/loadData\('feedbackTplState'/.test(s) && !/saveData\('feedbackTplState'/.test(s),
+  '反馈模板的模板/来源选择只存本机（不走 /api/data）');
+ok(['fbTemplateGroup', 'fbSourceGroup', 'fbRawInput', 'fbOutput', 'fbHint', 'fbReportSub', 'fbReportMeta']
+  .every(id => s.includes('id="' + id + '"')),
+  '反馈模板：模板 / 来源选择片 + 输入 / 结果 / 提示 / 抬头 容器齐全');
+ok(/setClick\('fbGenerateBtn', fbGenerate\)/.test(s) && /setClick\('fbCopyBtn', fbCopy\)/.test(s)
+  && /setClick\('fbClearBtn', fbClear\)/.test(s) && /dataset\.tab === 'feedback'\) fbRenderChips\(\)/.test(s),
+  '反馈模板：生成 / 复制 / 清空按钮与标签页刷新都已挂上');
 // 工单侧分组：CP后台 与 ①~⑦群维系 都并进「工单/后台」
 ok(/function careerTicketKind\(key\) \{[\s\S]{0,320}?if \(key === 'sso' \|\| \/_cp\$\/\.test\(key\) \|\| \/\^g\\d\/\.test\(key\)\) return '工单\/后台';/.test(s)
   && !/return 'CP后台'/.test(s) && !/return '群维系'/.test(s.slice(s.indexOf('function careerTicketKind'), s.indexOf('function careerTicketKind') + 400)),
