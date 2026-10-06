@@ -789,19 +789,17 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     check(/本来就没有/.test($('careerArchiveHint').textContent), '空数据时再点清空 → 提示本来就是空的', $('careerArchiveHint').textContent);
   }
 
-  console.log('--- 8g. 海外业务统计：整表粘贴导入 + 岗位共享（服务端合并）---');
+  console.log('--- 8g. 海外业务统计：整表粘贴导入 + 只存本机 + 详情图表 ---');
   {
     const ovbizSaved = () => {
       try { return JSON.parse(window.localStorage.getItem('overseasBizData') || 'null'); } catch (_) { return null; }
     };
-    const ovbizPosts = () => posts.filter(p => p.url.includes('overseasBizData') && p.method === 'POST');
-    const ovbizGets = () => posts.filter(p => p.url.includes('overseasBizData') && p.method === 'GET');
-    const lastOv = () => { const a = ovbizPosts(); return a.length ? a[a.length - 1].body.value : null; };
+    const ovbizReqs = () => posts.filter(p => p.url.includes('overseasBizData'));
     // 表头故意打乱顺序 + 用真实周报的表头写法；同一天两行（两个人同班）
     const csv = [
       '人员,22,班次,（繁花+乐缤纷+梦幻）群维系,异世界群维系,海外SSO工单量（全产品）,海外CP后台工单（全产品）,海外邮件（全产品）,海外FB（全产品）,商店回复,SSO国内工单,监控禁言,监控封号,邮件+SDK（猫旅馆物语）,总计,特殊问题',
       '陈智锋,2026/1/1,,35,0,11,5,1,1,,,13,19,,85,',
-      '温泽鸿,2026/1/1,,20,1,9,3,2,0,,,7,25,,68,春节值班',
+      '温泽鸿,2026/1/1,,20,1,9,3,2,0,,,7,25,,68,春节活动值班',
       '陈智锋,2026/2/3,,23,0,18,4,3,4,,,11,62,,139,',
       ',,,,,,,,,,,,,,0,'
     ].join('\n');
@@ -811,15 +809,14 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     check(/已导入 3 行/.test($('ovbizHint').textContent) && /覆盖 2 天/.test($('ovbizHint').textContent),
       '海外业务：粘贴整表导入 3 行 / 2 天（空白行自动跳过）', $('ovbizHint').textContent);
     const saved0 = ovbizSaved();
-    check(!!saved0 && Object.keys(saved0.rows || {}).length === 3, '海外业务：落进本机 localStorage 缓存（键 overseasBizData）',
+    check(!!saved0 && Object.keys(saved0.rows || {}).length === 3, '海外业务：落进本机 localStorage（键 overseasBizData）',
       saved0 && Object.keys(saved0.rows || {}).length);
-    check(ovbizPosts().length > 0 && Object.keys(lastOv().rows).length === 3,
-      '海外业务：导入会 POST 到 /api/data/overseasBizData（岗位共享，不再只存本机）', ovbizPosts().length);
-    check(Object.keys((serverData.overseasBizData || { rows: {} }).rows).length === 3,
-      '海外业务：服务端确实存下了这 3 行（别人打开就能看到）');
-    check(ovbizGets().length === 0, '海外业务：导入本身只 POST，不额外拉服务端', ovbizGets().length);
+    check(ovbizReqs().length === 0, '海外业务：导入完全不碰服务端（不再 /api/data/overseasBizData）',
+      ovbizReqs().map(p => p.method + ' ' + p.url));
+    check(!serverData.overseasBizData, '海外业务：服务端自始至终没有这份数据');
+    check(!$('ovbizSyncBtn'), '海外业务：「同步服务端」按钮已删除');
     check(ovbizSaved().rows['2026-01-01|陈智锋'].total === 85 && ovbizSaved().rows['2026-01-01|温泽鸿'].total === 67,
-      '海外业务：每行按 11 项之和入账（陈 85 / 温 67）',
+      '海外业务：每行按各项之和入账（陈 85 / 温 67，「邮件+SDK」那列已不算）',
       ovbizSaved().rows['2026-01-01|陈智锋'].total + '/' + ovbizSaved().rows['2026-01-01|温泽鸿'].total);
     // 1/1 两个人同班 → 按天合计 152
     check(/累计工作量\s*277/.test($('ovbizKpi').textContent), '海外业务：累计 = 85+67+125 = 277（1/1 两人合计 152）', $('ovbizKpi').textContent.slice(0, 60));
@@ -827,73 +824,94 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
       '海外业务：记录天数 2、最高单日 152（1/1 两人合计）', $('ovbizKpi').textContent.slice(0, 120));
     check(doc.querySelectorAll('#ovbizDailyTable tbody tr').length === 2
       && /温泽鸿、陈智锋|陈智锋、温泽鸿/.test($('ovbizDailyTable').textContent)
-      && /春节值班/.test($('ovbizDailyTable').textContent),
+      && /春节活动值班/.test($('ovbizDailyTable').textContent),
       '海外业务：每日表按天合计并列出当天人员与备注', $('ovbizDailyTable').textContent.slice(0, 90));
     check(doc.querySelectorAll('#ovbizPeopleTable tbody tr').length === 2
       && /陈智锋/.test($('ovbizPeopleTable').textContent) && /占岗位/.test($('ovbizPeopleTable').textContent),
       '海外业务：按人员统计 2 人', $('ovbizPeopleTable').textContent.slice(0, 80));
-    check(doc.querySelectorAll('#ovbizItemTable tbody tr').length === 11
-      && /合计\s*277/.test($('ovbizItemTable').textContent.replace(/\s+/g, ' ')),
-      '海外业务：逐项统计 11 项 + 合计 277', $('ovbizItemTable').textContent.replace(/\s+/g, ' ').slice(-60));
+    check(doc.querySelectorAll('#ovbizItemTable tbody tr').length === 10
+      && /合计\s*277/.test($('ovbizItemTable').textContent.replace(/\s+/g, ' '))
+      && !/邮件\+SDK/.test($('ovbizItemTable').textContent),
+      '海外业务：逐项统计 10 项（已无「邮件+SDK（猫旅馆物语）」）+ 合计 277',
+      $('ovbizItemTable').textContent.replace(/\s+/g, ' ').slice(-60));
     check(doc.querySelectorAll('#ovbizMonthlyTable tbody tr').length === 2
       && /2026-01/.test($('ovbizMonthlyTable').textContent) && /2026-02/.test($('ovbizMonthlyTable').textContent),
       '海外业务：月度表按月汇总（1 月 / 2 月各一行）');
     check(doc.querySelectorAll('#ovbizReportMeta > div').length === 5
       && /覆盖人员/.test($('ovbizReportMeta').textContent) && /累计工作量/.test($('ovbizReportMeta').textContent),
       '海外业务：报表抬头 5 格元数据（覆盖人员/记录天数/累计/日均/出具日期）', $('ovbizReportMeta').textContent.slice(0, 80));
-    check(/岗位共享/.test($('ovbizSyncHint').textContent), '海外业务：同步状态行说明「岗位共享」', $('ovbizSyncHint').textContent.slice(0, 60));
-    // 切到「海外业务统计」标签页 → 会跟服务端对一次（GET），保证看到别人导入的数据
-    const getsBeforeTab = ovbizGets().length;
+    check(/只存在这台设备的浏览器里/.test($('ovbizSyncHint').textContent)
+      && /不上传服务端/.test($('ovbizSyncHint').textContent),
+      '海外业务：状态行写明「只存在这台设备、不上传服务端」', $('ovbizSyncHint').textContent.slice(0, 70));
+    check(/只存在这台设备的浏览器里/.test($('ovbizSheetHint').textContent)
+      && !/三个人共用一份/.test($('ovbizSheetHint').textContent),
+      '海外业务：汇总行改成「只存在这台设备」', $('ovbizSheetHint').textContent.slice(0, 80));
+    // 切到「海外业务统计」标签页：重画一遍，但一次服务端都不碰
+    const reqsBeforeTab = ovbizReqs().length;
     doc.querySelector('.tab-btn[data-tab="overseas"]').click();
-    await sleep(80);
-    check(ovbizGets().length === getsBeforeTab + 1, '海外业务：切到该标签页会 GET 一次服务端（顺手对齐岗位数据）',
-      ovbizGets().length - getsBeforeTab);
-    check(!/只存在这台设备|不会同步给别的设备/.test($('ovbizSheetHint').textContent)
-      && /三个人共用一份/.test($('ovbizSheetHint').textContent),
-      '海外业务：汇总行不再说「只存在这台设备」', $('ovbizSheetHint').textContent.slice(0, 80));
-    // 别人在另一台设备上导入了一行 → 点「同步服务端」把它合并进来
-    serverData.overseasBizData.rows['2026-04-01|姚宏杰'] = {
-      date: '2026-04-01', name: '姚宏杰', shift: '', items: { sj_group: 5 }, total: 5, note: '', at: new Date().toISOString()
-    };
-    $('ovbizSyncBtn').click();
-    await sleep(80);
-    check(/已同步：服务端现在有 4 行/.test($('ovbizHint').textContent) && Object.keys(ovbizSaved().rows).length === 4,
-      '海外业务：点「同步服务端」把别人导入的行合并进来（3 + 1 = 4）', $('ovbizHint').textContent);
-    check(/累计工作量\s*282/.test($('ovbizKpi').textContent) && /姚宏杰/.test($('ovbizPeopleTable').textContent),
-      '海外业务：合并后累计 282（277 + 5）、按人员表出现第三个人', $('ovbizKpi').textContent.slice(0, 40));
-    // 反向：服务端被别人的一次导入冲掉了本机独有的行 → 同步应自动合并并回传（并发导入不丢数据）
-    const postsBefore = ovbizPosts().length;
-    delete serverData.overseasBizData.rows['2026-02-03|陈智锋'];
-    $('ovbizSyncBtn').click();
-    await sleep(80);
-    check(ovbizPosts().length === postsBefore + 1 && Object.keys(lastOv().rows).length === 4,
-      '海外业务：服务端缺行时同步会自动合并并回传（两个并发导入不互相冲掉）',
-      ovbizPosts().length - postsBefore + ' / ' + JSON.stringify(Object.keys(lastOv().rows)));
-    check(Object.keys(serverData.overseasBizData.rows).length === 4, '海外业务：回传后服务端恢复 4 行');
-    // 重复导入：覆盖而不是累加（姚宏杰那行是同步来的，不参与本次导入）
+    await sleep(60);
+    check(ovbizReqs().length === reqsBeforeTab && doc.querySelectorAll('#ovbizDailyTable tbody tr').length === 2,
+      '海外业务：切标签页只重画（不发任何请求）', ovbizReqs().length - reqsBeforeTab);
+    // ---- 走势条 ----
+    check(doc.querySelectorAll('#ovbizTrend > span').length === 2, '海外业务：走势条画了 2 个记录日',
+      doc.querySelectorAll('#ovbizTrend > span').length);
+    check(doc.querySelectorAll('#ovbizTrend > span.peak').length === 1,
+      '海外业务：备注里带「活动」的日子在走势条上标橙', doc.querySelectorAll('#ovbizTrend > span.peak').length);
+    // ---- 详情图表 ----
+    const dtItem = $('ovbizDetailItem');
+    check(dtItem.options.length === 11 && /全部工作量/.test(dtItem.textContent)
+      && !/邮件\+SDK/.test(dtItem.textContent),
+      '海外业务：详情图表可选「全部 + 10 项」', dtItem.options.length);
+    check(doc.querySelectorAll('#ovbizDetailSummary .career-kpi').length === 5
+      && /总量/.test($('ovbizDetailSummary').textContent) && /277/.test($('ovbizDetailSummary').textContent),
+      '海外业务：详情图表默认「全部工作量」→ 5 张汇总卡（总量 277）',
+      $('ovbizDetailSummary').textContent.replace(/\s+/g, ' ').slice(0, 70));
+    check(doc.querySelectorAll('#ovbizDetailChart > span').length === 2
+      && doc.querySelectorAll('#ovbizDetailTable tbody tr').length === 2
+      && /合计/.test($('ovbizDetailTable').textContent),
+      '海外业务：详情柱子按日 2 根 + 逐期表 2 行 + 合计行',
+      doc.querySelectorAll('#ovbizDetailChart > span').length + '/' + doc.querySelectorAll('#ovbizDetailTable tbody tr').length);
+    // 换粒度：按月
+    $('ovbizDetailGrain').value = 'month';
+    fire($('ovbizDetailGrain'), 'change');
+    await sleep(30);
+    check(doc.querySelectorAll('#ovbizDetailTable tbody tr').length === 2
+      && /2026-01/.test($('ovbizDetailTable').textContent) && /月均/.test($('ovbizDetailSummary').textContent),
+      '海外业务：详情图表切「按月」→ 1 月 / 2 月两行 + 汇总卡换成月均',
+      $('ovbizDetailTable').textContent.replace(/\s+/g, ' ').slice(0, 60));
+    // 换范围：监控禁言（1/1 两人合计 20 + 2/3 的 11 = 31）
+    $('ovbizDetailGrain').value = 'day';
+    fire($('ovbizDetailGrain'), 'change');
+    dtItem.value = 'mute';
+    fire(dtItem, 'change');
+    await sleep(30);
+    check(/监控禁言/.test($('ovbizDetailSummary').textContent) && /总量\s*31/.test($('ovbizDetailSummary').textContent)
+      && doc.querySelectorAll('#ovbizDetailTable tbody tr').length === 2,
+      '海外业务：详情图表切到「监控禁言」→ 总量 31（20 + 11）',
+      $('ovbizDetailSummary').textContent.replace(/\s+/g, ' ').slice(0, 80));
+    dtItem.value = 'all';
+    fire(dtItem, 'change');
+    await sleep(20);
+    // 重复导入：覆盖而不是累加
     $('ovbizImportBtn').click();
     await sleep(60);
-    check(/覆盖同人同日 3/.test($('ovbizHint').textContent) && Object.keys(ovbizSaved().rows).length === 4,
+    check(/覆盖同人同日 3/.test($('ovbizHint').textContent) && Object.keys(ovbizSaved().rows).length === 3,
       '海外业务：重复导入覆盖同人同日、不产生重复行', $('ovbizHint').textContent);
-    check(/累计工作量\s*282/.test($('ovbizKpi').textContent), '海外业务：重复导入后累计仍是 282（含同步来的 5）');
+    check(/累计工作量\s*277/.test($('ovbizKpi').textContent), '海外业务：重复导入后累计仍是 277');
     // 总计对不上：提示并按各项之和入账（陈智锋 2026/3/1 表里写 999）
-    $('ovbizPasteArea').value = '日期,人员,班次,异世界群维系,（繁花+乐缤纷+梦幻）群维系,邮件+SDK（猫旅馆物语）,海外SSO工单量（全产品）,海外CP后台工单（全产品）,海外邮件（全产品）,海外FB（全产品）,商店回复,SSO国内工单,监控禁言,监控封号,总计,特殊问题\n2026/3/1,陈智锋,,0,10,,,,,,,,,,999,';
+    $('ovbizPasteArea').value = '日期,人员,班次,异世界群维系,（繁花+乐缤纷+梦幻）群维系,海外SSO工单量（全产品）,海外CP后台工单（全产品）,海外邮件（全产品）,海外FB（全产品）,商店回复,SSO国内工单,监控禁言,监控封号,总计,特殊问题\n2026/3/1,陈智锋,,0,10,,,,,,,,,999,';
     $('ovbizImportBtn').click();
     await sleep(60);
     check(/总计」与各项之和对不上/.test($('ovbizHint').textContent)
       && ovbizSaved().rows['2026-03-01|陈智锋'].total === 10,
       '海外业务：「总计」对不上时提示并按各项之和入账', $('ovbizHint').textContent);
-    // 清空：服务端 + 本机一起（三个人共用一份，所以两边都得清）
-    const postsBeforeClear = ovbizPosts().length;
+    // 清空：只清本机（别人的设备本来也看不到）
     $('ovbizClearBtn').click();
-    await sleep(80);
+    await sleep(60);
     check(Object.keys((ovbizSaved() || { rows: {} }).rows).length === 0, '海外业务：清空 → 本机缓存归零');
-    check(ovbizPosts().length === postsBeforeClear + 1
-      && Object.keys(lastOv().rows).length === 0 && !!lastOv().clearedAt,
-      '海外业务：清空会把空结果 + clearedAt POST 上去（清服务端，并挡住别的设备上的旧行）',
-      ovbizPosts().length - postsBeforeClear);
-    check(Object.keys((serverData.overseasBizData || { rows: {} }).rows).length === 0, '海外业务：服务端也清空了');
-    check(/已清空 5 行/.test($('ovbizHint').textContent), '海外业务：清空有提示', $('ovbizHint').textContent);
+    check(ovbizReqs().length === 0, '海外业务：清空也不发请求（服务端从头到尾没被碰过）', ovbizReqs().length);
+    check(!serverData.overseasBizData, '海外业务：服务端仍然没有这份数据');
+    check(/已清空本机的 4 行/.test($('ovbizHint').textContent), '海外业务：清空有提示（只讲本机）', $('ovbizHint').textContent);
   }
 
   console.log('--- 8h. 反馈模板（选模板 / 选来源 → 反馈格式）---');
@@ -904,9 +922,14 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     const fbPick = (group, i) => fbChips(group)[i].click();
     check(!!doc.querySelector('.tab-btn[data-tab="feedback"]') && !!$('tab-feedback'), '反馈模板：侧边栏标签页与页面都在');
     check(fbChips('fbTemplateGroup').length === 4, '反馈模板：四种模板（梦幻消除战 / 常规游戏 / 乐缤纷CP后台 / 内部工单）', fbChips('fbTemplateGroup').length);
-    check(fbChips('fbSourceGroup').length === 12 && /企微/.test($('fbSourceGroup').textContent)
-      && /乐缤纷CP后台/.test($('fbSourceGroup').textContent),
-      '反馈模板：来源 12 个（抖音小店…繁花CP后台 / 乐缤纷CP后台 / 企微）', $('fbSourceGroup').textContent.trim().slice(-20));
+    check(fbChips('fbSourceGroup').length === 11 && /企微/.test($('fbSourceGroup').textContent)
+      && /乐缤纷CP后台/.test($('fbSourceGroup').textContent) && !/电话/.test($('fbSourceGroup').textContent),
+      '反馈模板：来源片共 11 个（已无「电话」）', $('fbSourceGroup').textContent.trim().slice(-20));
+    const fbVisible = (i) => fbChips('fbSourceGroup')[i].style.display !== 'none';
+    // 来源片下标：0 抖音小店 / 1 抖音后台 / 2 53 / 3 工单 / 4 支付宝在线 / 5 支付宝后台 / 6 微信后台 / 7 爱江山CP后台 / 8 繁花CP后台 / 9 乐缤纷CP后台 / 10 企微
+    check(fbVisible(6) && !fbVisible(7) && !fbVisible(8) && !fbVisible(9) && fbVisible(0),
+      '反馈模板：默认「梦幻消除战」的来源不含 爱江山/繁花/乐缤纷CP后台',
+      [6, 7, 8, 9, 0].map(i => i + ':' + fbVisible(i)).join(' '));
     check(fbChips('fbTemplateGroup')[0].classList.contains('active') && fbChips('fbSourceGroup')[0].classList.contains('active'),
       '反馈模板：默认选中「梦幻消除战 + 抖音小店」');
     check(doc.querySelectorAll('#fbReportMeta > div').length === 3 && /来源总数/.test($('fbReportMeta').textContent),
@@ -935,13 +958,19 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     $('fbGenerateBtn').click();
     check(/区服：双线一服/.test(fbOut()) && /角色名：老王/.test(fbOut()), '反馈模板：普通游戏 → 区服取服务器名、角色名对上', fbLine());
     // 切来源 → 已有结果跟着重刷
-    fbPick('fbSourceGroup', 11);
+    fbPick('fbSourceGroup', 10);
     await sleep(20);
-    check(/来源：企微/.test(fbOut()) && fbChips('fbSourceGroup')[11].classList.contains('active'),
+    check(/来源：企微/.test(fbOut()) && fbChips('fbSourceGroup')[10].classList.contains('active'),
       '反馈模板：来源切到「企微」后结果跟着变', fbLine());
     check((JSON.parse(window.localStorage.getItem('feedbackTplState') || '{}') || {}).source === '企微',
       '反馈模板：选中的来源记在本机 localStorage（feedbackTplState）',
       window.localStorage.getItem('feedbackTplState'));
+    // 换回梦幻消除战：企微在它的允许列表里 → 来源保持企微
+    fbPick('fbTemplateGroup', 0);
+    await sleep(20);
+    check(/企微/.test($('fbReportMeta').textContent) && /8 个/.test($('fbReportMeta').textContent)
+      && fbVisible(10) && !fbVisible(7),
+      '反馈模板：换模板后来源没变（企微在梦幻消除战的允许列表里），来源总数按模板算 = 8', $('fbReportMeta').textContent);
     // 梦幻消除战：渠道去掉括号内容
     fbPick('fbTemplateGroup', 0);
     $('fbRawInput').value = '12345678 梦幻消除战-微信(安卓) 安卓 77 服务器 87654321 老王 2026-01-02';
@@ -959,9 +988,12 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     $('fbGenerateBtn').click();
     check(fbOut() === lbSeg1,
       '反馈模板：乐缤纷CP后台按后台表格行出五行格式（乐缤纷 / 渠道 / 问题 / 角色ID / 来源）', fbLine());
-    check(fbChips('fbSourceGroup')[10].classList.contains('active')
+    check(fbChips('fbSourceGroup')[9].classList.contains('active') && fbVisible(9)
+      && fbChips('fbSourceGroup').length === 11
+      && !fbVisible(0) && !fbVisible(10)
       && (JSON.parse(window.localStorage.getItem('feedbackTplState') || '{}') || {}).source === '乐缤纷CP后台',
-      '反馈模板：选「乐缤纷CP后台」模板会把来源一并切到「乐缤纷CP后台」');
+      '反馈模板：选「乐缤纷CP后台」模板 → 来源只剩它自己、并自动切过去',
+      [0, 9, 10].map(i => i + ':' + fbVisible(i)).join(' '));
     // 一次复制多行 → 多段，段与段之间空一行
     $('fbRawInput').value = lb1 + '\n' + lb2;
     $('fbGenerateBtn').click();
@@ -992,8 +1024,8 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
       '反馈模板：模板选错 → 不生成错格式并提示换哪个模板', $('fbHint').textContent);
     // 内部工单：按「字段名 值」提取，手机号优先
     // （先切回「企微」：上面选乐缤纷模板时来源被自动切走了，这里顺便验证来源片还能手动切）
-    fbPick('fbSourceGroup', 11);
     fbPick('fbTemplateGroup', 3);
+    fbPick('fbSourceGroup', 10);
     $('fbRawInput').value = '工单号 XXX-123\n来源 企微\n游戏 异世界勇者\n区服 77服\nUID 12345678\n账号 abc\n角色ID 87654321\n角色名 张三\n问题描述 玩家反馈，麻烦看看\n提交人 李四\n联系人 王五\n手机号码 13800000000';
     $('fbGenerateBtn').click();
     check(/工单号：XXX-123/.test(fbOut()) && /提交者：李四/.test(fbOut()) && /账号：abc/.test(fbOut())

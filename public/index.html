@@ -3442,7 +3442,7 @@
                 </div>
 
                 <label style="margin-top:16px;">② 选择来源
-                    <span class="hint-text" style="font-weight:400;">会写进结果的「来源：」那一行</span>
+                    <span class="hint-text" style="font-weight:400;">会写进结果的「来源：」那一行；可选项跟着上面的模板走</span>
                 </label>
                 <div class="fb-chip-row" id="fbSourceGroup">
                     <button class="fb-chip" data-fb-source="抖音小店">抖音小店</button>
@@ -3452,7 +3452,6 @@
                     <button class="fb-chip" data-fb-source="支付宝在线">支付宝在线</button>
                     <button class="fb-chip" data-fb-source="支付宝后台">支付宝后台</button>
                     <button class="fb-chip" data-fb-source="微信后台">微信后台</button>
-                    <button class="fb-chip" data-fb-source="电话">电话</button>
                     <button class="fb-chip" data-fb-source="爱江山CP后台">爱江山CP后台</button>
                     <button class="fb-chip" data-fb-source="繁花CP后台">繁花CP后台</button>
                     <button class="fb-chip" data-fb-source="乐缤纷CP后台">乐缤纷CP后台</button>
@@ -3718,29 +3717,50 @@
                     <span class="hint-text" style="font-weight:400;">把「群维系+监控+海外工单+FB塔防周报」整张表复制进来（CSV / TSV 都行；带表头按列名对齐、顺序随意，不带表头按原列序）</span>
                 </label>
                 <div class="hint-text" style="margin: 8px 0;">
-                    一行 = 某天某人：<b>日期 · 人员 · 班次</b> + 11 个统计项（异世界群维系 /（繁花+乐缤纷+梦幻）群维系 / 邮件+SDK（猫旅馆物语）/ 海外SSO工单量（全产品）/ 海外CP后台工单（全产品）/ 海外邮件（全产品）/ 海外FB（全产品）/ 商店回复 / SSO国内工单 / 监控禁言 / 监控封号）+ 总计 + 特殊问题。<br>
+                    一行 = 某天某人：<b>日期 · 人员 · 班次</b> + 10 个统计项（异世界群维系 /（繁花+乐缤纷+梦幻）群维系 / 海外SSO工单量（全产品）/ 海外CP后台工单（全产品）/ 海外邮件（全产品）/ 海外FB（全产品）/ 商店回复 / SSO国内工单 / 监控禁言 / 监控封号）+ 总计 + 特殊问题。<br>
                     同一天两行（两个人同班）会<b>按天合计</b>；重复导入同一天同一个人＝覆盖那一条；「总计」与各项之和对不上时会提示，并按各项之和入账；空白行自动跳过。<br>
-                    <b>这份统计是三个人共用的</b>：导入会存到服务端，别人打开就能看到（本机只留一份离线缓存；两个人同时各导各的会自动合并，不会互相冲掉）。
+                    <b>这份统计只存在这台设备的浏览器里</b>：不会同步给别人、也不会传到服务端（换设备请用下面的「导出CSV」再导入）。
                 </div>
                 <textarea id="ovbizPasteArea" rows="7" placeholder="日期,人员,班次,异世界群维系,（繁花+乐缤纷+梦幻）群维系,…&#10;2026/1/1,陈智锋,,0,35,,11,5,1,1,,,13,19,85,"></textarea>
                 <div class="flex-row" style="margin-top: 10px;">
                     <button id="ovbizImportBtn">📥 解析导入</button>
                     <button id="ovbizExportBtn" class="secondary">📊 导出CSV</button>
-                    <button id="ovbizSyncBtn" class="secondary">🔄 同步服务端</button>
-                    <button id="ovbizClearBtn" class="reset-btn">🧹 清空岗位数据</button>
+                    <button id="ovbizClearBtn" class="reset-btn">🧹 清空本机数据</button>
                     <span class="hint-text" id="ovbizHint"></span>
                 </div>
                 <div class="hint-text" id="ovbizSyncHint" style="margin-top: 8px;"></div>
             </div>
 
             <div class="card">
-                <label>📊 岗位总览 <span class="hint-text" style="font-weight:400;">按天合计后的整体口径</span></label>
+                <label>📊 岗位总览 <span class="hint-text" style="font-weight:400;">按天合计后的整体口径 + 最近 30 个记录日的走势</span></label>
                 <div id="ovbizKpi" class="career-kpi-grid" style="margin-top: 12px;"></div>
                 <div id="ovbizSheetHint" class="hint-text" style="margin-top: 8px;"></div>
+                <div class="career-trend" id="ovbizTrend" style="margin-top: 12px;"></div>
+                <div class="career-legend" style="margin-top: 6px;">
+                    <span><i class="peak"></i>备注里标了 活动 / 版本 / 开服… 的日子</span>
+                    <span><i class="anomaly"></i>超过 μ+2σ 的异常日</span>
+                </div>
             </div>
 
             <div class="card">
-                <label>🧩 逐项统计 <span class="hint-text" style="font-weight:400;">11 个统计项各自的累计、占比与结构</span></label>
+                <label>🔎 详情图表
+                    <span class="hint-text" style="margin-left:8px;">挑一项（或全部）看它的总量、平均值，以及按日 / 按月的柱子与逐期明细</span>
+                </label>
+                <div class="career-detail-controls">
+                    <select id="ovbizDetailItem" style="min-width: 240px;"></select>
+                    <select id="ovbizDetailGrain" style="width: 118px;">
+                        <option value="day">按日</option>
+                        <option value="month">按月</option>
+                    </select>
+                    <span class="hint-text" id="ovbizDetailHint"></span>
+                </div>
+                <div id="ovbizDetailSummary" class="career-kpi-grid"></div>
+                <div class="career-trend" id="ovbizDetailChart" style="margin-top: 12px;"></div>
+                <div class="career-scroll" style="margin-top: 12px; max-height: 300px;"><table class="career-table" id="ovbizDetailTable"></table></div>
+            </div>
+
+            <div class="card">
+                <label>🧩 逐项统计 <span class="hint-text" style="font-weight:400;">10 个统计项各自的累计、占比与结构</span></label>
                 <div class="career-scroll" style="margin-top: 10px;"><table class="career-table" id="ovbizItemTable"></table></div>
                 <div id="ovbizStructureBox" style="margin-top: 12px;"></div>
             </div>
@@ -11352,13 +11372,12 @@
 
                                     // ==================== 海外业务统计（岗位周报整表粘贴） ====================
                                     // 一行 = 某天某人；算指标前先**按天合计**（同一天两个人同班）
-                                    // ⚠️ 这是**岗位级共享数据**：走 /api/data/overseasBizData（服务端为准，本机只当离线缓存），
-                                    //    三个人谁导入都写进同一份，别人打开就能看到 —— 跟 careerData「只存本机」正好相反。
+                                    // ⚠️ 这份数据**只存本机浏览器**（localStorage['overseasBizData']），**不碰 /api/data、不碰服务端** ——
+                                    //    用户明确要求（原来是三个人共用服务端一份）。换设备要用「导出CSV / 粘贴导入」搬。
                                     const OVBIZ_KEY = 'overseasBizData';
                                     const OVBIZ_ITEMS = [
                                         { key: 'sj_group', label: '异世界群维系', short: '异世界群维系' },
                                         { key: 'mhl_group', label: '（繁花+乐缤纷+梦幻）群维系', short: '群维系(繁花+)' },
-                                        { key: 'catinn_sdk', label: '邮件+SDK（猫旅馆物语）', short: '邮件+SDK' },
                                         { key: 'ov_sso', label: '海外SSO工单量（全产品）', short: '海外SSO' },
                                         { key: 'ov_cp', label: '海外CP后台工单（全产品）', short: 'CP后台' },
                                         { key: 'ov_email', label: '海外邮件（全产品）', short: '海外邮件' },
@@ -11372,7 +11391,6 @@
                                     const OVBIZ_ALIASES = {
                                         '（梦幻/繁花/乐缤纷）群维系': 'mhl_group',
                                         '繁花+乐缤纷+梦幻群维系': 'mhl_group',
-                                        '邮件+SDK': 'catinn_sdk',
                                         'SSO工单': 't_sso',
                                         '国内SSO工单': 't_sso'
                                     };
@@ -11392,18 +11410,16 @@
                                         for (const k of Object.keys(OVBIZ_ALIASES)) m[careerNormHeader(k)] = OVBIZ_ALIASES[k];
                                         return m;
                                     })();
+                                    // 备注里带这些字的日子在走势条上标橙（跟客服生涯的峰值口径一致）
+                                    const OVBIZ_PEAK_RE = /活动|版本|开服|更新|维护|上线|联动|新服/;
                                     let ovbizData = { rows: {}, updatedAt: null, clearedAt: null };
                                     // ⚠️ **懒加载**：applyState() 在初始化早期就会跑（那时本模块的 const 还在 TDZ），
-                                    //    所以不能在那里读 —— 统一由 ovbizEnsureLoaded() 在首次用到时读一次：
-                                    //    先用本机缓存把界面画出来，再后台跟服务端合并（不阻塞首屏）。
+                                    //    所以不能在那里读 —— 统一由 ovbizEnsureLoaded() 在首次用到时读一次本机缓存。
                                     let ovbizLoaded = false;
-                                    let ovbizSyncing = false;
-                                    let ovbizSyncState = 'idle';    // idle | ok | empty | offline
                                     function ovbizEnsureLoaded() {
                                         if (ovbizLoaded) return;
                                         ovbizLoaded = true;
                                         ovbizData = ovbizNormalize(ovbizLoadCache());
-                                        ovbizSyncFromServer();
                                     }
                                     function ovbizLoadCache() {
                                         try {
@@ -11416,85 +11432,6 @@
                                             localStorage.setItem(OVBIZ_KEY, JSON.stringify(ovbizData));
                                             return true;
                                         } catch (e) { console.warn('写入本机海外业务缓存失败', e); return false; }
-                                    }
-                                    // 推服务端（saveData 内部：先写本机缓存，再按 key 串行 POST）
-                                    function ovbizPushServer() { return saveData(OVBIZ_KEY, ovbizData); }
-                                    // 并集合并（服务端 + 本机）：同一个「日期|人员」取 at 更新的那行。
-                                    // ⚠️ 用并集而不是「服务端直接覆盖本机」——两个人同时各导各的周报时，
-                                    //    后 POST 的那次不会把前一个人的行冲掉（下次打开自动合并回服务端）。
-                                    //    「清空」用 clearedAt 挡住更早的本机旧行，避免别的设备又把它们传回来。
-                                    function ovbizMergeData(srv, loc) {
-                                        const a = asObject(srv) || {}, b = asObject(loc) || {};
-                                        const clearedAt = [a.clearedAt, b.clearedAt].filter(x => typeof x === 'string' && x).sort().pop() || null;
-                                        const out = { rows: {}, updatedAt: null, clearedAt: clearedAt };
-                                        const take = (src) => {
-                                            const rows = asObject(src.rows) || {};
-                                            for (const k of Object.keys(rows)) {
-                                                const r = asObject(rows[k]);
-                                                if (!r || !r.date) continue;
-                                                if (clearedAt && r.at && r.at < clearedAt) continue;   // 清空之前的老行作废
-                                                const key = r.date + '|' + r.name;
-                                                const old = out.rows[key];
-                                                if (!old || String(r.at || '') > String(old.at || '')) out.rows[key] = r;
-                                            }
-                                        };
-                                        take(a); take(b);
-                                        out.updatedAt = [a.updatedAt, b.updatedAt].filter(x => typeof x === 'string' && x).sort().pop() || null;
-                                        return out;
-                                    }
-                                    // 只比「有哪些行 + 每行的更新时间」，用来判断合并结果是否需要回传服务端
-                                    function ovbizRowSig(d) {
-                                        const rows = (d && d.rows) || {};
-                                        return Object.keys(rows).sort().map(k => k + '@' + String(rows[k].at || '')).join(';');
-                                    }
-                                    async function ovbizSyncFromServer() {
-                                        if (ovbizSyncing) return;
-                                        ovbizSyncing = true;
-                                        try {
-                                            const resp = await fetchWithTimeout(API_BASE + encodeURIComponent(OVBIZ_KEY));
-                                            if (!resp.ok) throw new Error('HTTP ' + resp.status);
-                                            const json = await resp.json();
-                                            const value = json && json.value;
-                                            if (value === undefined || value === null) {
-                                                // 服务端还没有这份数据 → 把本机缓存里已有的推上去，别人也能看到
-                                                ovbizSyncState = 'empty';
-                                                if (Object.keys(ovbizData.rows).length) { await ovbizPushServer(); ovbizSyncState = 'ok'; }
-                                            } else {
-                                                const srv = ovbizNormalize(value);
-                                                const merged = ovbizMergeData(srv, ovbizData);
-                                                const needPush = ovbizRowSig(merged) !== ovbizRowSig(srv);
-                                                ovbizData = merged;
-                                                ovbizSaveCache();
-                                                if (needPush) await ovbizPushServer();   // 本机有服务端没有的行 → 回传
-                                                ovbizSyncState = 'ok';
-                                            }
-                                            ovbizRender();
-                                        } catch (e) {
-                                            ovbizSyncState = 'offline';
-                                            console.warn('同步海外业务数据失败（继续用本机缓存）', e);
-                                            ovbizRenderSyncHint();
-                                        } finally {
-                                            ovbizSyncing = false;
-                                        }
-                                    }
-                                    function ovbizRenderSyncHint() {
-                                        const el = document.getElementById('ovbizSyncHint');
-                                        if (!el) return;
-                                        const n = Object.keys(ovbizData.rows).length;
-                                        if (ovbizSyncState === 'offline') el.textContent = '⚠️ 跟服务端同步失败（可能离线）：现在显示本机缓存的 ' + n + ' 行，恢复后会自动合并回服务端。';
-                                        else if (ovbizSyncState === 'ok') el.textContent = '☁️ 岗位共享：已与服务端同步，共 ' + n + ' 行 —— 三个人谁导入都会合并进这一份。';
-                                        else if (ovbizSyncState === 'empty') el.textContent = '☁️ 岗位共享：服务端还没有这份数据，第一次「解析导入」就会存到服务端。';
-                                        else el.textContent = '☁️ 岗位共享：数据存在服务端，三个人共用一份（本机只做离线缓存）。';
-                                    }
-                                    async function ovbizManualSync() {
-                                        ovbizEnsureLoaded();
-                                        ovbizSetHint('正在跟服务端同步…');
-                                        ovbizSyncState = 'idle';
-                                        await ovbizSyncFromServer();
-                                        ovbizRenderSyncHint();
-                                        ovbizSetHint(ovbizSyncState === 'offline'
-                                            ? '同步失败（可能离线），当前显示本机缓存的 ' + Object.keys(ovbizData.rows).length + ' 行'
-                                            : '已同步：服务端现在有 ' + Object.keys(ovbizData.rows).length + ' 行');
                                     }
                                     function ovbizNormalize(v) {
                                         const o = asObject(v) || {};
@@ -11693,6 +11630,111 @@
                                         const h = document.getElementById('ovbizHint');
                                         if (h) h.textContent = t || '';
                                     }
+                                    // ⚠️ 只存本机（用户明确要求）：这里只说明存哪儿，不再有「同步服务端」这回事
+                                    function ovbizRenderStorageHint() {
+                                        const el = document.getElementById('ovbizSyncHint');
+                                        if (!el) return;
+                                        const n = Object.keys(ovbizData.rows).length;
+                                        el.textContent = '💾 只存在这台设备的浏览器里（' + n + ' 行原始记录），不上传服务端、别人看不到；'
+                                            + '换电脑 / 换浏览器要用「导出CSV」再把文件内容粘回来。';
+                                    }
+                                    // 取某一天（按天合计后）某个范围的值：'all' = 当天总量，其余 = 那一项
+                                    function ovbizDetailValue(day, sel) {
+                                        if (!sel || sel === 'all') return day.total || 0;
+                                        return (day.items && day.items[sel]) || 0;
+                                    }
+                                    function ovbizDetailOptions() {
+                                        const sel = document.getElementById('ovbizDetailItem');
+                                        if (!sel || sel.dataset.built === '1') return;
+                                        sel.innerHTML = '<optgroup label="总览">'
+                                            + '<option value="all">全部工作量（按天合计）</option></optgroup>'
+                                            + '<optgroup label="逐项">'
+                                            + OVBIZ_ITEMS.map(it => '<option value="' + it.key + '">' + escapeHtml(it.label) + '</option>').join('')
+                                            + '</optgroup>';
+                                        sel.dataset.built = '1';
+                                    }
+                                    // 详情图表：范围（全部 / 逐项）× 粒度（按日 / 按月）→ 汇总卡 + 柱子 + 逐期表
+                                    function renderOvbizDetail() {
+                                        const s = ovbizStats();
+                                        ovbizDetailOptions();
+                                        const selEl = document.getElementById('ovbizDetailItem');
+                                        const grainEl = document.getElementById('ovbizDetailGrain');
+                                        const sel = (selEl && selEl.value) || 'all';
+                                        const grain = (grainEl && grainEl.value) === 'month' ? 'month' : 'day';
+                                        const item = sel === 'all' ? null : OVBIZ_ITEMS.filter(x => x.key === sel)[0];
+                                        const scopeName = item ? item.label : '全部工作量';
+
+                                        const periods = [];
+                                        const map = {};
+                                        for (const d of s.days) {
+                                            const v = ovbizDetailValue(d, sel);
+                                            if (!v) continue;                       // 那期这项是 0 就跳过，跟生涯那边一致
+                                            if (grain === 'month') {
+                                                const k = d.date.slice(0, 7);
+                                                const o = map[k] || (map[k] = { label: k, sum: 0, days: 0 });
+                                                o.sum += v; o.days++;
+                                            } else {
+                                                periods.push({ label: d.date, sum: v, days: 1 });
+                                            }
+                                        }
+                                        if (grain === 'month') Object.keys(map).sort().forEach(k => periods.push(map[k]));
+
+                                        const total = periods.reduce((a, p) => a + p.sum, 0);
+                                        const dayCount = periods.reduce((a, p) => a + p.days, 0);
+                                        const avgDay = dayCount ? total / dayCount : 0;
+                                        const avgPeriod = periods.length ? total / periods.length : 0;
+                                        const sortedSums = periods.map(p => p.sum).sort((a, b) => a - b);
+                                        const med = sortedSums.length
+                                            ? (sortedSums.length % 2 ? sortedSums[(sortedSums.length - 1) / 2]
+                                                : (sortedSums[sortedSums.length / 2 - 1] + sortedSums[sortedSums.length / 2]) / 2)
+                                            : 0;
+                                        const best = periods.reduce((b, p) => (!b || p.sum > b.sum ? p : b), null);
+                                        const maxSum = periods.reduce((m, p) => Math.max(m, p.sum), 0) || 1;
+
+                                        const sum = document.getElementById('ovbizDetailSummary');
+                                        if (sum) {
+                                            sum.innerHTML = periods.length
+                                                ? [
+                                                    careerKpiCard('总量', careerNum(total), scopeName, true),
+                                                    careerKpiCard('日均', careerNum(avgDay, 1), '按 ' + dayCount + ' 个记录日', false, true),
+                                                    grain === 'month'
+                                                        ? careerKpiCard('月均', careerNum(avgPeriod, 1), '按 ' + periods.length + ' 个月', false, true)
+                                                        : careerKpiCard('中位数', careerNum(med, 1), '按 ' + periods.length + ' 个记录日', false, true),
+                                                    careerKpiCard('最高' + (grain === 'month' ? '月' : '单日'), careerNum(maxSum), best ? best.label : '—', false, true),
+                                                    careerKpiCard(grain === 'month' ? '记录月数' : '记录天数', periods.length, scopeName, false, true)
+                                                ].join('')
+                                                : '<div class="hint-text">这个范围内还没有数据。</div>';
+                                        }
+                                        const chart = document.getElementById('ovbizDetailChart');
+                                        if (chart) {
+                                            const bars = grain === 'day' ? periods.slice(-90) : periods;
+                                            chart.innerHTML = bars.length
+                                                ? bars.map(p => '<span title="' + escapeHtml(p.label + ' · ' + careerNum(p.sum) + (p.days > 1 ? '（日均 ' + careerNum(p.sum / p.days, 1) + '）' : ''))
+                                                    + '" style="height:' + Math.max(3, (p.sum / maxSum) * 100).toFixed(1) + '%"></span>').join('')
+                                                : '<span class="hint-text" style="height:auto;background:none;">暂无数据</span>';
+                                        }
+                                        const hint = document.getElementById('ovbizDetailHint');
+                                        if (hint) {
+                                            hint.textContent = periods.length
+                                                ? (grain === 'day' ? periods.length + ' 个记录日' : periods.length + ' 个月')
+                                                    + (grain === 'day' && periods.length > 90 ? '（图里只画最近 90 个）' : '')
+                                                : '';
+                                        }
+                                        const table = document.getElementById('ovbizDetailTable');
+                                        if (table) {
+                                            let h = '<thead><tr><th>' + (grain === 'month' ? '月份' : '日期') + '</th><th class="num">合计</th><th class="num">日均</th><th class="num">占总量</th></tr></thead><tbody>';
+                                            if (!periods.length) h += '<tr><td colspan="4" style="color:var(--ink-3);">暂无数据</td></tr>';
+                                            const list = grain === 'day' ? periods.slice().reverse() : periods;
+                                            for (const p of list) {
+                                                h += '<tr><td>' + escapeHtml(p.label) + '</td><td class="num">' + careerNum(p.sum)
+                                                    + '</td><td class="num">' + careerNum(p.days ? p.sum / p.days : 0, 1)
+                                                    + '</td><td class="num">' + (total ? careerPct(p.sum / total) : '—') + '</td></tr>';
+                                            }
+                                            h += '</tbody><tfoot><tr class="total-row"><td>合计</td><td class="num">' + careerNum(total)
+                                                + '</td><td class="num">' + careerNum(avgDay, 1) + '</td><td class="num">100.0%</td></tr></tfoot>';
+                                            table.innerHTML = h;
+                                        }
+                                    }
                                     function ovbizItemHead() {
                                         return OVBIZ_ITEMS.map(it => '<th class="num" title="' + escapeHtml(it.label) + '">' + escapeHtml(it.short) + '</th>').join('');
                                     }
@@ -11740,10 +11782,26 @@
                                             sheetHint.textContent = s.n
                                                 ? ('合计 ' + careerNum(s.sum) + '（' + s.n + ' 个完整记录日 · 日均 ' + careerNum(s.avg, 1) + '）'
                                                     + '；覆盖 ' + (names.length ? names.join('、') : '未填人员') + ' 共 ' + s.peopleCount + ' 人'
-                                                    + '；这份数据存在服务端，三个人共用一份（本机只做离线缓存）。')
+                                                    + '；这份数据只存在这台设备的浏览器里，不会同步给别的设备。')
                                                 : '还没有数据 —— 把周报整表粘贴到上面「📋 粘贴周报数据」再点「解析导入」。';
                                         }
-                                        ovbizRenderSyncHint();
+                                        ovbizRenderStorageHint();
+                                        // ---- 走势条（最近 30 个记录日，异常日红、备注带活动字样橙） ----
+                                        const tr = document.getElementById('ovbizTrend');
+                                        if (tr) {
+                                            const bars = s.good.slice(-30);
+                                            const mx = bars.reduce((m, d) => Math.max(m, d.total), 0) || 1;
+                                            tr.innerHTML = bars.length
+                                                ? bars.map(d => {
+                                                    const note = (d.notes || []).join('；');
+                                                    const cls = (s.anomalyLine && d.total > s.anomalyLine) ? 'anomaly'
+                                                        : (OVBIZ_PEAK_RE.test(note) ? 'peak' : '');
+                                                    return '<span' + (cls ? ' class="' + cls + '"' : '')
+                                                        + ' title="' + escapeHtml(d.date + ' · ' + careerNum(d.total) + (note ? '　' + note : ''))
+                                                        + '" style="height:' + Math.max(3, (d.total / mx) * 100).toFixed(1) + '%"></span>';
+                                                }).join('')
+                                                : '<span class="hint-text" style="height:auto;background:none;">暂无数据</span>';
+                                        }
                                         // ---- 逐项统计 ----
                                         const it = document.getElementById('ovbizItemTable');
                                         if (it) {
@@ -11876,6 +11934,7 @@
                                             }
                                             ab.innerHTML = h;
                                         }
+                                        renderOvbizDetail();   // 详情图表跟着一起刷新
                                     }
                                     function ovbizImport() {
                                         ovbizEnsureLoaded();
@@ -11899,9 +11958,8 @@
                                             daySet[r.date] = 1;
                                         }
                                         ovbizData.updatedAt = new Date().toISOString();
-                                        ovbizData.clearedAt = ovbizData.clearedAt || null;
-                                        ovbizSyncState = 'ok';
-                                        ovbizPushServer();     // 写本机缓存 + POST 到服务端（三个人共用一份）
+                                        ovbizData.clearedAt = null;
+                                        ovbizSaveCache();      // ⚠️ 只写本机 localStorage，不 POST 服务端
                                         ovbizRender();
                                         ovbizSetHint('已导入 ' + res.rows.length + ' 行（新增 ' + add + '，覆盖同人同日 ' + over + '）· 覆盖 '
                                             + Object.keys(daySet).length + ' 天'
@@ -11931,14 +11989,11 @@
                                         const n = Object.keys(ovbizData.rows).length;
                                         if (!n) { ovbizSetHint('本来就没有海外业务数据可清'); return; }
                                         if (!confirm('确认清空海外业务统计？共 ' + n + ' 行。\n'
-                                            + '⚠️ 这份数据是三个人共用的（存在服务端），清空后所有人的界面都会变空，不只是这台设备。')) return;
-                                        const now = new Date().toISOString();
-                                        // clearedAt 挡住别的设备上残留的旧行（否则它们下次打开会把旧数据又传回来）
-                                        ovbizData = { rows: {}, updatedAt: now, clearedAt: now };
-                                        ovbizSyncState = 'ok';
-                                        ovbizPushServer();     // 连同空结果一起 POST，服务端也清掉
+                                            + '⚠️ 这份数据只存在这台设备的浏览器里，清空只影响本机（别人的设备本来也看不到）。')) return;
+                                        ovbizData = { rows: {}, updatedAt: new Date().toISOString(), clearedAt: null };
+                                        ovbizSaveCache();
                                         ovbizRender();
-                                        ovbizSetHint('已清空 ' + n + ' 行海外业务数据（服务端与本机一起，三个人都看不到了）');
+                                        ovbizSetHint('已清空本机的 ' + n + ' 行海外业务数据');
                                     }
 
                                     // ==================== 反馈模板（工单信息提取器） ====================
@@ -11951,7 +12006,14 @@
                                         { key: 'lebifen', label: '乐缤纷CP后台' },
                                         { key: 'gongdan', label: '内部工单' }
                                     ];
-                                    const FB_SOURCES = ['抖音小店', '抖音后台', '53', '工单', '支付宝在线', '支付宝后台', '微信后台', '电话', '爱江山CP后台', '繁花CP后台', '乐缤纷CP后台', '企微'];
+                                    const FB_SOURCES = ['抖音小店', '抖音后台', '53', '工单', '支付宝在线', '支付宝后台', '微信后台', '爱江山CP后台', '繁花CP后台', '乐缤纷CP后台', '企微'];
+                                    // 每个模板能看到哪些来源（用户要求：电话全部不要；梦幻消除战不要爱江山/繁花/乐缤纷CP后台；乐缤纷CP后台只留它自己）
+                                    const FB_TEMPLATE_SOURCES = {
+                                        menghuan: ['抖音小店', '抖音后台', '53', '工单', '支付宝在线', '支付宝后台', '微信后台', '企微'],
+                                        changwu: FB_SOURCES,
+                                        lebifen: ['乐缤纷CP后台'],
+                                        gongdan: FB_SOURCES
+                                    };
                                     // 内部工单的中文键名 → 字段名
                                     const FB_ORDER_FIELDS = {
                                         '工单号': 'orderId', '来源': 'source', '游戏': 'game', '区服': 'server', 'UID': 'uid',
@@ -11963,14 +12025,23 @@
                                     const FB_CHARID_RE = /^\d{4,}$/;
                                     let fbTemplate = 'menghuan';
                                     let fbSource = '抖音小店';
+                                    // 当前模板能看到 / 能选的来源
+                                    function fbAllowedSources() {
+                                        return FB_TEMPLATE_SOURCES[fbTemplate] || FB_SOURCES;
+                                    }
+                                    function fbAllowedSource(s) {
+                                        return fbAllowedSources().indexOf(s) !== -1;
+                                    }
                                     function fbLoadState() {
                                         try {
                                             const s = JSON.parse(localStorage.getItem(FB_STATE_KEY) || 'null');
                                             if (s) {
                                                 if (FB_TEMPLATES.some(t => t.key === s.template)) fbTemplate = s.template;
-                                                if (FB_SOURCES.indexOf(s.source) !== -1) fbSource = s.source;
+                                                // 存的来源得是这个模板允许的（换过模板规则后老记录可能已不合法）
+                                                if (fbAllowedSource(s.source)) fbSource = s.source;
                                             }
                                         } catch (e) { /* 坏了就用默认值 */ }
+                                        if (!fbAllowedSource(fbSource)) fbSource = fbAllowedSources()[0];
                                     }
                                     function fbSaveState() {
                                         try { localStorage.setItem(FB_STATE_KEY, JSON.stringify({ template: fbTemplate, source: fbSource })); } catch (e) { }
@@ -11984,11 +12055,12 @@
                                         return t ? t.label : fbTemplate;
                                     }
                                     function fbRenderHead() {
+                                        const n = fbAllowedSources().length;
                                         const sub = document.getElementById('fbReportSub');
-                                        if (sub) sub.textContent = '当前模板：' + fbTemplateLabel() + '　·　来源：' + fbSource + '　·　可选来源 ' + FB_SOURCES.length + ' 个';
+                                        if (sub) sub.textContent = '当前模板：' + fbTemplateLabel() + '　·　来源：' + fbSource + '　·　可选来源 ' + n + ' 个';
                                         const meta = document.getElementById('fbReportMeta');
                                         if (meta) {
-                                            const cells = [['模板', fbTemplateLabel()], ['来源', fbSource], ['来源总数', FB_SOURCES.length + ' 个']];
+                                            const cells = [['模板', fbTemplateLabel()], ['来源', fbSource], ['来源总数', n + ' 个']];
                                             meta.innerHTML = cells.map(c => '<div><span class="m-k">' + escapeHtml(String(c[0]))
                                                 + '</span><span class="m-v">' + escapeHtml(String(c[1])) + '</span></div>').join('');
                                         }
@@ -11997,19 +12069,24 @@
                                         const tg = document.getElementById('fbTemplateGroup');
                                         if (tg) tg.querySelectorAll('.fb-chip').forEach(b => b.classList.toggle('active', b.dataset.fbTemplate === fbTemplate));
                                         const sg = document.getElementById('fbSourceGroup');
-                                        if (sg) sg.querySelectorAll('.fb-chip').forEach(b => b.classList.toggle('active', b.dataset.fbSource === fbSource));
+                                        if (sg) sg.querySelectorAll('.fb-chip').forEach(b => {
+                                            // 这个模板用不上的来源就不显示（DOM 里留一份，省得每次重建）
+                                            b.style.display = fbAllowedSource(b.dataset.fbSource) ? '' : 'none';
+                                            b.classList.toggle('active', b.dataset.fbSource === fbSource);
+                                        });
                                         fbRenderHead();
                                     }
                                     function fbSetTemplate(k) {
                                         if (!FB_TEMPLATES.some(t => t.key === k)) return;
                                         fbTemplate = k;
-                                        // 乐缤纷CP后台的格式里「来源：」固定就是它自己，选了这个模板就把来源一并切过去
-                                        if (k === 'lebifen') fbSource = '乐缤纷CP后台';
+                                        // 换模板后原来选的来源可能不该有了 → 落到这个模板的第一个来源
+                                        // （乐缤纷CP后台只允许「乐缤纷CP后台」一个来源，所以自动就切过去了）
+                                        if (!fbAllowedSource(fbSource)) fbSource = fbAllowedSources()[0];
                                         fbSaveState();
                                         fbRenderChips();
                                     }
                                     function fbSetSource(s) {
-                                        if (FB_SOURCES.indexOf(s) === -1) return;
+                                        if (FB_SOURCES.indexOf(s) === -1 || !fbAllowedSource(s)) return;
                                         fbSource = s;
                                         fbSaveState();
                                         fbRenderChips();
@@ -12755,7 +12832,7 @@
                                             const targetTab = document.getElementById(`tab-${this.dataset.tab}`);
                                             if (targetTab) targetTab.classList.add('active');
                                             if (this.dataset.tab === 'career') renderCareer();
-                                            if (this.dataset.tab === 'overseas') { ovbizRender(); ovbizSyncFromServer(); }   // 切进来顺手跟服务端对一次（岗位共享）
+                                            if (this.dataset.tab === 'overseas') { ovbizRender(); renderOvbizDetail(); }   // 切进来重画一遍（数据只在本机）
                                             if (this.dataset.tab === 'feedback') fbRenderChips();
                                         });
 
@@ -12906,7 +12983,9 @@
                                             if (!careerDownload('海外业务统计_' + careerToday() + '.csv', ovbizCsvText(), 'text/csv')) alert('当前环境不支持导出');
                                         });
                                         setClick('ovbizClearBtn', ovbizClearAll);
-                                        setClick('ovbizSyncBtn', ovbizManualSync);
+                                        // 详情图表：换范围 / 换粒度都重画
+                                        addEvent('ovbizDetailItem', 'change', renderOvbizDetail);
+                                        addEvent('ovbizDetailGrain', 'change', renderOvbizDetail);
                                         // 反馈模板（模板 / 来源选择片 + 生成 / 复制 / 清空）
                                         fbLoadState();
                                         fbRenderChips();

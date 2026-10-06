@@ -201,43 +201,59 @@ ok(/data-tab="overseas"/.test(s) && /id="tab-overseas"/.test(s) && /海外业务
   '「海外业务统计」标签页已注入（侧边栏 + 页面）');
 {
   const ovbizBlk = (s.match(/const OVBIZ_ITEMS = \[[\s\S]*?\r?\n\s*\];/) || [''])[0];
-  ok(/const OVBIZ_KEY = 'overseasBizData';/.test(s) && (ovbizBlk.match(/\{ key: '/g) || []).length === 11,
-    '海外业务：11 个统计项已定义（异世界群维系…监控封号）');
+  ok(/const OVBIZ_KEY = 'overseasBizData';/.test(s) && (ovbizBlk.match(/\{ key: '/g) || []).length === 10,
+    '海外业务：10 个统计项已定义（异世界群维系…监控封号，已删「邮件+SDK（猫旅馆物语）」）');
+  ok(!/邮件\+SDK（猫旅馆物语）/.test(ovbizBlk) && !/catinn_sdk/.test(ovbizBlk),
+    '海外业务：统计项里不含「邮件+SDK（猫旅馆物语）」');
 }
 ok(/function ovbizSplitLine\(line\)/.test(s) && /indexOf\('\\t'\) !== -1/.test(s) && /careerParseDate\(raw\)/.test(s)
   && /'22'\] = '@date'/.test(s),
   '海外业务：解析支持 CSV / TSV、日期 2026/1/1 与 Excel 序列号，并认得周报表头第一格的「22」');
-ok(/function ovbizSaveCache\(\)/.test(s) && /function ovbizPushServer\(\) \{ return saveData\(OVBIZ_KEY, ovbizData\); \}/.test(s)
-  && /fetchWithTimeout\(API_BASE \+ encodeURIComponent\(OVBIZ_KEY\)\)/.test(s),
-  '海外业务：岗位共享 —— 服务端 /api/data/overseasBizData 为准，本机只做离线缓存（saveData 推 + GET 同步）');
-ok(/function ovbizMergeData\(srv, loc\)/.test(s) && /if \(clearedAt && r\.at && r\.at < clearedAt\) continue;/.test(s)
-  && /ovbizRowSig\(merged\) !== ovbizRowSig\(srv\)/.test(s),
-  '海外业务：服务端与本机按行并集合并（并发导入不互相冲掉），清空用 clearedAt 挡住别的设备的旧行');
+ok(/function ovbizSaveCache\(\)/.test(s) && !/ovbizPushServer/.test(s) && !/saveData\(OVBIZ_KEY/.test(s)
+  && !/fetchWithTimeout\(API_BASE \+ encodeURIComponent\(OVBIZ_KEY\)\)/.test(s)
+  && !/ovbizSyncFromServer|ovbizManualSync|ovbizRowSig|ovbizMergeData/.test(s),
+  '海外业务：只存本机 —— 已彻底去掉服务端同步（没有 saveData / GET / 并集合并那一套）');
 ok(/function ovbizEnsureLoaded\(\)/.test(s) && /ovbizEnsureLoaded\(\);/.test(s) && /let ovbizLoaded = false;/.test(s),
   '海外业务：本机数据懒加载（避开 applyState 早于 const 初始化的 TDZ 坑）');
 ok(/function ovbizStats\(\)/.test(s) && /d\.total \+= r\.total;/.test(s) && /function ovbizWeekStart\(d\)/.test(s)
   && /anomalyLine = n > 1 && sd > 0/.test(s),
   '海外业务：统计按天合计（同日多人）+ 周维度 + μ+2σ 异常线');
-ok(['ovbizKpi', 'ovbizItemTable', 'ovbizMonthlyTable', 'ovbizWeeklyTable', 'ovbizPeopleTable', 'ovbizDailyTable', 'ovbizAnomalyBox', 'ovbizReportMeta', 'ovbizSyncHint']
+ok(['ovbizKpi', 'ovbizItemTable', 'ovbizMonthlyTable', 'ovbizWeeklyTable', 'ovbizPeopleTable', 'ovbizDailyTable', 'ovbizAnomalyBox', 'ovbizReportMeta', 'ovbizSyncHint',
+  'ovbizTrend', 'ovbizDetailItem', 'ovbizDetailGrain', 'ovbizDetailSummary', 'ovbizDetailChart', 'ovbizDetailTable']
   .every(id => s.includes('id="' + id + '"')),
-  '海外业务：总览 / 逐项 / 月度 / 周 / 按人员 / 每日明细 / 异常 / 报表抬头 / 共享状态行 容器齐全');
+  '海外业务：总览 / 逐项 / 月度 / 周 / 按人员 / 每日明细 / 异常 / 报表抬头 / 本机状态行 + 走势条 + 详情图表容器齐全');
+ok(/function ovbizDetailOptions\(\)/.test(s) && /function renderOvbizDetail\(\)/.test(s)
+  && /function ovbizDetailValue\(day, sel\)/.test(s)
+  && /careerKpiCard\('总量', careerNum\(total\), scopeName, true\)/.test(s)
+  && /const bars = grain === 'day' \? periods\.slice\(-90\) : periods;/.test(s),
+  '海外业务：详情图表（范围 × 按日/按月 → 汇总卡 + 柱子 + 逐期表）已实现');
+ok(/const OVBIZ_PEAK_RE = \/活动\|版本\|开服\|更新\|维护\|上线\|联动\|新服\//.test(s)
+  && /const cls = \(s\.anomalyLine && d\.total > s\.anomalyLine\) \? 'anomaly'/.test(s),
+  '海外业务：走势条把异常日涂红、备注带活动字样的日子涂橙');
 ok(/setClick\('ovbizImportBtn', ovbizImport\)/.test(s) && /setClick\('ovbizExportBtn'/.test(s)
-  && /setClick\('ovbizClearBtn', ovbizClearAll\)/.test(s) && /setClick\('ovbizSyncBtn', ovbizManualSync\)/.test(s)
-  && /this\.dataset\.tab === 'overseas'\) \{ ovbizRender\(\); ovbizSyncFromServer\(\); \}/.test(s)
+  && /setClick\('ovbizClearBtn', ovbizClearAll\)/.test(s) && !/ovbizSyncBtn/.test(s)
+  && /addEvent\('ovbizDetailItem', 'change', renderOvbizDetail\)/.test(s)
+  && /addEvent\('ovbizDetailGrain', 'change', renderOvbizDetail\)/.test(s)
+  && /this\.dataset\.tab === 'overseas'\) \{ ovbizRender\(\); renderOvbizDetail\(\); \}/.test(s)
   && /renderCareer\(\);\s*\n\s*ovbizRender\(\);/.test(s),
-  '海外业务：导入 / 导出 / 重同步 / 清空按钮与标签页刷新、启动刷新都已挂上');
+  '海外业务：导入 / 导出 / 清空按钮 + 详情图表的下拉刷新 + 标签页刷新、启动刷新都已挂上（同步按钮已删）');
 // ---- 3e. 反馈模板（工单信息提取器）----
 ok(/data-tab="feedback"/.test(s) && /id="tab-feedback"/.test(s) && /反馈模板/.test(s),
   '「反馈模板」标签页已注入（侧边栏 + 页面）');
 {
   const srcBlk = (s.match(/const FB_SOURCES = \[(.*?)\];/) || ['', ''])[1];
-  ok((srcBlk.match(/'/g) || []).length === 24 && /'企微'/.test(srcBlk) && /'爱江山CP后台'/.test(srcBlk)
-    && /'乐缤纷CP后台'/.test(srcBlk) && /'抖音小店'/.test(srcBlk) && !/抖音在线/.test(srcBlk),
-    '反馈来源 12 个（抖音小店…繁花CP后台 / 乐缤纷CP后台 / 企微），旧的「抖音在线」已改名');
+  ok((srcBlk.match(/'/g) || []).length === 22 && /'企微'/.test(srcBlk) && /'爱江山CP后台'/.test(srcBlk)
+    && /'乐缤纷CP后台'/.test(srcBlk) && /'抖音小店'/.test(srcBlk) && !/抖音在线/.test(srcBlk) && !/'电话'/.test(srcBlk),
+    '反馈来源 11 个（抖音小店…繁花CP后台 / 乐缤纷CP后台 / 企微），无「电话」，旧的「抖音在线」已改名');
   const tplBlk = (s.match(/const FB_TEMPLATES = \[([\s\S]*?)\];/) || ['', ''])[1];
   ok((tplBlk.match(/\{ key: '/g) || []).length === 4 && /'menghuan'/.test(tplBlk) && /'changwu'/.test(tplBlk)
     && /'lebifen'/.test(tplBlk) && /'gongdan'/.test(tplBlk),
     '反馈模板 4 种（梦幻消除战 / 常规游戏 / 乐缤纷CP后台 / 内部工单）');
+  const tsBlk = (s.match(/const FB_TEMPLATE_SOURCES = \{[\s\S]*?\n\s*\};/) || [''])[0];
+  ok(/menghuan: \['抖音小店', '抖音后台', '53', '工单', '支付宝在线', '支付宝后台', '微信后台', '企微'\]/.test(tsBlk)
+    && /lebifen: \['乐缤纷CP后台'\]/.test(tsBlk) && !/电话/.test(tsBlk)
+    && /function fbAllowedSources\(\)/.test(s) && /b\.style\.display = fbAllowedSource\(b\.dataset\.fbSource\) \? '' : 'none';/.test(s),
+    '每个模板的来源各不相同：梦幻消除战不要爱江山/繁花/乐缤纷CP后台，乐缤纷CP后台只留它自己，谁都不含电话');
 }
 ok(/【梦幻消除战问题反馈】/.test(s) && /【喜扑UID】/.test(s) && /问题：玩家反馈，麻烦看看/.test(s),
   '反馈模板正文与原工具一致（梦幻版 + 常规版两套）');
@@ -251,8 +267,9 @@ ok(/function fbLebifenRows\(raw\)/.test(s) && /line\.indexOf\('\\t'\) !== -1\) r
   '乐缤纷CP后台按后台表格行解析（制表符分列 / 第 5 列是问题 / 跳过表头行 / 多行拼成多段）');
 ok(/const FB_LB_NOISE_RE =/.test(s) && /FB_LB_CHANNEL_RE/.test(s) && /FB_LB_ROLE_ID_RE/.test(s),
   '乐缤纷CP后台只复制少数几列时按内容认（数字账号 / 渠道关键词 / 其余那句当问题）');
-ok(/if \(k === 'lebifen'\) fbSource = '乐缤纷CP后台'/.test(s),
-  '选「乐缤纷CP后台」模板时来源一并切到「乐缤纷CP后台」（格式里来源固定是它）');
+ok(/if \(!fbAllowedSource\(fbSource\)\) fbSource = fbAllowedSources\(\)\[0\];/.test(s)
+  && /function fbSetSource\(s\) \{[\s\S]{0,120}!fbAllowedSource\(s\)\) return;/.test(s),
+  '切模板时来源跟着落到该模板允许的第一个（乐缤纷CP后台只有一个来源，所以自动切过去）+ 手点不合法的来源会被忽略');
 ok(/const FB_ORDER_FIELDS = \{[\s\S]*?'工单号': 'orderId'[\s\S]*?'手机号码': 'phoneNumber'[\s\S]*?\};/.test(s),
   '内部工单字段表齐全（工单号 / 提交人 / 游戏 / 账号 / UID / 角色 / 区服 / 问题 / 联系方式）');
 ok(/localStorage\.getItem\(FB_STATE_KEY\)/.test(s) && /localStorage\.setItem\(FB_STATE_KEY/.test(s)
