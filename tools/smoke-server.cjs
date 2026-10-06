@@ -98,6 +98,82 @@ async function main() {
     check(onDisk['work-bad_v2'] && onDisk['work-bad_v2'].name === '话术', '确实落盘到临时文件');
     check(!Object.keys(onDisk).some((k) => ['__proto__', 'constructor', 'prototype'].includes(k)),
       '临时文件里没有任何危险键', Object.keys(onDisk));
+
+    // ---------------- 下午茶投票：/api/vote/:key ----------------
+    console.log('— 下午茶投票：原子合并 + 按天作废 —');
+    // 北京时间的「今天」（跟服务端同一套算法，免得跨时区跑测试时错位）
+    const bj = new Date(Date.now() + 8 * 3600 * 1000);
+    const today = bj.toISOString().slice(0, 10);             // YYYY-MM-DD（北京时间）
+    const pollKey = 'teaPoll_' + today.replace(/-/g, '');     // teaPoll_YYYYMMDD
+    const poll = {
+      id: pollKey, date: today, title: '今天下午茶', status: 'open',
+      shopIds: ['s1', 's2'], shopNames: { s1: '蜜雪冰城', s2: '古茗' },
+      createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), votes: {}
+    };
+    const mk = await req('POST', `/api/data/${pollKey}`, { value: poll });
+    check(mk.status === 200, '发起投票：用普通 /api/data 存下这份投票', mk.status);
+
+    const v1 = await req('POST', `/api/vote/${pollKey}`, { voterId: 'v-dev1', shopIds: ['s1'] });
+    check(v1.status === 200 && v1.json && v1.json.success && v1.json.value.votes['v-dev1'],
+      '设备 1 投票 → 200，服务端返回合并后的整份', v1.json && Object.keys(v1.json.value.votes));
+    const v2 = await req('POST', `/api/vote/${pollKey}`, { voterId: 'v-dev2', shopIds: ['s1', 's2'] });
+    check(v2.status === 200 && Object.keys(v2.json.value.votes).length === 2,
+      '设备 2 投票 → 设备 1 那一票还在（合并而不是覆盖）', Object.keys(v2.json && v2.json.value.votes));
+    const v1again = await req('POST', `/api/vote/${pollKey}`, { voterId: 'v-dev1', shopIds: ['s2'] });
+    check(v1again.status === 200 && Object.keys(v1again.json.value.votes).length === 2
+      && JSON.stringify(v1again.json.value.votes['v-dev1'].shopIds) === '["s2"]',
+      '同一台设备改票 → 只覆盖自己那条、人数不变',
+      v1again.json && v1again.json.value.votes['v-dev1']);
+    const readBack = await req('GET', `/api/vote/${pollKey}`);
+    check(readBack.status === 200 && readBack.json.expired === false
+      && Object.keys(readBack.json.value.votes).length === 2,
+      'GET /api/vote 读回 2 票、没过期', readBack.json && readBack.json.expired);
+
+    const badVoter = await req('POST', `/api/vote/${pollKey}`, { voterId: 'bad id!', shopIds: [] });
+    check(badVoter.status === 400, '非法 voterId → 400', badVoter.status);
+    const badShops = await req('POST', `/api/vote/${pollKey}`, { voterId: 'v-dev3', shopIds: 's1' });
+    check(badShops.status === 400, 'shopIds 不是数组 → 400', badShops.status);
+    const badKey = await req('POST', '/api/vote/__proto__', { voterId: 'v-dev3', shopIds: [] });
+    check(badKey.status === 400, '非法投票 key → 400', badKey.status);
+    const notPoll = await req('POST', '/api/vote/teaPoll_20200101', { voterId: 'v-dev3', shopIds: [] });
+    check(notPoll.status === 404, '还没发起就投票 → 404', notPoll.status);
+
+    // 截止后不能再投
+    await req('POST', `/api/data/${pollKey}`, { value: { ...poll, status: 'closed' } });
+    const closed = await req('POST', `/api/vote/${pollKey}`, { voterId: 'v-dev3', shopIds: ['s1'] });
+    check(closed.status === 409, '已经截止的投票 → 409', closed.status);
+    await req('POST', `/api/data/${pollKey}`, { value: { ...poll, status: 'open', votes: JSON.parse(JSON.stringify(v1again.json.value.votes)) } });
+
+    // 过期的投票：读的时候顺手删掉，连数据都不留
+    const oldKey = 'teaPoll_20200101';
+    await req('POST', `/api/data/${oldKey}`, {
+      value: { id: oldKey, date: '2020-01-01', status: 'open', shopIds: ['s1'], votes: { 'v-x': { voterId: 'v-x', shopIds: ['s1'] } } }
+    });
+    const expGet = await req('GET', `/api/vote/${oldKey}`);
+    check(expGet.status === 200 && expGet.json.expired === true && expGet.json.value === null,
+      '过期的投票：GET 返回 expired 且不给数据', expGet.json);
+    const diskAfter = JSON.parse(fs.readFileSync(TMP_DATA, 'utf-8'));
+    check(!Object.prototype.hasOwnProperty.call(diskAfter, oldKey),
+      '过期投票被真的从 data.json 删掉了（不保留）', Object.keys(diskAfter));
+    const expPost = await req('POST', `/api/vote/${oldKey}`, { voterId: 'v-y', shopIds: ['s1'] });
+    check(expPost.status === 404,
+      '过期的投票已被清掉，再投就是「还没发起」→ 404', expPost.status);
+    // 另起一份「还在文件里但已过期」的投票，验证 POST 自己也会清理并拒写
+    const oldKey2 = 'teaPoll_20200102';
+    await req('POST', `/api/data/${oldKey2}`, {
+      value: { id: oldKey2, date: '2020-01-02', status: 'open', shopIds: ['s1'], votes: {} }
+    });
+    const expPost2 = await req('POST', `/api/vote/${oldKey2}`, { voterId: 'v-y', shopIds: ['s1'] });
+    check(expPost2.status === 410 && expPost2.json && expPost2.json.expired === true,
+      '对「已过期但还没被读过」的投票提交 → 410 + expired', expPost2.json);
+    const diskAfter2 = JSON.parse(fs.readFileSync(TMP_DATA, 'utf-8'));
+    check(!Object.prototype.hasOwnProperty.call(diskAfter2, oldKey2),
+      'POST 遇到过期投票也会把它删掉', Object.keys(diskAfter2));
+
+    // 今天的投票（只要没到 23:00）不能被误删
+    const stillThere = await req('GET', `/api/vote/${pollKey}`);
+    check(stillThere.json.value !== null && stillThere.json.expired === false,
+      '当天 23:00 前，投票数据不会被清掉', stillThere.json && stillThere.json.expired);
   } finally {
     try { child.kill(); } catch (_) { /* ignore */ }
     await new Promise((r) => setTimeout(r, 150));

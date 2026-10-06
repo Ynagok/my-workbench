@@ -60,6 +60,90 @@ app.post('/api/data/:key', (req, res) => {
   res.json({ success: true });
 });
 
+// ==================== 下午茶投票（teaPoll_YYYYMMDD） ====================
+// 为什么单独开两个端点、而不复用 /api/data：
+//   1) 投票是「很多台设备各写自己那一票」→ 必须由服务端做**原子合并**，否则后 POST 的会覆盖先 POST 的（丢票）。
+//      readData/writeData 都是同步的、Node 单线程，读改写之间没有 await，所以这里天然不会互相覆盖。
+//   2) 投票按天作废：**北京时间当天 23:00 之后连数据一起删掉、不留档**（用户要求），
+//      用「谁访问谁触发」的惰性清理实现 —— Render 免费实例会休眠，常驻定时器不可靠。
+const VOTE_KEY_RE = /^teaPoll_\d{8}$/;
+const ID_RE = /^[A-Za-z0-9_-]{1,64}$/;
+const VOTE_MAX_SHOPS = 50;
+// 北京时间（服务器时区可能是 UTC，所以显式 +8；用 getUTC* 读出来）
+function beijingNow() {
+  return new Date(Date.now() + 8 * 3600 * 1000);
+}
+function isVoteExpired(poll) {
+  const date = poll && typeof poll.date === 'string' ? poll.date : '';
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return false;   // 没有日期就不判过期，别误删
+  const d = beijingNow();
+  const today = d.toISOString().slice(0, 10);
+  if (date < today) return true;                          // 早于今天 → 已作废
+  if (date > today) return false;                         // 将来的投票（理论上不会有）
+  return d.getUTCHours() >= 23;                           // 北京时间过了 23:00 → 作废
+}
+function isValidVoteKey(key) {
+  return typeof key === 'string' && VOTE_KEY_RE.test(key) && !FORBIDDEN_KEYS.has(key);
+}
+function normalizeShopIds(v) {
+  if (!Array.isArray(v)) return null;
+  const out = [];
+  for (const s of v) {
+    if (typeof s !== 'string' || !ID_RE.test(s)) return null;
+    if (out.indexOf(s) === -1) out.push(s);               // 同一家重复选只算一次
+    if (out.length > VOTE_MAX_SHOPS) return null;
+  }
+  return out;
+}
+
+// API：读某天的投票（顺手清理过期的）
+app.get('/api/vote/:key', (req, res) => {
+  const key = req.params.key;
+  if (!isValidVoteKey(key)) return res.status(400).json({ error: '非法的投票 key' });
+  const data = readData();
+  const poll = data[key];
+  if (poll && isVoteExpired(poll)) {
+    delete data[key];                                     // 23:00 之后：连数据一起清掉，不保留
+    writeData(data);
+    return res.json({ value: null, expired: true });
+  }
+  res.json({ value: poll === undefined ? null : poll, expired: false });
+});
+
+// API：投自己那一票（服务端合并，只动这个 voterId 那一条）
+app.post('/api/vote/:key', (req, res) => {
+  const key = req.params.key;
+  if (!isValidVoteKey(key)) return res.status(400).json({ error: '非法的投票 key' });
+  const body = req.body || {};
+  const voterId = body.voterId;
+  if (typeof voterId !== 'string' || !ID_RE.test(voterId)) return res.status(400).json({ error: '非法的 voterId' });
+  const shopIds = normalizeShopIds(body.shopIds);
+  if (shopIds === null) return res.status(400).json({ error: 'shopIds 必须是店家 id 数组（最多 50 个）' });
+
+  const data = readData();
+  const poll = data[key];
+  if (poll && isVoteExpired(poll)) {
+    delete data[key];
+    writeData(data);
+    return res.status(410).json({ error: '投票已过期（当天 23:00 后清除）', expired: true });
+  }
+  if (!poll || typeof poll !== 'object') return res.status(404).json({ error: '投票不存在或还没发起' });
+  if (poll.status === 'closed') return res.status(409).json({ error: '投票已截止' });
+  if (!poll.votes || typeof poll.votes !== 'object') poll.votes = {};
+  const nowIso = new Date().toISOString();
+  const old = poll.votes[voterId];
+  poll.votes[voterId] = {
+    voterId: voterId,
+    shopIds: shopIds,
+    at: old && typeof old.at === 'string' ? old.at : nowIso,
+    updatedAt: nowIso
+  };
+  poll.updatedAt = nowIso;
+  data[key] = poll;
+  writeData(data);
+  res.json({ success: true, value: poll });
+});
+
 // 启动
 app.listen(PORT, () => {
   console.log(`✅ 同步服务器启动：http://localhost:${PORT}`);
