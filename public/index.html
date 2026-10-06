@@ -3836,8 +3836,10 @@
                 <div id="teaPollAdminBox">
                     <div class="flex-row" style="margin-top:8px;">
                         <input id="teaPollTitle" placeholder="标题（可空），默认「M月D日 下午茶」" style="max-width:280px;">
-                        <input id="teaPollDeadline" placeholder="截止时间（可空），如 15:30" style="max-width:180px;">
+                        <label class="hint-text" style="margin:0;">截止时间（北京时间，可空 = 到 23:00 才结束）：</label>
+                        <input type="time" id="teaPollDeadline" title="到点后只能看结果、不能再投；数据留到当天 23:00 自动清除" style="max-width:150px;">
                     </div>
+                    <div class="hint-text" style="margin-top:6px;">设了截止时间就是「到点自动锁投票」：<b>到点后只展示结果、不能再投</b>，一直保留到当天 23:00 自动清除。</div>
                     <div class="hint-text" style="margin-top:10px;">今天开哪几家（发起时勾选，可多选）：</div>
                     <div class="fb-chip-row" id="teaPollShopBox"></div>
                     <div class="flex-row" style="margin-top:10px;">
@@ -3859,10 +3861,15 @@
                 <label>✅ 我要投
                     <span class="hint-text" style="font-weight:400;">多选（可以选好几家）；同一台设备再投就是改票，不会多算一票</span>
                 </label>
-                <div class="fb-chip-row" id="teaVoteShopBox"></div>
+                <div id="teaVoteOpenBox">
+                    <div class="fb-chip-row" id="teaVoteShopBox"></div>
+                    <div class="flex-row" style="margin-top:10px;">
+                        <button id="teaVoteSubmitBtn">🗳️ 提交 / 改票</button>
+                        <button id="teaClearMineBtn" class="secondary">↩️ 撤销我这票</button>
+                    </div>
+                </div>
+                <div class="hint-text" id="teaVoteClosed" style="display:none;color:var(--warn);margin-top:8px;"></div>
                 <div class="flex-row" style="margin-top:10px;">
-                    <button id="teaVoteSubmitBtn">🗳️ 提交 / 改票</button>
-                    <button id="teaClearMineBtn" class="secondary">↩️ 撤销我这票</button>
                     <span class="hint-text" id="teaVoteHint"></span>
                 </div>
             </div>
@@ -12420,6 +12427,49 @@
                                     }
                                     function teaTodayKey() { return TEA_POLL_PREFIX + teaTodayStr().replace(/-/g, ''); }
                                     function teaAfter23() { return teaBJNow().getHours() >= 23; }
+                                    // ---- 截止时间（poll.deadline = 'HH:MM'，北京时间、当天）----
+                                    // 到点后**只展示结果、不能再投**（服务端同样 409 挡住），数据一直留到当天 23:00 才清掉。
+                                    // poll.status === 'closed' 是发起人手动截止，跟「到点」等价。
+                                    const TEA_DEADLINE_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
+                                    function teaDeadline(poll) {
+                                        const dl = poll && typeof poll.deadline === 'string' ? poll.deadline.trim() : '';
+                                        return TEA_DEADLINE_RE.test(dl) ? dl : '';
+                                    }
+                                    function teaNowHM() {
+                                        const d = teaBJNow();
+                                        return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+                                    }
+                                    // '' = 还能投；'manual' = 手动截止；'deadline' = 到截止时间了
+                                    function teaClosedReason(poll) {
+                                        if (!poll) return '';
+                                        if (poll.status === 'closed') return 'manual';
+                                        const dl = teaDeadline(poll);
+                                        if (!dl) return '';
+                                        const date = typeof poll.date === 'string' ? poll.date : '';
+                                        if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+                                            const today = teaTodayStr();
+                                            if (date < today) return 'deadline';
+                                            if (date > today) return '';
+                                        }
+                                        return teaNowHM() >= dl ? 'deadline' : '';   // 'HH:MM' 的字典序 == 时刻序
+                                    }
+                                    function teaIsClosed(poll) { return !!teaClosedReason(poll); }
+                                    function teaDeadlineNote(poll) {
+                                        const reason = teaClosedReason(poll);
+                                        if (reason === 'manual') return '已截止（手动截止）';
+                                        if (reason === 'deadline') return '已在 ' + teaDeadline(poll) + ' 截止';
+                                        return '';
+                                    }
+                                    function teaDeadlineLeftText(poll) {
+                                        const dl = teaDeadline(poll);
+                                        if (!dl || teaClosedReason(poll)) return '';
+                                        const p = dl.split(':');
+                                        const mins = (Number(p[0]) * 60 + Number(p[1]))
+                                            - (teaBJNow().getHours() * 60 + teaBJNow().getMinutes());
+                                        if (mins <= 0) return '';
+                                        if (mins >= 60) return '还有 ' + Math.floor(mins / 60) + ' 小时 ' + (mins % 60) + ' 分钟';
+                                        return '还有 ' + mins + ' 分钟';
+                                    }
                                     function teaVoterId() {
                                         try {
                                             let v = localStorage.getItem(TEA_VOTER_KEY);
@@ -12507,9 +12557,12 @@
                                             ? '现在已过北京时间 23:00 —— 今天的投票被清掉了，明天再发起吧。'
                                             : '今天还没有发起投票。先在上面勾好「今天开哪几家」，点「🚀 发起」。';
                                         const n = teaResult().devices;
-                                        const st = teaPollData.status === 'closed' ? '已截止' : '进行中';
-                                        const dl = teaPollData.deadline ? '（' + teaPollData.deadline + ' 截止）' : '';
-                                        return '🗳️ ' + teaPollData.title + ' · ' + st + dl + ' · 已投 ' + n + ' 台设备 · 当天 23:00 自动清除';
+                                        const dl = teaDeadline(teaPollData);
+                                        const left = teaDeadlineLeftText(teaPollData);
+                                        const st = teaIsClosed(teaPollData)
+                                            ? (teaDeadlineNote(teaPollData) + '（只展示结果）')
+                                            : ('进行中' + (dl ? '（' + dl + ' 截止' + (left ? '，' + left : '') + '）' : ''));
+                                        return '🗳️ ' + teaPollData.title + ' · ' + st + ' · 已投 ' + n + ' 台设备 · 当天 23:00 自动清除';
                                     }
                                     function teaRenderHead() {
                                         const sub = document.getElementById('teaReportSub');
@@ -12621,10 +12674,15 @@
                                             || ((d.getMonth() + 1) + '月' + d.getDate() + '日 下午茶');
                                         const names = {};
                                         teaPickStart.forEach(id => { const s = teaShopById(id); if (s) names[id] = s.name; });
+                                        const dl = teaDeadline({ deadline: ((dlEl && dlEl.value) || '').trim() });
+                                        if (dl && dl <= teaNowHM()) {
+                                            teaSetHint('teaPollStatus', '⚠️ 截止时间 ' + dl + ' 已经过了（现在 ' + teaNowHM()
+                                                + '）—— 换个晚一点的时间，或者留空（= 到 23:00 才结束）'); return;
+                                        }
                                         const poll = {
                                             id: key, date: teaTodayStr(), title: title.slice(0, 40),
                                             status: 'open',
-                                            deadline: ((dlEl && dlEl.value) || '').trim().slice(0, 20),
+                                            deadline: dl,
                                             shopIds: teaPickStart.slice(), shopNames: names,
                                             createdAt: (prev && prev.createdAt) || new Date().toISOString(),
                                             updatedAt: new Date().toISOString(),
@@ -12665,7 +12723,12 @@
                                             teaSetHint('teaVoteHint', '今天已过 23:00，投票按天作废了；明天再发起吧'); return;
                                         }
                                         if (!teaPollData) { teaSetHint('teaVoteHint', '今天还没有人发起投票 —— 先在「🗳️ 今天的投票」里发起一下'); return; }
-                                        if (teaPollData.status === 'closed') { teaSetHint('teaVoteHint', '这个投票已经截止了'); return; }
+                                        if (teaIsClosed(teaPollData)) {
+                                            teaRenderAll();      // 先重画（到点的话会把投票区收起来），再写提示 —— 提示在渲染里会被覆盖
+                                            teaSetHint('teaVoteHint', '🔒 ' + teaDeadlineNote(teaPollData)
+                                                + '：只能看结果，不能再投了（当天 23:00 自动清除）');
+                                            return;
+                                        }
                                         if (!teaPickVote.length) { teaSetHint('teaVoteHint', '至少选一家（可以多选）'); return; }
                                         try {
                                             const resp = await fetchWithTimeout(TEA_VOTE_BASE + encodeURIComponent(teaPollKey), {
@@ -12691,6 +12754,9 @@
                                     }
                                     async function teaClearMyVote() {
                                         if (!teaPollData) { teaSetHint('teaVoteHint', '今天还没有投票'); return; }
+                                        if (teaIsClosed(teaPollData)) {
+                                            teaSetHint('teaVoteHint', '🔒 ' + teaDeadlineNote(teaPollData) + '：不能再改票 / 撤票了'); return;
+                                        }
                                         try {
                                             const resp = await fetchWithTimeout(TEA_VOTE_BASE + encodeURIComponent(teaPollKey), {
                                                 method: 'POST',
@@ -12730,7 +12796,9 @@
                                         if (!r.devices) return out + '还没有人投票';
                                         out += r.rows.map(x => x.name + '  ' + x.n + ' 票').join('\n');
                                         out += '\n共 ' + r.devices + ' 台设备参与、' + r.totalVotes + ' 票';
-                                        if (teaPollData.status === 'closed') out += '（已截止）';
+                                        const note = teaDeadlineNote(teaPollData);
+                                        if (note) out += '（' + note + '）';
+                                        else if (teaDeadline(teaPollData)) out += '（' + teaDeadline(teaPollData) + ' 截止）';
                                         return out;
                                     }
                                     function teaRenderResult() {
@@ -12743,8 +12811,10 @@
                                             else if (!r.devices) meta.textContent = '还没有人投 —— 把分享链接发群里吧。';
                                             else {
                                                 const top = r.rows.filter(x => x.n > 0)[0];
+                                                const note = teaDeadlineNote(teaPollData);
                                                 meta.textContent = '参与 ' + r.devices + ' 台设备 · 共 ' + r.totalVotes + ' 票'
-                                                    + (top ? '　·　最热：' + top.name + '（' + top.n + ' 票）' : '');
+                                                    + (top ? '　·　最热：' + top.name + '（' + top.n + ' 票）' : '')
+                                                    + (note ? '　·　' + note + '（结果保留到 23:00）' : '');
                                             }
                                         }
                                         if (!box) return;
@@ -12778,10 +12848,24 @@
                                                 ? '你已投：' + teaMyVote.map(teaShopName).join('、')
                                                 : (teaPollData ? '你还没投（勾上面几家再提交）' : '');
                                         }
+                                        // 截止（到点或手动）之后：只展示结果 —— 投票区整块收起来，换成一条说明
+                                        const closed = teaIsClosed(teaPollData);
+                                        const openBox = document.getElementById('teaVoteOpenBox');
+                                        if (openBox) openBox.style.display = closed ? 'none' : '';
+                                        const closedBox = document.getElementById('teaVoteClosed');
+                                        if (closedBox) {
+                                            closedBox.style.display = closed ? '' : 'none';
+                                            closedBox.textContent = closed
+                                                ? (teaExpired
+                                                    ? '🧹 这次投票已经作废并清除了。'
+                                                    : '🔒 ' + teaDeadlineNote(teaPollData)
+                                                    + ' —— 现在只能看下面的「📊 实时结果」，不能再投票了；结果保留到当天 23:00 自动清除。')
+                                                : '';
+                                        }
                                         const tEl = document.getElementById('teaPollTitle');
                                         const dEl = document.getElementById('teaPollDeadline');
                                         if (teaPollData && tEl && !tEl.value) tEl.value = teaPollData.title || '';
-                                        if (teaPollData && dEl && !dEl.value) dEl.value = teaPollData.deadline || '';
+                                        if (teaPollData && dEl && !dEl.value) dEl.value = teaDeadline(teaPollData);
                                     }
                                     function teaShareLink() {
                                         const key = (teaPollData && teaPollData.id) || teaPollKey || teaTodayKey();
@@ -12794,7 +12878,7 @@
                                     function teaCopyShareText() {
                                         const d = teaBJNow();
                                         const t = (teaPollData && teaPollData.title) || ((d.getMonth() + 1) + '月' + d.getDate() + '日 下午茶');
-                                        const dl = teaPollData && teaPollData.deadline ? '（' + teaPollData.deadline + ' 截止）' : '';
+                                        const dl = teaDeadline(teaPollData) ? '（' + teaDeadline(teaPollData) + ' 截止）' : '';
                                         safeCopy('【' + t + '】' + dl + ' 想喝哪家？点开勾一下就行（可多选）：\n' + teaShareLink());
                                         teaSetHint('teaPollStatus', '已复制分享文案，直接贴群里');
                                     }

@@ -384,6 +384,20 @@ ok(/app\.get\('\/api\/vote\/:key'/.test(sv) && /app\.post\('\/api\/vote\/:key'/.
   && /delete data\[key\]/.test(sv) && /poll\.votes\[voterId\] = \{/.test(sv)
   && /const VOTE_KEY_RE = \/\^teaPoll_\\d\{8\}\$\/;/.test(sv),
   '服务端：/api/vote 读写 —— 原子合并到 votes[voterId]、当天 23:00 过期连数据一起删');
+ok(/type="time" id="teaPollDeadline"/.test(s) && /id="teaVoteOpenBox"/.test(s) && /id="teaVoteClosed"/.test(s)
+  && /const TEA_DEADLINE_RE/.test(s) && /function teaNowHM\(\)/.test(s)
+  && /function teaClosedReason\(poll\)/.test(s) && /teaNowHM\(\) >= dl/.test(s)
+  && /function teaDeadlineNote\(poll\)/.test(s) && /function teaDeadlineLeftText\(poll\)/.test(s),
+  '下午茶：截止时间是 type=time 的 HH:MM —— 按北京时间当前时刻判定「手动截止 / 到点截止」');
+ok(/const closed = teaIsClosed\(teaPollData\)/.test(s) && /openBox\.style\.display = closed \? 'none' : ''/.test(s)
+  && /closedBox\.style\.display = closed \? '' : 'none'/.test(s) && /现在只能看下面的「📊 实时结果」/.test(s)
+  && /if \(teaIsClosed\(teaPollData\)\) \{/.test(s) && /只能看结果/.test(s)
+  && /dl && dl <= teaNowHM\(\)/.test(s) && /deadline: dl,/.test(s),
+  '下午茶：到点（或手动截止）后收起投票区、只展示结果；发起时填已过去的时间会被拦下');
+ok(/const DEADLINE_RE/.test(sv) && /function beijingHM\(\)/.test(sv) && /function voteClosedReason\(poll\)/.test(sv)
+  && /beijingHM\(\) >= dl/.test(sv) && /closed: !!reason/.test(sv) && /closedReason: reason/.test(sv)
+  && /投票已在 ' \+ poll\.deadline \+ ' 截止/.test(sv) && /投票已过期（当天 23:00 后清除）/.test(sv),
+  '服务端：到截止时间后只读 —— GET 带 closed/closedReason、POST 409，数据仍留到 23:00 才清');
 
 // ---- 4. 花括号/圆括号平衡（粗查，排除字符串内的干扰仅作参考） ----
 const count = (str, ch) => (str.split(ch).length - 1);

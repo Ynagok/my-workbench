@@ -49,15 +49,15 @@ npm run verify     # 改完代码、push 前的完整自检
 
 | 命令 | 内容 |
 |---|---|
-| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 284 项 + 「接口挂起时界面仍可用」+ 服务端冒烟 28 项 + 油猴脚本语法 + 单测 169 项 |
+| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 296 项 + 「接口挂起时界面仍可用」+ 服务端冒烟 35 项 + 油猴脚本语法 + 单测 169 项 |
 | `npm run verify:static` | 只要静态校验 + 语法检查（最快） |
 | `npm run report` | 打印一份真实生成的日报，肉眼确认排版（含 ⑥伙伴弹途 / ⑦异世界勇者） |
 | `npm run build:data` | 从 GM 玩家页快照提取 4 张权威映射表 + 与硬编码常量的**差异报告**（见下「游戏数据管线」） |
-| `npm run smoke:server` | 单独跑服务端冒烟（真起进程 + 真发 HTTP，28 项） |
+| `npm run smoke:server` | 单独跑服务端冒烟（真起进程 + 真发 HTTP，35 项） |
 | `npm run test:helper` | 反馈提取助手（油猴脚本 0.4.0）单测，169 项 |
 | `npm test` | = `npm run verify` |
 
-`npm run verify` 失败就不要提交。它一共 7 段：静态结构 → 语法 → jsdom 集成冒烟 **284 项** → 接口挂起时界面仍可用 → 服务端冒烟 **28 项** → 油猴脚本语法（`node --check`）→ 油猴脚本单测 **169 项**。
+`npm run verify` 失败就不要提交。它一共 7 段：静态结构 → 语法 → jsdom 集成冒烟 **296 项** → 接口挂起时界面仍可用 → 服务端冒烟 **35 项** → 油猴脚本语法（`node --check`）→ 油猴脚本单测 **169 项**。
 
 - jsdom 未安装时前端冒烟会自动回落到本机 DSH 自带的那份。
 - `tools/smoke-server.cjs` 用 `PORT` + `DATA_FILE` 环境变量把服务端指到随机端口和 `tools/out/` 里的临时文件，**不会碰真实 `data.json`**；子进程 stdio 必须用 `ignore`/`inherit`（沙箱禁管道，`pipe` 会 EPERM）。
@@ -209,25 +209,30 @@ npm run verify     # 改完代码、push 前的完整自检
 - ⚠️⚠️ **这是唯一一份「必须走服务端」的业务数据**（跟 `careerData` / `overseasBizData` 只存本机**相反**）：要的就是跨设备统计。别把它改成只存本机。
 - **数据（服务端 `data.json`）**：
   - **`teaShops`** = `{ shops: [{ id, name, note }], updatedAt }` —— 预设店家（**用户明确说：只存店家，不做菜单/单品**）。谁都能增删改，带「复制店家 JSON / 粘贴导入」兜底。
-  - **`teaPoll_YYYYMMDD`** = `{ id, date:'YYYY-MM-DD', title, status:'open'|'closed', deadline, shopIds, shopNames:{id,name}, createdAt, updatedAt, closedAt, votes:{ voterId: { voterId, shopIds, at, updatedAt } } }` —— **一天一份**（key 里带日期）。⚠️ **投票里存 `shopNames` 名字快照**，所以以后改名/删店不影响历史票的显示（`teaShopName()` 找不到就回落到快照）。
+  - **`teaPoll_YYYYMMDD`** = `{ id, date:'YYYY-MM-DD', title, status:'open'|'closed', deadline:'HH:MM'|'', shopIds, shopNames:{id,name}, createdAt, updatedAt, closedAt, votes:{ voterId: { voterId, shopIds, at, updatedAt } } }` —— **一天一份**（key 里带日期）。⚠️ **投票里存 `shopNames` 名字快照**，所以以后改名/删店不影响历史票的显示（`teaShopName()` 找不到就回落到快照）。⚠️ `deadline` 是**北京时间的「HH:MM」**（前端 `type="time"` 输入，可空 = 不按时间截止、到 23:00 才结束）。
   - **本机（localStorage，不上服务端）**：`teaVoterId`（`v-xxxx`，**一台设备一票**，再投=覆盖自己那条）；`teaPollCache`（结果离线兜底展示）。⚠️ **不存投票人姓名**（用户要求「只看数量」）。
 - **服务端两个端点**（`server.js`，都是新增的，没动 `/api/data` 的语义）：
-  - `GET /api/vote/:key` → `{ value, expired }`，**顺手清理过期的**（删除 `data[key]`）。
+  - `GET /api/vote/:key` → `{ value, expired, closed, closedReason }`，**顺手清理过期的**（删除 `data[key]`）；`closedReason` = `''`（还能投）/ `'manual'`（发起人手动截止）/ `'deadline'`（到截止时间了）。
   - `POST /api/vote/:key`（body `{ voterId, shopIds }`）→ **原子合并**：只写 `votes[voterId]` 那一条，返回合并后的整份。
     - ⚠️ **为什么不能让前端直接 POST `/api/data/teaPoll_…`**：两台设备同时提交时后写的会整份覆盖前一份 → **丢票**。`readData/writeData` 是同步的、Node 单线程，所以这个端点里读改写不会互相覆盖。
-    - 校验：key 必须 `^teaPoll_\d{8}$`、`voterId` 必须 `^[A-Za-z0-9_-]{1,64}$`、`shopIds` 必须是数组（≤50、去重）；投票不存在 → 404、已截止 → 409、已过期 → 410。
+    - 校验：key 必须 `^teaPoll_\d{8}$`、`voterId` 必须 `^[A-Za-z0-9_-]{1,64}$`、`shopIds` 必须是数组（≤50、去重）；投票不存在 → 404、已截止/已到截止时间 → 409、已过期 → 410。
   - 发起 / 截止 / 清空 / 改店家仍是发起人**用普通 `/api/data/:key` 整份写**（`saveData`，低并发）。
+- ⏰ **可设截止时间（用户要求：截止后只展示结果、不能继续投，直到 23:00 才清除）**：`poll.deadline` = **北京时间的 `'HH:MM'`**（前端 `type="time"` 输入，可空 = 不按时间截止）。
+  - 判定函数：服务端 `voteClosedReason(poll)` / 前端 `teaClosedReason(poll)` —— `status==='closed'` → `'manual'`；`deadline` 合法且「北京时间当前 `HH:MM` ≥ deadline」→ `'deadline'`（`'HH:MM'` 的字典序就是时刻序，所以直接字符串比较）；格式不对的 deadline **当没设**（不误锁）。
+  - 到点后：**服务端 409 拒写**（`closedReason:'deadline'`，错误文案带 `HH:MM 截止`），**数据一条不动**；前端把 **`#teaVoteOpenBox`（多选片 + 提交/撤销）整块收起来**，露出 `#teaVoteClosed` 的说明「🔒 已在 HH:MM 截止 —— 现在只能看下面的「📊 实时结果」…」，`#teaResultMeta` 也补一句「结果保留到 23:00」。**只投票页（`?vote=`）同样会收起**，手机上打开就是「只看结果」。
+  - 发起时**填了已经过去的时间会被拦下**（提示「已经过了，换个晚点的时间或留空」），否则一发就是「已截止」。**把截止时间改回未到点就能继续投**（数据从没被删，`发起 / 更新` 按钮可以直接改 deadline）。
+  - ⚠️ 别把「到点」写成删数据：**23:00 才由 `isVoteExpired` 惰性删除**，到点只是「只读」。
 - ⚠️ **按天作废（用户要求：到当天 23 点就清除、不保留）**：`isVoteExpired(poll)` = 北京时间的 `poll.date` 那天过了 **23:00**（或日期早于今天）→ 真；GET/POST 命中时**把 `data[key]` 删掉**再返回 `expired`/410。「谁访问谁触发」的**惰性清理**（Render 免费实例会休眠，常驻定时器不可靠）。前端同一口径：`teaAfter23()` 提示「今天已过 23:00」，状态行也写明「当天 23:00 自动清除」。
 - **页面**（3 张卡 + 结果）：
   1. **🍵 预设店家**：表格（店家 / 备注 / 编辑 / 删除）+ 输入框 + 「＋ 添加」；编辑时把该行读进输入框，再点添加 = 原地更新（`teaShopEditId`）。
-  2. **🗳️ 今天的投票**：勾「今天开哪几家」（**多选**）→ `teaStartPoll()` 写 `teaPoll_<今天>`；分享行（`#teaPollShareInput` 只读）+ **📋 复制链接**（`?vote=teaPoll_YYYYMMDD`）+ **📋 复制分享文案**（一句话 + 链接，贴群）；「⏹️ 截止投票」「🧹 清空今天的投票」。
-  3. **✅ 我要投**：多选店家片 → `teaSubmitVote()` POST `/api/vote`；「↩️ 撤销我这票」= 提交空 `shopIds`（**统计里只算「至少选了一家」的票**，所以撤销不算参与人数）。
+  2. **🗳️ 今天的投票**：勾「今天开哪几家」（**多选**）+ **填截止时间**（`#teaPollDeadline`，`type="time"`，可空）→ `teaStartPoll()` 写 `teaPoll_<今天>`；分享行（`#teaPollShareInput` 只读）+ **📋 复制链接**（`?vote=teaPoll_YYYYMMDD`）+ **📋 复制分享文案**（一句话 + 链接 + 「（HH:MM 截止）」，贴群）；「⏹️ 截止投票」（手动截止）「🧹 清空今天的投票」。状态行写「进行中（15:30 截止，还有 42 分钟）」或「已在 15:30 截止（只展示结果）」。
+  3. **✅ 我要投**：多选店家片 → `teaSubmitVote()` POST `/api/vote`；「↩️ 撤销我这票」= 提交空 `shopIds`（**统计里只算「至少选了一家」的票**，所以撤销不算参与人数）。⚠️ 这一整块包在 **`#teaVoteOpenBox`** 里：**到截止时间（或手动截止）后整块收起**，露出 `#teaVoteClosed` 的说明「只展示结果」——前端先挡（不发请求），服务端再挡（409）。
   4. **📊 实时结果**：只按店家统计票数 + 占比（分母是投票设备数）+ 结构条 + 「最热」标记；`teaResultText()` 可复制成纯文本贴群。**不显示谁投了什么**。
 - **分享链接 → 只投票页**：链接形如 `https://work-bad.onrender.com/?vote=teaPoll_20261002`（用 **query 参数**，不用给 server 加路由，`express.static` 直接托管）。
   - 启动最早期算 `TEA_VOTE_ONLY`（`URLSearchParams(location.search).get('vote')` 匹配 `^teaPoll_\d{8}$`）→ 给 `<html>` 打 **`data-vote-only="1"`**，CSS 把 `.tabs`（侧边栏）/`#teaShopCard`/`#teaPollAdminBox`/`#teaReportHead` 都 `display:none`，只留投票页（单列、大按钮，手机友好）。
   - 同时**跳过** `bootstrapData()` 那 9 个请求（`if (!TEA_VOTE_ONLY) (async function bootstrapData() { … })();`）—— 手机上打开更快；并把 `teaPollKey` 设成链接里那一天（不是「今天」）。
   - ⚠️ 只投票页里 `teaPollKey` 用链接里的 key，别的设备打开旧链接会拿到 `expired` → 页面显示「这次投票已经作废并清除了」。
-- **测试**：`tools/smoke.cjs` 第 **8j** 节（**27 条**）：店家存服务端 / 发起 today 的投票 + 名字快照与默认标题 / 分享链接格式 / 复制分享文案 / 第一次投票生成 voterId / **投票走 `/api/vote` 服务端合并** / 结果按店家计数且**不出现人名** / 另一台设备投票合并进同一份 / 改票覆盖不翻倍 / 撤销 / 复制结果 / 截止后 409 挡住 / 过期 GET 连数据删掉 / 状态行讲 23:00 清除；**另起一个 jsdom**（URL 带 `?vote=`）验 `data-vote-only` / 侧边栏与店家管理被藏 / **没发那 9 个启动请求** / 能选店能投 / 与自己 voterId 不同 / 两台设备统计在一起。`tools/smoke-server.cjs` 另有 **16 条**（合并语义、改票、非法 voterId/shopIds/key、404/409/410、**过期投票被真的从 data.json 删掉**、当天 23:00 前不误删）。`tools/verify.mjs` 3g 有 10 条静态断言。
+- **测试**：`tools/smoke.cjs` 第 **8j** 节（**39 条**）：店家存服务端 / 发起 today 的投票 + 名字快照与默认标题 / 分享链接格式 / 复制分享文案 / 第一次投票生成 voterId / **投票走 `/api/vote` 服务端合并** / 结果按店家计数且**不出现人名** / 另一台设备投票合并进同一份 / 改票覆盖不翻倍 / 撤销 / 复制结果 / 手动截止后 409 挡住 / 过期 GET 连数据删掉 / 状态行讲 23:00 清除；**截止时间 12 条**（`type=time` / 存进 `deadline` / 状态行写「HH:MM 截止」/ 过了的时间不让发起 / **到点后投票区收起 + 只留说明 + 数据还在 + 结果照常** / 到点后前端挡下不发请求 / 绕开前端直接 POST → 服务端 409 `closedReason:'deadline'` / 改回未到点又能投 / 手动截止也是「只能看结果」）；**另起一个 jsdom**（URL 带 `?vote=`）验 `data-vote-only` / 侧边栏与店家管理被藏 / **没发那 9 个启动请求** / 能选店能投 / 与自己 voterId 不同 / 两台设备统计在一起 / **到点后只投票页也收起投票区且点提交不发请求**。`tools/smoke-server.cjs` 另有 **23 条**（合并语义、改票、非法 voterId/shopIds/key、404/409/410、**过期投票被真的从 data.json 删掉**、当天 23:00 前不误删、**deadline 到点前后各一遍 + `closed/closedReason` + 格式不对的 deadline 忽略**）。`tools/verify.mjs` 3g 有 13 条静态断言。
   - ⚠️ 冒烟里的 fetch mock（`makeFetchMock(store, log)`）**照着真服务端实现了 `/api/vote` 的合并与过期清理**，两个 jsdom 共用同一个 `serverData` 来模拟「两台设备连同一个服务端」—— 改服务端语义时这里要一起改。
 
 ## 硬约定
@@ -432,9 +437,14 @@ package.json               scripts: start / verify / verify:static / smoke:serve
   - 测试：`smoke.cjs` 8g 整节重写（**30 条**：加了「全程零请求 / 服务端没有这份数据 / 没有同步按钮 / 状态行与汇总行都讲只存本机 / 走势条 2 根且 peak 涂色 / 详情图表可选 11 个范围·默认 277·切按月→月均·切监控禁言→31」，逐项表断言改成 10 行且不含「邮件+SDK」），8h 加 2 条（来源片 11 个无电话、梦幻默认藏掉那 3 个来源、换模板来源保持 + 来源总数 8）；**243 → 248**。`verify.mjs` 3d 断言从「服务端共享」整段换成「只存本机 + 10 项 + 没有邮件+SDK + 15 个容器 + 详情图表 + 走势条上色」；3e 加「每模板来源表 + 按模板隐藏来源片」；静态断言 9/13 → **11/14**。
   - ⚠️ **`public/index.html` 里 `ovbizSyncHint` 这个 id 保留着**（承载「只存本机」那行说明），只是不再有同步语义 —— 别再据此以为还有服务端同步。
 - 本轮：新增 **「🧋 下午茶」投票功能**（用户：「统计点什么奶茶和吃的，可以预设好店家，当天可以发起投票，不同设备上打开网站可以选择店家，支持多选，选择完不同的设备的结果会统计在一起，还可以分享投票的链接给其他设备，打开只有投票的页面」→ 先出方案、用户确认后开工，并在方案上加了「到当天 23 点就清除不保留」）。分 3 个提交：
-  1. **`server.js` 加 `/api/vote/:key`**（GET 读 + 顺手清过期；POST 原子合并 `votes[voterId]`）：key 限 `^teaPoll_\d{8}$`、voterId 限 `^[A-Za-z0-9_-]{1,64}$`、shopIds 限数组（≤50、去重）；404 没发起 / 409 已截止 / 410 已过期 / 400 参数非法。**过期 = 北京时间当天过了 23:00（或日期早于今天）→ `delete data[key]`，惰性清理**（`isVoteExpired` + `beijingNow()`，服务器时区可能是 UTC 所以显式 +8）。`tools/smoke-server.cjs` 加 **16 条**（合并 / 改票不丢别人 / 非法参数 / 404 / 409 / 过期被真删 / 23:00 前不误删），**12 → 28**。
+  1. **`server.js` 加 `/api/vote/:key`**（GET 读 + 顺手清过期；POST 原子合并 `votes[voterId]`）：key 限 `^teaPoll_\d{8}$`、voterId 限 `^[A-Za-z0-9_-]{1,64}$`、shopIds 限数组（≤50、去重）；404 没发起 / 409 已截止 / 410 已过期 / 400 参数非法。**过期 = 北京时间当天过了 23:00（或日期早于今天）→ `delete data[key]`，惰性清理**（`isVoteExpired` + `beijingNow()`，服务器时区可能是 UTC 所以显式 +8）。`tools/smoke-server.cjs` 加 **16 条**（合并 / 改票不丢别人 / 非法参数 / 404 / 409 / 过期被真删 / 23:00 前不误删），**12 → 28**（后来又加了「截止时间」相关 7 条 → **35**）。
   2. **前端「下午茶」标签页**（`data-tab="tea"` / `#tab-tea`）：🍵 店家（存服务端 `teaShops`，只有店名 + 备注，可编辑/删除/导入导出 JSON）+ 🗳️ 今天的投票（多选「今天开哪几家」→ 写 `teaPoll_<今天>`，带 `shopNames` 名字快照、标题默认「M月D日 下午茶」、可选截止时间、分享链接与分享文案、截止 / 清空）+ ✅ 我要投（多选片 → POST `/api/vote`，本机 `teaVoterId` 一台设备一票，撤销 = 提交空数组）+ 📊 实时结果（只按店家计票数/占比/结构条/最热，**不显示谁投了什么**，可复制纯文本）。本机另存 `teaPollCache` 做离线兜底；页面开着时 20 秒自动刷新一次。
   3. **`?vote=teaPoll_YYYYMMDD` 只投票页**：启动最早期解析 query → `<html data-vote-only="1">`，CSS 藏掉 `.tabs`（侧边栏）/`#teaShopCard`/`#teaPollAdminBox`/`#teaReportHead`，只留投票页（单列大按钮，手机友好），并 **`if (!TEA_VOTE_ONLY)` 跳过启动那 9 个请求**；`teaPollKey` 用链接里的那一天。
-  - 测试：`smoke.cjs` 新增 **8j 节 27 条**，并且**把 fetch mock 抽成 `makeFetchMock(store, log)`**（照真服务端实现 `/api/vote` 合并与过期清理），**另起第二个 jsdom 带 `?vote=` 打开**、与主 jsdom 共用同一份 `serverData` 来模拟「两台设备连同一个服务端」→ 断言只投票页藏了侧边栏/没发启动请求/能投，且**两台设备的票统计在一起**；**248 → 284**。`verify.mjs` 新增 **3g 节 10 条**静态断言（含 `server.js` 的 `/api/vote`、`data-vote-only`、分享链接、跳过 bootstrap）。
+  - 测试：`smoke.cjs` 新增 **8j 节 27 条**，并且**把 fetch mock 抽成 `makeFetchMock(store, log)`**（照真服务端实现 `/api/vote` 合并与过期清理），**另起第二个 jsdom 带 `?vote=` 打开**、与主 jsdom 共用同一份 `serverData` 来模拟「两台设备连同一个服务端」→ 断言只投票页藏了侧边栏/没发启动请求/能投，且**两台设备的票统计在一起**；**248 → 284**（后来加截止时间 → **296**）。`verify.mjs` 新增 **3g 节 10 条**静态断言（含 `server.js` 的 `/api/vote`、`data-vote-only`、分享链接、跳过 bootstrap）。
   - ⚠️ 口径记牢：**这是唯一走服务端的业务数据**（`teaShops` / `teaPoll_*`），跟 `careerData` / `overseasBizData` 只存本机相反；**23:00 后不留档**（连数据一起删，不是隐藏）；**投票里不存投票人姓名**。
+- 本轮：**下午茶投票加「可设截止时间」**（用户：「投票要可以设置截止时间，截止后只展示投票结果无法继续投票，直到 23 点将其清除」）。改了 `public/index.html` + `server.js` + `tools/smoke.cjs` + `tools/smoke-server.cjs` + `tools/verify.mjs` + 本文件：
+  1. **`poll.deadline` 从自由文本改成北京时间的 `'HH:MM'`**：`#teaPollDeadline` 改成 `type="time"`（前端 `teaDeadline()` 只认 `HH:MM`，格式不对当没设）；`teaStartPoll` 存 `deadline: dl`，**填了已经过去的时间会被拦下**（否则一发就「已截止」）。`teaRenderAll` 回填时也走校验。
+  2. **到点 = 只读**（不是删）：新增 `teaClosedReason(poll)`（前端）/ `voteClosedReason(poll)`（服务端）—— `status==='closed'` → `'manual'`，`deadline` 到点 → `'deadline'`（`'HH:MM'` 字典序 == 时刻序，直接字符串比）；`GET /api/vote` 多返回 `closed` / `closedReason`；`POST` 到点返回 **409**（文案带 `HH:MM 截止`）。**数据一条不动，23:00 才由 `isVoteExpired` 惰性删掉**。
+  3. **前端到点后只展示结果**：`#teaVoteOpenBox`（多选片 + 提交/撤销）整块 `display:none`，露出 `#teaVoteClosed` 的「🔒 已在 HH:MM 截止 —— 现在只能看下面的「📊 实时结果」…」；`teaSubmitVote` / `teaClearMyVote` 先挡（**不发请求**，提示「只能看结果」）；状态行写「进行中（HH:MM 截止，还有 …）」或「已在 HH:MM 截止（只展示结果）」；`#teaResultMeta` 与复制结果文案都带上截止说明。**`?vote=` 只投票页同样收起**（手机上打开就是只看结果）。
+  4. **测试**：`smoke.cjs` 8j 加 **12 条**（`type=time` / deadline 入账 / 状态行 / 过去时间被拦 / 到点后收起 + 数据还在 + 结果照常 / 到点后前端不发请求 / 直接 POST 被 409 挡 / 改回未到点又能投 / 手动截止也是「只能看结果」+ 只投票页那 2 条），**284 → 296**；`smoke-server.cjs` 加 **7 条**（到点前 200 / 到点后 GET `closed:true,closedReason:'deadline'` 且数据还在 / 到点 POST 409 且没写进去 / deadline 写法不对当没设 / 手动截止 `'manual'`），**28 → 35**。mock（`makeFetchMock`）照服务端把 `closed`/`closedReason` 与 deadline 判定一起实现了。
 

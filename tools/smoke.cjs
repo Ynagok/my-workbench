@@ -39,6 +39,7 @@ vc.on('error', (...a) => jsdomErrors.push('console.error: ' + a.map(String).join
 
 // ---- 模拟服务端的 fetch（两个 jsdom 实例共用同一份 serverData，模拟「不同设备连同一个服务端」）----
 // /api/vote/:key 要照着真服务端的语义来：原子合并（只动自己那条）+ 当天 23:00 过期连数据一起删
+// + 截止时间（deadline 'HH:MM' 到点后 409，只能看结果；数据留到 23:00）
 function makeFetchMock(store, log, nowFn) {
   const beijing = nowFn || (() => new Date(Date.now() + 8 * 3600 * 1000));
   const expired = (p) => {
@@ -47,6 +48,20 @@ function makeFetchMock(store, log, nowFn) {
     if (p.date < today) return true;
     if (p.date > today) return false;
     return d.getUTCHours() >= 23;
+  };
+  // '' = 还能投；'manual' = 手动截止；'deadline' = 到截止时间了
+  const closedReason = (p) => {
+    if (!p || typeof p !== 'object') return '';
+    if (p.status === 'closed') return 'manual';
+    const dl = typeof p.deadline === 'string' ? p.deadline : '';
+    if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(dl)) return '';
+    const d = beijing(), today = d.toISOString().slice(0, 10);
+    if (typeof p.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(p.date)) {
+      if (p.date < today) return 'deadline';
+      if (p.date > today) return '';
+    }
+    const hm = String(d.getUTCHours()).padStart(2, '0') + ':' + String(d.getUTCMinutes()).padStart(2, '0');
+    return hm >= dl ? 'deadline' : '';
   };
   return async (url, opts) => {
     const method = (opts && opts.method) || 'GET';
@@ -59,9 +74,16 @@ function makeFetchMock(store, log, nowFn) {
       if (method === 'GET') {
         if (poll && expired(poll)) {
           delete store[key];                                     // 服务端会连数据一起删掉
-          return { ok: true, status: 200, json: async () => ({ value: null, expired: true }) };
+          return { ok: true, status: 200, json: async () => ({ value: null, expired: true, closed: false, closedReason: '' }) };
         }
-        return { ok: true, status: 200, json: async () => ({ value: poll === undefined ? null : poll, expired: false }) };
+        const reason = closedReason(poll);
+        return {
+          ok: true, status: 200,
+          json: async () => ({
+            value: poll === undefined ? null : poll, expired: false,
+            closed: !!reason, closedReason: reason,
+          }),
+        };
       }
       const b = body || {};
       if (!/^[A-Za-z0-9_-]{1,64}$/.test(String(b.voterId || ''))) {
@@ -75,7 +97,16 @@ function makeFetchMock(store, log, nowFn) {
         return { ok: false, status: 410, json: async () => ({ error: '投票已过期', expired: true }) };
       }
       if (!poll) return { ok: false, status: 404, json: async () => ({ error: '投票不存在或还没发起' }) };
-      if (poll.status === 'closed') return { ok: false, status: 409, json: async () => ({ error: '投票已截止' }) };
+      const reason = closedReason(poll);
+      if (reason) {
+        return {
+          ok: false, status: 409,
+          json: async () => ({
+            error: reason === 'deadline' ? ('投票已在 ' + poll.deadline + ' 截止（只能看结果，当天 23:00 自动清除）') : '投票已截止',
+            closed: true, closedReason: reason,
+          }),
+        };
+      }
       poll.votes = poll.votes || {};
       const old = poll.votes[b.voterId];
       poll.votes[b.voterId] = {
@@ -1244,6 +1275,8 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     check(startChips().filter(b => b.classList.contains('active')).length === 2,
       '下午茶：发起区可以多选（两家都选中）');
     $('teaPollTitle').value = '';
+    check($('teaPollDeadline').type === 'time', '下午茶：截止时间是时间选择器（type=time）', $('teaPollDeadline').type);
+    $('teaPollDeadline').value = '23:59';
     $('teaPollStartBtn').click();
     await sleep(80);
     check(!!poll() && poll().status === 'open' && poll().shopIds.length === 2
@@ -1252,6 +1285,22 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
       poll() && { date: poll().date, shops: poll().shopIds.length, votes: Object.keys(poll().votes).length });
     check(poll().shopNames[shopIds[0]] === '蜜雪冰城' && /月\d+日 下午茶/.test(poll().title),
       '下午茶：投票里存了店名快照 + 默认标题', poll() && [poll().title, poll().shopNames]);
+    check(poll().deadline === '23:59', '下午茶：设的截止时间存进投票（deadline = HH:MM）', poll().deadline);
+    $('teaRefreshBtn').click();
+    await sleep(150);
+    check(/23:59 截止/.test($('teaPollStatus').textContent) && !/已截止/.test($('teaPollStatus').textContent),
+      '下午茶：状态行写「23:59 截止」（还没到点 = 进行中）', $('teaPollStatus').textContent.slice(0, 70));
+    check(doc.getElementById('teaVoteOpenBox').style.display !== 'none',
+      '下午茶：还没到截止时间 → 投票区照常开着');
+
+    // 已经过去的时间不让发起（否则一发就是「已截止」）
+    $('teaPollDeadline').value = '00:00';
+    $('teaPollStartBtn').click();
+    await sleep(80);
+    check(/已经过了/.test($('teaPollStatus').textContent) && poll().deadline === '23:59',
+      '下午茶：截止时间填成已经过去的点 → 拦下不发（截止时间没被改掉）',
+      $('teaPollStatus').textContent.slice(0, 70));
+    $('teaPollDeadline').value = '23:59';
 
     // 分享链接
     const wantLink = window.location.origin + window.location.pathname + '?vote=' + teaKey;
@@ -1308,6 +1357,43 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     check(/已复制结果/.test($('teaPollStatus').textContent), '下午茶：复制结果不抛错并给提示',
       $('teaPollStatus').textContent.slice(0, 30));
 
+    // ---------------- 到截止时间：只展示结果、不能再投（数据留到 23:00） ----------------
+    serverData[teaKey].deadline = '00:00';            // 00:00 永远 <= 现在 → 视为已到点
+    $('teaRefreshBtn').click();
+    await sleep(150);
+    check(window.getComputedStyle($('teaVoteOpenBox')).display === 'none'
+      && window.getComputedStyle($('teaVoteClosed')).display !== 'none'
+      && /已在 00:00 截止/.test($('teaVoteClosed').textContent),
+      '下午茶：到截止时间 → 投票区收起、只留一条「已在 00:00 截止」说明',
+      $('teaVoteClosed').textContent.slice(0, 60));
+    check(!!poll() && /参与 1 台设备/.test($('teaResultMeta').textContent)
+      && /已在 00:00 截止/.test($('teaResultMeta').textContent),
+      '下午茶：到点后数据还在、结果照常展示（要留到 23:00 才清）', $('teaResultMeta').textContent);
+    const postsBeforeLate = votePosts().length;
+    voteChips()[0].click();
+    await sleep(20);
+    $('teaVoteSubmitBtn').click();
+    await sleep(80);
+    check(votePosts().length === postsBeforeLate && /只能看结果/.test($('teaVoteHint').textContent),
+      '下午茶：到点后再投 → 前端直接挡下、不发请求，提示「只能看结果」',
+      $('teaVoteHint').textContent.slice(0, 60));
+    const lateResp = await window.fetch('api/vote/' + teaKey, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ voterId: 'v-late', shopIds: [shopIds[0]] }),
+    });
+    const lateJson = await lateResp.json();
+    check(lateResp.status === 409 && lateJson.closed === true && lateJson.closedReason === 'deadline'
+      && /00:00 截止/.test(String(lateJson.error)) && !poll().votes['v-late'],
+      '下午茶：绕开前端直接 POST → 服务端 409（closedReason=deadline）挡住',
+      lateResp.status + ' / ' + JSON.stringify(lateJson));
+    // 把截止时间改回未到点 → 又能投（数据从没被删过）
+    serverData[teaKey].deadline = '23:59';
+    $('teaRefreshBtn').click();
+    await sleep(150);
+    check(window.getComputedStyle($('teaVoteOpenBox')).display !== 'none'
+      && window.getComputedStyle($('teaVoteClosed')).display === 'none',
+      '下午茶：把截止时间改回未到点 → 投票区又出来（数据没被删）');
+
     // 截止后不能再投
     $('teaPollCloseBtn').click();
     await sleep(80);
@@ -1317,8 +1403,10 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     await sleep(20);
     $('teaVoteSubmitBtn').click();
     await sleep(80);
-    check(/已经截止/.test($('teaVoteHint').textContent), '下午茶：截止后再投被挡下（服务端 409）',
-      $('teaVoteHint').textContent);
+    check(/已截止/.test($('teaVoteHint').textContent) && /只能看结果/.test($('teaVoteHint').textContent)
+      && /手动截止/.test($('teaVoteClosed').textContent),
+      '下午茶：手动截止后再投被挡下（前端提示 + 服务端 409）',
+      $('teaVoteHint').textContent.slice(0, 60));
 
     // 过期：把 key 换成一份「昨天」的投票 → 服务端 GET 会连数据删掉
     const oldKey = 'teaPoll_20200101';
@@ -1407,6 +1495,23 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
       && Object.keys(poll().votes).length === 2,
       '下午茶：两台设备的结果统计在一起（2 台 / 2 票、两家店各 1 票）',
       $('teaResultMeta').textContent + ' / ' + Object.keys(poll().votes).length);
+    // 只投票页也会在到点后收起投票区（手机上打开就是「只看结果」）
+    serverData[teaKey].deadline = '00:00';
+    $2('teaRefreshBtn').click();
+    await new Promise(r => setTimeout(r, 200));
+    const postsBefore2 = posts2.filter(p => p.url.includes('api/vote/') && p.method === 'POST').length;
+    check(w2.getComputedStyle($2('teaVoteOpenBox')).display === 'none'
+      && /已在 00:00 截止/.test($2('teaVoteClosed').textContent)
+      && /古茗/.test($2('teaResultBox').textContent),
+      '只投票页：到截止时间 → 只展示结果、投票区收起', $2('teaVoteClosed').textContent.slice(0, 50));
+    d2.querySelectorAll('#teaVoteShopBox .fb-chip')[0].click();
+    await new Promise(r => setTimeout(r, 30));
+    $2('teaVoteSubmitBtn').click();
+    await new Promise(r => setTimeout(r, 150));
+    check(posts2.filter(p => p.url.includes('api/vote/') && p.method === 'POST').length === postsBefore2
+      && /只能看结果/.test($2('teaVoteHint').textContent),
+      '只投票页：到点后就算点了提交也不发请求（提示「只能看结果」）',
+      $2('teaVoteHint').textContent.slice(0, 50));
     check(jsdomErrors2.length === 0, '只投票页：没有未捕获异常', jsdomErrors2.slice(0, 2));
     dom2.window.close();
   }
