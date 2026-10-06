@@ -343,6 +343,48 @@ ok(/①繁花微信【2】|\[\u2460\u2461\u2462\u2463\u2464\u2465\u2466\]/.test(
   '日报解析覆盖 ①~⑦ 组行（含 手Q / 支付宝后台 这两个写法）');
 ok(/CAREER_STATUS_PENDING = '总计为空\/待确认'/.test(s), '口径注明「总计为空/待确认」不计入完整记录天数');
 
+// ---- 3g. 下午茶投票（按天 · ⚠️ 走服务端，跟「只存本机」的那几份数据相反）----
+const sv = fs.existsSync('server.js') ? fs.readFileSync('server.js', 'utf8') : '';
+ok(/data-tab="tea"/.test(s) && /id="tab-tea"/.test(s) && /下午茶投票/.test(s),
+  '「下午茶」标签页已注入（侧边栏 + 页面 + 报表抬头）');
+ok(/const TEA_SHOPS_KEY = 'teaShops';/.test(s) && /const TEA_POLL_PREFIX = 'teaPoll_';/.test(s)
+  && /const TEA_VOTE_BASE = 'api\/vote\/';/.test(s) && /function teaTodayKey\(\)/.test(s)
+  && /TEA_POLL_PREFIX \+ teaTodayStr\(\)\.replace\(\/-\/g, ''\)/.test(s),
+  '下午茶：服务端键名 —— 店家 teaShops、当天投票 teaPoll_YYYYMMDD、投票走 api/vote');
+ok(/function teaAfter23\(\) \{ return teaBJNow\(\)\.getHours\(\) >= 23; \}/.test(s)
+  && /json\.expired/.test(s) && /23:00 后清除|23:00 自动清除|23:00/.test(s),
+  '下午茶：按北京时间判断当天 23:00 作废，并认服务端返回的 expired');
+ok(/function teaSubmitVote\(\)/.test(s) && /TEA_VOTE_BASE \+ encodeURIComponent\(teaPollKey\)/.test(s)
+  && /voterId: teaVoterId\(\)/.test(s) && /shopIds: teaPickVote/.test(s)
+  && /localStorage\.setItem\(TEA_VOTER_KEY/.test(s),
+  '下午茶：投票 POST /api/vote（服务端合并），带本机 voterId（一台设备一票）');
+ok(/function teaResult\(\)/.test(s) && /Array\.isArray\(v\.shopIds\) && v\.shopIds\.length/.test(s)
+  && /devices: list\.length/.test(s) && !/voterName/.test(s) && !/teaVoterName/.test(s),
+  '下午茶：结果只按店家票数统计（没有投票人名字这回事）');
+ok(/const TEA_VOTE_ONLY = \(function \(\) \{/.test(s) && /URLSearchParams\(location\.search\)\.get\('vote'\)/.test(s)
+  && /setAttribute\('data-vote-only', '1'\)/.test(s)
+  && /html\[data-vote-only="1"\] \.tabs \{ display: none; \}/.test(s)
+  && /html\[data-vote-only="1"\] #teaShopCard/.test(s)
+  && /if \(!TEA_VOTE_ONLY\) \(async function bootstrapData\(\)/.test(s)
+  && /el\.classList\.toggle\('active', el\.id === 'tab-tea'\)/.test(s),
+  '只投票页：?vote=… → 藏侧边栏/店家管理/发起区，只留投票页，并跳过启动的 9 个请求');
+ok(/function teaShareLink\(\)/.test(s) && /'\?vote=' \+ key/.test(s)
+  && /setClick\('teaCopyLinkBtn', teaCopyLink\)/.test(s) && /setClick\('teaCopyShareTextBtn', teaCopyShareText\)/.test(s),
+  '下午茶：分享链接 ?vote=teaPoll_YYYYMMDD + 复制链接 / 复制分享文案');
+ok(['teaShopTable', 'teaPollShopBox', 'teaPollShareInput', 'teaVoteShopBox', 'teaResultBox',
+  'teaResultMeta', 'teaPollStatus', 'teaReportSub', 'teaReportMeta', 'teaShopHint', 'teaVoteHint']
+  .every(id => s.includes('id="' + id + '"')),
+  '下午茶：店家 / 发起 / 分享 / 投票 / 结果 容器齐全');
+ok(/setClick\('teaPollStartBtn', teaStartPoll\)/.test(s) && /setClick\('teaVoteSubmitBtn', teaSubmitVote\)/.test(s)
+  && /setClick\('teaPollCloseBtn', teaClosePoll\)/.test(s) && /setClick\('teaPollClearBtn', teaClearPoll\)/.test(s)
+  && /setClick\('teaShopSaveBtn', teaShopSave\)/.test(s) && /dataset\.tab === 'tea'\) teaInit\(\)/.test(s),
+  '下午茶：店家保存 / 发起 / 截止 / 清空 / 投票 / 刷新按钮与标签页刷新都已挂上');
+ok(/app\.get\('\/api\/vote\/:key'/.test(sv) && /app\.post\('\/api\/vote\/:key'/.test(sv)
+  && /function isVoteExpired\(poll\)/.test(sv) && /d\.getUTCHours\(\) >= 23/.test(sv)
+  && /delete data\[key\]/.test(sv) && /poll\.votes\[voterId\] = \{/.test(sv)
+  && /const VOTE_KEY_RE = \/\^teaPoll_\\d\{8\}\$\/;/.test(sv),
+  '服务端：/api/vote 读写 —— 原子合并到 votes[voterId]、当天 23:00 过期连数据一起删');
+
 // ---- 4. 花括号/圆括号平衡（粗查，排除字符串内的干扰仅作参考） ----
 const count = (str, ch) => (str.split(ch).length - 1);
 const braces = count(js, '{') - count(js, '}');

@@ -37,6 +37,62 @@ const vc = new VirtualConsole();
 vc.on('jsdomError', (e) => jsdomErrors.push(e.message + (e.detail && e.detail.message ? ' :: ' + e.detail.message : '')));
 vc.on('error', (...a) => jsdomErrors.push('console.error: ' + a.map(String).join(' ')));
 
+// ---- 模拟服务端的 fetch（两个 jsdom 实例共用同一份 serverData，模拟「不同设备连同一个服务端」）----
+// /api/vote/:key 要照着真服务端的语义来：原子合并（只动自己那条）+ 当天 23:00 过期连数据一起删
+function makeFetchMock(store, log, nowFn) {
+  const beijing = nowFn || (() => new Date(Date.now() + 8 * 3600 * 1000));
+  const expired = (p) => {
+    if (!p || !/^\d{4}-\d{2}-\d{2}$/.test(String(p.date || ''))) return false;
+    const d = beijing(), today = d.toISOString().slice(0, 10);
+    if (p.date < today) return true;
+    if (p.date > today) return false;
+    return d.getUTCHours() >= 23;
+  };
+  return async (url, opts) => {
+    const method = (opts && opts.method) || 'GET';
+    const key = parseKey(url);
+    let body = null;
+    try { body = opts && opts.body ? JSON.parse(opts.body) : null; } catch (_) { }
+    log.push(method === 'POST' ? { url: String(url), method, body } : { url: String(url), method: 'GET' });
+    if (String(url).indexOf('api/vote/') !== -1) {
+      const poll = store[key];
+      if (method === 'GET') {
+        if (poll && expired(poll)) {
+          delete store[key];                                     // 服务端会连数据一起删掉
+          return { ok: true, status: 200, json: async () => ({ value: null, expired: true }) };
+        }
+        return { ok: true, status: 200, json: async () => ({ value: poll === undefined ? null : poll, expired: false }) };
+      }
+      const b = body || {};
+      if (!/^[A-Za-z0-9_-]{1,64}$/.test(String(b.voterId || ''))) {
+        return { ok: false, status: 400, json: async () => ({ error: '非法的 voterId' }) };
+      }
+      if (!Array.isArray(b.shopIds)) {
+        return { ok: false, status: 400, json: async () => ({ error: 'shopIds 必须是店家 id 数组' }) };
+      }
+      if (poll && expired(poll)) {
+        delete store[key];
+        return { ok: false, status: 410, json: async () => ({ error: '投票已过期', expired: true }) };
+      }
+      if (!poll) return { ok: false, status: 404, json: async () => ({ error: '投票不存在或还没发起' }) };
+      if (poll.status === 'closed') return { ok: false, status: 409, json: async () => ({ error: '投票已截止' }) };
+      poll.votes = poll.votes || {};
+      const old = poll.votes[b.voterId];
+      poll.votes[b.voterId] = {
+        voterId: b.voterId, shopIds: b.shopIds.slice(),
+        at: (old && old.at) || new Date().toISOString(), updatedAt: new Date().toISOString(),
+      };
+      return { ok: true, status: 200, json: async () => ({ success: true, value: JSON.parse(JSON.stringify(poll)) }) };
+    }
+    if (method === 'GET') {
+      // value 必须是真正的 undefined，才会走 loadData 的 defaultValue 分支（首次打开场景）
+      return { ok: true, status: 200, json: async () => (key in store ? { value: store[key] } : {}) };
+    }
+    if (body) store[key] = body.value;
+    return { ok: true, status: 200, json: async () => ({ ok: true }) };
+  };
+}
+
 let pass = 0, fail = 0;
 const check = (cond, msg, extra) => {
   if (cond) { pass++; console.log('✓ ' + msg); }
@@ -87,19 +143,7 @@ const dom = new JSDOM(html, {
     window.HTMLCanvasElement.prototype.toDataURL = () => 'data:image/png;base64,';
     window.URL.createObjectURL = () => 'blob:stub';
     window.URL.revokeObjectURL = () => { };
-    window.fetch = async (url, opts) => {
-      const method = (opts && opts.method) || 'GET';
-      const key = parseKey(url);
-      let body = null;
-      try { body = opts && opts.body ? JSON.parse(opts.body) : null; } catch (_) { }
-      posts.push(method === 'POST' ? { url: String(url), method, body } : { url: String(url), method: 'GET' });
-      if (method === 'GET') {
-        // value 必须是真正的 undefined，才会走 loadData 的 defaultValue 分支（首次打开场景）
-        return { ok: true, status: 200, json: async () => (key in serverData ? { value: serverData[key] } : {}) };
-      }
-      if (body) serverData[key] = body.value;
-      return { ok: true, status: 200, json: async () => ({ ok: true }) };
-    };
+    window.fetch = makeFetchMock(serverData, posts);
     const origWarn = window.console.warn;
     window.console.warn = (...a) => { warns.push(a.map(String).join(' ')); };
     window.console.error = (...a) => { warns.push('ERROR ' + a.map(String).join(' ')); };
@@ -1150,6 +1194,221 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
       varOf('--bg-0') + '/' + varOf('--accent') + '/' + String(root.getAttribute('data-bg-effect')) + '/' + JSON.stringify(stored()));
     check(posts.filter(p => p.url.includes('themeSettings') || p.url.includes('themeBgColor')).length === 0,
       '界面设置：整场没有把它存到服务端');
+  }
+
+  console.log('--- 8j. 下午茶投票（走服务端：店家 / 发起 / 多选投票 / 合并统计 / 按天作废）---');
+  {
+    // 北京时间的今天（跟页面同一套算法）
+    const bjD = new Date(Date.now() + 8 * 3600 * 1000);
+    const teaToday = bjD.toISOString().slice(0, 10);
+    const teaKey = 'teaPoll_' + teaToday.replace(/-/g, '');
+    const votePosts = () => posts.filter(p => p.url.includes('api/vote/') && p.method === 'POST');
+    const voteGets = () => posts.filter(p => p.url.includes('api/vote/') && p.method === 'GET');
+    const poll = () => serverData[teaKey];
+
+    doc.querySelector('.tab-btn[data-tab="tea"]').click();
+    await sleep(120);
+    check(!!$('tab-tea') && !!$('teaShopTable') && !!$('teaResultBox'),
+      '下午茶：标签页与店家 / 投票 / 结果容器都在');
+    check(/还没有店家/.test($('teaShopTable').textContent), '下午茶：一开始没有店家（服务端也没有）',
+      $('teaShopTable').textContent.slice(0, 40));
+    check(/今天还没有发起投票|今天还没有/.test($('teaPollStatus').textContent),
+      '下午茶：没发起时状态行说明「今天还没有发起」', $('teaPollStatus').textContent);
+
+    // 加两家店
+    $('teaShopName').value = '蜜雪冰城';
+    $('teaShopNote').value = '满 20 起送';
+    $('teaShopSaveBtn').click();
+    await sleep(60);
+    $('teaShopName').value = '古茗';
+    $('teaShopNote').value = '';
+    $('teaShopSaveBtn').click();
+    await sleep(60);
+    check(!!serverData.teaShops && serverData.teaShops.shops.length === 2
+      && serverData.teaShops.shops[0].name === '蜜雪冰城' && serverData.teaShops.shops[0].note === '满 20 起送',
+      '下午茶：店家存到服务端 teaShops（店名 + 备注）',
+      serverData.teaShops && serverData.teaShops.shops.map(s => s.name));
+    check(doc.querySelectorAll('#teaShopTable tbody tr').length === 2
+      && /蜜雪冰城/.test($('teaShopTable').textContent),
+      '下午茶：店家表渲染出 2 行', $('teaShopTable').textContent.replace(/\s+/g, ' ').slice(0, 60));
+    const shopIds = serverData.teaShops.shops.map(s => s.id);
+
+    // 发起投票：勾两家 → 发起
+    const startChips = () => [...doc.querySelectorAll('#teaPollShopBox .fb-chip')];
+    check(startChips().length === 2, '下午茶：发起区列出 2 家店可选（多选片）', startChips().length);
+    check(doc.querySelectorAll('#teaVoteShopBox .fb-chip').length === 2,
+      '下午茶：投票区也列出 2 家店', doc.querySelectorAll('#teaVoteShopBox .fb-chip').length);
+    startChips()[0].click();
+    startChips()[1].click();
+    await sleep(20);
+    check(startChips().filter(b => b.classList.contains('active')).length === 2,
+      '下午茶：发起区可以多选（两家都选中）');
+    $('teaPollTitle').value = '';
+    $('teaPollStartBtn').click();
+    await sleep(80);
+    check(!!poll() && poll().status === 'open' && poll().shopIds.length === 2
+      && poll().date === teaToday && Object.keys(poll().votes).length === 0,
+      '下午茶：发起今天的投票 → 服务端 teaPoll_YYYYMMDD（开放 2 家、还没有票）',
+      poll() && { date: poll().date, shops: poll().shopIds.length, votes: Object.keys(poll().votes).length });
+    check(poll().shopNames[shopIds[0]] === '蜜雪冰城' && /月\d+日 下午茶/.test(poll().title),
+      '下午茶：投票里存了店名快照 + 默认标题', poll() && [poll().title, poll().shopNames]);
+
+    // 分享链接
+    const wantLink = window.location.origin + window.location.pathname + '?vote=' + teaKey;
+    check($('teaPollShareInput').value === wantLink && /\?vote=teaPoll_\d{8}$/.test(wantLink),
+      '下午茶：分享链接是 ?vote=teaPoll_YYYYMMDD', $('teaPollShareInput').value);
+    $('teaCopyShareTextBtn').click();
+    check(/已复制分享文案/.test($('teaPollStatus').textContent),
+      '下午茶：复制分享文案（一句话 + 链接）', $('teaPollStatus').textContent.slice(0, 50));
+
+    // 本机投票（多选一家）
+    const voteChips = () => [...doc.querySelectorAll('#teaVoteShopBox .fb-chip')];
+    voteChips()[0].click();
+    await sleep(20);
+    $('teaVoteSubmitBtn').click();
+    await sleep(80);
+    const myId = String(window.localStorage.getItem('teaVoterId') || '');
+    check(/^v-/.test(myId), '下午茶：第一次投票时生成并记住本机的 voterId（一台设备一票）', myId);
+    check(votePosts().length === 1 && poll().votes[myId] && poll().votes[myId].shopIds.length === 1
+      && poll().votes[myId].shopIds[0] === shopIds[0],
+      '下午茶：投票走 /api/vote/:key（服务端合并），票里只有这家店',
+      poll() && poll().votes[myId]);
+    check(/已投：蜜雪冰城/.test($('teaVoteHint').textContent), '下午茶：投完提示「已投：蜜雪冰城」',
+      $('teaVoteHint').textContent);
+    check(doc.querySelectorAll('#teaResultBox tbody tr').length === 2
+      && /蜜雪冰城/.test($('teaResultBox').textContent) && /参与 1 台设备/.test($('teaResultMeta').textContent),
+      '下午茶：结果表按店家列出 + 参与 1 台设备', $('teaResultMeta').textContent);
+    check(!/谁|名字|小明/.test($('teaResultBox').textContent.replace(/最热/g, '')),
+      '下午茶：结果里不显示谁投了什么（只有票数）', $('teaResultBox').textContent.replace(/\s+/g, ' ').slice(0, 60));
+
+    // 另一台设备也投（直接写服务端那份数据，再点刷新）
+    poll().votes['v-other-device'] = { voterId: 'v-other-device', shopIds: [shopIds[1]], at: new Date().toISOString(), updatedAt: new Date().toISOString() };
+    const getsBefore = voteGets().length;
+    $('teaRefreshBtn').click();
+    await sleep(120);
+    check(voteGets().length > getsBefore, '下午茶：点「刷新」会重新 GET /api/vote', voteGets().length - getsBefore);
+    check(/参与 2 台设备/.test($('teaResultMeta').textContent) && /共 2 票/.test($('teaResultMeta').textContent),
+      '下午茶：另一台设备的票合并进来了（2 台 / 2 票）', $('teaResultMeta').textContent);
+    check(/古茗/.test($('teaResultBox').textContent), '下午茶：结果里出现另一台设备选的古茗');
+
+    // 改票：再点一家（多选）→ 覆盖自己那条，人数不变
+    voteChips()[1].click();
+    await sleep(20);
+    $('teaVoteSubmitBtn').click();
+    await sleep(80);
+    check(poll().votes[myId].shopIds.length === 2 && Object.keys(poll().votes).length === 2,
+      '下午茶：同一台设备改票 = 覆盖自己那条（人数不变、可多选）', poll() && poll().votes[myId].shopIds);
+
+    // 撤销我这票
+    $('teaClearMineBtn').click();
+    await sleep(80);
+    check(poll().votes[myId].shopIds.length === 0 && /参与 1 台设备/.test($('teaResultMeta').textContent),
+      '下午茶：撤销 → 自己那条清空、统计里只算另一台设备', $('teaResultMeta').textContent);
+    $('teaCopyResultBtn').click();
+    check(/已复制结果/.test($('teaPollStatus').textContent), '下午茶：复制结果不抛错并给提示',
+      $('teaPollStatus').textContent.slice(0, 30));
+
+    // 截止后不能再投
+    $('teaPollCloseBtn').click();
+    await sleep(80);
+    check(poll().status === 'closed' && /已截止/.test($('teaPollStatus').textContent),
+      '下午茶：截止投票 → status=closed + 状态行提示', $('teaPollStatus').textContent.slice(0, 40));
+    voteChips()[0].click();
+    await sleep(20);
+    $('teaVoteSubmitBtn').click();
+    await sleep(80);
+    check(/已经截止/.test($('teaVoteHint').textContent), '下午茶：截止后再投被挡下（服务端 409）',
+      $('teaVoteHint').textContent);
+
+    // 过期：把 key 换成一份「昨天」的投票 → 服务端 GET 会连数据删掉
+    const oldKey = 'teaPoll_20200101';
+    serverData[oldKey] = { id: oldKey, date: '2020-01-01', status: 'open', shopIds: shopIds.slice(), shopNames: { }, votes: {} };
+    doc.querySelector('.tab-btn[data-tab="tea"]').click();
+    await sleep(60);
+    // 页面只认「今天」的 key，所以这里直接验证服务端行为 + 客户端的过期提示文案
+    const expResp = await window.fetch('api/vote/' + oldKey);
+    const expJson = await expResp.json();
+    check(expJson.expired === true && expJson.value === null && !(oldKey in serverData),
+      '下午茶：过期投票 GET → expired 且服务端把数据删了（不留档）', expJson);
+    check(/23:00/.test($('teaPollStatus').textContent), '下午茶：状态行写明「当天 23:00 自动清除」',
+      $('teaPollStatus').textContent.slice(0, 60));
+
+    // ---------------- 分享链接打开的「只投票页」：另起一个 jsdom（= 另一台设备） ----------------
+    // 先把今天那份投票重置成一份干净的，再让「另一台设备」通过 ?vote= 链接投一票
+    serverData[teaKey] = {
+      id: teaKey, date: teaToday, title: '分享链接测试', status: 'open',
+      shopIds: shopIds.slice(), shopNames: { }, votes: {},
+      createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+    };
+    serverData[teaKey].shopNames[shopIds[0]] = '蜜雪冰城';
+    serverData[teaKey].shopNames[shopIds[1]] = '古茗';
+    const posts2 = [];
+    const jsdomErrors2 = [];
+    const vc2 = new VirtualConsole();
+    vc2.on('jsdomError', (e) => jsdomErrors2.push(e.message));
+    vc2.on('error', (...a) => jsdomErrors2.push('console.error: ' + a.map(String).join(' ')));
+    const dom2 = new JSDOM(html, {
+      url: 'http://127.0.0.1:3080/index.html?vote=' + teaKey,
+      runScripts: 'dangerously',
+      pretendToBeVisual: false,
+      virtualConsole: vc2,
+      beforeParse(window2) {
+        window2.alert = () => { };
+        window2.confirm = () => true;
+        window2.requestAnimationFrame = () => 0;
+        window2.cancelAnimationFrame = () => { };
+        window2.HTMLCanvasElement.prototype.getContext = function () { return makeCtx(this); };
+        window2.HTMLCanvasElement.prototype.toDataURL = () => 'data:image/png;base64,';
+        window2.URL.createObjectURL = () => 'blob:stub';
+        window2.URL.revokeObjectURL = () => { };
+        window2.fetch = makeFetchMock(serverData, posts2);
+        window2.console.warn = () => { };
+        window2.console.error = () => { };
+      },
+    });
+    await new Promise(r => setTimeout(r, 250));
+    const w2 = dom2.window, d2 = w2.document, $2 = (id) => d2.getElementById(id);
+    check(d2.documentElement.getAttribute('data-vote-only') === '1',
+      '只投票页：?vote=… 打开时打上 data-vote-only');
+    check($2('tab-tea').classList.contains('active') && !$2('tab-gen').classList.contains('active'),
+      '只投票页：只把下午茶这一页设为可见');
+    check(w2.getComputedStyle(d2.querySelector('.tabs')).display === 'none'
+      && w2.getComputedStyle($2('teaShopCard')).display === 'none'
+      && w2.getComputedStyle($2('teaPollAdminBox')).display === 'none',
+      '只投票页：侧边栏 / 店家管理 / 发起投票都被藏掉（只剩选择 + 结果）',
+      w2.getComputedStyle(d2.querySelector('.tabs')).display);
+    check(posts2.filter(p => p.url.includes('dailyData') || p.url.includes('itemNameMap')).length === 0,
+      '只投票页：跳过了启动时那 9 个数据请求（手机上打开更快）',
+      posts2.map(p => p.url).slice(0, 4));
+    check(d2.querySelectorAll('#teaVoteShopBox .fb-chip').length === 2,
+      '只投票页：能选出今天开放的 2 家店（店家从服务端拉）',
+      d2.querySelectorAll('#teaVoteShopBox .fb-chip').length);
+    d2.querySelectorAll('#teaVoteShopBox .fb-chip')[1].click();
+    await new Promise(r => setTimeout(r, 30));
+    $2('teaVoteSubmitBtn').click();
+    await new Promise(r => setTimeout(r, 120));
+    const otherId = String(w2.localStorage.getItem('teaVoterId') || '');
+    check(/^v-/.test(otherId) && otherId !== myId && poll().votes[otherId]
+      && poll().votes[otherId].shopIds[0] === shopIds[1],
+      '只投票页：另一台设备投的票进到同一份服务端数据里（voterId 与本机不同）',
+      otherId + ' / ' + JSON.stringify(poll().votes));
+    check(Object.keys(poll().votes).length === 1 && /参与 1 台设备/.test($2('teaResultMeta').textContent)
+      && /古茗/.test($2('teaResultBox').textContent),
+      '只投票页：投完立刻看到结果（古茗 1 票）', $2('teaResultMeta').textContent);
+    // 本机也投一票 → 两台设备的结果合在一起（这就是「不同设备统计在一起」的端到端证明）
+    doc.querySelector('.tab-btn[data-tab="tea"]').click();
+    await sleep(100);
+    doc.querySelectorAll('#teaVoteShopBox .fb-chip')[0].click();
+    await sleep(20);
+    $('teaVoteSubmitBtn').click();
+    await sleep(120);
+    check(/参与 2 台设备/.test($('teaResultMeta').textContent) && /共 2 票/.test($('teaResultMeta').textContent)
+      && /蜜雪冰城/.test($('teaResultBox').textContent) && /古茗/.test($('teaResultBox').textContent)
+      && Object.keys(poll().votes).length === 2,
+      '下午茶：两台设备的结果统计在一起（2 台 / 2 票、两家店各 1 票）',
+      $('teaResultMeta').textContent + ' / ' + Object.keys(poll().votes).length);
+    check(jsdomErrors2.length === 0, '只投票页：没有未捕获异常', jsdomErrors2.slice(0, 2));
+    dom2.window.close();
   }
 
   console.log('--- 9. 无未捕获异常 ---');
