@@ -138,10 +138,48 @@ async function main() {
     const notPoll = await req('POST', '/api/vote/teaPoll_20200101', { voterId: 'v-dev3', shopIds: [] });
     check(notPoll.status === 404, '还没发起就投票 → 404', notPoll.status);
 
+    // 截止时间（deadline 'HH:MM'）：到点后 409，但数据留着（要到 23:00 才清）
+    await req('POST', `/api/data/${pollKey}`, {
+      value: { ...poll, deadline: '23:59', votes: JSON.parse(JSON.stringify(v1again.json.value.votes)) }
+    });
+    const openDl = await req('GET', `/api/vote/${pollKey}`);
+    check(openDl.json.closed === false && openDl.json.closedReason === ''
+      && openDl.json.value.deadline === '23:59',
+      '没到截止时间 → GET closed:false（还能投）', openDl.json && openDl.json.closedReason);
+    const beforeDl = await req('POST', `/api/vote/${pollKey}`, { voterId: 'v-dev9', shopIds: ['s1'] });
+    check(beforeDl.status === 200, '没到截止时间 → 照常能投（200）', beforeDl.status);
+
+    await req('POST', `/api/data/${pollKey}`, {
+      value: { ...poll, deadline: '00:00', votes: JSON.parse(JSON.stringify(beforeDl.json.value.votes)) }
+    });
+    const pastDl = await req('GET', `/api/vote/${pollKey}`);
+    check(pastDl.json.closed === true && pastDl.json.closedReason === 'deadline'
+      && pastDl.json.value !== null && Object.keys(pastDl.json.value.votes).length === 3,
+      '到截止时间 → GET closed:true / deadline，但数据还在（结果照常展示）',
+      pastDl.json && [pastDl.json.closed, pastDl.json.closedReason]);
+    const latePost = await req('POST', `/api/vote/${pollKey}`, { voterId: 'v-dev-late', shopIds: ['s1'] });
+    check(latePost.status === 409 && latePost.json.closedReason === 'deadline'
+      && /00:00/.test(String(latePost.json.error)),
+      '到截止时间后再投 → 409 + closedReason=deadline', latePost.status + ' / ' + JSON.stringify(latePost.json));
+    const afterLate = JSON.parse(fs.readFileSync(TMP_DATA, 'utf-8'));
+    check(afterLate[pollKey] && !afterLate[pollKey].votes['v-dev-late'],
+      '被 409 挡下的那一票没有写进 data.json', afterLate[pollKey] && Object.keys(afterLate[pollKey].votes));
+
+    // 截止时间格式不对 / 没设 → 不按时间截止（只认手动 closed）
+    await req('POST', `/api/data/${pollKey}`, {
+      value: { ...poll, deadline: '下午三点', votes: JSON.parse(JSON.stringify(beforeDl.json.value.votes)) }
+    });
+    const badDl = await req('POST', `/api/vote/${pollKey}`, { voterId: 'v-dev10', shopIds: ['s2'] });
+    check(badDl.status === 200, '截止时间写法不对（不是 HH:MM）→ 忽略它，仍然能投', badDl.status);
+
     // 截止后不能再投
     await req('POST', `/api/data/${pollKey}`, { value: { ...poll, status: 'closed' } });
     const closed = await req('POST', `/api/vote/${pollKey}`, { voterId: 'v-dev3', shopIds: ['s1'] });
-    check(closed.status === 409, '已经截止的投票 → 409', closed.status);
+    check(closed.status === 409 && closed.json.closedReason === 'manual',
+      '手动截止的投票 → 409 + closedReason=manual', closed.status + ' / ' + JSON.stringify(closed.json));
+    const closedGet = await req('GET', `/api/vote/${pollKey}`);
+    check(closedGet.json.closed === true && closedGet.json.closedReason === 'manual',
+      '手动截止后 GET → closed:true / manual', closedGet.json && closedGet.json.closedReason);
     await req('POST', `/api/data/${pollKey}`, { value: { ...poll, status: 'open', votes: JSON.parse(JSON.stringify(v1again.json.value.votes)) } });
 
     // 过期的投票：读的时候顺手删掉，连数据都不留

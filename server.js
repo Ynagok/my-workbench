@@ -82,6 +82,28 @@ function isVoteExpired(poll) {
   if (date > today) return false;                         // 将来的投票（理论上不会有）
   return d.getUTCHours() >= 23;                           // 北京时间过了 23:00 → 作废
 }
+// 截止时间：poll.deadline 是「HH:MM」（北京时间、当天）。
+// 到点之后**只读不写**（还能看结果），数据本身留到当天 23:00 才由 isVoteExpired 连数据清掉。
+// poll.status === 'closed' 是发起人手动截止，跟「到点」等价。
+const DEADLINE_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
+function beijingHM() {
+  const d = beijingNow();
+  return String(d.getUTCHours()).padStart(2, '0') + ':' + String(d.getUTCMinutes()).padStart(2, '0');
+}
+// 返回 '' = 还能投；'manual' = 手动截止；'deadline' = 到截止时间了
+function voteClosedReason(poll) {
+  if (!poll || typeof poll !== 'object') return '';
+  if (poll.status === 'closed') return 'manual';
+  const dl = typeof poll.deadline === 'string' ? poll.deadline : '';
+  if (!DEADLINE_RE.test(dl)) return '';                 // 没设 / 格式不对 → 不按时间截止
+  const date = typeof poll.date === 'string' ? poll.date : '';
+  if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    const today = beijingNow().toISOString().slice(0, 10);
+    if (date < today) return 'deadline';                // 以前的投票（理论上这时已经过期了）
+    if (date > today) return '';                        // 将来的投票（理论上不会有）
+  }
+  return beijingHM() >= dl ? 'deadline' : '';           // 'HH:MM' 的字典序 == 时刻序
+}
 function isValidVoteKey(key) {
   return typeof key === 'string' && VOTE_KEY_RE.test(key) && !FORBIDDEN_KEYS.has(key);
 }
@@ -105,9 +127,15 @@ app.get('/api/vote/:key', (req, res) => {
   if (poll && isVoteExpired(poll)) {
     delete data[key];                                     // 23:00 之后：连数据一起清掉，不保留
     writeData(data);
-    return res.json({ value: null, expired: true });
+    return res.json({ value: null, expired: true, closed: false, closedReason: '' });
   }
-  res.json({ value: poll === undefined ? null : poll, expired: false });
+  const reason = voteClosedReason(poll);
+  res.json({
+    value: poll === undefined ? null : poll,
+    expired: false,
+    closed: !!reason,                                     // 到点后前端只展示结果，不能再投
+    closedReason: reason                                  // '' | 'manual' | 'deadline'
+  });
 });
 
 // API：投自己那一票（服务端合并，只动这个 voterId 那一条）
@@ -128,7 +156,15 @@ app.post('/api/vote/:key', (req, res) => {
     return res.status(410).json({ error: '投票已过期（当天 23:00 后清除）', expired: true });
   }
   if (!poll || typeof poll !== 'object') return res.status(404).json({ error: '投票不存在或还没发起' });
-  if (poll.status === 'closed') return res.status(409).json({ error: '投票已截止' });
+  const reason = voteClosedReason(poll);
+  if (reason) {
+    return res.status(409).json({
+      error: reason === 'deadline'
+        ? ('投票已在 ' + poll.deadline + ' 截止（只能看结果，当天 23:00 自动清除）')
+        : '投票已截止',
+      closed: true, closedReason: reason
+    });
+  }
   if (!poll.votes || typeof poll.votes !== 'object') poll.votes = {};
   const nowIso = new Date().toISOString();
   const old = poll.votes[voterId];
