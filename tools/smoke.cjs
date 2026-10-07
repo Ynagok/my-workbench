@@ -1245,24 +1245,48 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
       $('teaShopTable').textContent.slice(0, 40));
     check(/今天还没有发起投票|今天还没有/.test($('teaPollStatus').textContent),
       '下午茶：没发起时状态行说明「今天还没有发起」', $('teaPollStatus').textContent);
+    check($('teaShopCard').tagName === 'DETAILS' && !$('teaShopCard').open
+      && /预设店家/.test($('teaShopCard').querySelector('summary').textContent),
+      '下午茶：店家管理收在折叠面板里（默认收起，界面干净）',
+      $('teaShopCard').tagName + ' / open=' + $('teaShopCard').open);
+    check(!$('teaShopNote'), '下午茶：店家不再有「备注」输入框（用户说备注不用了）');
+    check(doc.querySelectorAll('#teaShopTable thead th').length === 2
+      && !/备注/.test($('teaShopTable').textContent),
+      '下午茶：店家表只有「店家 / 操作」两列',
+      [...doc.querySelectorAll('#teaShopTable thead th')].map(t => t.textContent));
 
-    // 加两家店
+    // 加两家店（只有店名）
     $('teaShopName').value = '蜜雪冰城';
-    $('teaShopNote').value = '满 20 起送';
     $('teaShopSaveBtn').click();
     await sleep(60);
     $('teaShopName').value = '古茗';
-    $('teaShopNote').value = '';
     $('teaShopSaveBtn').click();
     await sleep(60);
     check(!!serverData.teaShops && serverData.teaShops.shops.length === 2
-      && serverData.teaShops.shops[0].name === '蜜雪冰城' && serverData.teaShops.shops[0].note === '满 20 起送',
-      '下午茶：店家存到服务端 teaShops（店名 + 备注）',
-      serverData.teaShops && serverData.teaShops.shops.map(s => s.name));
+      && serverData.teaShops.shops[0].name === '蜜雪冰城' && !('note' in serverData.teaShops.shops[0]),
+      '下午茶：店家存到服务端 teaShops（只有店名、不再写备注）',
+      serverData.teaShops && serverData.teaShops.shops);
+    const shopsCache = JSON.parse(window.localStorage.getItem('teaShopsCache') || 'null');
+    check(shopsCache && shopsCache.shops.length === 2
+      && shopsCache.shops.map(s => s.name).join(',') === '蜜雪冰城,古茗',
+      '下午茶：店家在本机另存一份备份 teaShopsCache', shopsCache && shopsCache.shops.map(s => s.name));
     check(doc.querySelectorAll('#teaShopTable tbody tr').length === 2
       && /蜜雪冰城/.test($('teaShopTable').textContent),
       '下午茶：店家表渲染出 2 行', $('teaShopTable').textContent.replace(/\s+/g, ' ').slice(0, 60));
+    check(/（2 家）/.test($('teaShopCount').textContent),
+      '下午茶：折叠标题上写着店家数', $('teaShopCount').textContent);
     const shopIds = serverData.teaShops.shops.map(s => s.id);
+
+    // ⚠️ 店家不能被「清投票 / 23:00 过期清理」连累：服务端那份被清掉时，用本机备份自动恢复
+    delete serverData.teaShops;
+    $('teaRefreshBtn').click();
+    await sleep(160);
+    check(!!serverData.teaShops && serverData.teaShops.shops.length === 2
+      && doc.querySelectorAll('#teaShopTable tbody tr').length === 2,
+      '下午茶：服务端店家没了 → 用本机备份自动恢复（并推回服务端）',
+      serverData.teaShops && serverData.teaShops.shops.map(s => s.name));
+    check(/恢复 2 家/.test($('teaShopHint').textContent),
+      '下午茶：恢复时给一句说明', $('teaShopHint').textContent.slice(0, 50));
 
     // 发起投票：勾两家 → 发起
     const startChips = () => [...doc.querySelectorAll('#teaPollShopBox .fb-chip')];
@@ -1418,6 +1442,9 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     const expJson = await expResp.json();
     check(expJson.expired === true && expJson.value === null && !(oldKey in serverData),
       '下午茶：过期投票 GET → expired 且服务端把数据删了（不留档）', expJson);
+    check(!!serverData.teaShops && serverData.teaShops.shops.length === 2,
+      '下午茶：投票被 23:00 清掉不影响预设店家（teaShops 原样还在）',
+      serverData.teaShops && serverData.teaShops.shops.map(s => s.name));
     check(/23:00/.test($('teaPollStatus').textContent), '下午茶：状态行写明「当天 23:00 自动清除」',
       $('teaPollStatus').textContent.slice(0, 60));
 

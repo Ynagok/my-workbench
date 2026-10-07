@@ -398,6 +398,15 @@ ok(/const DEADLINE_RE/.test(sv) && /function beijingHM\(\)/.test(sv) && /functio
   && /beijingHM\(\) >= dl/.test(sv) && /closed: !!reason/.test(sv) && /closedReason: reason/.test(sv)
   && /投票已在 ' \+ poll\.deadline \+ ' 截止/.test(sv) && /投票已过期（当天 23:00 后清除）/.test(sv),
   '服务端：到截止时间后只读 —— GET 带 closed/closedReason、POST 409，数据仍留到 23:00 才清');
+ok(/<details class="card tea-shop-card" id="teaShopCard">/.test(s) && /details\.tea-shop-card > summary/.test(s)
+  && /id="teaShopCount"/.test(s) && /tea-sep/.test(s)
+  && !/id="teaShopNote"/.test(s) && !/teaShopNote/.test(s)
+  && /teaShops\.push\(\{ id: teaNewShopId\(\), name: name\.slice\(0, 40\) \}\)/.test(s),
+  '下午茶：店家管理收进折叠面板（只有店名、备注整段拿掉）—— 界面只剩「投票 / 结果」两块');
+ok(/const TEA_SHOPS_CACHE_KEY = 'teaShopsCache';/.test(s) && /function teaSaveShopsCache\(\)/.test(s)
+  && /function teaLoadShopsCache\(\)/.test(s) && /已用本机备份恢复/.test(s)
+  && /const o = \(typeof s === 'string'\) \? \{ name: s \} : s;/.test(s),
+  '下午茶：店家只存店名 + 本机另存备份，服务端那份没了就自动恢复（永不随投票一起清）');
 
 // ---- 4. 花括号/圆括号平衡（粗查，排除字符串内的干扰仅作参考） ----
 const count = (str, ch) => (str.split(ch).length - 1);

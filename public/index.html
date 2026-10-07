@@ -3214,6 +3214,21 @@
             html[data-vote-only="1"] .flex-row { flex-wrap: wrap; }
             html[data-vote-only="1"] .fb-chip { padding: 10px 14px; font-size: 14px; }
         }
+
+        /* ---------- 下午茶：界面收干净（① 投票 ② 结果 ③ 折叠起来的店家管理） ---------- */
+        .tea-sep {
+            margin: 16px 0 8px; padding-top: 12px; border-top: 1px dashed var(--line-1);
+            font-size: 12px; letter-spacing: 0.04em; color: var(--ink-3);
+        }
+        details.tea-shop-card > summary {
+            display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+            cursor: pointer; list-style: none; font-weight: 600; font-size: 13px; color: var(--ink-1);
+        }
+        details.tea-shop-card > summary::-webkit-details-marker { display: none; }
+        details.tea-shop-card > summary::before { content: '▸'; color: var(--accent-ink); }
+        details.tea-shop-card[open] > summary::before { content: '▾'; }
+        details.tea-shop-card > summary:hover { color: var(--accent-ink); }
+        details.tea-shop-card[open] > summary { margin-bottom: 8px; }
     </style>
 </head>
 
@@ -3814,64 +3829,38 @@
                 <div class="crh-meta" id="teaReportMeta"></div>
             </div>
 
-            <div class="card" id="teaShopCard">
-                <label>🍵 预设店家
-                    <span class="hint-text" style="font-weight:400;">发起投票时从这里勾「今天开哪几家」；存在服务端，谁改大家都看得到（只有店名 + 备注，不做菜单）</span>
-                </label>
-                <div class="career-scroll" style="margin-top:10px;"><table class="career-table" id="teaShopTable"></table></div>
-                <div class="flex-row" style="margin-top:10px;">
-                    <input id="teaShopName" placeholder="店名，如：蜜雪冰城" style="max-width:200px;">
-                    <input id="teaShopNote" placeholder="备注（可空），如：满 20 起送" style="max-width:200px;">
-                    <button id="teaShopSaveBtn">＋ 添加</button>
-                    <button id="teaShopExportBtn" class="secondary">📋 复制店家 JSON</button>
-                    <button id="teaShopImportBtn" class="secondary">📥 粘贴导入</button>
-                </div>
-                <div class="hint-text" id="teaShopHint" style="margin-top:8px;"></div>
-            </div>
-
             <div class="card">
-                <label>🗳️ 今天的投票
-                    <span class="hint-text" style="font-weight:400;">当天的投票：北京时间 23:00 之后服务端会把投票和链接一起清掉、不留档</span>
+                <label>🧋 今天的下午茶
+                    <span class="hint-text" style="font-weight:400;">勾一家或几家投一票（可多选）；到截止时间只展示结果，当天 23:00 连投票一起清除 —— <b>店家一直保留</b></span>
                 </label>
-                <div id="teaPollAdminBox">
-                    <div class="flex-row" style="margin-top:8px;">
-                        <input id="teaPollTitle" placeholder="标题（可空），默认「M月D日 下午茶」" style="max-width:280px;">
-                        <label class="hint-text" style="margin:0;">截止时间（北京时间，可空 = 到 23:00 才结束）：</label>
-                        <input type="time" id="teaPollDeadline" title="到点后只能看结果、不能再投；数据留到当天 23:00 自动清除" style="max-width:150px;">
+                <div id="teaVoteOpenBox" style="margin-top:10px;">
+                    <div class="fb-chip-row" id="teaVoteShopBox"></div>
+                    <div class="flex-row" style="margin-top:10px;">
+                        <button id="teaVoteSubmitBtn">🗳️ 提交 / 改票</button>
+                        <button id="teaClearMineBtn" class="secondary">↩️ 撤销我这票</button>
+                        <span class="hint-text" id="teaVoteHint"></span>
                     </div>
-                    <div class="hint-text" style="margin-top:6px;">设了截止时间就是「到点自动锁投票」：<b>到点后只展示结果、不能再投</b>，一直保留到当天 23:00 自动清除。</div>
-                    <div class="hint-text" style="margin-top:10px;">今天开哪几家（发起时勾选，可多选）：</div>
+                </div>
+                <div class="hint-text" id="teaVoteClosed" style="display:none;color:var(--warn);margin-top:8px;"></div>
+
+                <div id="teaPollAdminBox">
+                    <div class="tea-sep">发起 / 管理（只有发起人用得到）</div>
                     <div class="fb-chip-row" id="teaPollShopBox"></div>
                     <div class="flex-row" style="margin-top:10px;">
-                        <button id="teaPollStartBtn">🚀 发起 / 更新今天的投票</button>
-                        <button id="teaPollCloseBtn" class="secondary">⏹️ 截止投票</button>
-                        <button id="teaPollClearBtn" class="reset-btn">🧹 清空今天的投票</button>
+                        <input id="teaPollTitle" placeholder="标题（可空），默认「M月D日 下午茶」" style="max-width:260px;">
+                        <input type="time" id="teaPollDeadline" title="截止时间（北京时间，可空 = 到 23:00 才结束）：到点后只能看结果、不能再投" style="max-width:140px;">
+                        <button id="teaPollStartBtn">🚀 发起 / 更新</button>
+                        <button id="teaPollCloseBtn" class="secondary">⏹️ 截止</button>
+                        <button id="teaPollClearBtn" class="reset-btn">🧹 清空票</button>
                     </div>
                     <div class="flex-row" style="margin-top:10px;">
                         <input id="teaPollShareInput" readonly placeholder="发起后这里出现分享链接" style="max-width:520px;">
                         <button id="teaCopyLinkBtn">📋 复制链接</button>
                         <button id="teaCopyShareTextBtn" class="secondary">📋 复制分享文案</button>
                     </div>
-                    <div class="hint-text" style="margin-top:6px;">分享链接打开后<b>只有投票页</b>（没有侧边栏、没有别的工作台功能），手机发群里直接点开就能投。</div>
+                    <div class="hint-text" style="margin-top:6px;">分享链接打开后<b>只有投票页</b>（手机发群里直接点开就能投）。</div>
                 </div>
                 <div class="hint-text" id="teaPollStatus" style="margin-top:10px;"></div>
-            </div>
-
-            <div class="card">
-                <label>✅ 我要投
-                    <span class="hint-text" style="font-weight:400;">多选（可以选好几家）；同一台设备再投就是改票，不会多算一票</span>
-                </label>
-                <div id="teaVoteOpenBox">
-                    <div class="fb-chip-row" id="teaVoteShopBox"></div>
-                    <div class="flex-row" style="margin-top:10px;">
-                        <button id="teaVoteSubmitBtn">🗳️ 提交 / 改票</button>
-                        <button id="teaClearMineBtn" class="secondary">↩️ 撤销我这票</button>
-                    </div>
-                </div>
-                <div class="hint-text" id="teaVoteClosed" style="display:none;color:var(--warn);margin-top:8px;"></div>
-                <div class="flex-row" style="margin-top:10px;">
-                    <span class="hint-text" id="teaVoteHint"></span>
-                </div>
             </div>
 
             <div class="card">
@@ -3885,6 +3874,19 @@
                     <button id="teaCopyResultBtn" class="secondary">📋 复制结果</button>
                 </div>
             </div>
+
+            <!-- 预设店家：收在折叠面板里（平时不用管，也永远不会被清除） -->
+            <details class="card tea-shop-card" id="teaShopCard">
+                <summary>🍵 预设店家<span class="hint-text" id="teaShopCount">（—）</span><span class="hint-text" style="font-weight:400;">点开管理；一直保留，不会被清空</span></summary>
+                <div class="career-scroll" style="margin-top:10px;"><table class="career-table" id="teaShopTable"></table></div>
+                <div class="flex-row" style="margin-top:10px;">
+                    <input id="teaShopName" placeholder="店名，如：蜜雪冰城" style="max-width:220px;">
+                    <button id="teaShopSaveBtn">＋ 添加</button>
+                    <button id="teaShopExportBtn" class="secondary">📋 复制店家 JSON</button>
+                    <button id="teaShopImportBtn" class="secondary">📥 粘贴导入</button>
+                </div>
+                <div class="hint-text" id="teaShopHint" style="margin-top:8px;"></div>
+            </details>
         </div>
 
         <!-- ==================== 小游戏 ==================== -->
@@ -12400,6 +12402,7 @@
                                     //   - ⚠️ 北京时间当天 **23:00 之后服务端会把这份投票连数据一起删掉**（用户要求：不留档），
                                     //     过期检查是「谁访问谁触发」的惰性清理；本页也按同一个口径提示。
                                     const TEA_SHOPS_KEY = 'teaShops';
+                                    const TEA_SHOPS_CACHE_KEY = 'teaShopsCache';   // 店家在本机的备份：服务端那份被清掉（比如重新部署）也能恢复
                                     const TEA_POLL_PREFIX = 'teaPoll_';
                                     const TEA_VOTER_KEY = 'teaVoterId';
                                     const TEA_CACHE_KEY = 'teaPollCache';
@@ -12490,35 +12493,69 @@
                                         return (snap && snap[id]) || '（已删除的店家）';
                                     }
                                     function teaNewShopId() { return 's' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5); }
+                                    // ⚠️ 店家**只有店名**（用户说备注不用了）—— 老数据里的 `note` 读进来也留着不影响，
+                                    //    界面上不再显示/编辑它。
                                     function teaNormalizeShops(v) {
                                         const out = [];
-                                        const list = v && Array.isArray(v.shops) ? v.shops : [];
-                                        list.forEach((s, i) => {
-                                            if (!s || typeof s.name !== 'string' || !s.name.trim()) return;
-                                            const ok = typeof s.id === 'string' && /^[A-Za-z0-9_-]{1,64}$/.test(s.id);
+                                        const raw = Array.isArray(v) ? v : (v && Array.isArray(v.shops) ? v.shops : []);
+                                        raw.forEach((s) => {
+                                            const o = (typeof s === 'string') ? { name: s } : s;   // 也吃 ["蜜雪冰城", …] 这种纯店名数组
+                                            if (!o || typeof o.name !== 'string' || !o.name.trim()) return;
+                                            const ok = typeof o.id === 'string' && /^[A-Za-z0-9_-]{1,64}$/.test(o.id);
                                             out.push({
-                                                id: ok ? s.id : teaNewShopId(),
-                                                name: s.name.trim().slice(0, 40),
-                                                note: typeof s.note === 'string' ? s.note.trim().slice(0, 60) : ''
+                                                id: ok ? o.id : teaNewShopId(),
+                                                name: o.name.trim().slice(0, 40)
                                             });
                                         });
                                         return out.slice(0, TEA_MAX_SHOPS);
                                     }
+                                    // ⚠️ 店家**永远不随投票一起清**（23:00 清的只是 teaPoll_*）：
+                                    //    除了服务端那份，本机再存一份备份 `teaShopsCache`；服务端那份没了（重新部署 / 被清空）就自动恢复。
+                                    function teaSaveShopsCache() {
+                                        try {
+                                            localStorage.setItem(TEA_SHOPS_CACHE_KEY, JSON.stringify({ shops: teaShops, at: new Date().toISOString() }));
+                                        } catch (_) { }
+                                    }
+                                    function teaLoadShopsCache() {
+                                        try {
+                                            const c = JSON.parse(localStorage.getItem(TEA_SHOPS_CACHE_KEY) || 'null');
+                                            return c ? teaNormalizeShops(c) : [];
+                                        } catch (_) { return []; }
+                                    }
                                     async function teaLoadShops(force) {
                                         if (teaShopsReady && !force) return;
+                                        let serverShops = [];
+                                        let serverOk = false;
                                         try {
                                             const resp = await fetchWithTimeout(API_BASE + encodeURIComponent(TEA_SHOPS_KEY));
                                             if (resp.ok) {
                                                 const json = await resp.json();
-                                                teaShops = teaNormalizeShops(json && json.value);
+                                                serverShops = teaNormalizeShops(json && json.value);
+                                                serverOk = true;
                                             }
-                                        } catch (e) { console.warn('读取预设店家失败（按空处理）', e); }
+                                        } catch (e) { console.warn('读取预设店家失败（用本机备份兜底）', e); }
+                                        teaShops = serverShops;
                                         teaShopsReady = true;
+                                        // 服务端一份都没有、本机备份还在 → 用备份恢复（并推回服务端），免得白白丢店
+                                        if (serverOk && !serverShops.length) {
+                                            const backup = teaLoadShopsCache();
+                                            if (backup.length) {
+                                                teaShops = backup;
+                                                try { await saveData(TEA_SHOPS_KEY, { shops: teaShops, updatedAt: new Date().toISOString() }); } catch (_) { }
+                                                teaSetHint('teaShopHint', '服务端没有店家了（可能重新部署过），已用本机备份恢复 ' + backup.length + ' 家');
+                                            }
+                                        }
+                                        teaSaveShopsCache();
+                                        const shopHint = document.getElementById('teaShopHint');
+                                        if (shopHint && !shopHint.textContent) {
+                                            shopHint.textContent = '店家只存店名、一直保留：清投票和 23:00 都不会动它，本机另有一份备份。';
+                                        }
                                         teaRenderShops();
                                         teaRenderPickBoxes();
                                         teaRenderHead();
                                     }
                                     async function teaSaveShops(hint) {
+                                        teaSaveShopsCache();
                                         await saveData(TEA_SHOPS_KEY, { shops: teaShops, updatedAt: new Date().toISOString() });
                                         teaRenderShops();
                                         teaRenderPickBoxes();
@@ -12555,7 +12592,7 @@
                                         if (teaExpired) return '🧹 这次投票已经作废（当天 23:00 后清除，不留档）';
                                         if (!teaPollData) return teaAfter23()
                                             ? '现在已过北京时间 23:00 —— 今天的投票被清掉了，明天再发起吧。'
-                                            : '今天还没有发起投票。先在上面勾好「今天开哪几家」，点「🚀 发起」。';
+                                            : '今天还没有发起投票 —— 在下面「发起 / 管理」里勾好今天开哪几家，点「🚀 发起 / 更新」。';
                                         const n = teaResult().devices;
                                         const dl = teaDeadline(teaPollData);
                                         const left = teaDeadlineLeftText(teaPollData);
@@ -12572,7 +12609,7 @@
                                         const r = teaResult();
                                         if (sub) {
                                             sub.textContent = '日期 ' + teaTodayStr() + '　·　预设店家 ' + teaShops.length + ' 家'
-                                                + '　·　口径：一天一份投票，每台设备一票（可多选店家）　·　23:00 后自动清除';
+                                                + '　·　一天一份投票，每台设备一票（可多选）　·　到点只展示结果，23:00 清投票（店家不动）';
                                         }
                                         if (meta) {
                                             const cells = [
@@ -12586,14 +12623,16 @@
                                                 + '</span><span class="m-v">' + escapeHtml(String(c[1])) + '</span></div>').join('');
                                         }
                                     }
-                                    // ---- 店家管理 ----
+                                    // ---- 店家管理（只有店名，没有备注） ----
                                     function teaRenderShops() {
                                         const t = document.getElementById('teaShopTable');
+                                        const cnt = document.getElementById('teaShopCount');
+                                        if (cnt) cnt.textContent = '（' + teaShops.length + ' 家）';
                                         if (!t) return;
-                                        let h = '<thead><tr><th>店家</th><th>备注</th><th class="num">操作</th></tr></thead><tbody>';
-                                        if (!teaShops.length) h += '<tr><td colspan="3" style="color:var(--ink-3);">还没有店家 —— 在下面填个店名点「＋ 添加」</td></tr>';
+                                        let h = '<thead><tr><th>店家</th><th class="num">操作</th></tr></thead><tbody>';
+                                        if (!teaShops.length) h += '<tr><td colspan="2" style="color:var(--ink-3);">还没有店家 —— 在下面填个店名点「＋ 添加」</td></tr>';
                                         teaShops.forEach(s => {
-                                            h += '<tr><td>' + escapeHtml(s.name) + '</td><td>' + escapeHtml(s.note || '—')
+                                            h += '<tr><td>' + escapeHtml(s.name)
                                                 + '</td><td class="num"><button class="secondary" data-tea-edit="' + escapeHtml(s.id) + '" style="padding:3px 9px;">编辑</button> '
                                                 + '<button class="reset-btn" data-tea-del="' + escapeHtml(s.id) + '" style="padding:3px 9px;">删除</button></td></tr>';
                                         });
@@ -12602,29 +12641,24 @@
                                     }
                                     function teaShopSave() {
                                         const nameEl = document.getElementById('teaShopName');
-                                        const noteEl = document.getElementById('teaShopNote');
                                         const name = ((nameEl && nameEl.value) || '').trim();
-                                        const note = ((noteEl && noteEl.value) || '').trim();
                                         if (!name) { teaSetHint('teaShopHint', '先填店名'); return; }
                                         if (teaShops.length >= TEA_MAX_SHOPS && !teaShopEditId) { teaSetHint('teaShopHint', '店家最多 ' + TEA_MAX_SHOPS + ' 家'); return; }
                                         if (teaShopEditId) {
                                             const s = teaShopById(teaShopEditId);
-                                            if (s) { s.name = name.slice(0, 40); s.note = note.slice(0, 60); }
+                                            if (s) { s.name = name.slice(0, 40); }
                                             teaShopEditId = '';
                                         } else {
-                                            teaShops.push({ id: teaNewShopId(), name: name.slice(0, 40), note: note.slice(0, 60) });
+                                            teaShops.push({ id: teaNewShopId(), name: name.slice(0, 40) });
                                         }
                                         if (nameEl) nameEl.value = '';
-                                        if (noteEl) noteEl.value = '';
-                                        teaSaveShops('已保存（服务端 + 本机各一份）');
+                                        teaSaveShops('已保存（服务端 + 本机备份各一份，不会被清除）');
                                     }
                                     function teaShopEdit(id) {
                                         const s = teaShopById(id);
                                         if (!s) return;
                                         const nameEl = document.getElementById('teaShopName');
-                                        const noteEl = document.getElementById('teaShopNote');
                                         if (nameEl) nameEl.value = s.name;
-                                        if (noteEl) noteEl.value = s.note || '';
                                         teaShopEditId = id;
                                         teaSetHint('teaShopHint', '正在编辑「' + s.name + '」—— 改完点「＋ 添加」同位置会更新它');
                                     }
@@ -12641,11 +12675,11 @@
                                         const box = document.getElementById(boxId);
                                         if (!box) return;
                                         const list = (teaPollData && Array.isArray(teaPollData.shopIds) && teaPollData.shopIds.length)
-                                            ? teaPollData.shopIds.map(id => teaShopById(id) || { id: id, name: teaShopName(id), note: '' })
+                                            ? teaPollData.shopIds.map(id => teaShopById(id) || { id: id, name: teaShopName(id) })
                                             : teaShops;
-                                        if (!list.length) { box.innerHTML = '<span class="hint-text">还没有店家，先去上面「🍵 预设店家」加几家</span>'; return; }
+                                        if (!list.length) { box.innerHTML = '<span class="hint-text">还没有店家，先在下面「🍵 预设店家」里加几家</span>'; return; }
                                         box.innerHTML = list.map(s => '<button class="fb-chip' + (picked.indexOf(s.id) !== -1 ? ' active' : '') + '" '
-                                            + dataAttr + '="' + escapeHtml(s.id) + '" title="' + escapeHtml(s.note || s.name) + '">'
+                                            + dataAttr + '="' + escapeHtml(s.id) + '" title="' + escapeHtml(s.name) + '">'
                                             + escapeHtml(s.name) + '</button>').join('');
                                     }
                                     function teaRenderPickBoxes() {
@@ -13624,7 +13658,7 @@
                                             teaSetHint('teaShopHint', '已复制店家 JSON（粘贴导入时直接用）');
                                         });
                                         setClick('teaShopImportBtn', () => {
-                                            const t = prompt('把之前复制的店家 JSON（或 [{ "name": "蜜雪冰城", "note": "" }] 这种数组）粘进来：');
+                                            const t = prompt('把之前复制的店家 JSON（或 ["蜜雪冰城", "古茗"] 这种店名数组）粘进来：');
                                             if (!t) return;
                                             try {
                                                 const parsed = JSON.parse(t);
