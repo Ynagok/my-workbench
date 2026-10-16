@@ -9,6 +9,7 @@
     "verify:static": "node tools/verify.mjs public/index.html && node --check tools/_extracted.js",
     "report": "node tools/print-report.cjs public/index.html",
     "smoke:server": "node tools/smoke-server.cjs",
+    "smoke:pmc": "node tools/smoke-pmc.cjs public/pmc.html",
     "test:helper": "node tools/test-openid-helper.cjs",
     "build:data": "node tools/build-game-data.mjs",
     "test": "npm run verify"

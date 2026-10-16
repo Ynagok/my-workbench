@@ -55,6 +55,7 @@ npm run verify     # 改完代码、push 前的完整自检
 | `npm run build:data` | 从 GM 玩家页快照提取 4 张权威映射表 + 与硬编码常量的**差异报告**（见下「游戏数据管线」） |
 | `npm run smoke:server` | 单独跑服务端冒烟（真起进程 + 真发 HTTP，35 项） |
 | `npm run test:helper` | 反馈提取助手（油猴脚本 0.4.0）单测，169 项 |
+| `npm run smoke:pmc` | **生管物料订单工作台**（`public/pmc.html`）自检，69 项（含真实 8.5MB xlsx 端到端导入）；**不在 verify 里**，见下「生管物料订单工作台」一节 |
 | `npm test` | = `npm run verify` |
 
 `npm run verify` 失败就不要提交。它一共 7 段：静态结构 → 语法 → jsdom 集成冒烟 **304 项** → 接口挂起时界面仍可用 → 服务端冒烟 **35 项** → 油猴脚本语法（`node --check`）→ 油猴脚本单测 **169 项**。
@@ -236,6 +237,24 @@ npm run verify     # 改完代码、push 前的完整自检
 - **测试**：`tools/smoke.cjs` 第 **8j** 节（**47 条**）：店家存服务端（**只有店名、不再写备注**）+ **店家管理是默认收起的 `<details>`、标题带家数** + **本机备份 `teaShopsCache`** + **服务端店家被清空时用备份自动恢复并推回去** + **投票被 23:00 清掉后店家原样还在** / 发起 today 的投票 + 名字快照与默认标题 / 分享链接格式 / 复制分享文案 / 第一次投票生成 voterId / **投票走 `/api/vote` 服务端合并** / 结果按店家计数且**不出现人名** / 另一台设备投票合并进同一份 / 改票覆盖不翻倍 / 撤销 / 复制结果 / 手动截止后 409 挡住 / 过期 GET 连数据删掉 / 状态行讲 23:00 清除；**截止时间 12 条**（`type=time` / 存进 `deadline` / 状态行写「HH:MM 截止」/ 过了的时间不让发起 / **到点后投票区收起 + 只留说明 + 数据还在 + 结果照常** / 到点后前端挡下不发请求 / 绕开前端直接 POST → 服务端 409 `closedReason:'deadline'` / 改回未到点又能投 / 手动截止也是「只能看结果」）；**另起一个 jsdom**（URL 带 `?vote=`）验 `data-vote-only` / 侧边栏与店家管理被藏 / **没发那 9 个启动请求** / 能选店能投 / 与自己 voterId 不同 / 两台设备统计在一起 / **到点后只投票页也收起投票区且点提交不发请求**。`tools/smoke-server.cjs` 另有 **23 条**（合并语义、改票、非法 voterId/shopIds/key、404/409/410、**过期投票被真的从 data.json 删掉**、当天 23:00 前不误删、**deadline 到点前后各一遍 + `closed/closedReason` + 格式不对的 deadline 忽略**）。`tools/verify.mjs` 3g 有 15 条静态断言（含「备注整段拿掉 + 店家折叠 + 本机备份/自动恢复」两条）。
   - ⚠️ 冒烟里的 fetch mock（`makeFetchMock(store, log)`）**照着真服务端实现了 `/api/vote` 的合并与过期清理**，两个 jsdom 共用同一个 `serverData` 来模拟「两台设备连同一个服务端」—— 改服务端语义时这里要一起改。
 
+## 生管物料订单工作台（`public/pmc.html` · 临时工具，独立单页）
+
+给 **生管/PMC 岗位**做的临时工具页：读公司《H93A 主料计划》主表 → 逐日推演理论库存 → 算缺料日/覆盖区间/建议下单量 → 按供应商拆 CSV。**跟工作台本体零耦合**：不 import、不碰 `index.html` / `server.js` / `data.json` / `/api/data`，数据只在浏览器内存 + 本机 `localStorage['pmcWorkbench_v1']`（只存参数/导入的数据，不上传任何服务端）。
+
+- **打开**：`http://localhost:3000/pmc.html`（本地）／`https://work-bad.onrender.com/pmc.html`（线上，`express.static` 顺带托管，不用改 server）。
+- **五个标签页**：① 下单建议（表内可直接改 SNP/保留倍数/缺口天数/提前期/运输/MOQ/包装倍数，改完立刻重算）② 逐日库存明细（柱状图 + 触发线 + 原表「库存」行对照）③ 两版趋势对比（加单/减单/保持，阈值可调）④ 按供应商导出（CSV/复制文本）⑤ 参数与数据导入。
+- **内置样例**是从**真实主表**抽出来的：21 张月度表里取 **26.6（本版）83 条** + **26.5（上版）86 条**材料块，内联在页面里（`<script id="pmc-sample">`，约 75KB）。打开即用，不依赖任何文件。
+- **导入真实 xlsx**：浏览器里零依赖解压（`DecompressionStream('deflate-raw')` + `DOMParser`，要 Chrome/Edge），**版式识别规则跟离线验证过的一致**：
+  - 列映射（实测主表）：`0=NO 1=物料名/車種 2=颜色/规格 3=项目 4=小计/月初库存 5..35=1..31日 36..=附注/供应商`。
+  - 表头行 = **含 Excel 日期序列号（40000~60000）的第一行**；日期 = 序列号 + i。
+  - 材料块 = 「项目」列是 `需求`/`生産必要数` 的行（下面 6 行内的 `库存`/`在庫` 行给月初库存，`SNP xxx` 文字给 SNP，`（馨源）`/附注列给供应商）。
+  - ⚠️ 实测坑：**「订单」「实际」也要当成块内行收集**，否则 `SNP 180` 那格收不进来（72/83 命中 vs 9/83）。
+  - ⚠️ 一个月度表里有两段不同版式（`需求/订单/实际/进度/库存` 与 `生産必要数/累計/…/在庫`），上面的规则同时吃得下。
+- **口径**（PRD 3.1/3.2）：触发线 = SNP×保留倍数；缺料日 = 理论库存第一次 < 触发线的当天；覆盖区间 = [缺料日, 缺料日+缺口天数−1]；建议下单量 = 覆盖需求 + 触发线 − 到货时库存 → 包装倍数向上取整 → 不足 MOQ 提到 MOQ；建议下单日 = 缺料日 − 提前期（自提再向前挪到最近的周一/周四）。**主表里没有缺口天数/提前期/运输/MOQ/包装倍数**，按默认值 + 页面手改；参数按「车型+物料名」认人，**下个月重新导入同一批材料，参数还认**。
+- **自检**：`npm run smoke:pmc`（= `node tools/smoke-pmc.cjs public/pmc.html`，**69 项**）—— 内置样例 83 条 / 计算引擎与**独立复算逐条对账**（缺料日·覆盖需求·下单量）/ 包装倍数与 MOQ 与自提周一四 / 趋势公式 / 界面渲染（31 根柱、触发线、导出预览含真实供应商）/ 改参数即时重算并落本机 / 过滤与状态列 / 迷你主表解析；**第 7 节拿真实 8.5MB xlsx 端到端跑一遍**（21 张表 → 83 条材料 → 真的重画成 83 行），**没有那个文件就自动跳过**（找 `tools/out/pmc-xlsx/src.xlsx`，其次找附件原始路径）。**它不在 `npm run verify` 里**（verify 只管工作台本体，别把 pmc 塞进去）。
+- **样例数据管线**（都在 gitignore 的 `tools/out/`，要重跑就按顺序来）：`xlsx-full.cjs`（整表导 TSV 看版式）→ `pmc-extract.cjs`（抽材料块 → sample.json）→ `pmc-embed.cjs`（压成紧凑 JSON）→ `pmc-inject.cjs`（注入 `pmc.html` 的 `__PMC_SAMPLE__` 占位符；**注入过就不能再注入**，要重来得先把占位符改回去）。
+- **不改主表**：工具只读、只导出新 CSV（PRD 的方案 A）；回填公司 Excel 仍靠人。
+
 ## 硬约定
 
 1. `public/index.html` 必须用 **UTF-8** 保存（不能用 GBK）。
@@ -265,12 +284,13 @@ npm run verify     # 改完代码、push 前的完整自检
 ```
 public/index.html          全部前端（单文件，约 14000 行：内联 CSS + 内联 JS 的 async IIFE；含「客服生涯」「海外业务统计」「反馈模板」「下午茶」标签页 + ?vote= 只投票页）
 public/gemjy-openid-helper.user.js  油猴脚本（反馈后台：卡片式悬浮窗，提取 头像/昵称/图片/openid，一键复制 openid；当前内容 0.4.0，就发在这一条链接上；与前端无代码耦合）
+public/pmc.html            生管物料订单工作台（临时工具单页：内置 H93A 26.5/26.6 样例 + 浏览器端解析真实 xlsx + 逐日库存/缺料日/建议下单 + 按供应商导出 CSV；只存本机，与工作台零耦合）
 server.js                  express：静态托管 public/ + GET/POST /api/data/:key ↔ data.json（含 key 白名单）+ GET/POST /api/vote/:key（下午茶投票：原子合并 + 当天 23:00 过期清理）
 data.json                  服务端数据（随使用增长；前端字段缺失会被默认值自动补齐）
-tools/                     自检脚本（verify / smoke / smoke-nonblocking / smoke-server / test-openid-helper / print-report / build-game-data）
+tools/                     自检脚本（verify / smoke / smoke-nonblocking / smoke-server / smoke-pmc / test-openid-helper / print-report / build-game-data）
 tools/fixtures/            build:data 的输入；player-page.html 含玩家隐私已 gitignore，样例已入库
-tools/out/                 build:data 的产出（4 张表 + 差异报告），已 gitignore
-package.json               scripts: start / verify / verify:static / smoke:server / report / build:data / test
+tools/out/                 build:data 的产出（4 张表 + 差异报告）＋ pmc 样例数据管线，已 gitignore
+package.json               scripts: start / verify / verify:static / smoke:server / smoke:pmc / report / build:data / test
 ```
 ## 已完成的关键改动
 
