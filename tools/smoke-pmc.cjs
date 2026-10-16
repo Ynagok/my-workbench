@@ -178,7 +178,66 @@ ok(P.backWorkdays('2026-06-19', 3) === '2026-06-16', '3b.16 清空节假日后�
 const rBig = P.compute(Object.assign({}, m0, { procDays: 30 }), ver.dates);
 ok(/^\d{4}-\d{2}-\d{2}$/.test(rBig.arrivalDate) && rBig.arrivalDate < rBig.shortageDate, '3b.17 加工 30 个工作日也能算出到货日（' + rBig.arrivalDate + '）');
 
-/* ---------- 4. 趋势对比 ---------- */
+/* ---------- 3c. 送货周期 / 在途锁定 / 调整建议 ---------- */
+// 用户的场景：今天周二(6/16)，已经下了周三(6/17)的到料计划 → 材料在路上，动不了
+const mkPlanMat = (opts) => {
+  const demand = ver.dates.map(() => 0);
+  demand[16] = 100;                       // 6/17 就有需求 → 需要的到货日落在锁定期内
+  return Object.assign({
+    key: 'P', id: 'P', name: 'P', scope: 'P', supplier: 'X', initStock: 0, demand, excelStock: [],
+    snp: 0, mult: 1, gapDays: 7, leadTime: 3, procDays: 0, transitDays: 3, transport: 'normal', moq: 0, pack: 1,
+    arrivals: [], status: '待确认'
+  }, opts);
+};
+const T_TUE = '2026-06-16';
+const planA = mkPlanMat({ arrivals: [{ d: '2026-06-17', q: 500 }] });   // 周三到货，正在路上
+const rA = P.compute(planA, ver.dates, T_TUE);
+ok(rA.today === T_TUE && rA.lockLine === '2026-06-19', '3c.1 锁定线 = 今天 + 送货周期（' + rA.today + ' + 3 → ' + rA.lockLine + '）');
+ok(rA.arrivals.length === 1 && rA.arrivals[0].locked === true, '3c.2 周三的到料计划判为「在途·锁定」（材料在路上）');
+const planB = mkPlanMat({ arrivals: [{ d: '2026-06-22', q: 500 }] });
+const rB = P.compute(planB, ver.dates, T_TUE);
+ok(rB.arrivals[0].locked === false, '3c.3 6/22 那批在锁定期外 → 可调');
+const planC = mkPlanMat({ arrivals: [{ d: '2026-06-10', q: 500 }] });
+ok(P.compute(planC, ver.dates, T_TUE).arrivals[0].past === true, '3c.4 已经过去的到货日标「已到/已过」');
+ok(P.compute(planA, ver.dates, T_TUE).lockedQty === 500 && P.compute(planB, ver.dates, T_TUE).flexQty === 500,
+  '3c.5 锁定数量 / 可调数量分开统计');
+
+// 需要的到货日落在锁定期内 → 来不及（除非在途够量）
+const needLate = P.compute(mkPlanMat({}), ver.dates, T_TUE);
+ok(needLate.arrivalDate <= needLate.lockLine, '3c.6 这条测试材料的「需要的到货日」确实落在锁定期内（' + needLate.arrivalDate + ' ≤ ' + needLate.lockLine + '）');
+ok(needLate.state === 'late', '3c.7 无在途 + 需要到货日在锁定期内 → 状态 late（来不及）');
+ok(/来不及/.test(needLate.advice) && /加急/.test(needLate.advice), '3c.8 建议里写明来不及 + 只能加急/接受缺料');
+ok(needLate.canStillOrder === false, '3c.9 canStillOrder=false（新单赶不上）');
+
+// 在途够量 → 在途已覆盖
+const covered = P.compute(mkPlanMat({ arrivals: [{ d: needLate.arrivalDate, q: needLate.orderQty + 10 }] }), ver.dates, T_TUE);
+ok(covered.state === 'covered' || covered.state === 'late', '3c.10 在途当量到货 → 不再要求新下单（' + covered.state + '）');
+ok(covered.lockedBeforeNeed >= covered.orderQty, '3c.11 锁定期内在途 ≥ 需要量（' + P.compute(mkPlanMat({ arrivals: [{ d: needLate.arrivalDate, q: needLate.orderQty + 10 }] }), ver.dates, T_TUE).lockedBeforeNeed + '）');
+
+// 需要到货日在锁定期外 → 还能下单调整
+const late = Object.assign({}, needLate, {});
+const mkFar = mkPlanMat({ arrivals: [] });
+mkFar.demand = ver.dates.map(() => 0);
+mkFar.demand[29] = 100;                   // 6/30 才需要
+const rFar = P.compute(mkFar, ver.dates, T_TUE);
+ok(rFar.arrivalDate > rFar.lockLine, '3c.12 6/30 的需求 → 需要的到货日在锁定期外（' + rFar.arrivalDate + ' > ' + rFar.lockLine + '）');
+ok(rFar.state === 'intime', '3c.13 状态 intime（还能下单调整）');
+ok(/可下单/.test(rFar.advice), '3c.14 建议里给出「可下单：X 下单、Y 到货、Z 件」');
+
+// 可调批次比需要的到货日更晚 → 提示可以提前
+const withFlex = mkPlanMat({ demand: ver.dates.map((d, i) => (i === 29 ? 100 : 0)), arrivals: [{ d: '2026-07-01', q: 300 }] });
+const rFlex = P.compute(withFlex, ver.dates, T_TUE);
+ok(rFlex.flexArrivals.length === 1, '3c.15 7/1 那批判为可调');
+ok(rFlex.state === 'flex-earlier' && /可提前到/.test(rFlex.advice), '3c.16 可调批次晚于需要的到货日 → 提示可提前（' + rFlex.state + '）');
+
+// 送货周期 0 → 什么都不锁（只有今天以前的锁定）
+const zero = P.compute(mkPlanMat({ transitDays: 0, arrivals: [{ d: '2026-06-22', q: 100 }] }), ver.dates, T_TUE);
+ok(zero.lockLine === T_TUE && zero.arrivals[0].locked === false, '3c.17 送货周期 0 → 锁定线就是今天');
+// 送货周期很长 → 远期批次也锁定
+const longT = P.compute(mkPlanMat({ transitDays: 30, arrivals: [{ d: '2026-06-30', q: 100 }] }), ver.dates, T_TUE);
+ok(longT.arrivals[0].locked === true && longT.state === 'late', '3c.18 送货周期 30 天 → 6/30 的批次也算在途，且来不及');
+
+
 const tr = P.trendRows();
 ok(tr.length > 60, '4.1 趋势对比拿到材料行（' + tr.length + '）');
 ok(tr.some(r => r.trend === 'up') && tr.some(r => r.trend === 'down'), '4.2 加单/减单两种趋势都出现了');
@@ -276,6 +335,48 @@ ok(!rNew.shortageDate || rNew.arrivalDate < rOld.arrivalDate, '5.25 加工周期
 ok(!rNew.shortageDate || rNew.orderDate < rOld.orderDate, '5.26 加工周期变大 → 下单日更早（' + rOld.orderDate + ' → ' + rNew.orderDate + '）');
 procInput.value = '0';
 procInput.dispatchEvent(new win.Event('change', { bubbles: true }));
+
+/* ---------- 5b. 到货计划页 ---------- */
+const planTabBtn = doc.querySelector('.tabs button[data-tab="plan"]');
+ok(!!planTabBtn, '5b.1 有「到货计划 / 调整建议」标签页');
+planTabBtn.click();
+ok(doc.getElementById('tab-plan').classList.contains('on'), '5b.2 点它能切过去');
+ok(q('#planKpis .kpi').length === 7, '5b.3 到货计划页 7 张 KPI 卡');
+const planRowsNow = q('#planWrap tbody tr').length;
+ok(planRowsNow > 0, '5b.4 到货计划表有行（只看要下单的，' + planRowsNow + ' 行）');
+ok(/在途|锁定|可调/.test(doc.getElementById('planWrap').textContent), '5b.5 表里能看到 在途·锁定 / 可调 标记');
+ok(q('#planWrap input[data-f="transitDays"]').length === planRowsNow, '5b.6 每行都能改送货周期');
+ok(/今天|锁定线/.test(doc.getElementById('planSub').textContent), '5b.7 抬头写清今天与送货周期');
+// 取消「只看要下单的」→ 行数变多
+const planOnly = doc.getElementById('planOnly');
+const onlyRows = q('#planWrap tbody tr').length;
+planOnly.checked = false;
+planOnly.dispatchEvent(new win.Event('change', { bubbles: true }));
+ok(q('#planWrap tbody tr').length > onlyRows, '5b.8 取消「只看要下单的」后行数变多（' + q('#planWrap tbody tr').length + '）');
+planOnly.checked = true;
+planOnly.dispatchEvent(new win.Event('change', { bubbles: true }));
+// 状态筛选
+const planState = doc.getElementById('planState');
+planState.value = 'late';
+planState.dispatchEvent(new win.Event('change', { bubbles: true }));
+const lateRows = q('#planWrap tbody tr').length;
+const lateExpect = P.MATS().filter((m) => P.compute(m, ver.dates, doc.getElementById('baseDate').value).state === 'late').length;
+ok(lateRows === lateExpect, '5b.9 按「来不及」筛选行数对得上（' + lateRows + '）');
+planState.value = '';
+planState.dispatchEvent(new win.Event('change', { bubbles: true }));
+// 改基准日 → 锁定线跟着变
+const bd = doc.getElementById('baseDate');
+const beforeLock = doc.getElementById('planSub').textContent;
+bd.value = '2026-06-20';
+bd.dispatchEvent(new win.Event('change', { bubbles: true }));
+ok(doc.getElementById('planSub').textContent.indexOf('2026-06-20') >= 0 && doc.getElementById('planSub').textContent !== beforeLock, '5b.10 改基准日 → 今天的锁定线跟着变');
+bd.value = ver.dates[0];
+bd.dispatchEvent(new win.Event('change', { bubbles: true }));
+// 逐日明细里也要有到货计划列
+doc.querySelector('.tabs button[data-tab="daily"]').click();
+ok(/到料计划/.test(doc.getElementById('dailyWrap').textContent), '5b.11 逐日明细表有「到料计划」列');
+ok(/能不能改|在途·锁定|可调/.test(doc.getElementById('dailyWrap').textContent), '5b.12 逐日明细里每批到料都标了能不能改');
+doc.querySelector('.tabs button[data-tab="suggest"]').click();
 
 /* ---------- 6. 导入相关 ---------- */
 ok(typeof P.blocksFromSheet === 'function', '6.1 暴露了主表解析函数（供导入用）');
