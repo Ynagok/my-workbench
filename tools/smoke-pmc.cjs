@@ -131,6 +131,53 @@ ok(rS.orderQty === plain.orderQty, '3.10 运输方式不改下单量（集中送
 const r2 = P.compute(Object.assign({}, m0, { mult: 2 }), ver.dates);
 ok(r2.shortageIdx <= r0.shortageIdx, '3.11 保留倍数 2 的缺料日不晚于倍数 1');
 
+/* ---------- 3b. 加工周期（工作日，从到货次日开始算） ---------- */
+// 用户给的例子：下周五缺料、加工 3 个工作日 → 最晚下周二到货（周三/四/五加工完）
+const mkMat = (shortageISO, procDays, leadTime) => {
+  // 造一条「第 10 天必然缺料」的材料：月初库存 0、SNP 0、只有第 10 天有需求
+  const demand = ver.dates.map(() => 0);
+  demand[9] = 100;
+  return { key: 'TEST', id: 'T', name: 'T', scope: 'T', supplier: 'X', initStock: 0, demand, excelStock: [],
+    snp: 0, mult: 1, gapDays: 7, leadTime: leadTime == null ? 0 : leadTime, procDays, transport: 'normal', moq: 0, pack: 1, status: '待确认' };
+};
+const days = ['2026-06-15', '2026-06-16', '2026-06-17', '2026-06-18', '2026-06-19', '2026-06-20', '2026-06-21', '2026-06-22'];
+const wdName = (iso) => ['周日', '周一', '周二', '周三', '周四', '周五', '周六'][new Date(iso + 'T00:00:00').getDay()];
+ok(wdName('2026-06-19') === '周五' && wdName('2026-06-16') === '周二', '3b.1 测试用的日历对得上（6/19 周五、6/16 周二）');
+
+const dates6 = ['2026-06-01']; // 占位，下面直接用 backWorkdays/addWorkdays 验算
+ok(P.backWorkdays('2026-06-19', 3) === '2026-06-16', '3b.2 缺料周五 + 加工 3 工作日 → 最晚到货周二（' + P.backWorkdays('2026-06-19', 3) + '）');
+ok(P.addWorkdays('2026-06-16', 3) === '2026-06-19', '3b.3 周二到货 → 加工完正好是周五（' + P.addWorkdays('2026-06-16', 3) + '）');
+ok(P.backWorkdays('2026-06-22', 1) === '2026-06-19', '3b.4 跨周末要跳过：周一缺料 + 加工 1 工作日 → 上周五到货');
+ok(P.addWorkdays('2026-06-19', 1) === '2026-06-22', '3b.5 周五到货 + 加工 1 工作日 → 下周一（周末不算）');
+ok(P.backWorkdays('2026-06-19', 0) === '2026-06-19', '3b.6 加工周期 0 → 到货日就是缺料日（老口径不变）');
+ok(P.isWorkday('2026-06-19') === true && P.isWorkday('2026-06-20') === false, '3b.7 周六不算工作日');
+
+// 引擎里的联动：到货日 = 缺料日往前退 N 个工作日；下单日 = 到货日 − 提前期
+const matProc = Object.assign({}, m0, { procDays: 3, leadTime: 3, transport: 'normal' });
+const rProc = P.compute(matProc, ver.dates);
+ok(rProc.arrivalDate === P.backWorkdays(rProc.shortageDate, 3), '3b.8 引擎：到货日 = 缺料日往前退 3 个工作日');
+ok(P.addWorkdays(rProc.arrivalDate, 3) <= rProc.shortageDate, '3b.9 引擎：到货 + 加工 3 工作日 ≤ 缺料日（加工得完）');
+const minusDays = (iso, n) => { const [y, m, d] = iso.split('-').map(Number); const t = new Date(y, m - 1, d - n); return t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0'); };
+ok(rProc.orderDate === minusDays(rProc.arrivalDate, 3),
+  '3b.10 引擎：下单日 = 到货日 − 提前期 3 天（' + rProc.orderDate + ' = ' + rProc.arrivalDate + ' − 3）');
+const rNoProc = P.compute(Object.assign({}, m0, { procDays: 0, leadTime: 3 }), ver.dates);
+ok(rNoProc.arrivalDate === rNoProc.shortageDate, '3b.11 加工 0 的到货日 = 缺料日（与改动前一致）');
+ok(rProc.orderDate < rNoProc.orderDate, '3b.12 有加工周期时下单日必须更早（' + rProc.orderDate + ' < ' + rNoProc.orderDate + '）');
+ok(rProc.orderQty === rNoProc.orderQty, '3b.13 加工周期不影响下单量（数量口径还是缺料日库存）');
+
+// 节假日也算非工作日
+P.state.settings.holidays = '2026-06-17';
+P.rebuildHolidays();
+ok(P.isWorkday('2026-06-17') === false, '3b.14 节假日清单里的日期不算工作日');
+ok(P.backWorkdays('2026-06-19', 3) === '2026-06-15', '3b.15 6/17 放假 → 到货再提前一天（' + P.backWorkdays('2026-06-19', 3) + '）');
+P.state.settings.holidays = '';
+P.rebuildHolidays();
+ok(P.backWorkdays('2026-06-19', 3) === '2026-06-16', '3b.16 清空节假日后恢复（' + P.backWorkdays('2026-06-19', 3) + '）');
+
+// 极端：加工周期很长时也不会崩
+const rBig = P.compute(Object.assign({}, m0, { procDays: 30 }), ver.dates);
+ok(/^\d{4}-\d{2}-\d{2}$/.test(rBig.arrivalDate) && rBig.arrivalDate < rBig.shortageDate, '3b.17 加工 30 个工作日也能算出到货日（' + rBig.arrivalDate + '）');
+
 /* ---------- 4. 趋势对比 ---------- */
 const tr = P.trendRows();
 ok(tr.length > 60, '4.1 趋势对比拿到材料行（' + tr.length + '）');
@@ -209,6 +256,26 @@ thr.dispatchEvent(new win.Event('change', { bubbles: true }));
 ok(P.state.settings.threshold === 0, '5.19 阈值可以调到 0（不被 || 5 吃掉）');
 thr.value = '5';
 thr.dispatchEvent(new win.Event('change', { bubbles: true }));
+
+// 加工周期相关的界面
+ok(q('#suggestWrap tbody tr input[data-f="procDays"]').length > 0, '5.20 下单建议表里有「加工周期」输入框');
+ok(/最晚到货日/.test(doc.querySelector('#suggestWrap thead').textContent), '5.21 表头有「最晚到货日」列');
+ok(/加工周期/.test(doc.getElementById('exportWrap').textContent), '5.22 导出预览表头含加工周期/到达货列');
+ok(!!doc.getElementById('dProc') && !!doc.getElementById('dHoliday'), '5.23 默认参数里有 加工周期 + 节假日 输入框');
+// 改一条材料的加工周期 → 到货日/下单日往前挪
+const procRowKey = doc.querySelector('#suggestWrap tbody tr input[data-f="procDays"]').closest('tr').getAttribute('data-key');
+const procMatOld = P.MATS().filter(m => m.key === procRowKey)[0];
+const rOld = P.compute(procMatOld, ver.dates);
+const procInput = doc.querySelector('#suggestWrap tbody tr[data-key="' + procRowKey + '"] input[data-f="procDays"]');
+procInput.value = '10';
+procInput.dispatchEvent(new win.Event('change', { bubbles: true }));
+const procMatNew = P.MATS().filter(m => m.key === procRowKey)[0];
+const rNew = P.compute(procMatNew, ver.dates);
+ok(procMatNew.procDays === 10, '5.24 表里改加工周期写进了材料参数');
+ok(!rNew.shortageDate || rNew.arrivalDate < rOld.arrivalDate, '5.25 加工周期变大 → 到货日更早（' + rOld.arrivalDate + ' → ' + rNew.arrivalDate + '）');
+ok(!rNew.shortageDate || rNew.orderDate < rOld.orderDate, '5.26 加工周期变大 → 下单日更早（' + rOld.orderDate + ' → ' + rNew.orderDate + '）');
+procInput.value = '0';
+procInput.dispatchEvent(new win.Event('change', { bubbles: true }));
 
 /* ---------- 6. 导入相关 ---------- */
 ok(typeof P.blocksFromSheet === 'function', '6.1 暴露了主表解析函数（供导入用）');

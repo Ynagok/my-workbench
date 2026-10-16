@@ -142,6 +142,9 @@
         <li>覆盖区间 = [缺料日, 缺料日 + 缺口天数 − 1]；覆盖需求 = 该区间需求合计。</li>
         <li>建议下单量 = 覆盖需求 + 触发线 − 到货时库存，再按包装倍数向上取整、不足 MOQ 提到 MOQ。</li>
         <li>建议下单日 = 缺料日 − 提前期；运输方式「自提」再向前挪到最近的<b>周一/周四</b>；「集中送货」同普通但下单量受 MOQ 约束。</li>
+        <li><b>加工周期（工作日）</b>：材料不能卡在缺料那天到货 —— 先算<b>最晚到货日</b>（缺料日往前退 N 个工作日），再算下单日（到货日 − 提前期）。到货当天不算加工，从<b>次日</b>开始数；周末跳过，节假日按「参数」页填的清单跳过。<br>
+          例：6/19(周五) 缺料、加工 3 个工作日 → 最晚 6/16(周二) 到货，6/17·18·19 加工完正好覆盖。提前期 3 天 → 6/13 下单。</li>
+        <li>下单量仍按 PRD 3.2：覆盖需求 + 触发线 − <b>缺料日当天日末库存</b>（到货提前了，但到货到加工完这段时间的消耗由现有库存承担，所以数量口径不变）。</li>
         <li>SNP / 月初库存从主表里自动读（「SNP 40」这类文字）；<b>缺口天数、提前期、运输方式、MOQ、包装倍数主表里没有，默认值 + 你在表里手改</b>。</li>
       </ol>
     </details>
@@ -228,11 +231,17 @@
         <span class="ctl"><label for="dMult">保留倍数</label><select id="dMult"><option value="1">1</option><option value="2">2</option></select></span>
         <span class="ctl"><label for="dGap">缺口天数</label><input type="number" id="dGap" value="7" min="1" max="60" style="width:70px"></span>
         <span class="ctl"><label for="dLead">提前期(天)</label><input type="number" id="dLead" value="3" min="0" max="60" style="width:70px"></span>
+        <span class="ctl"><label for="dProc" title="到货后还要加工的工作日数，从到货次日开始算">加工周期(工作日)</label><input type="number" id="dProc" value="0" min="0" max="90" style="width:70px"></span>
         <span class="ctl"><label for="dTrans">运输方式</label><select id="dTrans"><option value="normal">普通</option><option value="self">自提</option><option value="consol">集中送货</option></select></span>
         <span class="ctl"><label for="dMoq">MOQ</label><input type="number" id="dMoq" value="0" min="0" style="width:80px"></span>
         <span class="ctl"><label for="dPack">包装倍数</label><input type="number" id="dPack" value="1" min="1" style="width:70px"></span>
         <button id="btnApplyDefault">套到全部材料</button>
       </div>
+      <div class="flexrow" style="margin-top:8px">
+        <span class="ctl" style="flex:1"><label for="dHoliday">节假日（非工作日，加工周期与自提都跳过）</label>
+          <input type="text" id="dHoliday" placeholder="2026-06-19,2026-06-22 或 10-01,10-02" style="flex:1;min-width:280px"></span>
+      </div>
+      <div class="tiny" style="margin-top:6px">加工周期按<b>工作日</b>算：到货当天不算，从<b>次日</b>起数。例：缺料 6/19(周五)、加工 3 个工作日 → 最晚 6/16(周二) 到货，6/17·18·19 加工完正好接上。</div>
       <div class="msg" id="setupMsg"></div>
     </div>
 
@@ -289,6 +298,36 @@ var WD = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
 function mdLabel(iso){ var d = fromISO(iso); return (d.getMonth() + 1) + '/' + d.getDate(); }
 function ceilTo(x, step){ step = step > 1 ? step : 1; return Math.ceil(x / step) * step; }
 
+/* ---- 工作日 / 节假日（加工周期按工作日算，周末跳过；节假日可在「参数」页填） ---- */
+var HOL = { exact: {}, md: {} };
+function rebuildHolidays(){
+  HOL = { exact: {}, md: {} };
+  String((state && state.settings && state.settings.holidays) || '').split(/[,，;；\s]+/).forEach(function(v){
+    v = String(v).trim(); if (!v) return;
+    var m = /^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})$/.exec(v);
+    if (m){ HOL.exact[m[1] + '-' + pad2(+m[2]) + '-' + pad2(+m[3])] = 1; return; }
+    m = /^(\d{1,2})[-/.](\d{1,2})$/.exec(v);
+    if (m) HOL.md[pad2(+m[1]) + '-' + pad2(+m[2])] = 1;
+  });
+}
+function isHoliday(iso){ return !!(HOL.exact[iso] || HOL.md[String(iso).slice(5)]); }
+function isWorkday(iso){ var w = weekday(iso); return w !== 0 && w !== 6 && !isHoliday(iso); }
+function isOrderWeekday(iso){ var w = weekday(iso); return (w === 1 || w === 4) && !isHoliday(iso); }
+// 从某个日期往前退 n 个工作日（结果一定是工作日）
+function backWorkdays(iso, n){
+  n = Math.max(0, Math.floor(+n) || 0);
+  var d = iso;
+  while (n > 0){ d = addDays(d, -1); if (isWorkday(d)) n--; }
+  return d;
+}
+// 从某个日期（到货日）之后开始数 n 个工作日 —— 到货次日算第 1 天
+function addWorkdays(iso, n){
+  n = Math.max(0, Math.floor(+n) || 0);
+  var d = iso;
+  while (n > 0){ d = addDays(d, 1); if (isWorkday(d)) n--; }
+  return d;
+}
+
 /* ============================ 状态 ============================ */
 var SAMPLE = JSON.parse($('pmc-sample').textContent);
 var STORE_KEY = 'pmcWorkbench_v1';
@@ -300,8 +339,8 @@ var state = {
   tab: 'suggest',
   filter: { sup: '', only: false, text: '', trend: '' },
   curMat: '',
-  settings: { mult: 1, gapDays: 7, leadTime: 3, transport: 'normal', moq: 0, pack: 1, threshold: 5 },
-  params: {},        // key = scope|name -> {snp,mult,gapDays,leadTime,transport,moq,pack,status}
+  settings: { mult: 1, gapDays: 7, leadTime: 3, procDays: 0, transport: 'normal', moq: 0, pack: 1, threshold: 5, holidays: '' },
+  params: {},        // key = scope|name -> {snp,mult,gapDays,leadTime,procDays,transport,moq,pack,status}
   custom: null       // 导入进来的版本 {key,label,dates,materials}
 };
 
@@ -352,6 +391,7 @@ function buildMaterials(ver){
       mult: p.mult != null ? p.mult : d.mult,
       gapDays: p.gapDays != null ? p.gapDays : d.gapDays,
       leadTime: p.leadTime != null ? p.leadTime : d.leadTime,
+      procDays: p.procDays != null ? p.procDays : d.procDays,
       transport: p.transport || d.transport,
       moq: p.moq != null ? p.moq : d.moq,
       pack: p.pack != null ? p.pack : d.pack,
@@ -399,10 +439,14 @@ function compute(m, dates){
   qty = ceilTo(qty, m.pack);
   if (m.moq > qty) qty = m.moq;
   r.orderQty = qty;
-  var od = addDays(r.shortageDate, -(m.leadTime || 0));
+  // 到货日：材料不能刚好在缺料那天到 —— 到货后还要加工，加工周期按工作日算、从到货次日开始
+  r.procDays = Math.max(0, +m.procDays || 0);
+  r.arrivalDate = backWorkdays(r.shortageDate, r.procDays);
+  r.readyDate = addWorkdays(r.arrivalDate, r.procDays);
+  var od = addDays(r.arrivalDate, -(m.leadTime || 0));
   if (m.transport === 'self'){
     // 自提：只能周一/周四下单，向前找最近的那一天
-    for (var g = 0; g < 7; g++){ var w = weekday(od); if (w === 1 || w === 4) break; od = addDays(od, -1); }
+    for (var g = 0; g < 7; g++){ if (isOrderWeekday(od)) break; od = addDays(od, -1); }
   }
   r.orderDate = od;
   return r;
@@ -437,6 +481,7 @@ function renderVersionSelects(){
 function renderDefaults(){
   var s = state.settings;
   $('dMult').value = String(s.mult); $('dGap').value = s.gapDays; $('dLead').value = s.leadTime;
+  $('dProc').value = s.procDays || 0; $('dHoliday').value = s.holidays || '';
   $('dTrans').value = s.transport; $('dMoq').value = s.moq; $('dPack').value = s.pack;
   $('thr').value = s.threshold;
 }
@@ -487,8 +532,8 @@ function renderSuggest(){
   var head = '<table><thead><tr>'
     + '<th class="num">#</th><th>物料</th><th>供应商</th>'
     + '<th class="num">月初库存</th><th class="num">SNP</th><th class="num">保留倍数</th><th class="num">触发线</th>'
-    + '<th class="mid">缺料日</th><th class="num">缺口天数</th><th class="num">提前期</th><th>运输</th><th class="num">MOQ</th><th class="num">包装</th>'
-    + '<th class="mid">覆盖区间</th><th class="num">覆盖需求</th><th class="num">到货时库存</th><th class="mid">建议下单日</th><th class="num">建议下单量</th><th class="mid">状态</th><th></th>'
+    + '<th class="mid">缺料日</th><th class="num">缺口天数</th><th class="num">提前期</th><th class="num">加工<br>(工作日)</th><th>运输</th><th class="num">MOQ</th><th class="num">包装</th>'
+    + '<th class="mid">覆盖区间</th><th class="num">覆盖需求</th><th class="num">到货时库存</th><th class="mid">最晚到货日</th><th class="mid">建议下单日</th><th class="num">建议下单量</th><th class="mid">状态</th><th></th>'
     + '</tr></thead><tbody>';
   var body = rows.map(function(x, i){
     var m = x.m, r = x.r;
@@ -497,6 +542,10 @@ function renderSuggest(){
       : '<span class="pill short">' + mdLabel(r.shortageDate) + ' ' + WD[weekday(r.shortageDate)] + '</span>';
     var cover = r.shortageIdx < 0 ? '—' : (mdLabel(r.coverStart) + '~' + mdLabel(r.coverEnd) + (r.truncated ? '（超出表内）' : ''));
     var orderDay = r.shortageIdx < 0 ? '—' : (mdLabel(r.orderDate) + ' ' + WD[weekday(r.orderDate)] + (m.transport === 'self' ? ' ⇦自提' : ''));
+    var today = $('baseDate').value || '';
+    if (r.shortageIdx >= 0 && today && r.orderDate < today) orderDay = '<span class="pill short" title="下单日已经过了">⚠ ' + orderDay + '</span>';
+    var arrivalDay = r.shortageIdx < 0 ? '—'
+      : (mdLabel(r.arrivalDate) + ' ' + WD[weekday(r.arrivalDate)] + (r.procDays ? '<em class="tiny" style="display:block;color:var(--ink-3)">加工 ' + r.procDays + ' 工作日 → ' + mdLabel(r.readyDate) + '</em>' : ''));
     return '<tr data-key="' + esc(m.key) + '">'
       + '<td class="num tiny">' + (i + 1) + '</td>'
       + '<td class="name">' + esc(m.name) + '<em>' + esc(m.scope) + '</em></td>'
@@ -508,12 +557,14 @@ function renderSuggest(){
       + '<td class="mid">' + shortPill + '</td>'
       + '<td class="num"><input type="number" data-f="gapDays" value="' + m.gapDays + '" min="1" max="60"></td>'
       + '<td class="num"><input type="number" data-f="leadTime" value="' + m.leadTime + '" min="0" max="60"></td>'
+      + '<td class="num"><input type="number" data-f="procDays" value="' + m.procDays + '" min="0" max="90" title="到货后还要加工的工作日数"></td>'
       + '<td><select data-f="transport">' + Object.keys(TRANSPORT).map(function(k){ return '<option value="' + k + '"' + (m.transport === k ? ' selected' : '') + '>' + TRANSPORT[k] + '</option>'; }).join('') + '</select></td>'
       + '<td class="num"><input type="number" data-f="moq" value="' + m.moq + '" min="0"></td>'
       + '<td class="num"><input type="number" data-f="pack" value="' + m.pack + '" min="1"></td>'
       + '<td class="mid tiny">' + cover + '</td>'
       + '<td class="num">' + num(r.coverDemand, 1) + '</td>'
       + '<td class="num">' + (r.stockAtArrival == null ? '—' : num(r.stockAtArrival, 1)) + '</td>'
+      + '<td class="mid">' + arrivalDay + '</td>'
       + '<td class="mid">' + orderDay + '</td>'
       + '<td class="num"><b>' + (r.orderQty ? num(r.orderQty, 0) : '—') + '</b></td>'
       + '<td class="mid"><span class="pill' + (m.status === '已下单' ? ' ok' : m.status === '已确认' ? ' cover' : '') + '" data-f="status" title="点一下切换状态">' + m.status + '</span></td>'
@@ -545,6 +596,8 @@ function renderDaily(){
     kpi(r.shortageIdx < 0 ? '不预警' : mdLabel(r.shortageDate) + ' ' + WD[weekday(r.shortageDate)], '缺料日', r.shortageIdx < 0 ? 'ok' : 'danger'),
     kpi(r.shortageIdx < 0 ? '—' : m.gapDays + ' 天', '缺口天数', ''),
     kpi(r.shortageIdx < 0 ? '—' : num(r.coverDemand, 1), '覆盖需求', ''),
+    kpi(r.shortageIdx < 0 ? '—' : (r.arrivalDate === r.shortageDate ? mdLabel(r.arrivalDate) + ' ' + WD[weekday(r.arrivalDate)] : mdLabel(r.arrivalDate) + ' ' + WD[weekday(r.arrivalDate)] + ' →' + mdLabel(r.readyDate)), '最晚到货日 → 加工完', r.procDays ? 'warn' : ''),
+    kpi(r.procDays ? r.procDays + ' 工作日' : '无', '加工周期', ''),
     kpi(r.shortageIdx < 0 ? '—' : num(r.orderQty, 0), '建议下单量', r.shortageIdx < 0 ? '' : 'warn'),
     kpi(r.shortageIdx < 0 ? '—' : mdLabel(r.orderDate) + ' ' + WD[weekday(r.orderDate)], '建议下单日', '')
   ].join('');
@@ -643,10 +696,12 @@ function suggestRowsFor(m){
   return [
     m.id, m.name, m.scope, m.supplier, num(m.initStock, 1), m.snp, m.mult, num(r.trigger, 0),
     r.shortageDate || '', m.gapDays, r.coverStart || '', r.coverEnd || '', num(r.coverDemand, 1),
-    r.stockAtArrival == null ? '' : num(r.stockAtArrival, 1), r.orderDate || '', r.orderQty || 0, m.status
+    r.stockAtArrival == null ? '' : num(r.stockAtArrival, 1),
+    r.shortageIdx < 0 ? '' : r.arrivalDate, r.procDays || 0, r.shortageIdx < 0 ? '' : r.readyDate,
+    r.orderDate || '', r.orderQty || 0, m.status
   ];
 }
-var CSV_HEAD = ['物料编码', '物料名称', '车型/规格', '供应商', '月初库存', 'SNP', '保留倍数', '触发线', '缺料日', '缺口天数', '覆盖起', '覆盖止', '覆盖需求', '到货时库存', '建议下单日', '建议下单量', '状态'];
+var CSV_HEAD = ['物料编码', '物料名称', '车型/规格', '供应商', '月初库存', 'SNP', '保留倍数', '触发线', '缺料日', '缺口天数', '覆盖起', '覆盖止', '覆盖需求', '到货时库存', '最晚到货日', '加工周期(工作日)', '加工完成日', '建议下单日', '建议下单量', '状态'];
 function groupBySupplier(){
   var map = {};
   MATS.forEach(function(m){
@@ -659,16 +714,17 @@ function groupBySupplier(){
 function renderExport(){
   var groups = groupBySupplier();
   var names = Object.keys(groups).sort();
+  var numCol = function(j){ return (j >= 3 && j <= 12) || j >= 14; };
   var html = names.map(function(sup){
     var list = groups[sup];
     var rows = list.map(function(m, i){
       var v = suggestRowsFor(m);
-      return '<tr><td class="num tiny">' + (i + 1) + '</td>' + v.slice(1).map(function(x, j){ return '<td' + (j >= 3 && j <= 12 ? ' class="num"' : '') + '>' + esc(x) + '</td>'; }).join('') + '</tr>';
+      return '<tr><td class="num tiny">' + (i + 1) + '</td>' + v.slice(1).map(function(x, j){ return '<td' + (numCol(j) ? ' class="num"' : '') + '>' + esc(x) + '</td>'; }).join('') + '</tr>';
     }).join('');
     var qty = list.reduce(function(a, m){ return a + (compute(m, curVersion().dates).orderQty || 0); }, 0);
-    return '<tr><td colspan="16" style="background:var(--surface-3);font-weight:700">' + esc(sup) + ' · ' + list.length + ' 条 · 建议下单合计 ' + num(qty, 0) + '</td></tr>' + rows;
+    return '<tr><td colspan="' + (CSV_HEAD.length - 1) + '" style="background:var(--surface-3);font-weight:700">' + esc(sup) + ' · ' + list.length + ' 条 · 建议下单合计 ' + num(qty, 0) + '</td></tr>' + rows;
   }).join('');
-  $('exportWrap').innerHTML = '<table><thead><tr><th class="num">#</th>' + CSV_HEAD.slice(1).map(function(h, i){ return '<th' + (i >= 3 && i <= 12 ? ' class="num"' : '') + '>' + esc(h) + '</th>'; }).join('') + '</tr></thead><tbody>' + html + '</tbody></table>';
+  $('exportWrap').innerHTML = '<table><thead><tr><th class="num">#</th>' + CSV_HEAD.slice(1).map(function(h, i){ return '<th' + (numCol(i) ? ' class="num"' : '') + '>' + esc(h) + '</th>'; }).join('') + '</tr></thead><tbody>' + html + '</tbody></table>';
 }
 function csvOf(rows){
   var esc2 = function(v){ v = v == null ? '' : String(v); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
@@ -720,6 +776,7 @@ function bind(){
     if (f === 'mult') m.mult = +t.value;
     if (f === 'gapDays') m.gapDays = +t.value;
     if (f === 'leadTime') m.leadTime = +t.value;
+    if (f === 'procDays') m.procDays = +t.value;
     if (f === 'transport') m.transport = t.value;
     if (f === 'moq') m.moq = +t.value;
     if (f === 'pack') m.pack = +t.value;
@@ -744,12 +801,15 @@ function bind(){
   });
 
   // 默认参数
-  ['dMult', 'dGap', 'dLead', 'dTrans', 'dMoq', 'dPack'].forEach(function(id){
+  ['dMult', 'dGap', 'dLead', 'dProc', 'dTrans', 'dMoq', 'dPack', 'dHoliday'].forEach(function(id){
     $(id).addEventListener('change', function(){
       state.settings.mult = +$('dMult').value; state.settings.gapDays = +$('dGap').value;
-      state.settings.leadTime = +$('dLead').value; state.settings.transport = $('dTrans').value;
+      state.settings.leadTime = +$('dLead').value; state.settings.procDays = +$('dProc').value;
+      state.settings.transport = $('dTrans').value;
       state.settings.moq = +$('dMoq').value; state.settings.pack = +$('dPack').value;
-      saveStore();
+      state.settings.holidays = $('dHoliday').value;
+      rebuildHolidays();
+      saveStore(); renderAll();
     });
   });
   $('btnApplyDefault').addEventListener('click', function(){ applyDefaults(); $('setupMsg').textContent = '已把默认参数套到当前 ' + MATS.length + ' 条材料。'; });
@@ -758,8 +818,10 @@ function bind(){
     var d = state.settings;
     MATS.forEach(function(m){
       var p = state.params[m.key] = state.params[m.key] || {};
-      p.mult = d.mult; p.gapDays = d.gapDays; p.leadTime = d.leadTime; p.transport = d.transport; p.moq = d.moq; p.pack = d.pack;
-      m.mult = d.mult; m.gapDays = d.gapDays; m.leadTime = d.leadTime; m.transport = d.transport; m.moq = d.moq; m.pack = d.pack;
+      p.mult = d.mult; p.gapDays = d.gapDays; p.leadTime = d.leadTime; p.procDays = d.procDays;
+      p.transport = d.transport; p.moq = d.moq; p.pack = d.pack;
+      m.mult = d.mult; m.gapDays = d.gapDays; m.leadTime = d.leadTime; m.procDays = d.procDays;
+      m.transport = d.transport; m.moq = d.moq; m.pack = d.pack;
     });
     saveStore(); renderAll();
   }
@@ -1080,7 +1142,8 @@ function parseDate(v){
 var PASTE_MAP = [
   ['物料编码', 'id'], ['编码', 'id'], ['物料名称', 'n'], ['名称', 'n'], ['车型/规格', 's'], ['车型', 's'], ['规格', 's'],
   ['供应商', 'v'], ['月初库存', 'st'], ['库存', 'st'], ['SNP', 'snp'], ['保留倍数', 'mult'], ['缺口天数', 'gapDays'],
-  ['提前期', 'leadTime'], ['运输方式', 'transport'], ['运输', 'transport'], ['MOQ', 'moq'], ['包装倍数', 'pack']
+  ['提前期', 'leadTime'], ['加工周期', 'procDays'], ['加工周期(工作日)', 'procDays'], ['加工(工作日)', 'procDays'], ['加工天数', 'procDays'],
+  ['运输方式', 'transport'], ['运输', 'transport'], ['MOQ', 'moq'], ['包装倍数', 'pack']
 ];
 function parsePaste(){
   var raw = $('pasteBox').value.replace(/\r/g, '');
@@ -1111,7 +1174,8 @@ function parsePaste(){
       st: parseFloat(g('st')) || 0, d: demand, k: [],
       _p: {
         mult: g('mult') ? +g('mult') : null, gapDays: g('gapDays') ? +g('gapDays') : null,
-        leadTime: g('leadTime') ? +g('leadTime') : null, transport: tr === '自提' ? 'self' : tr === '集中送货' ? 'consol' : tr === '普通' ? 'normal' : null,
+        leadTime: g('leadTime') ? +g('leadTime') : null, procDays: g('procDays') ? +g('procDays') : null,
+        transport: tr === '自提' ? 'self' : tr === '集中送货' ? 'consol' : tr === '普通' ? 'normal' : null,
         moq: g('moq') ? +g('moq') : null, pack: g('pack') ? +g('pack') : null
       }
     });
@@ -1134,6 +1198,7 @@ function parsePaste(){
 
 /* ============================ 启动 ============================ */
 loadStore();
+rebuildHolidays();
 MATS = buildMaterials(curVersion());
 $('baseDate').value = curVersion().dates[0];
 bind();
@@ -1153,7 +1218,8 @@ function applyCustom(v){
 window.__pmc = {
   state: state, compute: compute, versions: versions, buildMaterials: buildMaterials, applyCustom: applyCustom,
   MATS: function(){ return MATS; }, trendRows: trendRows, blocksFromSheet: blocksFromSheet, renderAll: renderAll,
-  readWorkbookBytes: readWorkbookBytes, parseSheetRows: parseSheetRows, readZip: readZip
+  readWorkbookBytes: readWorkbookBytes, parseSheetRows: parseSheetRows, readZip: readZip,
+  backWorkdays: backWorkdays, addWorkdays: addWorkdays, isWorkday: isWorkday, rebuildHolidays: rebuildHolidays
 };
 })();
 </script>
