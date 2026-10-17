@@ -1777,6 +1777,21 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     await sleep(80);
     check(/共 3 条/.test($('sopPhHint').textContent), 'SOP 常用语库：🗑 删掉后回到 3 条', $('sopPhHint').textContent);
 
+    // 场景卡按「用户自己分好的问题分类」挂常用语：点分类片 → 常用语库自动筛到那一类
+    const phChip = doc.querySelector('#sopSceneBox [data-sop-phgo]');
+    check(!!phChip, 'SOP 相关常用语：场景卡按问题分类列出相关话术',
+      doc.querySelectorAll('#sopSceneBox [data-sop-phgo]').length);
+    const chipCat = phChip ? phChip.dataset.sopPhgo : '';
+    if (phChip) phChip.click();
+    await sleep(80);
+    const activeCat = doc.querySelector('#sopPhCats .fb-chip.active');
+    check(/已筛到/.test($('sopPhHint').textContent) && !!activeCat
+      && activeCat.textContent.indexOf(chipCat) >= 0,
+      'SOP 相关常用语：点分类片 → 常用语库自动筛到该分类', $('sopPhHint').textContent);
+    check(doc.querySelectorAll('#sopPhList .sop-ph').length >= 1
+      && doc.querySelector('#sopPhList .sop-ph-cat').textContent === chipCat,
+      'SOP 相关常用语：筛出来的条目就是这一类的', doc.querySelector('#sopPhList .sop-ph-cat') && doc.querySelector('#sopPhList .sop-ph-cat').textContent);
+
     // 导入 bundle（本机导入优先，且能推服务端）
     promptAnswer = JSON.stringify({
       version: 9, updatedAt: '2026-01-01',

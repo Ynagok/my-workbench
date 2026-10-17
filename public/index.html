@@ -3290,6 +3290,8 @@
             font-size: 12px; padding: 1px 7px; border-radius: var(--r-sm);
             background: var(--accent-dim); color: var(--accent-ink); border: 1px solid var(--accent-line);
         }
+        .sop-ph-title { font-size: 12px; font-weight: 600; color: var(--ink-1); }
+        .sop-phchips { margin-top: 2px; }
         .sop-ph-text { font-size: 13px; line-height: 1.95; color: var(--ink-1); margin-top: 5px; white-space: pre-wrap; }
         .sop-ph-empty { padding: 14px 0; }
         .sop-edit { display: flex; flex-direction: column; gap: 8px; background: var(--surface); border: 1px dashed var(--accent-line); border-radius: var(--r-sm); padding: 10px 12px; }
@@ -13302,11 +13304,11 @@
                                                 source: '群维系·海外工单·监控交接文档 / 客服规范总汇'
                                             }
                                         ],
-                                        // 常用语库（内置示例只放几条通用口径；完整版从《全部常用语》整理，只在 bundle 里）
+                                        // 常用语库（内置示例只放几条，分类名沿用《全部常用语》那套问题分类；完整版只在 bundle 里）
                                         phrases: [
-                                            { id: 'ph-demo-1', cat: '安抚', tone: '说明', text: '非常理解您现在的心情，这边先帮您核实一下，有结果第一时间回复您。' },
-                                            { id: 'ph-demo-2', cat: '收集', tone: '收集', text: '麻烦您提供一下角色ID、区服和角色名，以及发生问题的时间，我这边帮您查一下～' },
-                                            { id: 'ph-demo-3', cat: '收尾', tone: '收尾', text: '问题已经处理好了，麻烦您重进游戏看一下，还有异常随时找我。' }
+                                            { id: 'ph-demo-1', cat: '退款', title: '安抚', tone: '说明', text: '非常理解您现在的心情，这边先帮您核实一下，有结果第一时间回复您。' },
+                                            { id: 'ph-demo-2', cat: '询问信息', title: '询问游戏信息', tone: '收集', text: '麻烦您提供一下角色ID、区服和角色名，以及发生问题的时间，我这边帮您查一下～' },
+                                            { id: 'ph-demo-3', cat: '安抚', title: '稍等', tone: '收尾', text: '问题已经处理好了，麻烦您重进游戏看一下，还有异常随时找我。' }
                                         ]
                                     };
                                     function sopTokenGet() {
@@ -13607,15 +13609,48 @@
                                     }
                                     function sopPhById(id) { return sopPhrases().filter(x => x.id === id)[0] || null; }
                                     function sopNewId(prefix) { return prefix + '-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5); }
-                                    // 公共编辑框：kind = 'script'（场景话术，只有语气+正文）| 'phrase'（常用语，多一个分类）
-                                    function sopEditHtml(kind, idx, cat, tone, text) {
+                                    // 场景 → 常用语分类（用的是用户自己分好的 22 个问题分类，见 bundle.phrases[].cat）
+                                    const SOP_PH_CAT_RULES = {
+                                        '账号信息': ['账号密码找回', '解绑换绑', '换绑', '询问信息', '信息异常'],
+                                        '充值与退款': ['退款', '信息异常', '询问信息'],
+                                        '封禁与处罚': ['封禁', '账号交易', '投诉'],
+                                        '游戏问题': ['通用游戏机制问题', '误操作', '安抚', '信息异常', '询问信息'],
+                                        '发票': ['询问信息', '结束'],
+                                        'VIP 与运营': ['VIP', '安抚'],
+                                        '群维系': ['账号交易', '封禁', '投诉', '安抚'],
+                                        '交接与升级': ['投诉', '安抚', '结束', '开头语', '询问信息']
+                                    };
+                                    const SOP_PH_PRODUCT_CATS = { '梦幻消除战': ['梦幻常规'], '唱舞全明星': ['唱舞常规'] };
+                                    function sopPhCatsForScene(s) {
+                                        const want = [];
+                                        (SOP_PH_CAT_RULES[s.cat] || []).forEach(c => { if (want.indexOf(c) < 0) want.push(c); });
+                                        (s.product || []).forEach(p => (SOP_PH_PRODUCT_CATS[p] || []).forEach(c => { if (want.indexOf(c) < 0) want.push(c); }));
+                                        const have = {};
+                                        sopPhrases().forEach(p => { if (p.cat) have[p.cat] = (have[p.cat] || 0) + 1; });
+                                        return want.filter(c => have[c]).map(c => ({ cat: c, n: have[c] }));
+                                    }
+                                    // 点场景卡上的分类片：把常用语库筛到那一类（并滚过去）
+                                    function sopPhGoCat(cat) {
+                                        sopPhCat = cat || '';
+                                        sopPhQ = '';
+                                        sopPhEditId = '';
+                                        const q = document.getElementById('sopPhQuery');
+                                        if (q) q.value = '';
+                                        sopPhRender();
+                                        teaSetHint('sopPhHint', '已筛到「' + cat + '」分类');
+                                        const card = document.getElementById('sopPhList');
+                                        if (card && card.scrollIntoView) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                    }
+                                    // 公共编辑框：kind = 'script'（场景话术，只有语气+正文）| 'phrase'（常用语：分类 + 标题 + 正文）
+                                    function sopEditHtml(kind, idx, cat, tone, text, title) {
                                         const esc = escapeHtml;
                                         const f = kind === 'script' ? 'data-sop-ef' : 'data-sop-pf';
                                         const save = kind === 'script' ? 'data-sop-esave' : 'data-sop-psave';
                                         const cancel = kind === 'script' ? 'data-sop-ecancel' : 'data-sop-pcancel';
                                         return '<div class="sop-edit">'
                                             + '<div class="sop-edit-row">'
-                                            + (kind === 'phrase' ? '<input ' + f + '="cat" placeholder="分类（退款 / 封禁 / 账号…）" value="' + esc(cat || '') + '">' : '')
+                                            + (kind === 'phrase' ? '<input ' + f + '="cat" placeholder="问题分类（退款 / 封禁 / 账号密码找回…）" value="' + esc(cat || '') + '">' : '')
+                                            + (kind === 'phrase' ? '<input ' + f + '="title" placeholder="标题（这条是问什么问题）" value="' + esc(title || '') + '">' : '')
                                             + '<input ' + f + '="tone" placeholder="语气（收集 / 说明 / 方案 / 收尾…）" value="' + esc(tone || '') + '">'
                                             + '</div>'
                                             + '<textarea ' + f + '="text" rows="4" placeholder="话术正文">' + esc(text || '') + '</textarea>'
@@ -13696,7 +13731,7 @@
                                         const out = all.filter(p => {
                                             if (sopPhCat && p.cat !== sopPhCat) return false;
                                             if (sopPhQ) {
-                                                const blob = [p.text || '', p.cat || '', p.tone || ''].join(' ');
+                                                const blob = [p.text || '', p.cat || '', p.title || '', p.tone || ''].join(' ');
                                                 if (blob.indexOf(sopPhQ) === -1) return false;
                                             }
                                             return true;
@@ -13720,12 +13755,13 @@
                                         }
                                         out.forEach(p => {
                                             if (sopPhEditId === p.id) {
-                                                h += sopEditHtml('phrase', p.id, p.cat, p.tone, p.text);
+                                                h += sopEditHtml('phrase', p.id, p.cat, p.tone, p.text, p.title);
                                                 return;
                                             }
                                             h += '<div class="sop-ph">'
                                                 + '<div class="sop-ph-head">'
                                                 + '<span class="sop-ph-cat">' + esc(p.cat || '未分类') + '</span>'
+                                                + (p.title ? '<span class="sop-ph-title">' + esc(p.title) + '</span>' : '')
                                                 + (p.tone ? '<span class="hint-text">' + esc(p.tone) + '</span>' : '')
                                                 + '<button type="button" class="secondary sop-copy-btn" data-sop-phcopy="' + esc(p.id) + '">📋 复制</button>'
                                                 + '<button type="button" class="secondary sop-copy-btn" data-sop-phedit="' + esc(p.id) + '">✏️</button>'
@@ -13747,15 +13783,16 @@
                                     }
                                     function sopPhSave(id) {
                                         const cat = sopEditField('phrase', 'cat').trim();
+                                        const title = sopEditField('phrase', 'title').trim();
                                         const tone = sopEditField('phrase', 'tone').trim();
                                         const text = sopEditField('phrase', 'text').trim();
                                         if (!text) { teaSetHint('sopPhHint', '话术正文不能为空'); return; }
                                         const all = sopPhrases();
                                         if (id === 'new') {
-                                            all.push({ id: sopNewId('ph'), cat: cat || '未分类', tone: tone, text: text });
+                                            all.push({ id: sopNewId('ph'), cat: cat || '未分类', title: title, tone: tone, text: text });
                                         } else {
                                             const p = sopPhById(id);
-                                            if (p) { p.cat = cat || p.cat || '未分类'; p.tone = tone; p.text = text; }
+                                            if (p) { p.cat = cat || p.cat || '未分类'; p.title = title; p.tone = tone; p.text = text; }
                                         }
                                         sopPhEditId = '';
                                         sopPhRender();
@@ -13830,6 +13867,15 @@
                                         if ((s.needInfo || []).length) {
                                             h += '<div class="sop-block"><div class="sop-block-t">要收集</div><div class="sop-needchips">'
                                                 + s.needInfo.map(x => '<span class="sop-needchip">' + esc(x) + '</span>').join('')
+                                                + '</div></div>';
+                                        }
+                                        // 「相关常用语」：按用户自己分好的问题分类挂到场景上，点分类 → 常用语库筛到那一类
+                                        const phCats = sopPhCatsForScene(s);
+                                        if (phCats.length) {
+                                            h += '<div class="sop-block"><div class="sop-block-t">💬 相关常用语（按问题分类 · 点一下去库里看）</div>'
+                                                + '<div class="fb-chip-row sop-phchips">'
+                                                + phCats.map(x => '<button type="button" class="fb-chip" data-sop-phgo="' + esc(x.cat) + '">'
+                                                    + esc(x.cat) + '<span class="sop-mind-c">' + x.n + '</span></button>').join('')
                                                 + '</div></div>';
                                         }
                                         if ((s.internal || []).length) {
@@ -14729,6 +14775,8 @@
                                             if (scene) scene.addEventListener('click', (e) => {
                                                 const st = e.target.closest('[data-sop-stage]');
                                                 if (st) { sopPickStage(st.dataset.sopStage); return; }
+                                                const pg = e.target.closest('[data-sop-phgo]');
+                                                if (pg) { sopPhGoCat(pg.dataset.sopPhgo); return; }
                                                 // 话术编辑：改 / 删 / 加 / 保存 / 取消
                                                 const se = e.target.closest('[data-sop-sedit]');
                                                 if (se) { sopScriptEdit = +se.dataset.sopSedit; sopOpenScene(sopCurrent && sopCurrent.id); return; }

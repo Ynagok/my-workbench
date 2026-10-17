@@ -464,8 +464,15 @@ ok(/id="sopPhList"/.test(s) && /id="sopPhCats"/.test(s) && /id="sopPhQuery"/.tes
   'SOP 常用语库：搜索 / 分类 / 复制 / 新增 / 改 / 删 都在');
 ok(/function sopScriptSave\(\)/.test(s) && /function sopScriptDel\(idx\)/.test(s)
   && /data-sop-snew/.test(s) && /data-sop-sedit/.test(s) && /data-sop-sdel/.test(s)
-  && /function sopEditHtml\(kind, idx, cat, tone, text\)/.test(s),
+  && /function sopEditHtml\(kind, idx, cat, tone, text, title\)/.test(s),
   'SOP 场景话术：可改 / 可删 / 可新增（同一个编辑框组件）');
+ok(/const SOP_PH_CAT_RULES = \{/.test(s) && /function sopPhCatsForScene\(s\)/.test(s)
+  && /function sopPhGoCat\(cat\)/.test(s) && /data-sop-phgo/.test(s) && /sop-phchips/.test(s)
+  && /SOP_PH_PRODUCT_CATS/.test(s),
+  'SOP 常用语：按用户自己分好的问题分类挂到场景（点分类片 → 常用语库筛到那一类）');
+ok(/sopEditHtml\('phrase', p\.id, p\.cat, p\.tone, p\.text, p\.title\)/.test(s)
+  && /f \+ '="title"/.test(s) && /p\.title/.test(s),
+  'SOP 常用语：带「标题」（这条是问什么问题），列表与编辑框都有');
 ok(/async function sopPersist\(note\)/.test(s) && /localStorage\.setItem\(SOP_LOCAL_KEY, JSON\.stringify\(sopBundle\)\)/.test(s)
   && /method: 'POST'/.test(s),
   'SOP 编辑落盘：写本机 sopBundleLocal 并尝试推服务端');

@@ -49,7 +49,7 @@ npm run verify     # 改完代码、push 前的完整自检
 
 | 命令 | 内容 |
 |---|---|
-| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 360 项 + 「接口挂起时界面仍可用」+ 服务端冒烟 42 项 + 油猴脚本语法 + 单测 169 项 |
+| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 363 项 + 「接口挂起时界面仍可用」+ 服务端冒烟 42 项 + 油猴脚本语法 + 单测 169 项 |
 | `npm run verify:static` | 只要静态校验 + 语法检查（最快） |
 | `npm run report` | 打印一份真实生成的日报，肉眼确认排版（含 ⑥伙伴弹途 / ⑦异世界勇者） |
 | `npm run build:data` | 从 GM 玩家页快照提取 4 张权威映射表 + 与硬编码常量的**差异报告**（见下「游戏数据管线」） |
@@ -58,7 +58,7 @@ npm run verify     # 改完代码、push 前的完整自检
 | `npm run smoke:pmc` | **生管物料订单工作台**（`public/pmc.html`）自检，123 项（含加工周期工作日推算 + 在途锁定/调整建议 + 真实 8.5MB xlsx 端到端导入）；**不在 verify 里**，见下「生管物料订单工作台」一节 |
 | `npm test` | = `npm run verify` |
 
-`npm run verify` 失败就不要提交。它一共 7 段：静态结构 → 语法 → jsdom 集成冒烟 **360 项** → 接口挂起时界面仍可用 → 服务端冒烟 **42 项** → 油猴脚本语法（`node --check`）→ 油猴脚本单测 **169 项**。
+`npm run verify` 失败就不要提交。它一共 7 段：静态结构 → 语法 → jsdom 集成冒烟 **363 项** → 接口挂起时界面仍可用 → 服务端冒烟 **42 项** → 油猴脚本语法（`node --check`）→ 油猴脚本单测 **169 项**。
 
 - jsdom 未安装时前端冒烟会自动回落到本机 DSH 自带的那份。
 - `tools/smoke-server.cjs` 用 `PORT` + `DATA_FILE` 环境变量把服务端指到随机端口和 `tools/out/` 里的临时文件，**不会碰真实 `data.json`**；子进程 stdio 必须用 `ignore`/`inherit`（沙箱禁管道，`pipe` 会 EPERM）。
@@ -262,10 +262,12 @@ npm run verify     # 改完代码、push 前的完整自检
   2. 在「⚙️ 数据与口令」里填 → 点「保存口令并重新加载」→ 存 `localStorage['sopToken']`（只在本机，**不进服务端、不进 git**），之后拉数据带 `x-sop-token` 头。
   3. 没填 / 填错 → 服务端 **403** → 页面回落「内置示例」（8 个场景，只作演示）；`#sopDataStatus` 会写「口令已填/未填 · 数据来自 X · 服务端 key sopBundle」。
   4. 整份数据可以「📥 粘贴导入 bundle JSON」写本机 `sopBundleLocal`（**优先级高于服务端**，不用口令也能用）或「📋 复制当前 bundle」备份；灌线上用 `npm run sop:seed`。
-- **💬 常用语库（新卡 `#sopPhList`）**：把《全部常用语.xls》里的话术整理进 `bundle.phrases[] = { id, cat, tone, text }`（**只在本机 bundle、不进 git**；内置示例只放 3 条通用口径）。14 个分类（退款 / 未成年退款 / 充值到账 / 账号找回 / 换绑解绑 / 注销 / 封禁申诉 / 账号交易共享 / 活动与概率 / 礼包与充值 / 技术排查 / 迁移与渠道 / 收集与定位 / 安抚与收尾）。
-  - 交互：关键词搜索（`#sopPhQuery` + 搜索按钮 / 回车）+ 分类片筛选（`#sopPhCats`）；**默认不铺满**（只显示「共 N 条」，搜了才列），省得一屏几百条。每条卡片有 📋 复制 / ✏️ 改 / 🗑 删，卡上还有「＋ 新增常用语」。
-  - ⚠️ `sopPhRender()` 是唯一渲染入口（`sopPhSearch` / 分类点击 / 增删改后都调它）；筛选用 `sopPhCat` + `sopPhQ` 两个模块级变量。
-- **✏️ 话术可编辑（用户要求「后续要可以添加修改已有的话术」）**：场景卡的每条话术都有 **✏️ 改 / 🗑 删**，「对外话术」标题旁有 **＋ 加话术**；常用语库同样能增删改。两处共用同一个编辑框组件 `sopEditHtml(kind, idx, cat, tone, text)`（`kind='script'` 只有语气+正文，`'phrase'` 多一个分类）。
+- **💬 常用语库（新卡 `#sopPhList`）**：数据来自《全部常用语.xls》**原表**（列：`分类名称 / 分类类别 / 标题 / 内容 / 排序 / 高级常用语`），`bundle.phrases[] = { id, cat, title, tone, text }` —— **`cat` 就是用户自己分好的 22 个问题分类**（换绑 / 询问信息 / 结束 / 通用游戏机制问题 / 安抚 / 账号注销 / 退款 / 盗号 / 解绑换绑 / 封禁 / 误操作 / 唱舞常规 / 账号密码找回 / 江湖常规 / 梦幻常规 / 信息异常 / VIP / 开头语 / 迁移 / 账号交易 / 其他游戏 / 投诉），**`title` 是原表「标题」列**（这条在问什么），共 **238 条**（只在本机 bundle、不进 git；内置示例只放 3 条，分类也用这套）。
+  - ⚠️ **.xls 是 BIFF8，但现在已经能正确读了**：`G:\work-bad\node_modules\xlsx`（SheetJS，`npm i xlsx@0.18.5 --no-save` 装的，`node_modules/` 已 gitignore）→ `node tools/out/sop/xls-rows.cjs <file.xls>` 导出 `tools/out/sop/xls-rows.txt`（每行 `行号\t分类名称\t分类类别\t标题\t内容\t排序\t高级常用语`），再用 `tools/out/sop/rebuild-phrases.cjs` 重建 `bundle.phrases`。**旧的 `xls-text.cjs`（盲扫文本）只作兜底，别再用它当数据源。**
+  - **场景 ↔ 问题分类自动匹配**：`SOP_PH_CAT_RULES`（按场景 `cat`：账号信息→账号密码找回/解绑换绑/换绑/询问信息/信息异常；充值与退款→退款/信息异常/询问信息；封禁与处罚→封禁/账号交易/投诉；游戏问题→通用游戏机制问题/误操作/安抚/信息异常/询问信息；发票→询问信息/结束；VIP 与运营→VIP/安抚；群维系→账号交易/封禁/投诉/安抚；交接与升级→投诉/安抚/结束/开头语/询问信息）+ `SOP_PH_PRODUCT_CATS`（梦幻消除战→梦幻常规、唱舞全明星→唱舞常规）。场景卡上出「💬 相关常用语（按问题分类）」分类片，**点一下 → 常用语库自动筛到那一类并滚过去**（`sopPhGoCat()`）。分类名在库里不存在时不出片（`sopPhCatsForScene` 会过滤）。
+  - 交互：关键词搜索（`#sopPhQuery` + 搜索按钮 / 回车，**搜分类 / 标题 / 正文**）+ 分类片筛选（`#sopPhCats`）；**默认不铺满**（只显示「共 N 条」，搜了才列），省得一屏两百多条。每条卡片显示 **分类片 + 标题 + 正文**，有 📋 复制 / ✏️ 改 / 🗑 删，卡上还有「＋ 新增常用语」。
+  - ⚠️ `sopPhRender()` 是唯一渲染入口（`sopPhSearch` / 分类点击 / `sopPhGoCat` / 增删改后都调它）；筛选用 `sopPhCat` + `sopPhQ` 两个模块级变量。
+- **✏️ 话术可编辑（用户要求「后续要可以添加修改已有的话术」）**：场景卡的每条话术都有 **✏️ 改 / 🗑 删**，「对外话术」标题旁有 **＋ 加话术**；常用语库同样能增删改。两处共用同一个编辑框组件 `sopEditHtml(kind, idx, cat, tone, text, title)`（`kind='script'` 只有语气+正文，`'phrase'` 有 **问题分类 + 标题 + 语气 + 正文**）。
   - 状态：`sopScriptEdit`（-1 空闲 / ≥0 改第 n 条 / -2 新增）、`sopPhEditId`（'' / 'new' / id）；保存走 `sopScriptSave()` / `sopPhSave(id)`，删除走 `sopScriptDel(idx)` / `sopPhDel(id)`（都 `confirm`）。
   - 落盘 `sopPersist(note)`：**写 `localStorage['sopBundleLocal']` + 抬头来源改成「本机导入」+ 尝试带 `x-sop-token` POST 到 `/api/data/sopBundle`**（推不上去只影响别处能不能看到，本机照常）。所以改完刷新不丢；换设备要「📋 复制当前 bundle」或重新 seed。
   - ⚠️ 编辑只动 `sopBundle` 内存/本机副本，**不改 `SOP_DEMO`**（内置示例保持极简，避免把内部话术写进仓库）。
@@ -273,15 +275,15 @@ npm run verify     # 改完代码、push 前的完整自检
 - **数据模型**：`{ version, updatedAt, channels[], redlines[], scenes[], phrases[] }`
   - `redlines[] = { level:'red'|'amber', word 或 re, why, fix, src }` —— 命中「好评 / 误封 / 代言人 / 外挂 / 客服热线 / VIP客服 / 具体时间 / 存续期 / 苹果客服 / 抽奖概率 / 内部说明（正则）」等。
   - `scenes[] = { id, cat, product[], channel[], title, triggers[], needInfo[], steps[], scripts[{tone,visibility,text}], internal[], escalate[{when,do}], form{kicker,fields[]}, source }`。
-  - `phrases[] = { id, cat, tone, text }` —— 可缺省（`sopValidBundle` 只硬性要求 `scenes` + `redlines`）。
+  - `phrases[] = { id, cat, title, tone, text }` —— `cat` 是用户自己分好的问题分类、`title` 是原表「标题」；可缺省（`sopValidBundle` 只硬性要求 `scenes` + `redlines`）。
 - **两个能力**（一期）：
   1. **🔍 查场景**：搜玩家原话/关键词（多词要全部命中）、按分类/渠道筛选；命中 1 条自动展开；场景卡给「处理流程（导图）/ 要收集 / 对外话术（可复制可编辑）/ ⚠️内部口径（别发玩家，红框）/ 升级注意 / 提单格式（折叠）/ 依据条款（折叠）」。
   2. **🚩 红线检查**：粘一段准备发给玩家的话 → 逐条匹配 `redlines`（`word` 用 indexOf、`re` 用 RegExp）→ 按出现顺序列出「命中词 / 原因 / 改成什么 / 出处」；没命中给「OK，仍要自己核一遍」。
   - ⚠️ **原来的「🧾 信息清单 / 提单文本」卡已按用户要求整块删除**（2026-10）：`#sopNeedBox` / `#sopFormOut` / `sopBuildForm()` / `sopRenderNeed()` / `sopCopy()` 全部移除，别再加回来；**提单格式还留在场景卡里**（折叠块 `details.sop-fold`），只是不再往那块卡里生成文本。
 - **数据来源优先级**：本机导入（`localStorage['sopBundleLocal']`）> 服务端 `sopBundle`（带口令）> **内置示例 `SOP_DEMO`**；抬头与「数据」卡都写明当前来源（本机导入 / 服务端 / 内置示例）。
 - **灌数据**：`SOP_TOKEN=xxx BASE_URL=https://work-bad.onrender.com npm run sop:seed`（默认读 `tools/out/sop/bundle.json`，POST 到 `/api/data/sopBundle`）；线上 Render 里要配 `SOP_TOKEN` 环境变量。页面也能「📥 粘贴导入 bundle JSON」（写本机 + 尝试推服务端）、「📋 复制当前 bundle」。
-- **二期（用户也勾了，尚未做）**：各游戏「后台行为对应表」（妖怪 855 行 / 攻沙 484 行…）、合区查询、xlsx 自动导入通道 —— ⚠️ `合区表.xls` 是**老 BIFF 格式**，Node 里没解出来（`tools/out/xls-text.cjs` 只是把文本扒出来的粗糙版），要自动吸得先**另存为 .xlsx** 或写 BIFF 解析。**常用语库已做**（见上，`bundle.phrases`；`全部常用语.xls` 仍是 BIFF，靠 `xls-text.cjs` 扒出可读句子后人工整理成 57 条）。
-- **测试**：`tools/smoke.cjs` 第 **8k** 节 **54 条**（**加密门：未解锁只看锁屏、不发 sopBundle 请求、口令框是 text（不挡中文输入法）、错口令清空、对「客服冷静」才进、口令不进 localStorage/sessionStorage** / **数据与口令卡：写明「口令 = 服务端 SOP_TOKEN，不是解锁口令」+ 403 回落 + 本机导入 + 状态行** / **思维导图：5 个环节闭环小片（提交→核实→处理→登记→回访）5 个环节节点、导图里挂着具体步骤、默认只给提示 / 点「核实」出步骤和可复制话术 / 点中的环节在流程图与导图同时高亮 / 换「处理」环节内容跟着换 / 环节话术能复制** / **话术编辑 7 条（每条带 ✏️、点开出编辑框、保存后换新话术 + 提示 + 写进 sopBundleLocal、＋ 加话术、🗑 删一条）** / **常用语库 7 条（默认只报条数不铺满、先给提示、搜「角色」筛出、复制给提示、✏️ 改完生效、＋ 新增后条数与分类片更新、🗑 删回 3 条）** / **信息清单卡已拿掉（`#sopNeedBox`/`#sopFormOut`/「信息清单」字样都没了）+ 提单格式仍在场景卡折叠块里** / 要收集小片 / 标签页/抬头来源/容器/默认入口/搜「充值没到账」命中并展开/订单号与话术/内部口径单独标出/复制话术不抛错/搜不到给提示/分类筛选/红线命中「好评+误封」并给替换口径/干净话不误报/清空生效/粘贴导入 bundle 生效并推服务端）；`tools/smoke-server.cjs` **+7 条**（不带口令 403、错口令 403、对口令 200、query 传口令、普通 key 不受影响、别的 sop 前缀也受保护）；`tools/verify.mjs` 3h **18 条**静态断言（含服务端 `SOP_TOKEN`/`SOP_KEY_RE`/`denySop`/`tokenEq`、`npm run sop:seed`、加密门只存内存、**口令框是 text + text-security（不许回到 password）**、五环节分组函数 + 导图结构 + 连线/高亮样式 + 数据与口令说明 + 常用语库 + 话术编辑 + 落盘 + 版面折叠 + 清单卡确已移除）。
+- **二期（用户也勾了，尚未做）**：各游戏「后台行为对应表」（妖怪 855 行 / 攻沙 484 行…）、合区查询、xlsx 自动导入通道 —— **.xls 现在能读了**（装 SheetJS 后 `tools/out/sop/xls-rows.cjs` 直接导行），所以 `合区表.xls`/其它 `.xls` 都能走这条路；剩下的是把导出的行对进场景（行为对照表/合区查询还没做）。**常用语库已做**（见上，`bundle.phrases` 238 条，直接来自原表，不再是「人工整理 57 条」）。
+- **测试**：`tools/smoke.cjs` 第 **8k** 节 **57 条**（**加密门：未解锁只看锁屏、不发 sopBundle 请求、口令框是 text（不挡中文输入法）、错口令清空、对「客服冷静」才进、口令不进 localStorage/sessionStorage** / **数据与口令卡：写明「口令 = 服务端 SOP_TOKEN，不是解锁口令」+ 403 回落 + 本机导入 + 状态行** / **思维导图：5 个环节闭环小片（提交→核实→处理→登记→回访）5 个环节节点、导图里挂着具体步骤、默认只给提示 / 点「核实」出步骤和可复制话术 / 点中的环节在流程图与导图同时高亮 / 换「处理」环节内容跟着换 / 环节话术能复制** / **话术编辑 7 条（每条带 ✏️、点开出编辑框、保存后换新话术 + 提示 + 写进 sopBundleLocal、＋ 加话术、🗑 删一条）** / **常用语库 7 条（默认只报条数不铺满、先给提示、搜「角色」筛出、复制给提示、✏️ 改完生效、＋ 新增后条数与分类片更新、🗑 删回 3 条）** / **相关常用语 3 条（场景卡按问题分类出分类片 / 点分类片 → 常用语库自动筛到那一类 / 筛出来的条目就是这一类）** / **信息清单卡已拿掉（`#sopNeedBox`/`#sopFormOut`/「信息清单」字样都没了）+ 提单格式仍在场景卡折叠块里** / 要收集小片 / 标签页/抬头来源/容器/默认入口/搜「充值没到账」命中并展开/订单号与话术/内部口径单独标出/复制话术不抛错/搜不到给提示/分类筛选/红线命中「好评+误封」并给替换口径/干净话不误报/清空生效/粘贴导入 bundle 生效并推服务端）；`tools/smoke-server.cjs` **+7 条**（不带口令 403、错口令 403、对口令 200、query 传口令、普通 key 不受影响、别的 sop 前缀也受保护）；`tools/verify.mjs` 3h **20 条**静态断言（含服务端 `SOP_TOKEN`/`SOP_KEY_RE`/`denySop`/`tokenEq`、`npm run sop:seed`、加密门只存内存、**口令框是 text + text-security（不许回到 password）**、**问题分类映射 `SOP_PH_CAT_RULES` + 场景分类片 + `sopPhGoCat`**、**常用语带标题**、五环节分组函数 + 导图结构 + 连线/高亮样式 + 数据与口令说明 + 话术编辑 + 落盘 + 版面折叠 + 清单卡确已移除）。
 
 ## 生管物料订单工作台（`public/pmc.html` · 临时工具，独立单页）
 
@@ -561,3 +563,10 @@ package.json               scripts: start / verify / verify:static / smoke:serve
   1. `#sopPassInput` 从 `type="password"` 改成 **`type="text"`**（password 类型在部分浏览器/输入法下会挡中文上屏，导致「客服冷静」打不进去），并加 `-webkit-text-security: disc` / `text-security: disc` 把字符遮成圆点（保留「看不出输入内容」的观感；不支持该属性的浏览器退化成明文，可接受）。placeholder 改成「输入使用口令（可用中文输入法）」。
   2. ⚠️ **别再改回 `type="password"`** —— 冒烟与静态断言都锁了：`smoke.cjs` 8k 里有一条「口令框用 text」，`verify.mjs` 3h 断言 `id="sopPassInput" type="text"` + `-webkit-text-security: disc` 且不存在 `type="password"`。
   3. **测试**：smoke **359 → 360**（8k 53 → 54），verify 3h **17 → 18**。`npm run verify` 全绿（360 / 42 / 169）。
+
+- 本轮：**SOP 常用语库按用户自己分好的问题分类重建（238 条 · 22 类，带标题）+ 场景卡出「相关常用语」分类片**（用户：「可以把常用话术直接按我分好的问题匹配进去吗」—— 指《全部常用语.xls》里「分类名称」那 22 类）。改了 `public/index.html` + `tools/smoke.cjs` + `tools/verify.mjs` + 本文件：
+  1. **数据重建**：`.xls`（BIFF8）改用 SheetJS 读（`G:\work-bad\node_modules\xlsx`，`npm i xlsx@0.18.5 --no-save` 装的，`node_modules/` 已 gitignore）→ `tools/out/sop/xls-rows.cjs` 导行 → `tools/out/sop/rebuild-phrases.cjs` 重建 `bundle.phrases`：**238 条 / 22 个问题分类**，每条 `{id, cat, title, tone, text}`（`cat` = 原表「分类名称」、`title` = 原表「标题」），`version: 4`。上一轮那份「人工整理 57 条」作废；`tools/out/xls-text.cjs`（盲扫文本）只作兜底，**别再用它当数据源**。
+  2. **场景 ↔ 问题分类**：新增 `SOP_PH_CAT_RULES`（按场景 `cat` 映射：账号信息 / 充值与退款 / 封禁与处罚 / 游戏问题 / 发票 / VIP 与运营 / 群维系 / 交接与升级）+ `SOP_PH_PRODUCT_CATS`（梦幻消除战→梦幻常规、唱舞全明星→唱舞常规）；`sopPhCatsForScene()` 先过滤再出片（库里没有的分类不出）。场景卡多一块「💬 相关常用语（按问题分类）」，点分类片 → `sopPhGoCat(cat)` 把常用语库筛到那一类并 `scrollIntoView` 滚过去。
+  3. **库里带标题**：搜索 blob 改成 标题 + 正文 + 分类 + 语气；每条卡显示「分类片 + 标题 + 正文」；编辑框多一个「标题」输入 —— `sopEditHtml(kind, idx, cat, tone, text, title)` 签名变了（改调用点记得带第 6 个参数）。`SOP_DEMO` 那 3 条示例也按这套分类改（退款 / 询问信息 / 安抚）。
+  4. **测试**：`smoke.cjs` 8k 新增 3 条（场景卡按问题分类出分类片 / 点分类片 → 常用语库自动筛到那一类 / 筛出来的条目就是这一类），**360 → 363**；`verify.mjs` 3h 加 2 条（`SOP_PH_CAT_RULES` + `sopPhCatsForScene` + `sopPhGoCat` + `data-sop-phgo` + `.sop-phchips`；`title` 字段与 6 参数签名），**18 → 20**。`npm run verify` 全绿（363 / 42 / 169）。
+  5. **要上线得用户自己来**：Render 里那个环境变量的 **KEY 现在叫 `workbad`，服务端只认 `SOP_TOKEN`** —— 要么改名、要么再加一个同名值的 `SOP_TOKEN`；之后 `SOP_TOKEN=xxx BASE_URL=https://work-bad.onrender.com npm run sop:seed` 把 v4（238 条）推上去。没推之前页面只在「本机导入 / 内置示例」之间切。
