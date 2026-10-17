@@ -1552,7 +1552,7 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     dom2.window.close();
   }
 
-  console.log('--- 8k. SOP 助手（场景检索 / 红线检查 / 信息清单 · 数据要口令）---');
+  console.log('--- 8k. SOP 助手（场景检索 / 红线检查 / 常用语库 · 数据要口令）---');
   {
     const postsBefore = posts.length;
     doc.querySelector('.tab-btn[data-tab="sop"]').click();
@@ -1609,8 +1609,8 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
       'SOP 数据与口令：状态行给出「口令填没填 / 数据来自哪 / 服务端 key」',
       $('sopDataStatus').textContent);
     check(!!$('sopQuery') && !!$('sopHits') && !!$('sopSceneBox') && !!$('sopRedInput')
-      && !!$('sopNeedBox') && !!$('sopFormOut') && !!$('sopDataCard'),
-      'SOP：检索 / 结果 / 红线 / 清单 / 数据 容器都在');
+      && !!$('sopDataCard') && !!$('sopPhList'),
+      'SOP：检索 / 结果 / 红线 / 常用语 / 数据 容器都在');
     check(doc.querySelectorAll('#sopHits [data-sop-open]').length >= 6,
       'SOP：默认列出场景入口', doc.querySelectorAll('#sopHits [data-sop-open]').length);
 
@@ -1706,25 +1706,15 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     check($('sopRedInput').value === '' && $('sopRedBox').innerHTML === '',
       'SOP 红线：清空按钮生效');
 
-    // 信息清单 → 生成文本
+    // 「🧾 信息清单 / 提单文本」这块卡已按用户要求拿掉；提单格式留在场景卡里（折叠块）
     $('sopQuery').value = '账号找回';
     $('sopSearchBtn').click();
     await sleep(80);
-    const needs = [...doc.querySelectorAll('#sopNeedBox [data-sop-need]')];
-    check(needs.length >= 2, 'SOP：选中场景后列出要收集的信息清单', needs.length);
-    needs[0].checked = true;
-    needs[1].checked = true;
-    $('sopFormBuildBtn').click();
-    await sleep(40);
-    const formText = $('sopFormOut').value;
-    check(/【SOP｜/.test(formText) && /已收集/.test(formText),
-      'SOP：生成文本带场景标题与已收集项', formText.slice(0, 60));
-    check(/还差/.test(formText) && /工单号|提交者/.test(formText),
-      'SOP：生成文本包含还差项与提单格式（工单号/提交者…）');
-    $('sopFormCopyBtn').click();
-    await sleep(30);
-    check(/已复制/.test($('sopFormHint').textContent), 'SOP：复制文本给提示',
-      $('sopFormHint').textContent);
+    check(!$('sopNeedBox') && !$('sopFormOut') && !$('sopFormBuildBtn')
+      && !/信息清单/.test(doc.body.textContent),
+      'SOP：信息清单 / 提单文本那块卡已经拿掉');
+    check(/提单格式/.test($('sopSceneBox').textContent),
+      'SOP：提单格式仍留在场景卡里（折叠块）');
 
     // 场景话术可改 / 可加 / 可删（用户：后续要可以添加修改已有的话术）
     const seditBtn = doc.querySelector('#sopSceneBox [data-sop-sedit="0"]');

@@ -411,25 +411,26 @@ ok(/const TEA_SHOPS_CACHE_KEY = 'teaShopsCache';/.test(s) && /function teaSaveSh
 // ---- 3h. SOP 助手（场景检索 / 红线检查 / 信息清单 · 数据在服务端 sopBundle 要口令）----
 ok(/data-tab="sop"/.test(s) && /id="tab-sop"/.test(s) && /SOP ASSIST/.test(s),
   '「SOP 助手」标签页已注入（侧边栏 + 页面 + 报表抬头）');
-ok(['sopQuery', 'sopHits', 'sopSceneBox', 'sopRedInput', 'sopRedBox', 'sopNeedBox',
-  'sopFormOut', 'sopDataCard', 'sopTokenInput', 'sopCatSel', 'sopChannelSel']
-  .every(id => s.includes('id="' + id + '"')),
-  'SOP：检索 / 结果 / 红线 / 清单 / 数据 容器齐全');
+ok(['sopQuery', 'sopHits', 'sopSceneBox', 'sopRedInput', 'sopRedBox',
+  'sopDataCard', 'sopTokenInput', 'sopCatSel', 'sopChannelSel', 'sopPhList']
+  .every(id => s.includes('id="' + id + '"'))
+  && !/id="sopNeedBox"/.test(s) && !/id="sopFormOut"/.test(s) && !/信息清单 \/ 提单文本/.test(s),
+  'SOP：检索 / 结果 / 红线 / 常用语 / 数据 容器齐全（「信息清单 / 提单文本」卡已拿掉）');
 ok(/const SOP_STORE_KEY = 'sopBundle';/.test(s) && /const SOP_TOKEN_KEY = 'sopToken';/.test(s)
   && /x-sop-token/.test(s) && /const SOP_DEMO = \{/.test(s) && /function sopValidBundle/.test(s)
   && /function sopLoad\(force\)/.test(s),
   'SOP：数据走服务端 sopBundle（带口令）+ 本机导入优先 + 内置示例兜底');
 ok(/function sopSearch\(\)/.test(s) && /function sopOpenScene\(id\)/.test(s)
-  && /function sopCheckRedlines\(\)/.test(s) && /function sopBuildForm\(\)/.test(s)
-  && /function sopImport\(\)/.test(s) && /function sopRenderNeed\(s\)/.test(s),
-  'SOP：检索 / 场景卡 / 红线检查 / 信息清单 / 导入 都实现了');
+  && /function sopCheckRedlines\(\)/.test(s) && /function sopImport\(\)/.test(s)
+  && !/function sopBuildForm\(\)/.test(s) && !/function sopRenderNeed\(s\)/.test(s),
+  'SOP：检索 / 场景卡 / 红线检查 / 导入 都在（清单生成那两个函数随卡片移除）');
 ok(/内部口径（别发玩家）/.test(s) && /const SOP_DEMO/.test(s) && /redlines: \[/.test(s)
   && /好评/.test(s) && /误封/.test(s) && /代言人/.test(s),
   'SOP：内部口径单独标红，红线词表含「好评 / 误封 / 代言人」等 SOP 明令禁语');
 ok(/setClick\('sopSearchBtn', sopSearch\)/.test(s) && /setClick\('sopRedCheckBtn', sopCheckRedlines\)/.test(s)
-  && /setClick\('sopFormBuildBtn', sopBuildForm\)/.test(s) && /setClick\('sopImportBtn', sopImport\)/.test(s)
+  && /setClick\('sopImportBtn', sopImport\)/.test(s) && /setClick\('sopPhNewBtn'/.test(s)
   && /dataset\.tab === 'sop'\) sopInit\(\)/.test(s),
-  'SOP：搜索 / 红线 / 生成 / 导入按钮与标签页初始化都挂上了');
+  'SOP：搜索 / 红线 / 导入 / 新增常用语 按钮与标签页初始化都挂上了');
 ok(/const SOP_TOKEN = process\.env\.SOP_TOKEN \|\| '';/.test(sv) && /const SOP_KEY_RE = \/\^sop\/i;/.test(sv)
   && /function denySop\(req, res\)/.test(sv) && /res\.status\(403\)\.json\(\{ error: 'SOP 口令不对' \}\)/.test(sv)
   && /x-sop-token/.test(sv) && /function tokenEq/.test(sv),

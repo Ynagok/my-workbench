@@ -3682,19 +3682,6 @@
             </div>
 
             <div class="card">
-                <label>🧾 信息清单 / 提单文本
-                    <span class="hint-text" style="font-weight:400;">选中场景后勾上已经问到的信息，一键生成「反馈三要素 / 提单格式」</span>
-                </label>
-                <div id="sopNeedBox" class="hint-text" style="margin-top:8px;">先从上面选一个场景。</div>
-                <div class="flex-row" style="margin-top:8px;">
-                    <button id="sopFormBuildBtn">生成文本</button>
-                    <button id="sopFormCopyBtn" class="secondary">📋 复制</button>
-                    <span class="hint-text" id="sopFormHint"></span>
-                </div>
-                <textarea id="sopFormOut" rows="9" readonly placeholder="生成后这里出现文本" style="margin-top:10px;"></textarea>
-            </div>
-
-            <div class="card">
                 <label>💬 常用语库
                     <span class="hint-text" style="font-weight:400;">从《全部常用语》整理；搜关键词或点分类，可复制 / 新增 / 修改 / 删除（改完存本机，带口令时会顺便推服务端）</span>
                 </label>
@@ -13853,15 +13840,6 @@
                                         if (s.source) h += '<details class="sop-fold"><summary>依据条款</summary><div class="hint-text" style="line-height:1.9;">' + esc(s.source) + '</div></details>';
                                         h += '</div>';
                                         box.innerHTML = h;
-                                        sopRenderNeed(s);
-                                    }
-                                    function sopRenderNeed(s) {
-                                        const box = document.getElementById('sopNeedBox');
-                                        if (!box) return;
-                                        const items = (s.needInfo || []).slice();
-                                        if (!items.length) { box.innerHTML = '<span class="hint-text">这个场景没有必收信息。</span>'; return; }
-                                        box.innerHTML = '<div class="hint-text" style="margin-bottom:6px;">勾上「已经问到」的信息（生成文本用）：</div>'
-                                            + items.map((x, i) => '<label class="sop-need"><input type="checkbox" data-sop-need="' + i + '"> ' + escapeHtml(x) + '</label>').join('');
                                     }
                                     function sopRedlineRules() {
                                         const b = sopBundle || SOP_DEMO;
@@ -13899,48 +13877,6 @@
                                                 + '<div class="sop-hit-x">原因：' + escapeHtml(r.why || '') + '</div>'
                                                 + '<div class="sop-hit-fix">改成：' + escapeHtml(r.fix || '') + '</div></div>';
                                         }).join('');
-                                    }
-                                    function sopBuildForm() {
-                                        const out = document.getElementById('sopFormOut');
-                                        const hint = document.getElementById('sopFormHint');
-                                        if (!sopCurrent) { if (hint) hint.textContent = '先从上面点一个场景'; return; }
-                                        const s = sopCurrent;
-                                        const checked = [];
-                                        document.querySelectorAll('#sopNeedBox [data-sop-need]').forEach(cb => {
-                                            if (cb.checked) {
-                                                const i = +cb.dataset.sopNeed;
-                                                if ((s.needInfo || [])[i]) checked.push(s.needInfo[i]);
-                                            }
-                                        });
-                                        const lines = [];
-                                        lines.push('【SOP｜' + s.cat + '】' + s.title);
-                                        lines.push('① 用户基础信息：游戏 / 区服 / 角色名 / UID');
-                                        lines.push('② 问题发生时间：');
-                                        lines.push('③ 问题描述：');
-                                        if (checked.length) {
-                                            lines.push('');
-                                            lines.push('[已收集]');
-                                            checked.forEach(x => lines.push('· ' + x));
-                                        }
-                                        const miss = (s.needInfo || []).filter(x => checked.indexOf(x) === -1);
-                                        if (miss.length) {
-                                            lines.push('');
-                                            lines.push('[还差]');
-                                            miss.forEach(x => lines.push('· ' + x));
-                                        }
-                                        if (s.form && (s.form.fields || []).length) {
-                                            lines.push('');
-                                            lines.push('[' + (s.form.kicker || '提单') + ']');
-                                            lines.push(s.form.fields.map(f => f + '：').join(' '));
-                                        }
-                                        if (s.source) { lines.push(''); lines.push('（依据：' + s.source + '）'); }
-                                        if (out) out.value = lines.join('\n');
-                                        if (hint) hint.textContent = '已生成，检查一下再复制';
-                                    }
-                                    function sopCopy(str, hintId, okText) {
-                                        if (!str) { teaSetHint(hintId, '还没内容可复制'); return; }
-                                        safeCopy(str);
-                                        teaSetHint(hintId, okText || '已复制');
                                     }
                                     async function sopImport() {
                                         const t = prompt('把 SOP bundle JSON 粘进来（{ version, updatedAt, channels[], redlines[], scenes[] }）：');
@@ -14754,7 +14690,7 @@
                                         setClick('fbGenerateBtn', fbGenerate);
                                         setClick('fbCopyBtn', fbCopy);
                                         setClick('fbClearBtn', fbClear);
-                                        // SOP 助手（先过口令门 → 检索 / 红线检查 / 信息清单）
+                                        // SOP 助手（先过口令门 → 检索 / 红线检查 / 常用语库）
                                         setClick('sopUnlockBtn', sopUnlock);
                                         (function bindSopPass() {
                                             const p = document.getElementById('sopPassInput');
@@ -14830,11 +14766,6 @@
                                             const i = document.getElementById('sopRedInput'); if (i) i.value = '';
                                             const b = document.getElementById('sopRedBox'); if (b) b.innerHTML = '';
                                             const h = document.getElementById('sopRedHint'); if (h) h.textContent = '';
-                                        });
-                                        setClick('sopFormBuildBtn', sopBuildForm);
-                                        setClick('sopFormCopyBtn', () => {
-                                            const o = document.getElementById('sopFormOut');
-                                            sopCopy(((o && o.value) || '').trim(), 'sopFormHint', '已复制文本');
                                         });
                                         setClick('sopTokenSaveBtn', sopSaveToken);
                                         setClick('sopReloadBtn', sopReload);
