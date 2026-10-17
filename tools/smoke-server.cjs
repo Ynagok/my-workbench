@@ -16,6 +16,7 @@ const OUT_DIR = path.join(__dirname, 'out');
 const TMP_DATA = path.join(OUT_DIR, '_server-smoke-data.json');
 const PORT = 3100 + (process.pid % 900);
 const BASE = `http://127.0.0.1:${PORT}`;
+const SOP_TOK = 'smoke-sop-token';
 
 let pass = 0;
 let fail = 0;
@@ -33,12 +34,14 @@ function cleanup() {
   try { fs.rmSync(TMP_DATA, { force: true }); } catch (_) { /* ignore */ }
 }
 
-async function req(method, p, body) {
+async function req(method, p, body, headers) {
   const opt = { method };
+  const h = Object.assign({}, headers || {});
   if (body !== undefined) {
-    opt.headers = { 'Content-Type': 'application/json' };
+    h['Content-Type'] = 'application/json';
     opt.body = JSON.stringify(body);
   }
+  if (Object.keys(h).length) opt.headers = h;
   const r = await fetch(BASE + p, opt);
   let json = null;
   try { json = await r.json(); } catch (_) { /* ignore */ }
@@ -51,7 +54,7 @@ async function main() {
 
   const child = spawn(process.execPath, [path.join(ROOT, 'server.js')], {
     cwd: ROOT,
-    env: { ...process.env, PORT: String(PORT), DATA_FILE: TMP_DATA },
+    env: { ...process.env, PORT: String(PORT), DATA_FILE: TMP_DATA, SOP_TOKEN: SOP_TOK },
     stdio: ['ignore', 'ignore', 'ignore'],
   });
   let exited = null;
@@ -212,6 +215,26 @@ async function main() {
     const stillThere = await req('GET', `/api/vote/${pollKey}`);
     check(stillThere.json.value !== null && stillThere.json.expired === false,
       '当天 23:00 前，投票数据不会被清掉', stillThere.json && stillThere.json.expired);
+
+    // ---------------- SOP 数据：只对 sop* 要口令 ----------------
+    console.log('— SOP 数据口令（sop* 开头的 key）—');
+    const noTok = await req('GET', '/api/data/sopBundle');
+    check(noTok.status === 403, 'SOP：不带口令读 → 403', noTok.status);
+    const badTok = await req('GET', '/api/data/sopBundle', undefined, { 'x-sop-token': 'wrong' });
+    check(badTok.status === 403, 'SOP：口令不对 → 403', badTok.status);
+    const putSop = await req('POST', '/api/data/sopBundle', { value: { version: 1, scenes: [{ id: 'a' }] } }, { 'x-sop-token': SOP_TOK });
+    check(putSop.status === 200, 'SOP：带对口令写 → 200', putSop.status);
+    const getSop = await req('GET', '/api/data/sopBundle', undefined, { 'x-sop-token': SOP_TOK });
+    check(getSop.status === 200 && getSop.json.value && getSop.json.value.version === 1,
+      'SOP：带对口令读 → 200 且拿到数据', getSop.json && getSop.json.value);
+    const qTok = await req('GET', '/api/data/sopBundle?token=' + encodeURIComponent(SOP_TOK));
+    check(qTok.status === 200, 'SOP：口令也支持 query 传（?token=）', qTok.status);
+    const normalNoTok = await req('GET', '/api/data/work-bad_v2');
+    check(normalNoTok.status === 200,
+      'SOP：普通 key（work-bad_v2）不受口令影响，照常 200', normalNoTok.status);
+    const normalSopLike = await req('GET', '/api/data/sopcheck');
+    check(normalSopLike.status === 403,
+      'SOP：别的 sop 前缀 key 同样受保护（不想裸奔）', normalSopLike.status);
   } finally {
     try { child.kill(); } catch (_) { /* ignore */ }
     await new Promise((r) => setTimeout(r, 150));

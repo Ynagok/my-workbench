@@ -42,10 +42,43 @@ function writeData(data) {
   fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2), 'utf-8');
 }
 
+// ==================== SOP 数据（sopBundle / sop*）的口令保护 ====================
+// ⚠️ SOP 里全是内部规范（有「严禁告知玩家」的红线内容、判定阈值、升级顺序），
+//    不能像日报模板那样任何人拿到地址就能读。所以**只对 sop 开头的 key**要口令：
+//    - 环境变量 SOP_TOKEN 没配 → sop 数据一律 403（宁可不可用，也不裸奔）
+//    - 请求头 `x-sop-token`（或 query `?token=`）必须与 SOP_TOKEN 一致
+//    - 其它 key（work-bad_v2 / teaShops / teaPoll_* …）行为完全不变
+const SOP_TOKEN = process.env.SOP_TOKEN || '';
+const SOP_KEY_RE = /^sop/i;
+function isSopKey(key) {
+  return SOP_KEY_RE.test(String(key));
+}
+function tokenEq(a, b) {
+  const x = Buffer.from(String(a), 'utf8');
+  const y = Buffer.from(String(b), 'utf8');
+  if (x.length !== y.length) return false;
+  let diff = 0;
+  for (let i = 0; i < x.length; i++) diff |= x[i] ^ y[i];
+  return diff === 0;
+}
+function denySop(req, res) {
+  const given = req.get('x-sop-token') || req.query.token || '';
+  if (!SOP_TOKEN) {
+    res.status(403).json({ error: '服务端未配置 SOP_TOKEN，SOP 数据已关闭' });
+    return true;
+  }
+  if (!tokenEq(given, SOP_TOKEN)) {
+    res.status(403).json({ error: 'SOP 口令不对' });
+    return true;
+  }
+  return false;
+}
+
 // API：获取某个 key 的数据
 app.get('/api/data/:key', (req, res) => {
   const key = req.params.key;
   if (!isValidKey(key)) return res.status(400).json({ error: '非法的数据 key' });
+  if (isSopKey(key) && denySop(req, res)) return;
   const data = readData();
   res.json({ value: data[key] });
 });
@@ -54,6 +87,7 @@ app.get('/api/data/:key', (req, res) => {
 app.post('/api/data/:key', (req, res) => {
   const key = req.params.key;
   if (!isValidKey(key)) return res.status(400).json({ error: '非法的数据 key' });
+  if (isSopKey(key) && denySop(req, res)) return;
   const data = readData();
   data[key] = req.body.value;
   writeData(data);
