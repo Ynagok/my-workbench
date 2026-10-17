@@ -408,6 +408,35 @@ ok(/const TEA_SHOPS_CACHE_KEY = 'teaShopsCache';/.test(s) && /function teaSaveSh
   && /const o = \(typeof s === 'string'\) \? \{ name: s \} : s;/.test(s),
   '下午茶：店家只存店名 + 本机另存备份，服务端那份没了就自动恢复（永不随投票一起清）');
 
+// ---- 3h. SOP 助手（场景检索 / 红线检查 / 信息清单 · 数据在服务端 sopBundle 要口令）----
+ok(/data-tab="sop"/.test(s) && /id="tab-sop"/.test(s) && /SOP ASSIST/.test(s),
+  '「SOP 助手」标签页已注入（侧边栏 + 页面 + 报表抬头）');
+ok(['sopQuery', 'sopHits', 'sopSceneBox', 'sopRedInput', 'sopRedBox', 'sopNeedBox',
+  'sopFormOut', 'sopDataCard', 'sopTokenInput', 'sopCatSel', 'sopChannelSel']
+  .every(id => s.includes('id="' + id + '"')),
+  'SOP：检索 / 结果 / 红线 / 清单 / 数据 容器齐全');
+ok(/const SOP_STORE_KEY = 'sopBundle';/.test(s) && /const SOP_TOKEN_KEY = 'sopToken';/.test(s)
+  && /x-sop-token/.test(s) && /const SOP_DEMO = \{/.test(s) && /function sopValidBundle/.test(s)
+  && /function sopLoad\(force\)/.test(s),
+  'SOP：数据走服务端 sopBundle（带口令）+ 本机导入优先 + 内置示例兜底');
+ok(/function sopSearch\(\)/.test(s) && /function sopOpenScene\(id\)/.test(s)
+  && /function sopCheckRedlines\(\)/.test(s) && /function sopBuildForm\(\)/.test(s)
+  && /function sopImport\(\)/.test(s) && /function sopRenderNeed\(s\)/.test(s),
+  'SOP：检索 / 场景卡 / 红线检查 / 信息清单 / 导入 都实现了');
+ok(/内部口径（别发玩家）/.test(s) && /const SOP_DEMO/.test(s) && /redlines: \[/.test(s)
+  && /好评/.test(s) && /误封/.test(s) && /代言人/.test(s),
+  'SOP：内部口径单独标红，红线词表含「好评 / 误封 / 代言人」等 SOP 明令禁语');
+ok(/setClick\('sopSearchBtn', sopSearch\)/.test(s) && /setClick\('sopRedCheckBtn', sopCheckRedlines\)/.test(s)
+  && /setClick\('sopFormBuildBtn', sopBuildForm\)/.test(s) && /setClick\('sopImportBtn', sopImport\)/.test(s)
+  && /dataset\.tab === 'sop'\) sopInit\(\)/.test(s),
+  'SOP：搜索 / 红线 / 生成 / 导入按钮与标签页初始化都挂上了');
+ok(/const SOP_TOKEN = process\.env\.SOP_TOKEN \|\| '';/.test(sv) && /const SOP_KEY_RE = \/\^sop\/i;/.test(sv)
+  && /function denySop\(req, res\)/.test(sv) && /res\.status\(403\)\.json\(\{ error: 'SOP 口令不对' \}\)/.test(sv)
+  && /x-sop-token/.test(sv) && /function tokenEq/.test(sv),
+  '服务端：sop* 开头的 key 要 SOP_TOKEN（没配就关掉），普通 key 行为不变');
+ok(fs.existsSync('tools/sop-seed.cjs') && /sop:seed/.test(fs.readFileSync('package.json', 'utf8')),
+  'SOP：有 npm run sop:seed 把 bundle 推到服务端');
+
 // ---- 4. 花括号/圆括号平衡（粗查，排除字符串内的干扰仅作参考） ----
 const count = (str, ch) => (str.split(ch).length - 1);
 const braces = count(js, '{') - count(js, '}');

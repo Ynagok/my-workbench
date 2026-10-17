@@ -3229,6 +3229,38 @@
         details.tea-shop-card[open] > summary::before { content: '▾'; }
         details.tea-shop-card > summary:hover { color: var(--accent-ink); }
         details.tea-shop-card[open] > summary { margin-bottom: 8px; }
+
+        /* ---------- SOP 助手：场景卡 / 红线命中 ---------- */
+        .sop-scene {
+            margin-top: 12px; padding: 12px; border: 1px solid var(--line-0);
+            background: var(--surface-2); border-radius: var(--r-md);
+        }
+        .sop-scene-head { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; margin-bottom: 6px; }
+        .sop-scene-head b { font-size: 14px; color: var(--ink-0); }
+        .sop-block { margin-top: 10px; }
+        .sop-block-t {
+            font-size: 12px; letter-spacing: 0.04em; color: var(--accent-ink);
+            font-weight: 600; margin-bottom: 4px;
+        }
+        .sop-ol, .sop-ul { margin: 0; padding-left: 20px; font-size: 13px; line-height: 1.7; color: var(--ink-1); }
+        .sop-script { border-left: 2px solid var(--accent-line); padding: 4px 0 4px 10px; margin: 6px 0; }
+        .sop-script-t { font-size: 12px; color: var(--ink-2); display: flex; gap: 8px; align-items: center; }
+        .sop-script-x { font-size: 13px; line-height: 1.7; color: var(--ink-1); margin-top: 2px; white-space: pre-wrap; }
+        .sop-copy-btn { padding: 1px 8px !important; font-size: 12px !important; }
+        .sop-internal {
+            border: 1px dashed var(--danger); background: var(--accent-dim); padding: 8px 10px; border-radius: var(--r-sm);
+        }
+        .sop-internal .sop-block-t { color: var(--danger); }
+        .sop-form-preview { font-family: var(--mono, Consolas, monospace); font-size: 12px; color: var(--ink-1); word-break: break-all; }
+        .sop-need {
+            display: inline-flex; align-items: center; gap: 6px; margin: 0 12px 6px 0;
+            font-size: 13px; color: var(--ink-1); cursor: pointer;
+        }
+        .sop-hit { border-left: 3px solid var(--danger); background: var(--surface-2); padding: 8px 10px; margin-top: 8px; border-radius: var(--r-sm); }
+        .sop-hit-amber { border-left-color: var(--warn); }
+        .sop-hit-t { font-size: 13px; font-weight: 600; color: var(--ink-0); }
+        .sop-hit-x, .sop-hit-fix { font-size: 13px; line-height: 1.7; color: var(--ink-1); }
+        .sop-hit-fix { color: var(--ink-2); }
     </style>
 </head>
 
@@ -3282,6 +3314,7 @@
 
             <button class="tab-btn" data-tab="reply"> 工单回复</button>
             <button class="tab-btn" data-tab="feedback"> 反馈模板</button>
+            <button class="tab-btn" data-tab="sop"> SOP 助手</button>
             <button class="tab-btn" data-tab="daily"> 每日日报</button>
             <button class="tab-btn" data-tab="career"> 客服生涯</button>
             <button class="tab-btn" data-tab="overseas"> 海外业务统计</button>
@@ -3509,6 +3542,74 @@
                 </label>
                 <textarea id="fbOutput" rows="11" readonly></textarea>
             </div>
+        </div>
+
+        <!-- ==================== SOP 助手 ==================== -->
+        <div id="tab-sop" class="tab-content">
+            <div class="career-report-head" id="sopReportHead">
+                <div>
+                    <div class="crh-kicker">SOP ASSIST / 客服 SOP 助手</div>
+                    <div class="crh-title">SOP 助手</div>
+                    <div class="crh-sub" id="sopReportSub">—</div>
+                </div>
+                <div class="crh-meta" id="sopReportMeta"></div>
+            </div>
+
+            <div class="card">
+                <label>🔍 查场景
+                    <span class="hint-text" style="font-weight:400;">打玩家原话或关键词（「收不到验证码」「充值没到账」「被封了」），也可以直接选分类</span>
+                </label>
+                <div class="flex-row" style="margin-top:8px;">
+                    <input id="sopQuery" placeholder="玩家原话 / 关键词…" style="max-width:400px;">
+                    <select id="sopCatSel" style="max-width:170px;"></select>
+                    <select id="sopChannelSel" style="max-width:130px;"></select>
+                    <button id="sopSearchBtn">搜索</button>
+                    <button id="sopClearBtn" class="secondary">清空</button>
+                </div>
+                <div class="fb-chip-row" id="sopHits" style="margin-top:10px;"></div>
+                <div id="sopSceneBox"></div>
+            </div>
+
+            <div class="card">
+                <label>🚩 红线检查
+                    <span class="hint-text" style="font-weight:400;">把准备发给玩家的话粘进来，检查有没有踩 SOP 红线（好评 / 误封 / 代言人 / 外挂 / 具体时间点…）</span>
+                </label>
+                <textarea id="sopRedInput" rows="4" placeholder="粘贴准备回复玩家的内容…" style="margin-top:8px;"></textarea>
+                <div class="flex-row" style="margin-top:8px;">
+                    <button id="sopRedCheckBtn">检查</button>
+                    <button id="sopRedClearBtn" class="secondary">清空</button>
+                    <span class="hint-text" id="sopRedHint"></span>
+                </div>
+                <div id="sopRedBox" style="margin-top:10px;"></div>
+            </div>
+
+            <div class="card">
+                <label>🧾 信息清单 / 提单文本
+                    <span class="hint-text" style="font-weight:400;">选中场景后勾上已经问到的信息，一键生成「反馈三要素 / 提单格式」</span>
+                </label>
+                <div id="sopNeedBox" class="hint-text" style="margin-top:8px;">先从上面选一个场景。</div>
+                <div class="flex-row" style="margin-top:8px;">
+                    <button id="sopFormBuildBtn">生成文本</button>
+                    <button id="sopFormCopyBtn" class="secondary">📋 复制</button>
+                    <span class="hint-text" id="sopFormHint"></span>
+                </div>
+                <textarea id="sopFormOut" rows="9" readonly placeholder="生成后这里出现文本" style="margin-top:10px;"></textarea>
+            </div>
+
+            <details class="card tea-shop-card" id="sopDataCard">
+                <summary>⚙️ 数据与口令<span class="hint-text" id="sopDataMeta">（—）</span><span class="hint-text" style="font-weight:400;">点开：口令 / 导入 bundle / 版本</span></summary>
+                <div class="flex-row" style="margin-top:10px;">
+                    <input id="sopTokenInput" placeholder="SOP 口令（服务端 SOP_TOKEN）" style="max-width:260px;">
+                    <button id="sopTokenSaveBtn">保存口令并重新加载</button>
+                    <button id="sopReloadBtn" class="secondary">重新加载</button>
+                </div>
+                <div class="hint-text" style="margin-top:8px;">口令只存在这台设备的 localStorage，不会进服务端；数据在服务端 key <code>sopBundle</code>，只有带对口令的请求能读。</div>
+                <div class="flex-row" style="margin-top:10px;">
+                    <button id="sopImportBtn" class="secondary">📥 粘贴导入 bundle JSON</button>
+                    <button id="sopExportBtn" class="secondary">📋 复制当前 bundle</button>
+                </div>
+                <div class="hint-text" id="sopDataHint" style="margin-top:8px;"></div>
+            </details>
         </div>
 
         <!-- ==================== 集卡页 card ==================== -->
@@ -12940,6 +13041,434 @@
                                         }
                                     }
 
+                                    // ==================== SOP 助手（⚠️ 数据在服务端 sopBundle，要口令） ====================
+                                    // 数据来源：客服部工作SOP / 后台常用话术 / 游戏问题处理流程 / 客服规范总汇 / 交接文档
+                                    // 结构：{ version, updatedAt, channels[], redlines[], scenes[] }
+                                    //   scene = { id, cat, product[], channel[], title, triggers[], needInfo[], steps[],
+                                    //             scripts[{tone,visibility,text}], internal[], escalate[{when,do}],
+                                    //             form{kicker,fields[]}, source }
+                                    // ⚠️ 这里**不发任何消息给玩家**：只查、只抄、只校验；发送仍由人做。
+                                    // ⚠️ 服务端 `sop*` 开头的 key 需要 SOP_TOKEN（见 server.js），口令只存本机 localStorage。
+                                    const SOP_STORE_KEY = 'sopBundle';
+                                    const SOP_TOKEN_KEY = 'sopToken';
+                                    const SOP_LOCAL_KEY = 'sopBundleLocal';
+                                    let sopBundle = null;
+                                    let sopCurrent = null;
+                                    let sopSourceLabel = '内置示例';
+                                    // 内置示例（服务端还没灌数据时的兜底；完整版用 npm run sop:seed 推上去）
+                                    const SOP_DEMO = {
+                                        version: 0,
+                                        updatedAt: '2026-10-17',
+                                        channels: ['53', '抖小', '海外', '工单', '群维'],
+                                        redlines: [
+                                            { level: 'red', word: '好评', why: 'TapTap 引导话术里不能出现「好评」两个字', fix: '改用「TapTap 意见征集活动」', src: 'SOP 1.3' },
+                                            { level: 'red', word: '误封', why: '解封了也不能说「误封」', fix: '「收到您的申诉已通过，账号已解封，请登录确认」', src: 'SOP 1.3' },
+                                            { level: 'red', word: '代言人', why: '周年庆对外只能说「品牌大使」', fix: '改成「品牌大使」', src: 'SOP 1.3' },
+                                            { level: 'red', word: '外挂', why: '不提及外挂细节；CP 扣资源统一说「系统检测到使用第三方非法工具异常获取资源，已自动扣除」', fix: '「系统检测到使用第三方非法工具异常获取资源，已自动扣除」', src: 'SOP 1.3' },
+                                            { level: 'amber', word: 'VIP客服', why: '对未认证玩家不能提「VIP客服 / 专属客服 / 认证礼包」', fix: '未认证只说「在线客服」', src: 'SOP 1.3' },
+                                            { level: 'amber', re: '(内部|请勿告知|严禁透露)', why: '内部说明不能写进给玩家的话里', fix: '删掉内部说明，只留对外口径', src: 'SOP 1.1' },
+                                            { level: 'amber', word: '存续期', why: '奖励补发的「存续期 X 天」不告知具体天数', fix: '「请在活动结束前尽快领取」', src: 'SOP 1.2' }
+                                        ],
+                                        scenes: [
+                                            {
+                                                id: 'acc.recover.bound', cat: '账号信息', product: ['通用'], channel: ['53', '抖小'],
+                                                title: '账号找回（有绑定手机号）',
+                                                triggers: ['账号找不回', '换手机了', '收不到验证码', '账号忘了', '登录不上老号'],
+                                                needInfo: ['游戏 / 区服 / 角色名 / UID', '绑定手机号是否还能收短信', '近期充值订单截图（如需核验归属）'],
+                                                steps: ['核实绑定手机号是否可正常使用', '可用 → 引导玩家用验证码自助找回（悬浮窗—账户）', '不可用 → 走解绑流程，解绑后再帮找回'],
+                                                scripts: [{ tone: '核实可用', visibility: 'public', text: '您好呀！刚核实到您的账户有绑定手机号且可以正常使用，建议用手机号接收验证码自助找回；如果收不到，请先检查短信拦截或换个网络再试一次哦～' }],
+                                                internal: ['同一天内「提示频繁」可特殊处理一次（十分钟后再试），别承诺天天都能处理'],
+                                                escalate: [{ when: '号码已注销并被运营商回收再售', do: '玩家主动提及才可走解绑；不主动提这条隐藏规则' }],
+                                                form: { kicker: 'SSO 内部提单', fields: ['工单号', '提交者', '游戏', 'uid', '角色名', '角色id', '区服', '问题', '来源', '编号', '联系方式'] },
+                                                source: 'SOP 2.1 / 后台常用话术·账号找回'
+                                            },
+                                            {
+                                                id: 'acc.unbind', cat: '账号信息', product: ['异世界勇者', '通用'], channel: ['53', '抖小'],
+                                                title: '手机号解绑 / 换绑',
+                                                triggers: ['换绑', '解绑手机', '手机号不用了', '号码空号'],
+                                                needInfo: ['游戏 / 区服（001 与 000 规则不同）/ 角色名 / UID', '新手机号（尽量不绑其他账号）', '注册时间 / 地点 / 常登录地点设备', '充值记录', '原号码是否空号（需电话确认）'],
+                                                steps: ['异世界 001 才支持换绑，其它产品只处理解绑申诉', '原手机号收不到短信 → 电话确认是否空号（仅处理空号）', '确认空号 → 收集信息 → SSO 后台内部提单', '提单后告知工单号 → 质检交流群同步'],
+                                                scripts: [{ tone: '引导提供换绑号', visibility: 'public', text: '您好呀，关于换绑手机号客服已经了解啦！请您提供一个需要换绑的手机号码，尽量不要绑定其他游戏账号哦～若该号码绑定过其他账号，申诉成功后那些账号会自动解绑，请及时保存好账号密码哈。' }],
+                                                internal: ['001 只能用手机号登录；000 可用账号密码或手机号', '无论是否成功，每个环节负责人都要在工单内备注当前进度'],
+                                                escalate: [],
+                                                form: { kicker: 'SSO 内部提单', fields: ['工单号', '提交者', '游戏', 'uid', '角色名', '角色id', '区服', '原号码是否空号', '新号码', '问题', '来源', '编号', '联系方式'] },
+                                                source: 'SOP 2.2 / 后台常用话术·换绑'
+                                            },
+                                            {
+                                                id: 'pay.notreceived', cat: '充值与退款', product: ['通用', '梦幻消除战', '繁花'], channel: ['53', '抖小', '海外'],
+                                                title: '充值不到账',
+                                                triggers: ['充值没到账', '付了没到', '钱扣了道具没给', '订单没到账'],
+                                                needInfo: ['游戏 / 区服 / 角色名 / UID', '充值时间', '金额', '充值内容', '订单号 + 商户订单号截图'],
+                                                steps: ['先收集订单截图、时间、金额、内容', 'SSO/SDK 后台查订单状态', '已同步 → 核对 CP 后台是否到账；没有则联系 CP', '已支付未同步 → 联系平台技术', '未支付 → 后台确认后联系技术'],
+                                                scripts: [{ tone: '收集截图', visibility: 'public', text: '您好呀，为了尽快核实到账情况，麻烦您提供充值截图（要能看到订单号和商户订单号哦）、充值时间、金额和充值的内容呀～' }],
+                                                internal: ['iOS 要 App Store 购买记录；微信看钱包账单；支付宝看我的—账单'],
+                                                escalate: [{ when: '同一时间 3 人以上反馈充值异常', do: '按批量问题：收集游戏/区服/角色/人数 → 立即发群 → 钉钉没人回就打电话' }],
+                                                form: { kicker: 'SSO 内部提单', fields: ['工单号', '提交者', '游戏', 'uid', '角色名', '角色id', '区服', '订单号', '商户订单号', '金额', '充值时间', '问题', '来源', '编号', '联系方式'] },
+                                                source: 'SOP 3.1 / 游戏问题处理流程·充值类'
+                                            },
+                                            {
+                                                id: 'ban.general', cat: '封禁与处罚', product: ['通用'], channel: ['53', '抖小', '工单'],
+                                                title: '被封禁 / 禁言申诉',
+                                                triggers: ['被封了', '为什么封号', '解封', '禁言了', '申诉解封'],
+                                                needInfo: ['游戏 / 区服 / 角色名 / UID', '封禁时间', '后台封禁原因', '是否首次违规'],
+                                                steps: ['核对玩家信息 → 后台查禁言/封禁记录', '禁言：看聊天记录判断能否教育解除（研发操作的提组长）', '封禁：看封禁原因判断能否教育解封（开挂类按规则处理）', '查无记录 → 告知未被禁言/封禁，请仔细回想'],
+                                                scripts: [{ tone: '教育解封', visibility: 'public', text: '您好，这边已收到您的申诉并核实，账号已为您解封，请登录确认～后续请遵守游戏规则哦，避免再次被处理呢。' }],
+                                                internal: ['⚠️ 解封也不说「误封」', '处罚次数 / 封禁原因明细不透露', '灰产刷资源类不适用教育解封'],
+                                                escalate: [{ when: '开挂被封要求解封', do: '按开挂封禁规则处理，不教育解封；有争议升级组长' }],
+                                                form: { kicker: '内部工单', fields: ['工单号', '提交者', '游戏', 'uid', '角色名', '角色id', '区服', '封禁时间', '问题', '来源', '编号', '联系方式'] },
+                                                source: 'SOP 4.1 / 4.5 / 游戏问题处理流程·封禁类'
+                                            },
+                                            {
+                                                id: 'game.flow', cat: '游戏问题', product: ['通用'], channel: ['53', '抖小', '海外'],
+                                                title: '数据 / 流水查询（道具为什么少了）',
+                                                triggers: ['道具少了', '钻石不见了', '流水', '消耗记录'],
+                                                needInfo: ['游戏 / 区服 / 角色名 / UID', '道具名称', '减少前后数量', '大概时间'],
+                                                steps: ['后台查该道具的获得与消耗流水', '找到消耗 → 告知时间、数量、目前无异常', '查不到 → 取证后提单'],
+                                                scripts: [{ tone: '查到消耗', visibility: 'public', text: '这边帮您查到了：您的【道具】在【时间】消耗了【数量】，目前数据无异常哦。建议后续操作时多留意一下，避免不必要的损失呢～' }],
+                                                internal: ['正常不会无故丢失，先假定是玩家自己用掉', '掉落概率 / 内部规则不对外'],
+                                                escalate: [],
+                                                form: { kicker: '内部工单', fields: ['工单号', '提交者', '游戏', 'uid', '角色名', '角色id', '区服', '道具', '数量', '发生时间', '问题', '来源', '编号'] },
+                                                source: 'SOP 5.1 / 5.3'
+                                            },
+                                            {
+                                                id: 'game.login', cat: '游戏问题', product: ['通用'], channel: ['53', '抖小', '海外', '群维'],
+                                                title: '登录异常 / 卡顿 / 闪退',
+                                                triggers: ['登不上', '卡在加载', '闪退', '进不去', '转圈'],
+                                                needInfo: ['游戏 / 区服 / 角色名 / UID', '设备型号与系统', '网络环境', '是否维护期', '报错截图/录屏'],
+                                                steps: ['先判断是否维护期 → 是则告知后让玩家等维护结束', '客服自己测能否登录', '能登 → 引导：大退 → 换网络 → 重登 → 重装', '仍不行 → 收集信息反馈；≥3 人同类按批量处理'],
+                                                scripts: [{ tone: '引导自查', visibility: 'public', text: '麻烦您按这个顺序试一下：①退出游戏进程 ②切换网络（WiFi/流量互换）③重新登录 ④还不行就重装客户端。还是进不去的话，把报错截图发我，我帮您反馈核实哦～' }],
+                                                internal: ['维护期以公告为准，不预估修复时间', '批量问题：收集游戏/区服/角色/人数 → 发群 → 钉钉没人回就打电话'],
+                                                escalate: [{ when: '同一时间 3 人以上反馈', do: '整理信息立即发群，按升级顺序打电话直到有人接' }],
+                                                form: { kicker: '内部工单', fields: ['工单号', '提交者', '游戏', 'uid', '角色名', '角色id', '区服', '设备', '网络', '现象', '来源', '编号'] },
+                                                source: 'SOP 5.5 / 游戏问题处理流程·无法登录'
+                                            },
+                                            {
+                                                id: 'invoice', cat: '发票', product: ['通用'], channel: ['53', '工单'],
+                                                title: '开发票（普通 / VIP）',
+                                                triggers: ['开发票', '要发票', '电子发票', '专票', '报销'],
+                                                needInfo: ['游戏 / 区服 / UID', '要开票的订单截图', '发票抬头（个人姓名/公司名）', '收件邮箱'],
+                                                steps: ['确认要开票的账号（UID）', '要订单截图', '核对后告知金额，请玩家给抬头 + 邮箱', '整理信息发财务对接人', '专票/纸质要求：拒绝并给标准口径'],
+                                                scripts: [{ tone: '核对完成', visibility: 'public', text: '您的开票信息已经核对，本次开票金额：XX 元，发票为增值税普通发票，服务项目是信息服务费，将通过电子发票的形式发送给您，麻烦提供一下发票抬头和收件邮箱哦～' }],
+                                                internal: ['抬头默认「个人」，要写名字放备注区', '公司抬头需营业执照 + 盖章委托书，与财务确认后才可操作', '不主动告知服务项目名称，用户问才说'],
+                                                escalate: [{ when: 'VIP 玩家且满足 VIP 开票条件', do: '让玩家从 VIP 客服渠道提交开票申请' }],
+                                                form: { kicker: '给财务的开票信息', fields: ['游戏', '开票类型', '抬头', '服务名称', '公司主体', 'UID', '充值开始', '充值截止', '区服', '角色名', '开票金额', '收件邮箱'] },
+                                                source: 'SOP 6 / 游戏问题处理流程·发票流程'
+                                            },
+                                            {
+                                                id: 'group.violation', cat: '群维系', product: ['异世界勇者', '繁花', '乐缤纷', '梦幻消除战'], channel: ['群维'],
+                                                title: '群内违规信息处理（风纪）',
+                                                triggers: ['群里发广告', '发其他游戏链接', '刷屏', '骂人', '发黄图'],
+                                                needInfo: ['群名 / 平台', '违规账号', '违规内容截图', '处理动作（撤回/禁言/移出）'],
+                                                steps: ['宣传 BUG / 卡回复 → 撤回 + 禁言 1 天', '发其他游戏链接 → 撤回 + 禁言 1 小时以上；连续 3 条左右移出', '发广告 → 直接移出群聊', '辱骂 / 违规起名 → 先提醒，仍违规则禁言或移出'],
+                                                scripts: [{ tone: '提醒', visibility: 'public', text: '您好，群内请不要发布与本游戏无关的链接/广告哦，感谢配合～' }],
+                                                internal: ['接到举报 5 分钟内必须处理', '禁言超 24 小时或提前解封必须发交接登记内部工单说明原因'],
+                                                escalate: [{ when: '高 V 玩家违规', do: '组长判断是否禁言或封禁' }],
+                                                form: { kicker: '内部工单', fields: ['群名', '违规账号', '违规内容', '处理动作', '经办人', '时间'] },
+                                                source: '群维系·海外工单·监控交接文档 / 客服规范总汇'
+                                            }
+                                        ]
+                                    };
+                                    function sopTokenGet() {
+                                        try { return localStorage.getItem(SOP_TOKEN_KEY) || ''; } catch (e) { return ''; }
+                                    }
+                                    function sopTokenSet(t) {
+                                        try { localStorage.setItem(SOP_TOKEN_KEY, String(t || '')); } catch (e) { }
+                                    }
+                                    function sopValidBundle(b) {
+                                        return !!(b && Array.isArray(b.scenes) && b.scenes.length && Array.isArray(b.redlines));
+                                    }
+                                    // 读数据：本机导入 > 服务端 > 内置示例（服务端要口令）
+                                    async function sopLoad(force) {
+                                        if (sopBundle && !force) return sopBundle;
+                                        let bundle = null, label = '内置示例';
+                                        try {
+                                            const c = JSON.parse(localStorage.getItem(SOP_LOCAL_KEY) || 'null');
+                                            if (sopValidBundle(c)) { bundle = c; label = '本机导入'; }
+                                        } catch (e) { }
+                                        if (!bundle) {
+                                            try {
+                                                const headers = {};
+                                                const tk = sopTokenGet();
+                                                if (tk) headers['x-sop-token'] = tk;
+                                                const resp = await fetchWithTimeout(API_BASE + SOP_STORE_KEY, { headers: headers });
+                                                if (resp.ok) {
+                                                    const json = await resp.json();
+                                                    if (sopValidBundle(json && json.value)) { bundle = json.value; label = '服务端'; }
+                                                } else if (resp.status === 403) {
+                                                    teaSetHint('sopDataHint', '服务端要口令（SOP_TOKEN），或还没灌数据 —— 现在是内置示例');
+                                                }
+                                            } catch (e) { console.warn('读取 SOP 数据失败（用内置示例）', e); }
+                                        }
+                                        sopBundle = bundle || SOP_DEMO;
+                                        sopSourceLabel = label;
+                                        sopRenderHead();
+                                        sopFillSelects();
+                                        sopShowHot();
+                                        const meta = document.getElementById('sopDataMeta');
+                                        if (meta) meta.textContent = '（v' + (sopBundle.version || 0) + ' · ' + (sopBundle.scenes || []).length + ' 个场景 · 来自' + label + '）';
+                                        return sopBundle;
+                                    }
+                                    function sopInit() { if (!sopBundle) sopLoad(); }
+                                    function sopRenderHead() {
+                                        const b = sopBundle || SOP_DEMO;
+                                        const scenes = b.scenes || [];
+                                        const cats = [];
+                                        scenes.forEach(s => { if (cats.indexOf(s.cat) === -1) cats.push(s.cat); });
+                                        const sub = document.getElementById('sopReportSub');
+                                        if (sub) sub.textContent = 'v' + (b.version || 0) + '　·　更新于 ' + (b.updatedAt || '—')
+                                            + '　·　' + scenes.length + ' 个场景 / ' + cats.length + ' 类 / ' + (b.redlines || []).length + ' 条红线'
+                                            + '　·　数据来自：' + sopSourceLabel;
+                                        const meta = document.getElementById('sopReportMeta');
+                                        if (meta) {
+                                            const cells = [
+                                                ['场景', scenes.length + ' 个'],
+                                                ['红线', (b.redlines || []).length + ' 条'],
+                                                ['渠道', (b.channels || []).length + ' 个'],
+                                                ['数据来源', sopSourceLabel],
+                                                ['更新日期', b.updatedAt || '—']
+                                            ];
+                                            meta.innerHTML = cells.map(c => '<div><span class="m-k">' + escapeHtml(String(c[0]))
+                                                + '</span><span class="m-v">' + escapeHtml(String(c[1])) + '</span></div>').join('');
+                                        }
+                                    }
+                                    function sopFillSelects() {
+                                        const b = sopBundle || SOP_DEMO;
+                                        const catSel = document.getElementById('sopCatSel');
+                                        if (catSel) {
+                                            const cats = [];
+                                            (b.scenes || []).forEach(s => { if (cats.indexOf(s.cat) === -1) cats.push(s.cat); });
+                                            catSel.innerHTML = '<option value="">全部分类</option>'
+                                                + cats.map(c => '<option value="' + escapeHtml(c) + '">' + escapeHtml(c) + '</option>').join('');
+                                        }
+                                        const chSel = document.getElementById('sopChannelSel');
+                                        if (chSel) {
+                                            chSel.innerHTML = '<option value="">全部渠道</option>'
+                                                + (b.channels || []).map(c => '<option value="' + escapeHtml(c) + '">' + escapeHtml(c) + '</option>').join('');
+                                        }
+                                    }
+                                    function sopSceneById(id) {
+                                        const b = sopBundle || SOP_DEMO;
+                                        return (b.scenes || []).filter(s => s.id === id)[0] || null;
+                                    }
+                                    function sopShowHot() {
+                                        const b = sopBundle || SOP_DEMO;
+                                        const list = (b.scenes || []).slice(0, 8);
+                                        sopHits(list, '场景（共 ' + (b.scenes || []).length + ' 个，直接点开或上面搜索）：');
+                                    }
+                                    let sopHitList = [];
+                                    function sopHits(list, hint) {
+                                        sopHitList = list || [];
+                                        const box = document.getElementById('sopHits');
+                                        if (!box) return;
+                                        if (!sopHitList.length) {
+                                            box.innerHTML = '<span class="hint-text">' + escapeHtml(hint || '没搜到，换个说法试试（如「账号」「充值」「封」「登录」）') + '</span>';
+                                            return;
+                                        }
+                                        box.innerHTML = (hint ? '<span class="hint-text" style="width:100%;">' + escapeHtml(hint) + '</span>' : '')
+                                            + sopHitList.map(s => '<button class="fb-chip" data-sop-open="' + escapeHtml(s.id) + '">'
+                                                + escapeHtml(s.cat + '·' + s.title) + '</button>').join('');
+                                    }
+                                    function sopSearch() {
+                                        const b = sopBundle || SOP_DEMO;
+                                        const qEl = document.getElementById('sopQuery');
+                                        const catEl = document.getElementById('sopCatSel');
+                                        const chEl = document.getElementById('sopChannelSel');
+                                        const q = ((qEl && qEl.value) || '').trim();
+                                        const cat = (catEl && catEl.value) || '';
+                                        const ch = (chEl && chEl.value) || '';
+                                        const words = q.split(/\s+/).filter(Boolean);
+                                        const out = [];
+                                        (b.scenes || []).forEach(s => {
+                                            if (cat && s.cat !== cat) return;
+                                            if (ch && (s.channel || []).indexOf(ch) === -1) return;
+                                            const hay = [s.title, s.cat, (s.triggers || []).join(' '), (s.steps || []).join(' '),
+                                            (s.needInfo || []).join(' '), (s.scripts || []).map(x => x.text).join(' '),
+                                            (s.internal || []).join(' '), (s.product || []).join(' ')].join(' ');
+                                            let hit = !words.length;
+                                            for (const w of words) { if (hay.indexOf(w) !== -1) { hit = true; } }
+                                            // 全部关键词都命中才算（多词时更精确）
+                                            if (words.length > 1) hit = words.every(w => hay.indexOf(w) !== -1);
+                                            if (hit) out.push(s);
+                                        });
+                                        if (!out.length) {
+                                            sopHits([], '没搜到匹配的场景' + (q ? '（关键词：' + q + '）' : '')
+                                                + ' —— 换个说法试试，比如「账号」「充值」「封」「登录」');
+                                            return;
+                                        }
+                                        const hint = '找到 ' + out.length + ' 个场景' + (q ? '（关键词：' + q + '）' : '') + '：';
+                                        sopHits(out, hint);
+                                        if (out.length === 1) sopOpenScene(out[0].id);
+                                    }
+                                    function sopOpenScene(id) {
+                                        const s = sopSceneById(id);
+                                        if (!s) return;
+                                        sopCurrent = s;
+                                        const box = document.getElementById('sopSceneBox');
+                                        if (!box) return;
+                                        const esc = escapeHtml;
+                                        let h = '<div class="sop-scene">';
+                                        h += '<div class="sop-scene-head"><b>' + esc(s.title) + '</b>'
+                                            + '<span class="hint-text">' + esc(s.cat) + ' · ' + esc((s.product || []).join('/'))
+                                            + ' · 渠道 ' + esc((s.channel || []).join('/')) + '</span></div>';
+                                        if ((s.triggers || []).length) h += '<div class="hint-text">触发词：' + esc(s.triggers.join('、')) + '</div>';
+                                        if ((s.steps || []).length) {
+                                            h += '<div class="sop-block"><div class="sop-block-t">处理流程</div><ol class="sop-ol">'
+                                                + s.steps.map(x => '<li>' + esc(x) + '</li>').join('') + '</ol></div>';
+                                        }
+                                        if ((s.needInfo || []).length) {
+                                            h += '<div class="sop-block"><div class="sop-block-t">要收集</div><ul class="sop-ul">'
+                                                + s.needInfo.map(x => '<li>' + esc(x) + '</li>').join('') + '</ul></div>';
+                                        }
+                                        if ((s.scripts || []).length) {
+                                            h += '<div class="sop-block"><div class="sop-block-t">对外话术（点复制）</div>';
+                                            s.scripts.forEach((sc, i) => {
+                                                h += '<div class="sop-script"><div class="sop-script-t">' + esc(sc.tone || ('话术 ' + (i + 1)))
+                                                    + ' <button class="secondary sop-copy-btn" data-sop-copy="' + i + '">📋 复制</button></div>'
+                                                    + '<div class="sop-script-x">' + esc(sc.text) + '</div></div>';
+                                            });
+                                            h += '</div>';
+                                        }
+                                        if ((s.internal || []).length) {
+                                            h += '<div class="sop-block sop-internal"><div class="sop-block-t">⚠️ 内部口径（别发玩家）</div><ul class="sop-ul">'
+                                                + s.internal.map(x => '<li>' + esc(x) + '</li>').join('') + '</ul></div>';
+                                        }
+                                        if ((s.escalate || []).length) {
+                                            h += '<div class="sop-block"><div class="sop-block-t">升级 / 注意</div><ul class="sop-ul">'
+                                                + s.escalate.map(e => '<li>' + esc(e.when) + ' → <b>' + esc(e.do) + '</b></li>').join('') + '</ul></div>';
+                                        }
+                                        if (s.form && (s.form.fields || []).length) {
+                                            h += '<div class="sop-block"><div class="sop-block-t">提单格式（' + esc(s.form.kicker || '') + '）</div>'
+                                                + '<div class="sop-form-preview">' + esc(s.form.fields.map(f => f + '：').join('  ')) + '</div></div>';
+                                        }
+                                        if (s.source) h += '<div class="hint-text" style="margin-top:8px;">依据：' + esc(s.source) + '</div>';
+                                        h += '</div>';
+                                        box.innerHTML = h;
+                                        sopRenderNeed(s);
+                                    }
+                                    function sopRenderNeed(s) {
+                                        const box = document.getElementById('sopNeedBox');
+                                        if (!box) return;
+                                        const items = (s.needInfo || []).slice();
+                                        if (!items.length) { box.innerHTML = '<span class="hint-text">这个场景没有必收信息。</span>'; return; }
+                                        box.innerHTML = '<div class="hint-text" style="margin-bottom:6px;">勾上「已经问到」的信息（生成文本用）：</div>'
+                                            + items.map((x, i) => '<label class="sop-need"><input type="checkbox" data-sop-need="' + i + '"> ' + escapeHtml(x) + '</label>').join('');
+                                    }
+                                    function sopRedlineRules() {
+                                        const b = sopBundle || SOP_DEMO;
+                                        return b.redlines || [];
+                                    }
+                                    function sopCheckRedlines() {
+                                        const input = document.getElementById('sopRedInput');
+                                        const box = document.getElementById('sopRedBox');
+                                        const hint = document.getElementById('sopRedHint');
+                                        const text = ((input && input.value) || '').trim();
+                                        if (!text) { if (hint) hint.textContent = '先粘一段要发给玩家的话'; return; }
+                                        const rules = sopRedlineRules();
+                                        const hits = [];
+                                        rules.forEach(r => {
+                                            let idx = -1, matched = '';
+                                            if (r.re) {
+                                                let m = null;
+                                                try { m = new RegExp(r.re).exec(text); } catch (e) { m = null; }
+                                                if (m) { idx = m.index; matched = m[0]; }
+                                            } else if (r.word) {
+                                                idx = text.indexOf(r.word);
+                                                matched = r.word;
+                                            }
+                                            if (idx >= 0) hits.push({ r: r, idx: idx, matched: matched });
+                                        });
+                                        hits.sort((a, b) => a.idx - b.idx);
+                                        if (hint) hint.textContent = hits.length ? ('命中 ' + hits.length + ' 处红线') : 'OK：没命中已知红线（仍要自己再核一遍）';
+                                        if (!box) return;
+                                        if (!hits.length) { box.innerHTML = '<div class="hint-text">✅ 没命中已知红线。</div>'; return; }
+                                        box.innerHTML = hits.map(h2 => {
+                                            const r = h2.r;
+                                            return '<div class="sop-hit sop-hit-' + (r.level === 'red' ? 'red' : 'amber') + '">'
+                                                + '<div class="sop-hit-t">' + (r.level === 'red' ? '❌' : '⚠️') + ' 「' + escapeHtml(h2.matched) + '」'
+                                                + (r.src ? '<span class="hint-text">（' + escapeHtml(r.src) + '）</span>' : '') + '</div>'
+                                                + '<div class="sop-hit-x">原因：' + escapeHtml(r.why || '') + '</div>'
+                                                + '<div class="sop-hit-fix">改成：' + escapeHtml(r.fix || '') + '</div></div>';
+                                        }).join('');
+                                    }
+                                    function sopBuildForm() {
+                                        const out = document.getElementById('sopFormOut');
+                                        const hint = document.getElementById('sopFormHint');
+                                        if (!sopCurrent) { if (hint) hint.textContent = '先从上面点一个场景'; return; }
+                                        const s = sopCurrent;
+                                        const checked = [];
+                                        document.querySelectorAll('#sopNeedBox [data-sop-need]').forEach(cb => {
+                                            if (cb.checked) {
+                                                const i = +cb.dataset.sopNeed;
+                                                if ((s.needInfo || [])[i]) checked.push(s.needInfo[i]);
+                                            }
+                                        });
+                                        const lines = [];
+                                        lines.push('【SOP｜' + s.cat + '】' + s.title);
+                                        lines.push('① 用户基础信息：游戏 / 区服 / 角色名 / UID');
+                                        lines.push('② 问题发生时间：');
+                                        lines.push('③ 问题描述：');
+                                        if (checked.length) {
+                                            lines.push('');
+                                            lines.push('[已收集]');
+                                            checked.forEach(x => lines.push('· ' + x));
+                                        }
+                                        const miss = (s.needInfo || []).filter(x => checked.indexOf(x) === -1);
+                                        if (miss.length) {
+                                            lines.push('');
+                                            lines.push('[还差]');
+                                            miss.forEach(x => lines.push('· ' + x));
+                                        }
+                                        if (s.form && (s.form.fields || []).length) {
+                                            lines.push('');
+                                            lines.push('[' + (s.form.kicker || '提单') + ']');
+                                            lines.push(s.form.fields.map(f => f + '：').join(' '));
+                                        }
+                                        if (s.source) { lines.push(''); lines.push('（依据：' + s.source + '）'); }
+                                        if (out) out.value = lines.join('\n');
+                                        if (hint) hint.textContent = '已生成，检查一下再复制';
+                                    }
+                                    function sopCopy(str, hintId, okText) {
+                                        if (!str) { teaSetHint(hintId, '还没内容可复制'); return; }
+                                        safeCopy(str);
+                                        teaSetHint(hintId, okText || '已复制');
+                                    }
+                                    async function sopImport() {
+                                        const t = prompt('把 SOP bundle JSON 粘进来（{ version, updatedAt, channels[], redlines[], scenes[] }）：');
+                                        if (!t) return;
+                                        let b = null;
+                                        try { b = JSON.parse(t); } catch (e) { teaSetHint('sopDataHint', 'JSON 解析失败：' + (e && e.message)); return; }
+                                        if (!sopValidBundle(b)) { teaSetHint('sopDataHint', '结构不对：至少要 scenes[] 和 redlines[]'); return; }
+                                        try { localStorage.setItem(SOP_LOCAL_KEY, JSON.stringify(b)); } catch (e) { }
+                                        sopBundle = b; sopSourceLabel = '本机导入'; sopCurrent = null;
+                                        sopRenderHead(); sopFillSelects(); sopShowHot();
+                                        let pushed = '';
+                                        try {
+                                            const headers = { 'Content-Type': 'application/json' };
+                                            const tk = sopTokenGet(); if (tk) headers['x-sop-token'] = tk;
+                                            const resp = await fetchWithTimeout(API_BASE + SOP_STORE_KEY, {
+                                                method: 'POST', headers: headers, body: JSON.stringify({ value: b })
+                                            });
+                                            pushed = resp.ok ? '，并已推到服务端' : '（推服务端失败 HTTP ' + resp.status + '，本机照常可用）';
+                                        } catch (e) { pushed = '（推服务端失败，本机照常可用）'; }
+                                        teaSetHint('sopDataHint', '已导入 ' + b.scenes.length + ' 个场景' + pushed);
+                                    }
+                                    function sopExport() {
+                                        if (!sopBundle) { teaSetHint('sopDataHint', '还没加载数据'); return; }
+                                        safeCopy(JSON.stringify(sopBundle, null, 2));
+                                        teaSetHint('sopDataHint', '已复制当前 bundle JSON');
+                                    }
+                                    async function sopSaveToken() {
+                                        const el = document.getElementById('sopTokenInput');
+                                        sopTokenSet(((el && el.value) || '').trim());
+                                        sopResetState();
+                                        await sopLoad(true);
+                                        teaSetHint('sopDataHint', '口令已保存，重新加载完成（数据来自：' + sopSourceLabel + '）');
+                                    }
+                                    function sopResetState() { sopBundle = null; sopCurrent = null; }
+                                    function sopReload() { sopResetState(); sopLoad(true); }
+
+                                    // ==================== 界面设置（背景色 / 强调色 / 渐变） ====================
+
                                     // ==================== 界面设置（背景色 / 强调色 / 渐变） ====================
                                     // 抬头齿轮打开设置面板：按用户挑的颜色算出整套令牌写在 <html> 行内（覆盖 :root）；
                                     // 背景偏深时自动切到暗色那套（挂 data-theme="dark"，配色见 CSS 的「暗色收口」）。
@@ -13498,6 +14027,7 @@
                                             if (this.dataset.tab === 'career') renderCareer();
                                             if (this.dataset.tab === 'overseas') { ovbizRender(); renderOvbizDetail(); }   // 切进来重画一遍（数据只在本机）
                                             if (this.dataset.tab === 'tea') teaInit();                                  // 下午茶：切进来拉一次服务端
+                                            if (this.dataset.tab === 'sop') sopInit();                                  // SOP：切进来拉一次（要口令 / token）
                                             if (this.dataset.tab === 'feedback') fbRenderChips();
                                         });
 
@@ -13711,6 +14241,51 @@
                                         setClick('fbGenerateBtn', fbGenerate);
                                         setClick('fbCopyBtn', fbCopy);
                                         setClick('fbClearBtn', fbClear);
+                                        // SOP 助手（检索 / 红线检查 / 信息清单 · 数据要口令）
+                                        setClick('sopSearchBtn', sopSearch);
+                                        setClick('sopClearBtn', () => {
+                                            const q = document.getElementById('sopQuery');
+                                            if (q) q.value = '';
+                                            const c1 = document.getElementById('sopCatSel'); if (c1) c1.value = '';
+                                            const c2 = document.getElementById('sopChannelSel'); if (c2) c2.value = '';
+                                            const sb = document.getElementById('sopSceneBox'); if (sb) sb.innerHTML = '';
+                                            sopCurrent = null; sopShowHot();
+                                        });
+                                        (function bindSopInputs() {
+                                            const q = document.getElementById('sopQuery');
+                                            if (q) q.addEventListener('keydown', (e) => { if (e.key === 'Enter') sopSearch(); });
+                                            const c1 = document.getElementById('sopCatSel');
+                                            if (c1) c1.addEventListener('change', sopSearch);
+                                            const c2 = document.getElementById('sopChannelSel');
+                                            if (c2) c2.addEventListener('change', sopSearch);
+                                            const hits = document.getElementById('sopHits');
+                                            if (hits) hits.addEventListener('click', (e) => {
+                                                const b = e.target.closest('[data-sop-open]');
+                                                if (b) sopOpenScene(b.dataset.sopOpen);
+                                            });
+                                            const scene = document.getElementById('sopSceneBox');
+                                            if (scene) scene.addEventListener('click', (e) => {
+                                                const b = e.target.closest('[data-sop-copy]');
+                                                if (!b || !sopCurrent) return;
+                                                const sc = (sopCurrent.scripts || [])[+b.dataset.sopCopy];
+                                                if (sc) safeCopy(sc.text);
+                                            });
+                                        })();
+                                        setClick('sopRedCheckBtn', sopCheckRedlines);
+                                        setClick('sopRedClearBtn', () => {
+                                            const i = document.getElementById('sopRedInput'); if (i) i.value = '';
+                                            const b = document.getElementById('sopRedBox'); if (b) b.innerHTML = '';
+                                            const h = document.getElementById('sopRedHint'); if (h) h.textContent = '';
+                                        });
+                                        setClick('sopFormBuildBtn', sopBuildForm);
+                                        setClick('sopFormCopyBtn', () => {
+                                            const o = document.getElementById('sopFormOut');
+                                            sopCopy(((o && o.value) || '').trim(), 'sopFormHint', '已复制文本');
+                                        });
+                                        setClick('sopTokenSaveBtn', sopSaveToken);
+                                        setClick('sopReloadBtn', sopReload);
+                                        setClick('sopImportBtn', sopImport);
+                                        setClick('sopExportBtn', sopExport);
                                         // 界面设置（齿轮面板：背景色 / 强调色 / 渐变）
                                         themeInit();
                                         setClick('themeGear', () => themeTogglePanel());

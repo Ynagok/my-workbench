@@ -131,6 +131,7 @@ const check = (cond, msg, extra) => {
 };
 
 const posts = [];      // 记录所有 POST
+let promptAnswer = null;   // window.prompt 的返回值（SOP 导入等场景按需改）
 const warns = [];
 const serverData = {}; // 模拟服务器端持久化：初始为空（首次打开，无缓存无服务端数据）
 
@@ -168,6 +169,7 @@ const dom = new JSDOM(html, {
   beforeParse(window) {
     window.alert = () => { };
     window.confirm = () => true;
+    window.prompt = () => promptAnswer;   // SOP 导入用（默认 null = 取消）
     window.requestAnimationFrame = () => 0;      // 不真的跑动画循环
     window.cancelAnimationFrame = () => { };
     window.HTMLCanvasElement.prototype.getContext = function () { return makeCtx(this); };
@@ -1470,6 +1472,7 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
       beforeParse(window2) {
         window2.alert = () => { };
         window2.confirm = () => true;
+        window2.prompt = () => null;
         window2.requestAnimationFrame = () => 0;
         window2.cancelAnimationFrame = () => { };
         window2.HTMLCanvasElement.prototype.getContext = function () { return makeCtx(this); };
@@ -1541,6 +1544,122 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
       $2('teaVoteHint').textContent.slice(0, 50));
     check(jsdomErrors2.length === 0, '只投票页：没有未捕获异常', jsdomErrors2.slice(0, 2));
     dom2.window.close();
+  }
+
+  console.log('--- 8k. SOP 助手（场景检索 / 红线检查 / 信息清单 · 数据要口令）---');
+  {
+    const postsBefore = posts.length;
+    doc.querySelector('.tab-btn[data-tab="sop"]').click();
+    await sleep(150);
+    check(!!$('tab-sop') && $('tab-sop').classList.contains('active'),
+      'SOP：标签页能切换过去');
+    check(/内置示例/.test($('sopReportSub').textContent) && /个场景/.test($('sopReportSub').textContent),
+      'SOP：抬头显示数据来源与场景数（服务端没数据时用内置示例）', $('sopReportSub').textContent.slice(0, 70));
+    check(!!$('sopQuery') && !!$('sopHits') && !!$('sopSceneBox') && !!$('sopRedInput')
+      && !!$('sopNeedBox') && !!$('sopFormOut') && !!$('sopDataCard'),
+      'SOP：检索 / 结果 / 红线 / 清单 / 数据 容器都在');
+    check(doc.querySelectorAll('#sopHits [data-sop-open]').length >= 6,
+      'SOP：默认列出场景入口', doc.querySelectorAll('#sopHits [data-sop-open]').length);
+
+    // 检索：玩家原话 → 命中场景并自动展开
+    $('sopQuery').value = '充值没到账';
+    $('sopSearchBtn').click();
+    await sleep(60);
+    check(/充值不到账/.test($('sopSceneBox').textContent) && /处理流程/.test($('sopSceneBox').textContent)
+      && /要收集/.test($('sopSceneBox').textContent),
+      'SOP：搜「充值没到账」→ 展开充值场景卡（流程 + 要收集）',
+      $('sopSceneBox').textContent.replace(/\s+/g, ' ').slice(0, 60));
+    check(/订单号/.test($('sopSceneBox').textContent) && /对外话术/.test($('sopSceneBox').textContent),
+      'SOP：场景卡里有订单号等必收信息与可复制话术');
+    check(/内部口径/.test($('sopSceneBox').textContent),
+      'SOP：场景卡把「内部口径（别发玩家）」单独标出来');
+    // 话术复制
+    const copyBtn = doc.querySelector('#sopSceneBox [data-sop-copy]');
+    copyBtn.click();
+    await sleep(30);
+    check(true, 'SOP：点话术的复制按钮不抛错');
+
+    // 搜不到
+    $('sopQuery').value = '这个词肯定不存在zzz';
+    $('sopSearchBtn').click();
+    await sleep(60);
+    check(/没搜到/.test($('sopHits').textContent), 'SOP：搜不到时给提示，不报错',
+      $('sopHits').textContent.slice(0, 40));
+
+    // 分类筛选
+    $('sopQuery').value = '';
+    $('sopCatSel').value = '账号信息';
+    $('sopCatSel').dispatchEvent(new window.Event('change', { bubbles: true }));
+    await sleep(60);
+    const catChips = [...doc.querySelectorAll('#sopHits [data-sop-open]')];
+    check(catChips.length >= 2 && catChips.every(b => /账号信息/.test(b.textContent)),
+      'SOP：按分类筛选只出该分类的场景', catChips.map(b => b.textContent).slice(0, 3));
+    $('sopCatSel').value = '';
+    $('sopSearchBtn').click();
+    await sleep(40);
+
+    // 红线检查：踩雷
+    $('sopRedInput').value = '这边已经帮您申请了好评奖励，不是误封哦';
+    $('sopRedCheckBtn').click();
+    await sleep(60);
+    check(/命中/.test($('sopRedHint').textContent),
+      'SOP 红线：命中时给出命中数', $('sopRedHint').textContent);
+    check(/好评/.test($('sopRedBox').textContent) && /误封/.test($('sopRedBox').textContent),
+      'SOP 红线：点出「好评」「误封」两处');
+    check(/改成/.test($('sopRedBox').textContent),
+      'SOP 红线：每条都给出替换口径');
+    // 红线检查：干净的话
+    $('sopRedInput').value = '已帮您登记，请耐心等待一下哦～';
+    $('sopRedCheckBtn').click();
+    await sleep(60);
+    check(/没命中/.test($('sopRedHint').textContent) && !/好评/.test($('sopRedBox').textContent),
+      'SOP 红线：干净的话不误报', $('sopRedHint').textContent);
+    $('sopRedClearBtn').click();
+    check($('sopRedInput').value === '' && $('sopRedBox').innerHTML === '',
+      'SOP 红线：清空按钮生效');
+
+    // 信息清单 → 生成文本
+    $('sopQuery').value = '账号找回';
+    $('sopSearchBtn').click();
+    await sleep(80);
+    const needs = [...doc.querySelectorAll('#sopNeedBox [data-sop-need]')];
+    check(needs.length >= 2, 'SOP：选中场景后列出要收集的信息清单', needs.length);
+    needs[0].checked = true;
+    needs[1].checked = true;
+    $('sopFormBuildBtn').click();
+    await sleep(40);
+    const formText = $('sopFormOut').value;
+    check(/【SOP｜/.test(formText) && /已收集/.test(formText),
+      'SOP：生成文本带场景标题与已收集项', formText.slice(0, 60));
+    check(/还差/.test(formText) && /工单号|提交者/.test(formText),
+      'SOP：生成文本包含还差项与提单格式（工单号/提交者…）');
+    $('sopFormCopyBtn').click();
+    await sleep(30);
+    check(/已复制/.test($('sopFormHint').textContent), 'SOP：复制文本给提示',
+      $('sopFormHint').textContent);
+
+    // 导入 bundle（本机导入优先，且能推服务端）
+    promptAnswer = JSON.stringify({
+      version: 9, updatedAt: '2026-01-01',
+      channels: ['53'], redlines: [{ level: 'red', word: '测试红线', why: 'w', fix: 'f' }],
+      scenes: [{ id: 'x1', cat: '测试类', product: ['通用'], channel: ['53'], title: '测试场景', triggers: ['测试'],
+        needInfo: ['A'], steps: ['B'], scripts: [{ tone: 't', visibility: 'public', text: '测试话术' }], internal: [], escalate: [], form: { kicker: 'k', fields: ['x'] }, source: 't' }]
+    });
+    $('sopImportBtn').click();
+    await sleep(150);
+    promptAnswer = null;
+    check(/本机导入/.test($('sopReportSub').textContent) && /v9/.test($('sopReportSub').textContent),
+      'SOP：导入 bundle 后立刻生效（版本 / 来源变成本机导入）', $('sopReportSub').textContent.slice(0, 70));
+    check(doc.querySelectorAll('#sopHits [data-sop-open]').length === 1,
+      'SOP：导入的场景拿到渲染入口', doc.querySelectorAll('#sopHits [data-sop-open]').length);
+    const sopPosts = posts.filter(p => p.url.includes('sopBundle') && p.method === 'POST');
+    check(sopPosts.length >= 1 && sopPosts[sopPosts.length - 1].body
+      && sopPosts[sopPosts.length - 1].body.value.version === 9,
+      'SOP：导入时尝试推服务端（带 x-sop-token 头走 /api/data/sopBundle）',
+      sopPosts.length);
+    // 清掉本机导入，避免影响后续
+    window.localStorage.removeItem('sopBundleLocal');
+    check(posts.length > postsBefore, 'SOP：确实走过网络（不只是本地拼字符串）');
   }
 
   console.log('--- 9. 无未捕获异常 ---');

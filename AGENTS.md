@@ -49,16 +49,16 @@ npm run verify     # 改完代码、push 前的完整自检
 
 | 命令 | 内容 |
 |---|---|
-| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 304 项 + 「接口挂起时界面仍可用」+ 服务端冒烟 35 项 + 油猴脚本语法 + 单测 169 项 |
+| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 327 项 + 「接口挂起时界面仍可用」+ 服务端冒烟 42 项 + 油猴脚本语法 + 单测 169 项 |
 | `npm run verify:static` | 只要静态校验 + 语法检查（最快） |
 | `npm run report` | 打印一份真实生成的日报，肉眼确认排版（含 ⑥伙伴弹途 / ⑦异世界勇者） |
 | `npm run build:data` | 从 GM 玩家页快照提取 4 张权威映射表 + 与硬编码常量的**差异报告**（见下「游戏数据管线」） |
-| `npm run smoke:server` | 单独跑服务端冒烟（真起进程 + 真发 HTTP，35 项） |
+| `npm run smoke:server` | 单独跑服务端冒烟（真起进程 + 真发 HTTP，42 项，含 SOP 口令 7 项） |
 | `npm run test:helper` | 反馈提取助手（油猴脚本 0.4.0）单测，169 项 |
 | `npm run smoke:pmc` | **生管物料订单工作台**（`public/pmc.html`）自检，123 项（含加工周期工作日推算 + 在途锁定/调整建议 + 真实 8.5MB xlsx 端到端导入）；**不在 verify 里**，见下「生管物料订单工作台」一节 |
 | `npm test` | = `npm run verify` |
 
-`npm run verify` 失败就不要提交。它一共 7 段：静态结构 → 语法 → jsdom 集成冒烟 **304 项** → 接口挂起时界面仍可用 → 服务端冒烟 **35 项** → 油猴脚本语法（`node --check`）→ 油猴脚本单测 **169 项**。
+`npm run verify` 失败就不要提交。它一共 7 段：静态结构 → 语法 → jsdom 集成冒烟 **327 项** → 接口挂起时界面仍可用 → 服务端冒烟 **42 项** → 油猴脚本语法（`node --check`）→ 油猴脚本单测 **169 项**。
 
 - jsdom 未安装时前端冒烟会自动回落到本机 DSH 自带的那份。
 - `tools/smoke-server.cjs` 用 `PORT` + `DATA_FILE` 环境变量把服务端指到随机端口和 `tools/out/` 里的临时文件，**不会碰真实 `data.json`**；子进程 stdio 必须用 `ignore`/`inherit`（沙箱禁管道，`pipe` 会 EPERM）。
@@ -237,6 +237,26 @@ npm run verify     # 改完代码、push 前的完整自检
 - **测试**：`tools/smoke.cjs` 第 **8j** 节（**47 条**）：店家存服务端（**只有店名、不再写备注**）+ **店家管理是默认收起的 `<details>`、标题带家数** + **本机备份 `teaShopsCache`** + **服务端店家被清空时用备份自动恢复并推回去** + **投票被 23:00 清掉后店家原样还在** / 发起 today 的投票 + 名字快照与默认标题 / 分享链接格式 / 复制分享文案 / 第一次投票生成 voterId / **投票走 `/api/vote` 服务端合并** / 结果按店家计数且**不出现人名** / 另一台设备投票合并进同一份 / 改票覆盖不翻倍 / 撤销 / 复制结果 / 手动截止后 409 挡住 / 过期 GET 连数据删掉 / 状态行讲 23:00 清除；**截止时间 12 条**（`type=time` / 存进 `deadline` / 状态行写「HH:MM 截止」/ 过了的时间不让发起 / **到点后投票区收起 + 只留说明 + 数据还在 + 结果照常** / 到点后前端挡下不发请求 / 绕开前端直接 POST → 服务端 409 `closedReason:'deadline'` / 改回未到点又能投 / 手动截止也是「只能看结果」）；**另起一个 jsdom**（URL 带 `?vote=`）验 `data-vote-only` / 侧边栏与店家管理被藏 / **没发那 9 个启动请求** / 能选店能投 / 与自己 voterId 不同 / 两台设备统计在一起 / **到点后只投票页也收起投票区且点提交不发请求**。`tools/smoke-server.cjs` 另有 **23 条**（合并语义、改票、非法 voterId/shopIds/key、404/409/410、**过期投票被真的从 data.json 删掉**、当天 23:00 前不误删、**deadline 到点前后各一遍 + `closed/closedReason` + 格式不对的 deadline 忽略**）。`tools/verify.mjs` 3g 有 15 条静态断言（含「备注整段拿掉 + 店家折叠 + 本机备份/自动恢复」两条）。
   - ⚠️ 冒烟里的 fetch mock（`makeFetchMock(store, log)`）**照着真服务端实现了 `/api/vote` 的合并与过期清理**，两个 jsdom 共用同一个 `serverData` 来模拟「两台设备连同一个服务端」—— 改服务端语义时这里要一起改。
 
+## SOP 助手（`data-tab="sop"` · ⚠️ 数据要口令）
+
+**「SOP 助手」标签页**（侧边栏在「反馈模板」下面）—— 把《客服部工作SOP》《后台常用话术》《游戏问题处理流程》《客服规范总汇》《群维系/海外/监控交接》整理成**可检索的处理卡**，并提供**红线检查**与**信息清单→提单文本**。**不发任何消息给玩家**：只查、只抄、只校验，发送仍由人确认。
+
+- ⚠️⚠️ **合规前提（用户选的方案）**：SOP 里有 32 处「内部了解，严禁告知玩家」、判定阈值、升级顺序（含员工姓名/电话）——**不能裸奔**。所以：
+  1. 数据存服务端 key **`sopBundle`**（`sop*` 前缀），**`server.js` 只对 sop 前缀要口令**：环境变量 **`SOP_TOKEN`**；请求头 `x-sop-token`（或 `?token=`）必须一致，否则 403；**`SOP_TOKEN` 没配 → sop 数据一律 403**（宁可不可用也不裸奔）。
+  2. 口令只存本机 `localStorage['sopToken']`，**不进服务端、不进 git**；页面上「⚙️ 数据与口令」里填。
+  3. 完整 bundle **不入 git**（放 `tools/out/sop/bundle.json`，gitignore）+ `npm run sop:seed` 推上服务端；仓库里只有**内置示例**（8 个场景，去掉了姓名/电话）。
+- **数据模型**：`{ version, updatedAt, channels[], redlines[], scenes[] }`
+  - `redlines[] = { level:'red'|'amber', word 或 re, why, fix, src }` —— 命中「好评 / 误封 / 代言人 / 外挂 / 客服热线 / VIP客服 / 具体时间 / 存续期 / 苹果客服 / 抽奖概率 / 内部说明（正则）」等。
+  - `scenes[] = { id, cat, product[], channel[], title, triggers[], needInfo[], steps[], scripts[{tone,visibility,text}], internal[], escalate[{when,do}], form{kicker,fields[]}, source }`。
+- **三个能力**（一期，已实现）：
+  1. **🔍 查场景**：搜玩家原话/关键词（多词要全部命中）、按分类/渠道筛选；命中 1 条自动展开；场景卡给「处理流程 / 要收集 / 对外话术（逐条复制）/ ⚠️内部口径（别发玩家，红框）/ 升级注意 / 提单格式 / 依据条款」。
+  2. **🚩 红线检查**：粘一段准备发给玩家的话 → 逐条匹配 `redlines`（`word` 用 indexOf、`re` 用 RegExp）→ 按出现顺序列出「命中词 / 原因 / 改成什么 / 出处」；没命中给「OK，仍要自己核一遍」。
+  3. **🧾 信息清单 / 提单文本**：勾上「已经问到的信息」→ 生成 `【SOP｜分类】标题` + 反馈三要素 + 已收集/还差 + 提单字段骨架 + 依据，可复制。
+- **数据来源优先级**：本机导入（`localStorage['sopBundleLocal']`）> 服务端 `sopBundle`（带口令）> **内置示例 `SOP_DEMO`**；抬头与「数据」卡都写明当前来源（本机导入 / 服务端 / 内置示例）。
+- **灌数据**：`SOP_TOKEN=xxx BASE_URL=https://work-bad.onrender.com npm run sop:seed`（默认读 `tools/out/sop/bundle.json`，POST 到 `/api/data/sopBundle`）；线上 Render 里要配 `SOP_TOKEN` 环境变量。页面也能「📥 粘贴导入 bundle JSON」（写本机 + 尝试推服务端）、「📋 复制当前 bundle」。
+- **二期（用户也勾了，尚未做）**：各游戏「后台行为对应表」（妖怪 855 行 / 攻沙 484 行…）、合区查询、常用语库、xlsx 自动导入通道 —— ⚠️ `合区表.xls`、`全部常用语.xls` 是**老 BIFF 格式**，Node 里没解出来（`tools/out/xls-text.cjs` 只是把文本扒出来的粗糙版），要自动吸得先**另存为 .xlsx** 或写 BIFF 解析。
+- **测试**：`tools/smoke.cjs` 第 **8k** 节 **23 条**（标签页/抬头来源/容器/默认入口/搜「充值没到账」命中并展开/订单号与话术/内部口径单独标出/复制话术不抛错/搜不到给提示/分类筛选/红线命中「好评+误封」并给替换口径/干净话不误报/清空生效/清单勾选生成文本含已收集与还差/复制文本/粘贴导入 bundle 生效并推服务端）；`tools/smoke-server.cjs` **+7 条**（不带口令 403、错口令 403、对口令 200、query 传口令、普通 key 不受影响、别的 sop 前缀也受保护）；`tools/verify.mjs` 3h **8 条**静态断言（含服务端 `SOP_TOKEN`/`SOP_KEY_RE`/`denySop`/`tokenEq` 与 `npm run sop:seed`）。
+
 ## 生管物料订单工作台（`public/pmc.html` · 临时工具，独立单页）
 
 给 **生管/PMC 岗位**做的临时工具页：读公司《H93A 主料计划》主表 → 逐日推演理论库存 → 算缺料日/覆盖区间/建议下单量 → 按供应商拆 CSV。**跟工作台本体零耦合**：不 import、不碰 `index.html` / `server.js` / `data.json` / `/api/data`，数据只在浏览器内存 + 本机 `localStorage['pmcWorkbench_v1']`（只存参数/导入的数据，不上传任何服务端）。
@@ -291,15 +311,15 @@ npm run verify     # 改完代码、push 前的完整自检
 ## 目录结构
 
 ```
-public/index.html          全部前端（单文件，约 14000 行：内联 CSS + 内联 JS 的 async IIFE；含「客服生涯」「海外业务统计」「反馈模板」「下午茶」标签页 + ?vote= 只投票页）
+public/index.html          全部前端（单文件，约 14500 行：内联 CSS + 内联 JS 的 async IIFE；含「客服生涯」「海外业务统计」「反馈模板」「SOP 助手」「下午茶」标签页 + ?vote= 只投票页）
 public/gemjy-openid-helper.user.js  油猴脚本（反馈后台：卡片式悬浮窗，提取 头像/昵称/图片/openid，一键复制 openid；当前内容 0.4.0，就发在这一条链接上；与前端无代码耦合）
 public/pmc.html            生管物料订单工作台（临时工具单页：内置 H93A 26.5/26.6 样例 + 浏览器端解析真实 xlsx + 逐日库存/缺料日/建议下单 + 按供应商导出 CSV；只存本机，与工作台零耦合）
 server.js                  express：静态托管 public/ + GET/POST /api/data/:key ↔ data.json（含 key 白名单）+ GET/POST /api/vote/:key（下午茶投票：原子合并 + 当天 23:00 过期清理）
 data.json                  服务端数据（随使用增长；前端字段缺失会被默认值自动补齐）
-tools/                     自检脚本（verify / smoke / smoke-nonblocking / smoke-server / smoke-pmc / test-openid-helper / print-report / build-game-data）
+tools/                     自检脚本（verify / smoke / smoke-nonblocking / smoke-server / smoke-pmc / test-openid-helper / print-report / build-game-data）＋ sop-seed.cjs（把 SOP bundle 推到服务端）
 tools/fixtures/            build:data 的输入；player-page.html 含玩家隐私已 gitignore，样例已入库
-tools/out/                 build:data 的产出（4 张表 + 差异报告）＋ pmc 样例数据管线，已 gitignore
-package.json               scripts: start / verify / verify:static / smoke:server / smoke:pmc / report / build:data / test
+tools/out/                 build:data 的产出（4 张表 + 差异报告）＋ pmc 样例数据管线 ＋ sop/（附件抽出来的文本与 bundle，已 gitignore），已 gitignore
+package.json               scripts: start / verify / verify:static / smoke:server / smoke:pmc / sop:seed / report / build:data / test
 ```
 ## 已完成的关键改动
 
@@ -483,4 +503,11 @@ package.json               scripts: start / verify / verify:static / smoke:serve
   3. **页面从 4 张卡压成 2 张 + 折叠**：主卡「🧋 今天的下午茶」= 上半 **我要投**（`#teaVoteOpenBox`，到点/手动截止整块收起）+ 虚线下面 **`#teaPollAdminBox`「发起 / 管理」** + `#teaPollStatus`；第二张「📊 实时结果」；店家排最后且默认收起。顺带删掉上一轮加的两行长提示、按钮文案缩短（「🚀 发起 / 更新」「⏹️ 截止」「🧹 清空票」）。⚠️ **只投票页仍然只藏 `#teaPollAdminBox`**，投票区照常在。
   4. **店家保证不丢**：新增本机备份 `localStorage['teaShopsCache']`（`teaSaveShopsCache` / `teaLoadShopsCache`）——`teaSaveShops` 与 `teaLoadShops` 都会写它；`teaLoadShops` 若发现**服务端一家都没有**而备份还在，就**自动用备份恢复并 POST 回服务端**（提示「已用本机备份恢复 N 家」）。⚠️ 只有「服务端空 + 备份非空」才恢复，用户主动删光不会被复活；另外 23:00 清的只是 `teaPoll_*`，`teaShops` 从来不参与。
   5. **测试**：`smoke.cjs` 8j 加 8 条（`<details>` 默认收起 / 没有备注输入框 / 表格两列 / 服务端店家不带 note / 本机备份写入 / 折叠标题带家数 / 服务端清空后用备份自动恢复 / 恢复提示；另加「投票被 23:00 清掉后 `teaShops` 原样还在」），**296 → 304**；`verify.mjs` 3g 加 2 条（备注整段拿掉 + 折叠面板；`teaShopsCache` 本机备份 + 自动恢复 + 吃纯店名数组），**13 → 15**。`smoke-server.cjs` 不变（**35**）。
+- 本轮：**新增「SOP 助手」标签页（基于客服 SOP 的功能，一期）**（用户：「我想做一个基于客服sop的功能，具体可以怎样实现」+ 8 份内部文档；问完选了：**做进 index.html 的新标签页 / 手工骨架 + 之后加导入 / 服务端共享 + 给 sop 数据加口令 / 一期做「检索+处理卡、红线检查、信息清单→提单」**）。改了 `server.js` + `public/index.html` + `tools/sop-seed.cjs` + `package.json` + `tools/smoke.cjs` + `tools/smoke-server.cjs` + `tools/verify.mjs` + 本文件：
+  1. **先把 8 份附件抽成文本看结构**（`tools/out/sop/`，gitignore，不入库）：`tools/out/sop-extract.cjs`（xlsx/docx/pptx 零依赖解包抽文本）+ `tools/out/xls-text.cjs`（两个 `.xls` 是 BIFF，只能粗糙扒文本）。得到：SOP docx 69 个二级场景 / 32 处「内部严禁」；后台话术 53·抖小·海外 三张表（122/136/49 行）；游戏问题处理流程按产品分页；客服规范总汇 38 页（含妖怪 855 行、攻沙 484 行行为对照表）。
+  2. **服务端口令**：`server.js` 新增 `SOP_TOKEN`（环境变量）+ `SOP_KEY_RE = /^sop/i` + `denySop()` + 常量时间比较 `tokenEq()`；**只有 sop* 前缀的 /api/data 要口令**（头 `x-sop-token` 或 `?token=`），没配 `SOP_TOKEN` 一律 403；其它 key（work-bad_v2 / teaShops / teaPoll_*…）行为不变。`smoke-server.cjs` 起进程时带上 `SOP_TOKEN` 并加 7 条断言，**35 → 42**。
+  3. **前端**：新标签页 `data-tab="sop"` / `#tab-sop`（侧边栏在「反馈模板」下面，复用 `.career-report-head` + 卡片样式，新增 `.sop-*` 一小段 CSS）：🔍 查场景（关键词/分类/渠道，命中 1 条自动展开；场景卡 = 流程/要收集/话术逐条复制/⚠️内部口径红框/升级/提单格式/依据）、🚩 红线检查（词表 + 正则，命中给原因与替换口径）、🧾 信息清单→提单文本（勾选 + 三要素 + 还差 + 提单字段）；数据优先级 = 本机导入 `sopBundleLocal` > 服务端 `sopBundle`（带口令）> **内置示例 `SOP_DEMO`（8 场景，去掉姓名/电话）**；「⚙️ 数据与口令」里填口令、粘贴导入/复制 bundle。
+  4. **数据**：完整 bundle（19 个场景 + 12 条红线，从文档整理、姓名脱敏）写到 `tools/out/sop/bundle.json`（**gitignore，不入库**），`npm run sop:seed`（`tools/sop-seed.cjs`）读它 POST 到 `/api/data/sopBundle`（要 `SOP_TOKEN`）。
+  5. **测试**：`smoke.cjs` 新增 **8k 节 23 条**（标签页/来源/容器/默认入口/命中展开/订单号与话术/内部口径标出/复制话术/搜不到给提示/分类筛选/红线命中两处并给替换/干净话不误报/清空/清单生成文本/复制/导入 bundle 生效并推服务端），**304 → 327**；`verify.mjs` 3h 8 条静态断言。`npm run verify` 全绿（327 / 42 / 169）。
+  6. ⚠️ **二期（用户也勾了但没做）**：各游戏后台行为对照表、合区查询、常用语库、xlsx 自动导入 —— `合区表.xls`/`全部常用语.xls` 得先另存 `.xlsx`。
 
