@@ -3266,21 +3266,44 @@
         #sopLockCard {
             border-left: 3px solid var(--warn);
         }
-        /* SOP 处理流程：竖向步骤条（编号圆点 + 连接线） */
-        .sop-steps { list-style: none; margin: 0; padding: 0; }
-        .sop-steps > li { position: relative; display: flex; gap: 10px; padding-bottom: 12px; }
-        .sop-steps > li::before {
-            content: ''; position: absolute; left: 11px; top: 24px; bottom: 0; width: 2px;
-            background: var(--accent-line);
+        /* SOP 处理流程：五环节闭环（提交 → 核实 → 处理 → 登记 → 回访）+ 思维导图 */
+        .sop-flowline { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin: 2px 0 10px; }
+        .sop-flow-pill {
+            font-size: 12px; padding: 2px 8px; border: 1px solid var(--line-1);
+            background: var(--surface-2); color: var(--ink-2); border-radius: var(--r-sm); cursor: pointer;
         }
-        .sop-steps > li:last-child { padding-bottom: 0; }
-        .sop-steps > li:last-child::before { display: none; }
-        .sop-step-n {
-            flex: 0 0 24px; width: 24px; height: 24px; border-radius: 50%;
-            background: var(--accent); color: #0a0c0e; font-size: 12px; font-weight: 700;
-            display: flex; align-items: center; justify-content: center;
+        .sop-flow-arrow { font-size: 12px; color: var(--ink-3); }
+        .sop-mind { display: flex; gap: 12px; align-items: flex-start; }
+        .sop-mind-root {
+            flex: 0 0 auto; max-width: 180px; padding: 8px 10px; border: 1px solid var(--accent-line);
+            background: var(--surface-2); border-radius: var(--r-sm);
         }
-        .sop-step-x { font-size: 13px; line-height: 1.7; color: var(--ink-1); padding-top: 2px; }
+        .sop-mind-k { display: block; font-size: 11px; letter-spacing: 0.08em; color: var(--ink-3); }
+        .sop-mind-root b { font-size: 13px; color: var(--ink-0); }
+        .sop-mind-body {
+            flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 8px;
+            padding-left: 12px; border-left: 2px solid var(--line-1);
+        }
+        .sop-mind-branch { position: relative; }
+        .sop-mind-branch::before {
+            content: ''; position: absolute; left: -12px; top: 13px; width: 10px; height: 2px; background: var(--line-1);
+        }
+        .sop-mind-stage {
+            display: block; width: 100%; text-align: left; font-size: 13px !important;
+            padding: 4px 9px !important; background: var(--surface) !important; color: var(--ink-1);
+            border: 1px solid var(--line-1);
+        }
+        .sop-mind-stage:hover { background: var(--surface-2) !important; color: var(--ink-0); }
+        .sop-mind-dim { opacity: 0.6; }
+        .sop-mind-c { font-size: 11px; color: var(--ink-3); margin-left: 6px; }
+        .sop-flow-pill.active, .sop-mind-stage.active {
+            background: var(--accent-dim) !important; border-color: var(--accent-line) !important; color: var(--ink-0);
+        }
+        .sop-mind-steps { list-style: none; margin: 4px 0 0; padding: 0; }
+        .sop-mind-steps > li { position: relative; font-size: 12px; line-height: 1.6; color: var(--ink-2); padding-left: 10px; }
+        .sop-mind-steps > li::before { content: '·'; position: absolute; left: 2px; color: var(--ink-3); }
+        .sop-stage-scripts { margin-top: 10px; padding-top: 8px; border-top: 1px dashed var(--line-1); }
+        .sop-stage-head { display: flex; gap: 8px; align-items: baseline; margin-bottom: 6px; }
         /* SOP 要收集：小片 */
         .sop-needchips { display: flex; flex-wrap: wrap; gap: 6px; }
         .sop-needchip {
@@ -3642,7 +3665,13 @@
                     <button id="sopTokenSaveBtn">保存口令并重新加载</button>
                     <button id="sopReloadBtn" class="secondary">重新加载</button>
                 </div>
-                <div class="hint-text" style="margin-top:8px;">口令只存在这台设备的 localStorage，不会进服务端；数据在服务端 key <code>sopBundle</code>，只有带对口令的请求能读。</div>
+                <div class="hint-text" style="margin-top:8px;">
+                    ① 口令 = 服务端环境变量 <code>SOP_TOKEN</code>，跟进入本页要输的「客服冷静」不是一回事（那个只是页面门）。<br>
+                    ② 填在这里 → 点「保存口令并重新加载」：只存这台设备的 localStorage，不进服务端、不进 git；带着它对 <code>/api/data/sopBundle</code> 发请求。<br>
+                    ③ 没填 / 填错 → 服务端回 403 → 页面自动回落到「内置示例」（8 个场景，只作演示）。<br>
+                    ④ 想把整份数据离线带走：「📥 粘贴导入 bundle JSON」写本机 <code>sopBundleLocal</code>（优先级高于服务端），或用「📋 复制当前 bundle」备份。
+                </div>
+                <div class="hint-text" id="sopDataStatus" style="margin-top:6px;"></div>
                 <div class="flex-row" style="margin-top:10px;">
                     <button id="sopImportBtn" class="secondary">📥 粘贴导入 bundle JSON</button>
                     <button id="sopExportBtn" class="secondary">📋 复制当前 bundle</button>
@@ -13241,7 +13270,7 @@
                                                     const json = await resp.json();
                                                     if (sopValidBundle(json && json.value)) { bundle = json.value; label = '服务端'; }
                                                 } else if (resp.status === 403) {
-                                                    teaSetHint('sopDataHint', '服务端要口令（SOP_TOKEN），或还没灌数据 —— 现在是内置示例');
+                                                    teaSetHint('sopDataHint', '服务端 403：口令没填 / 填错，或服务端没配 SOP_TOKEN —— 现在用内置示例');
                                                 }
                                             } catch (e) { console.warn('读取 SOP 数据失败（用内置示例）', e); }
                                         }
@@ -13252,6 +13281,7 @@
                                         sopShowHot();
                                         const meta = document.getElementById('sopDataMeta');
                                         if (meta) meta.textContent = '（v' + (sopBundle.version || 0) + ' · ' + (sopBundle.scenes || []).length + ' 个场景 · 来自' + label + '）';
+                                        sopDataStatus();
                                         return sopBundle;
                                     }
                                     function sopInit() {
@@ -13292,6 +13322,13 @@
                                         sopSetPassHint('');
                                         sopApplyLock();
                                         sopLoad(true);
+                                    }
+                                    function sopDataStatus() {
+                                        const el = document.getElementById('sopDataStatus');
+                                        if (!el) return;
+                                        el.textContent = '当前状态：口令' + (sopTokenGet() ? '已填（只存本机）' : '未填')
+                                            + '　·　数据来自：' + (sopSourceLabel || '内置示例')
+                                            + '　·　服务端 key：sopBundle（sop 前缀一律要口令）';
                                     }
                                     function sopRenderHead() {
                                         const b = sopBundle || SOP_DEMO;
@@ -13383,6 +13420,114 @@
                                         sopHits(out, hint);
                                         if (out.length === 1) sopOpenScene(out[0].id);
                                     }
+                                    // 处理流程的五环节闭环（口径来自《梦幻消除战》《唱舞全明星》SOP §2.1：提交 → 核实 → 处理 → 登记 → 回访）
+                                    // strong = 强特征词（权重 2），weak = 弱特征词（权重 1）；分数相同取靠前的环节。
+                                    const SOP_FLOW = [
+                                        {
+                                            id: 'submit', name: '提交', tip: '按模板收齐要素，先让玩家把信息给全',
+                                            empty: '这个场景没有单独写「提交」环节；按上面的「要收集」问齐就行。',
+                                            strong: ['收集', '收齐', '收取', '索要', '先问', '要求玩家'],
+                                            weak: ['问', '截图', '提供', '要素', '确认诉求', '玩家ID', '录屏']
+                                        },
+                                        {
+                                            id: 'check', name: '核实', tip: '后台查流水 / 订单 / 触发条件，判定是否异常',
+                                            empty: '这个场景没有单独写「核实」环节；以后台能查到的数据为准。',
+                                            strong: ['核实', '核对', '判定', '复现', '上号'],
+                                            weak: ['查', '确认', '条件', '排期', '对比', '后台', '记录']
+                                        },
+                                        {
+                                            id: 'handle', name: '处理', tip: '补发 / 更换 / 扣回 / 解除 / 删除后重发',
+                                            empty: '这个场景没有单独写「处理」环节；按流程里的动作做。',
+                                            strong: ['补发', '更换', '补单', '删除', '解除', '撤回', '重置', '换发', '扣掉', '扣回', '封停', '禁言', '移出', '封号'],
+                                            weak: ['扣', '发送', '操作', '处理', '引导', '刷新']
+                                        },
+                                        {
+                                            id: 'record', name: '登记', tip: '客诉汇总表 / 内部提单 / 群里同步',
+                                            empty: '这个场景没有单独写「登记」环节；批量问题记得进客诉汇总表，提单后同步群里。',
+                                            strong: ['登记', '提单', '汇总', '上报'],
+                                            weak: ['记录', '备注', '同步', '标记', '汇总表']
+                                        },
+                                        {
+                                            id: 'follow', name: '回访', tip: '确认到账 / 恢复，玩家认可后结单',
+                                            empty: '这个场景没有单独写「回访」环节；处理完回一句确认。',
+                                            strong: ['回访', '结单', '确认到账', '告知结果'],
+                                            weak: ['回复玩家', '跟进', '安抚', '告知玩家']
+                                        }
+                                    ];
+                                    // 话术按「语气标签」挂到环节（收集/引导 → 提交，核实/说明 → 核实，方案/补发 → 处理，收尾/回访 → 回访）
+                                    const SOP_TONE_STAGE = [
+                                        [/收集|引导|索取|询问|要素/, 'submit'],
+                                        [/核实|核对|结论|口径|说明|解释|答复|规则|排期|无异常|条件|查/, 'check'],
+                                        [/方案|补发|更换|补单|解封|处理|安抚|解决|拒绝|通道|升级/, 'handle'],
+                                        [/登记|记录|汇总|提单/, 'record'],
+                                        [/收尾|结单|回访|到账|跟进/, 'follow']
+                                    ];
+                                    function sopStageOfStep(text) {
+                                        const t = String(text || '');
+                                        let best = '', bestScore = 0;
+                                        SOP_FLOW.forEach(st => {
+                                            let n = 0;
+                                            st.strong.forEach(w => { if (t.indexOf(w) >= 0) n += 2; });
+                                            st.weak.forEach(w => { if (t.indexOf(w) >= 0) n += 1; });
+                                            if (n > bestScore) { bestScore = n; best = st.id; }
+                                        });
+                                        return best || 'handle';
+                                    }
+                                    function sopStageOfScript(tone) {
+                                        const t = String(tone || '');
+                                        for (let i = 0; i < SOP_TONE_STAGE.length; i++) {
+                                            if (SOP_TONE_STAGE[i][0].test(t)) return SOP_TONE_STAGE[i][1];
+                                        }
+                                        return 'check';
+                                    }
+                                    // 场景 → 五环节：步骤归环节、话术挂环节（命中多个环节的按权重取最高的那个）
+                                    function sopStagePlan(s) {
+                                        const steps = (s.steps || []).map(x => (typeof x === 'string' ? x : ((x && (x.t || x.text)) || ''))).filter(Boolean);
+                                        const scripts = (s.scripts || []).map((sc, i) => ({ idx: i, tone: sc.tone || '', text: sc.text || '' }));
+                                        return SOP_FLOW.map(st => ({
+                                            id: st.id, name: st.name, tip: st.tip, empty: st.empty,
+                                            steps: steps.filter(t => sopStageOfStep(t) === st.id),
+                                            scripts: scripts.filter(sc => sopStageOfScript(sc.tone) === st.id)
+                                        }));
+                                    }
+                                    // 点环节：高亮 + 在这个环节下展示「这一步做什么 / 要说哪几句」
+                                    function sopPickStage(stageId) {
+                                        const s = sopCurrent;
+                                        if (!s) return;
+                                        const st = sopStagePlan(s).filter(x => x.id === stageId)[0];
+                                        const box = document.getElementById('sopStageScripts');
+                                        const scene = document.getElementById('sopSceneBox');
+                                        if (scene) Array.from(scene.querySelectorAll('[data-sop-stage]')).forEach(el => {
+                                            el.classList.toggle('active', el.dataset.sopStage === stageId);
+                                        });
+                                        if (!st || !box) return;
+                                        const esc = escapeHtml;
+                                        let h = '<div class="sop-stage-head"><b>' + esc(st.name) + '</b><span class="hint-text">' + esc(st.tip) + '</span></div>';
+                                        if (st.steps.length) {
+                                            h += '<ul class="sop-mind-steps" style="margin-bottom:8px;">'
+                                                + st.steps.map(x => '<li>' + esc(x) + '</li>').join('') + '</ul>';
+                                        } else {
+                                            h += '<div class="hint-text" style="margin-bottom:8px;">' + esc(st.empty) + '</div>';
+                                        }
+                                        if (st.scripts.length) {
+                                            h += '<div class="sop-block-t">这一步要说的话术（' + st.scripts.length + ' 条 · 点复制）</div>';
+                                            st.scripts.forEach(sc => {
+                                                h += '<div class="sop-script"><div class="sop-script-t">' + esc(sc.tone || '话术')
+                                                    + ' <button class="secondary sop-copy-btn" data-sop-copy="' + sc.idx + '">📋 复制</button></div>'
+                                                    + '<div class="sop-script-x">' + esc(sc.text) + '</div></div>';
+                                            });
+                                        } else if ((s.scripts || []).length) {
+                                            h += '<div class="sop-block-t">这一步没有单列话术 —— 先用整卡话术</div>';
+                                            (s.scripts || []).forEach((sc, i) => {
+                                                h += '<div class="sop-script"><div class="sop-script-t">' + esc(sc.tone || ('话术 ' + (i + 1)))
+                                                    + ' <button class="secondary sop-copy-btn" data-sop-copy="' + i + '">📋 复制</button></div>'
+                                                    + '<div class="sop-script-x">' + esc(sc.text) + '</div></div>';
+                                            });
+                                        } else {
+                                            h += '<div class="hint-text">这个场景没有写对外话术。</div>';
+                                        }
+                                        box.innerHTML = h;
+                                    }
                                     function sopOpenScene(id) {
                                         const s = sopSceneById(id);
                                         if (!s) return;
@@ -13396,11 +13541,24 @@
                                             + ' · 渠道 ' + esc((s.channel || []).join('/')) + '</span></div>';
                                         if ((s.triggers || []).length) h += '<div class="hint-text">触发词：' + esc(s.triggers.join('、')) + '</div>';
                                         if ((s.steps || []).length) {
-                                            // 流程用时间线/步骤条呈现（比一串文字直观）；最后一步不再画连接线
-                                            h += '<div class="sop-block"><div class="sop-block-t">处理流程</div><ol class="sop-steps">'
-                                                + s.steps.map((x, i) => '<li><span class="sop-step-n">' + (i + 1) + '</span>'
-                                                    + '<span class="sop-step-x">' + esc(x) + '</span></li>').join('')
-                                                + '</ol></div>';
+                                            // 处理流程：按 SOP 的五环节闭环画成思维导图；点环节 → 下方给出这一步的步骤与话术
+                                            const plan = sopStagePlan(s);
+                                            h += '<div class="sop-block"><div class="sop-block-t">处理流程（思维导图 · 点环节看这一步的话术）</div>'
+                                                + '<div class="sop-flowline">'
+                                                + SOP_FLOW.map((st, i) => '<span class="sop-flow-pill" data-sop-stage="' + st.id + '">' + (i + 1) + '. ' + esc(st.name) + '</span>'
+                                                    + (i < SOP_FLOW.length - 1 ? '<span class="sop-flow-arrow">→</span>' : '')).join('')
+                                                + '</div>'
+                                                + '<div class="sop-mind">'
+                                                + '<div class="sop-mind-root"><span class="sop-mind-k">场景</span><b>' + esc(s.title) + '</b></div>'
+                                                + '<div class="sop-mind-body">'
+                                                + plan.map(st => '<div class="sop-mind-branch">'
+                                                    + '<button type="button" class="sop-mind-stage' + ((st.steps.length + st.scripts.length) ? '' : ' sop-mind-dim') + '" data-sop-stage="' + st.id + '">' + esc(st.name)
+                                                    + '<span class="sop-mind-c">' + st.steps.length + ' 步 · ' + st.scripts.length + ' 话术</span></button>'
+                                                    + (st.steps.length ? '<ul class="sop-mind-steps">' + st.steps.map(x => '<li>' + esc(x) + '</li>').join('') + '</ul>' : '')
+                                                    + '</div>').join('')
+                                                + '</div></div>'
+                                                + '<div class="sop-stage-scripts" id="sopStageScripts"><span class="hint-text">点上面任一环节，看这一步该说的几句话术。</span></div>'
+                                                + '</div>';
                                         }
                                         if ((s.needInfo || []).length) {
                                             h += '<div class="sop-block"><div class="sop-block-t">要收集</div><div class="sop-needchips">'
@@ -13539,6 +13697,7 @@
                                             pushed = resp.ok ? '，并已推到服务端' : '（推服务端失败 HTTP ' + resp.status + '，本机照常可用）';
                                         } catch (e) { pushed = '（推服务端失败，本机照常可用）'; }
                                         teaSetHint('sopDataHint', '已导入 ' + b.scenes.length + ' 个场景' + pushed);
+                                        sopDataStatus();
                                     }
                                     function sopExport() {
                                         if (!sopBundle) { teaSetHint('sopDataHint', '还没加载数据'); return; }
@@ -13551,6 +13710,7 @@
                                         sopResetState();
                                         await sopLoad(true);
                                         teaSetHint('sopDataHint', '口令已保存，重新加载完成（数据来自：' + sopSourceLabel + '）');
+                                        sopDataStatus();
                                     }
                                     function sopResetState() { sopBundle = null; sopCurrent = null; }
                                     function sopReload() { sopResetState(); sopLoad(true); }
@@ -14359,6 +14519,8 @@
                                             });
                                             const scene = document.getElementById('sopSceneBox');
                                             if (scene) scene.addEventListener('click', (e) => {
+                                                const st = e.target.closest('[data-sop-stage]');
+                                                if (st) { sopPickStage(st.dataset.sopStage); return; }
                                                 const b = e.target.closest('[data-sop-copy]');
                                                 if (!b || !sopCurrent) return;
                                                 const sc = (sopCurrent.scripts || [])[+b.dataset.sopCopy];

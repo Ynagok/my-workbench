@@ -442,9 +442,18 @@ ok(/const SOP_PASS = '客服冷静';/.test(s) && /let sopUnlocked = false;/.test
   && /function sopUnlock\(\)/.test(s) && /function sopApplyLock\(\)/.test(s)
   && !/localStorage\.setItem\([^)]*SOP_PASS/.test(s) && !/sessionStorage\.setItem/.test(s),
   'SOP 加密：进这页要先输「客服冷静」，口令只在内存（不写 localStorage / sessionStorage）');
-ok(/class="sop-steps"/.test(s) && /sop-step-n/.test(s) && /\.sop-steps > li::before/.test(s)
+ok(/const SOP_FLOW = \[/.test(s) && /function sopStageOfStep/.test(s) && /function sopStageOfScript/.test(s)
+  && /function sopStagePlan\(s\)/.test(s) && /function sopPickStage\(stageId\)/.test(s),
+  'SOP：处理流程按 SOP 的五环节闭环分组（提交→核实→处理→登记→回访），步骤与话术各归各环节');
+ok(/class="sop-flowline"/.test(s) && /class="sop-mind"/.test(s) && /class="sop-mind-stage/.test(s)
+  && /data-sop-stage/.test(s) && /id="sopStageScripts"/.test(s) && /dataset\.sopStage/.test(s),
+  'SOP：流程画成思维导图（环节可点，点了在下面出这一步的步骤与话术）');
+ok(/\.sop-mind-body/.test(s) && /\.sop-mind-branch::before/.test(s) && /\.sop-mind-stage\.active/.test(s)
   && /sop-needchip/.test(s),
-  'SOP：处理流程改成竖向步骤条（编号圆点 + 连接线），要收集做成小片');
+  'SOP：导图连线 + 选中环节高亮 + 要收集小片');
+ok(/id="sopDataStatus"/.test(s) && /function sopDataStatus\(\)/.test(s)
+  && /跟进入本页要输的「客服冷静」不是一回事/.test(s) && /403/.test(s) && /sopBundleLocal/.test(s),
+  'SOP 数据与口令：卡里讲清 SOP_TOKEN 怎么用（和解锁口令分开 / 403 回落内置示例 / 本机导入），并有状态行');
 
 // ---- 4. 花括号/圆括号平衡（粗查，排除字符串内的干扰仅作参考） ----
 const count = (str, ch) => (str.split(ch).length - 1);

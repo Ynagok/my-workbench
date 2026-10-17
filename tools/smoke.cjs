@@ -1593,6 +1593,15 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
       lsDump.slice(0, 80));
     check(/内置示例/.test($('sopReportSub').textContent) && /个场景/.test($('sopReportSub').textContent),
       'SOP：抬头显示数据来源与场景数（服务端没数据时用内置示例）', $('sopReportSub').textContent.slice(0, 70));
+    // 「⚙️ 数据与口令」：使用说明 + 当前状态（口令填没填 / 数据来自哪 / 服务端 key）
+    check(/SOP_TOKEN/.test($('sopDataCard').textContent) && /客服冷静/.test($('sopDataCard').textContent)
+      && /sopBundleLocal/.test($('sopDataCard').textContent) && /403/.test($('sopDataCard').textContent),
+      'SOP 数据与口令：卡里写明「口令 = 服务端 SOP_TOKEN，不是解锁口令」+ 403 回落 + 本机导入',
+      $('sopDataCard').textContent.replace(/\s+/g, ' ').slice(0, 60));
+    check(/口令/.test($('sopDataStatus').textContent) && /数据来自/.test($('sopDataStatus').textContent)
+      && /sopBundle/.test($('sopDataStatus').textContent),
+      'SOP 数据与口令：状态行给出「口令填没填 / 数据来自哪 / 服务端 key」',
+      $('sopDataStatus').textContent);
     check(!!$('sopQuery') && !!$('sopHits') && !!$('sopSceneBox') && !!$('sopRedInput')
       && !!$('sopNeedBox') && !!$('sopFormOut') && !!$('sopDataCard'),
       'SOP：检索 / 结果 / 红线 / 清单 / 数据 容器都在');
@@ -1607,11 +1616,39 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
       && /要收集/.test($('sopSceneBox').textContent),
       'SOP：搜「充值没到账」→ 展开充值场景卡（流程 + 要收集）',
       $('sopSceneBox').textContent.replace(/\s+/g, ' ').slice(0, 60));
-    // 流程用「步骤条」呈现：编号圆点 + 连接线
-    const stepLis = [...doc.querySelectorAll('#sopSceneBox .sop-steps > li')];
-    check(stepLis.length >= 3 && stepLis[0].querySelector('.sop-step-n').textContent === '1'
-      && stepLis[1].querySelector('.sop-step-n').textContent === '2',
-      'SOP：处理流程渲染成步骤条（1、2、3… 编号）', stepLis.map(li => li.textContent.slice(0, 12)));
+    // 处理流程 = 五环节思维导图（提交 → 核实 → 处理 → 登记 → 回访），点环节出这一步的话术
+    const flowPills = [...doc.querySelectorAll('#sopSceneBox .sop-flowline [data-sop-stage]')];
+    const stageBtns = [...doc.querySelectorAll('#sopSceneBox .sop-mind-stage[data-sop-stage]')];
+    check(flowPills.length === 5 && stageBtns.length === 5
+      && flowPills.map(p => p.textContent.replace(/^\d+\.\s*/, '')).join('') === '提交核实处理登记回访',
+      'SOP：处理流程画成五环节思维导图（提交→核实→处理→登记→回访）', flowPills.map(p => p.textContent));
+    const mindSteps = [...doc.querySelectorAll('#sopSceneBox .sop-mind-steps > li')];
+    check(mindSteps.length >= 3 && /处理流程/.test($('sopSceneBox').textContent),
+      'SOP：导图里挂着这个场景的具体步骤', mindSteps.length);
+    check(/点上面任一环节/.test($('sopStageScripts').textContent),
+      'SOP：环节话术区默认只给提示，不抢内容');
+    // 点「核实」环节 → 下方出现该环节的步骤 + 话术
+    const checkStageBtn = stageBtns.filter(b => b.dataset.sopStage === 'check')[0];
+    checkStageBtn.click();
+    await sleep(30);
+    check(/核实/.test($('sopStageScripts').textContent)
+      && !!$('sopStageScripts').querySelector('[data-sop-copy]'),
+      'SOP：点「核实」环节 → 出现这一步的步骤和可复制话术',
+      $('sopStageScripts').textContent.replace(/\s+/g, ' ').slice(0, 50));
+    check(checkStageBtn.classList.contains('active')
+      && doc.querySelectorAll('#sopSceneBox [data-sop-stage].active').length === 2,
+      'SOP：点中的环节在流程图和导图里同时高亮');
+    // 换「处理」环节 → 内容跟着换
+    stageBtns.filter(b => b.dataset.sopStage === 'handle')[0].click();
+    await sleep(30);
+    check(/^处理/.test($('sopStageScripts').textContent.trim())
+      && /这一步(要说的话术|没有单列话术)/.test($('sopStageScripts').textContent),
+      'SOP：换「处理」环节后话术区跟着换', $('sopStageScripts').textContent.replace(/\s+/g, ' ').slice(0, 40));
+    // 环节话术也能复制
+    const stageCopy = $('sopStageScripts').querySelector('[data-sop-copy]');
+    if (stageCopy) stageCopy.click();
+    await sleep(30);
+    check(true, 'SOP：点环节话术的复制按钮不抛错');
     check(doc.querySelectorAll('#sopSceneBox .sop-needchip').length >= 3,
       'SOP：要收集的信息做成小片', doc.querySelectorAll('#sopSceneBox .sop-needchip').length);
     check(/订单号/.test($('sopSceneBox').textContent) && /对外话术/.test($('sopSceneBox').textContent),

@@ -49,7 +49,7 @@ npm run verify     # 改完代码、push 前的完整自检
 
 | 命令 | 内容 |
 |---|---|
-| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 337 项 + 「接口挂起时界面仍可用」+ 服务端冒烟 42 项 + 油猴脚本语法 + 单测 169 项 |
+| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 345 项 + 「接口挂起时界面仍可用」+ 服务端冒烟 42 项 + 油猴脚本语法 + 单测 169 项 |
 | `npm run verify:static` | 只要静态校验 + 语法检查（最快） |
 | `npm run report` | 打印一份真实生成的日报，肉眼确认排版（含 ⑥伙伴弹途 / ⑦异世界勇者） |
 | `npm run build:data` | 从 GM 玩家页快照提取 4 张权威映射表 + 与硬编码常量的**差异报告**（见下「游戏数据管线」） |
@@ -58,7 +58,7 @@ npm run verify     # 改完代码、push 前的完整自检
 | `npm run smoke:pmc` | **生管物料订单工作台**（`public/pmc.html`）自检，123 项（含加工周期工作日推算 + 在途锁定/调整建议 + 真实 8.5MB xlsx 端到端导入）；**不在 verify 里**，见下「生管物料订单工作台」一节 |
 | `npm test` | = `npm run verify` |
 
-`npm run verify` 失败就不要提交。它一共 7 段：静态结构 → 语法 → jsdom 集成冒烟 **337 项** → 接口挂起时界面仍可用 → 服务端冒烟 **42 项** → 油猴脚本语法（`node --check`）→ 油猴脚本单测 **169 项**。
+`npm run verify` 失败就不要提交。它一共 7 段：静态结构 → 语法 → jsdom 集成冒烟 **345 项** → 接口挂起时界面仍可用 → 服务端冒烟 **42 项** → 油猴脚本语法（`node --check`）→ 油猴脚本单测 **169 项**。
 
 - jsdom 未安装时前端冒烟会自动回落到本机 DSH 自带的那份。
 - `tools/smoke-server.cjs` 用 `PORT` + `DATA_FILE` 环境变量把服务端指到随机端口和 `tools/out/` 里的临时文件，**不会碰真实 `data.json`**；子进程 stdio 必须用 `ignore`/`inherit`（沙箱禁管道，`pipe` 会 EPERM）。
@@ -249,7 +249,17 @@ npm run verify     # 改完代码、push 前的完整自检
   - 未解锁时只显示 `#sopLockCard`（🔒 标题 + `#sopPassInput`（`type="password"`）+ 「进入」+ 提示 + 「输入不会被保存」一行），`#sopBody`（三个功能卡 + 数据卡）整块 `display:none`；**不解锁就不发 `sopBundle` 请求**（`sopInit()` 先 `sopApplyLock()`，锁着直接 return）。
   - 解锁状态是**内存变量 `let sopUnlocked = false;`**：**不写 localStorage / sessionStorage、不写服务端**，所以刷新/重开页面就要重新输 —— 这就是「不保留」的落地方式。输入框在成功或失败后都清空；失败提示「口令不对，再试一次」，空输入另行提示。
   - ⚠️ 它只是**页面门**，真正的数据保护仍是服务端 `SOP_TOKEN`（上面第 1 条）；别把口令存起来「方便下次」。
-- **流程可视化（步骤条）**：场景卡的「处理流程」不再是一段 `<ol>` 文字，而是 `.sop-steps` 竖版时间轴 —— 每步是 `li`（`<span class="sop-step-n">n</span>` 编号圆点 + `.sop-step-x` 正文），竖线画在 `li::before`、最后一项 `last-child` 隐藏；「要收集」渲染成 `.sop-needchip` 小片（`.sop-needchips` 里换行排列）。内部口径仍是红框 `.sop-internal` 单独一块。
+- **流程可视化（思维导图 · 五环节闭环）**：场景卡的「处理流程」按《梦幻消除战》《唱舞全明星》SOP §2.1 的**提交 → 核实 → 处理 → 登记 → 回访**五个环节画成思维导图，**点环节 → 下面出这一步的步骤 + 该说哪几句话术**（可单条复制）。
+  - 结构：`.sop-flowline`（顶部闭环小片，带 `→`）+ `.sop-mind`（左边 `.sop-mind-root` 场景名，右边 `.sop-mind-body` 五条 `.sop-mind-branch`，连线用 `branch::before` + `body` 的左边框）+ `#sopStageScripts`（点环节后的内容面板）。
+  - 分组是**启发式**：`SOP_FLOW` 每个环节有 `strong`（权重 2）/`weak`（权重 1）词表，`sopStageOfStep()` 按命中词打分取最高（同分取靠前环节，0 分默认「处理」）；话术按**语气标签**挂环节（`SOP_TONE_STAGE`：收集/引导→提交，核实/说明/结论→核实，方案/补发/拒绝→处理，登记/记录→登记，收尾/回访→回访）。两个表都在 `index.html`，调映射就改这两张表。
+  - 某环节没挂到话术时**不瞎编**：面板写「这一步没有单列话术 —— 先用整卡话术」，并把整卡话术列出来（点环节的按钮上也标着「N 步 · N 话术」，0 步 0 话术的环节 `.sop-mind-dim` 变淡）。
+  - 「要收集」仍是 `.sop-needchip` 小片；内部口径仍是红框 `.sop-internal` 单独一块。
+  - ⚠️ **旧的竖向步骤条（`.sop-steps` / `.sop-step-n`）已经删掉**，不要再加回来；冒烟/静态断言已改成导图的。
+- **⚙️ 数据与口令怎么用**（卡片里也写了 ①②③④）：
+  1. **口令 = 服务端环境变量 `SOP_TOKEN`**，跟进入本页要输的「客服冷静」**不是一回事**（那个只是页面门）；两边可以一样也可以不一样，改的时候别混。
+  2. 在「⚙️ 数据与口令」里填 → 点「保存口令并重新加载」→ 存 `localStorage['sopToken']`（只在本机，**不进服务端、不进 git**），之后拉数据带 `x-sop-token` 头。
+  3. 没填 / 填错 → 服务端 **403** → 页面回落「内置示例」（8 个场景，只作演示）；`#sopDataStatus` 会写「口令已填/未填 · 数据来自 X · 服务端 key sopBundle」。
+  4. 整份数据可以「📥 粘贴导入 bundle JSON」写本机 `sopBundleLocal`（**优先级高于服务端**，不用口令也能用）或「📋 复制当前 bundle」备份；灌线上用 `npm run sop:seed`。
 - **数据模型**：`{ version, updatedAt, channels[], redlines[], scenes[] }`
   - `redlines[] = { level:'red'|'amber', word 或 re, why, fix, src }` —— 命中「好评 / 误封 / 代言人 / 外挂 / 客服热线 / VIP客服 / 具体时间 / 存续期 / 苹果客服 / 抽奖概率 / 内部说明（正则）」等。
   - `scenes[] = { id, cat, product[], channel[], title, triggers[], needInfo[], steps[], scripts[{tone,visibility,text}], internal[], escalate[{when,do}], form{kicker,fields[]}, source }`。
@@ -260,7 +270,7 @@ npm run verify     # 改完代码、push 前的完整自检
 - **数据来源优先级**：本机导入（`localStorage['sopBundleLocal']`）> 服务端 `sopBundle`（带口令）> **内置示例 `SOP_DEMO`**；抬头与「数据」卡都写明当前来源（本机导入 / 服务端 / 内置示例）。
 - **灌数据**：`SOP_TOKEN=xxx BASE_URL=https://work-bad.onrender.com npm run sop:seed`（默认读 `tools/out/sop/bundle.json`，POST 到 `/api/data/sopBundle`）；线上 Render 里要配 `SOP_TOKEN` 环境变量。页面也能「📥 粘贴导入 bundle JSON」（写本机 + 尝试推服务端）、「📋 复制当前 bundle」。
 - **二期（用户也勾了，尚未做）**：各游戏「后台行为对应表」（妖怪 855 行 / 攻沙 484 行…）、合区查询、常用语库、xlsx 自动导入通道 —— ⚠️ `合区表.xls`、`全部常用语.xls` 是**老 BIFF 格式**，Node 里没解出来（`tools/out/xls-text.cjs` 只是把文本扒出来的粗糙版），要自动吸得先**另存为 .xlsx** 或写 BIFF 解析。
-- **测试**：`tools/smoke.cjs` 第 **8k** 节 **33 条**（**加密门：未解锁只看锁屏、不发 sopBundle 请求、错口令清空、对「客服冷静」才进、口令不进 localStorage/sessionStorage** / 步骤条编号 / 要收集小片 / 标签页/抬头来源/容器/默认入口/搜「充值没到账」命中并展开/订单号与话术/内部口径单独标出/复制话术不抛错/搜不到给提示/分类筛选/红线命中「好评+误封」并给替换口径/干净话不误报/清空生效/清单勾选生成文本含已收集与还差/复制文本/粘贴导入 bundle 生效并推服务端）；`tools/smoke-server.cjs` **+7 条**（不带口令 403、错口令 403、对口令 200、query 传口令、普通 key 不受影响、别的 sop 前缀也受保护）；`tools/verify.mjs` 3h **10 条**静态断言（含服务端 `SOP_TOKEN`/`SOP_KEY_RE`/`denySop`/`tokenEq`、`npm run sop:seed`、加密门只存内存、流程改步骤条）。
+- **测试**：`tools/smoke.cjs` 第 **8k** 节 **41 条**（**加密门：未解锁只看锁屏、不发 sopBundle 请求、错口令清空、对「客服冷静」才进、口令不进 localStorage/sessionStorage** / **数据与口令卡：写明「口令 = 服务端 SOP_TOKEN，不是解锁口令」+ 403 回落 + 本机导入 + 状态行** / **思维导图：5 个环节闭环小片（提交→核实→处理→登记→回访）5 个环节节点、导图里挂着具体步骤、默认只给提示 / 点「核实」出步骤和可复制话术 / 点中的环节在流程图与导图同时高亮 / 换「处理」环节内容跟着换 / 环节话术能复制** / 要收集小片 / 标签页/抬头来源/容器/默认入口/搜「充值没到账」命中并展开/订单号与话术/内部口径单独标出/复制话术不抛错/搜不到给提示/分类筛选/红线命中「好评+误封」并给替换口径/干净话不误报/清空生效/清单勾选生成文本含已收集与还差/复制文本/粘贴导入 bundle 生效并推服务端）；`tools/smoke-server.cjs` **+7 条**（不带口令 403、错口令 403、对口令 200、query 传口令、普通 key 不受影响、别的 sop 前缀也受保护）；`tools/verify.mjs` 3h **13 条**静态断言（含服务端 `SOP_TOKEN`/`SOP_KEY_RE`/`denySop`/`tokenEq`、`npm run sop:seed`、加密门只存内存、**五环节分组函数 + 导图结构 + 连线/高亮样式 + 数据与口令说明**）。
 
 ## 生管物料订单工作台（`public/pmc.html` · 临时工具，独立单页）
 
@@ -519,4 +529,11 @@ package.json               scripts: start / verify / verify:static / smoke:serve
   1. **加密门**：`const SOP_PASS = '客服冷静'` + `let sopUnlocked = false`（**只在内存**）；`#sopLockCard`（🔒 + `#sopPassInput` type=password + 进入 + 提示）与 `#sopBody`（三个功能卡 + 数据卡）互斥显示，由 `sopApplyLock()` 切换、`sopUnlock()` 校验；**锁着不发 `sopBundle` 请求**（`sopInit()` 先判锁）；口令与输入**不写 localStorage / sessionStorage / 服务端**，成功后清空输入框，所以每次刷新都要重输。
   2. **流程直观化**：处理流程渲染成 `.sop-steps` 竖版时间轴（编号圆点 `sop-step-n` + 正文 `sop-step-x`，竖线 `li::before`、末项隐藏），要收集渲染成 `.sop-needchip` 小片；内部口径仍是 `.sop-internal` 红框。
   3. **测试**：`smoke.cjs` 8k 加 10 条（锁屏/不解锁不发请求/错口令清空/空口令提示/对「客服冷静」才进/成功后清空输入/口令不在本机存储里/步骤条编号 1·2/要收集小片 ≥3），**327 → 337**；`verify.mjs` 3h 加 2 条（加密门实现 + 步骤条与小片），**8 → 10**。`npm run verify` 全绿（337 / 42 / 169）。
+- 本轮：**处理流程换成五环节思维导图（点环节出这一步的话术）+ 「数据与口令」写清用法**（用户：「处理流程可以用思维导图表示，详细参考客服问题流程文档里的流程图，点击不同环节可以出现对应的几个话术，数据与口令要怎么使用」）。改了 `public/index.html` + `tools/smoke.cjs` + `tools/verify.mjs` + 本文件：
+  1. **导图**：场景卡的「处理流程」按 SOP §2.1 主流程画成 **提交 → 核实 → 处理 → 登记 → 回访** 五环节（`SOP_FLOW`），左边场景名、右边五条分支带连线；顶部再加一条 `提交 → 核实 → …` 的闭环小片。**点任一环节 → 下面 `#sopStageScripts` 列出这一步的步骤 + 该说的几句话术（可单条复制）**，流程图与导图里的该环节同时高亮。
+  2. **映射**：`sopStageOfStep()` 用每个环节的 `strong`/`weak` 词表打分（权重 2 / 1，同分取靠前环节，0 分落「处理」）；话术按 `tone` 走 `SOP_TONE_STAGE` 挂环节。用真实 bundle 31 个场景跑过一遍分布（提交 21 / 核实 43 / 处理 46 / 登记 9 / 回访 6 步），个别场景某环节没有专属话术时明确写「这一步没有单列话术 —— 先用整卡话术」并列出整卡话术，不硬凑。
+  3. **删掉旧步骤条**（`.sop-steps` / `.sop-step-n` / `.sop-step-x`）与对应 CSS，换成 `.sop-flowline` / `.sop-mind*` / `.sop-stage-scripts`（0 步 0 话术的环节 `.sop-mind-dim` 变淡）；「要收集」小片与内部口径红框不动。
+  4. **数据与口令**：卡里补了 ①②③④ 使用说明（口令 = 服务端 `SOP_TOKEN`，**不是**解锁口令「客服冷静」；只存本机；403 回落内置示例；本机导入/复制备份），并新增状态行 `#sopDataStatus`（`sopDataStatus()`，`sopLoad` / 导入 / 保存口令后刷新）显示「口令已填/未填 · 数据来自 X · 服务端 key sopBundle」；403 提示文案也改成「口令没填 / 填错，或服务端没配 SOP_TOKEN」。
+  5. **测试**：`smoke.cjs` 8k 换成导图断言（5 环节小片 + 5 环节节点 + 导图挂步骤 + 默认提示 + 点「核实」出步骤与可复制话术 + 双向高亮 + 换「处理」跟着换 + 环节话术复制）+ 2 条数据与口令（卡里说明、状态行），**337 → 345**；`verify.mjs` 3h 由 1 条步骤条断言换成 4 条（分组函数 / 导图结构 / 连线与高亮 / 数据与口令说明），**10 → 13**。`npm run verify` 全绿（345 / 42 / 169）。
+  6. **顺手**：`tools/out/sop/bundle.json`（gitignore）里补了 13 个产品专项场景 + 1 条红线（来自附件《梦幻消除战》《唱全明星》SOP），`version: 2`，19 → **31 个场景**；要上线得用户自己 `npm run sop:seed`（要 `SOP_TOKEN`）。
 
