@@ -49,7 +49,7 @@ npm run verify     # 改完代码、push 前的完整自检
 
 | 命令 | 内容 |
 |---|---|
-| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 359 项 + 「接口挂起时界面仍可用」+ 服务端冒烟 42 项 + 油猴脚本语法 + 单测 169 项 |
+| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 360 项 + 「接口挂起时界面仍可用」+ 服务端冒烟 42 项 + 油猴脚本语法 + 单测 169 项 |
 | `npm run verify:static` | 只要静态校验 + 语法检查（最快） |
 | `npm run report` | 打印一份真实生成的日报，肉眼确认排版（含 ⑥伙伴弹途 / ⑦异世界勇者） |
 | `npm run build:data` | 从 GM 玩家页快照提取 4 张权威映射表 + 与硬编码常量的**差异报告**（见下「游戏数据管线」） |
@@ -58,7 +58,7 @@ npm run verify     # 改完代码、push 前的完整自检
 | `npm run smoke:pmc` | **生管物料订单工作台**（`public/pmc.html`）自检，123 项（含加工周期工作日推算 + 在途锁定/调整建议 + 真实 8.5MB xlsx 端到端导入）；**不在 verify 里**，见下「生管物料订单工作台」一节 |
 | `npm test` | = `npm run verify` |
 
-`npm run verify` 失败就不要提交。它一共 7 段：静态结构 → 语法 → jsdom 集成冒烟 **359 项** → 接口挂起时界面仍可用 → 服务端冒烟 **42 项** → 油猴脚本语法（`node --check`）→ 油猴脚本单测 **169 项**。
+`npm run verify` 失败就不要提交。它一共 7 段：静态结构 → 语法 → jsdom 集成冒烟 **360 项** → 接口挂起时界面仍可用 → 服务端冒烟 **42 项** → 油猴脚本语法（`node --check`）→ 油猴脚本单测 **169 项**。
 
 - jsdom 未安装时前端冒烟会自动回落到本机 DSH 自带的那份。
 - `tools/smoke-server.cjs` 用 `PORT` + `DATA_FILE` 环境变量把服务端指到随机端口和 `tools/out/` 里的临时文件，**不会碰真实 `data.json`**；子进程 stdio 必须用 `ignore`/`inherit`（沙箱禁管道，`pipe` 会 EPERM）。
@@ -247,7 +247,8 @@ npm run verify     # 改完代码、push 前的完整自检
   2. 口令只存本机 `localStorage['sopToken']`，**不进服务端、不进 git**；页面上「⚙️ 数据与口令」里填。
   3. 完整 bundle **不入 git**（放 `tools/out/sop/bundle.json`，gitignore）+ `npm run sop:seed` 推上服务端；仓库里只有**内置示例**（8 个场景，去掉了姓名/电话）。
 - **🔒 页面加密门**（用户要求：「设备首次进入该功能要输入口令，账号密码信息不保留」）：口令写死在前端常量 **`const SOP_PASS = '客服冷静';`**。
-  - 未解锁时只显示 `#sopLockCard`（🔒 标题 + `#sopPassInput`（`type="password"`）+ 「进入」+ 提示 + 「输入不会被保存」一行），`#sopBody`（三个功能卡 + 数据卡）整块 `display:none`；**不解锁就不发 `sopBundle` 请求**（`sopInit()` 先 `sopApplyLock()`，锁着直接 return）。
+  - 未解锁时只显示 `#sopLockCard`（🔒 标题 + `#sopPassInput` + 「进入」+ 提示 + 「输入不会被保存」一行），`#sopBody`（三个功能卡 + 数据卡）整块 `display:none`；**不解锁就不发 `sopBundle` 请求**（`sopInit()` 先 `sopApplyLock()`，锁着直接 return）。
+  - ⚠️ **`#sopPassInput` 是 `type="text"` + CSS `-webkit-text-security: disc`，不是 `type="password"`**：password 类型在部分浏览器/输入法下会挡中文上屏，导致「客服冷静」这种中文口令打不进去（用户反馈「一开始的口令不能输入中文了」）。用 text 保住输入法，用 `text-security` 把字符遮成圆点；不支持该属性的浏览器退化成明文（可接受，口令本身不是个人密码）。**别再改回 `type="password"`**。
   - 解锁状态是**内存变量 `let sopUnlocked = false;`**：**不写 localStorage / sessionStorage、不写服务端**，所以刷新/重开页面就要重新输 —— 这就是「不保留」的落地方式。输入框在成功或失败后都清空；失败提示「口令不对，再试一次」，空输入另行提示。
   - ⚠️ 它只是**页面门**，真正的数据保护仍是服务端 `SOP_TOKEN`（上面第 1 条）；别把口令存起来「方便下次」。
 - **流程可视化（思维导图 · 五环节闭环）**：场景卡的「处理流程」按《梦幻消除战》《唱舞全明星》SOP §2.1 的**提交 → 核实 → 处理 → 登记 → 回访**五个环节画成思维导图，**点环节 → 下面出这一步的步骤 + 该说哪几句话术**（可单条复制）。
@@ -280,7 +281,7 @@ npm run verify     # 改完代码、push 前的完整自检
 - **数据来源优先级**：本机导入（`localStorage['sopBundleLocal']`）> 服务端 `sopBundle`（带口令）> **内置示例 `SOP_DEMO`**；抬头与「数据」卡都写明当前来源（本机导入 / 服务端 / 内置示例）。
 - **灌数据**：`SOP_TOKEN=xxx BASE_URL=https://work-bad.onrender.com npm run sop:seed`（默认读 `tools/out/sop/bundle.json`，POST 到 `/api/data/sopBundle`）；线上 Render 里要配 `SOP_TOKEN` 环境变量。页面也能「📥 粘贴导入 bundle JSON」（写本机 + 尝试推服务端）、「📋 复制当前 bundle」。
 - **二期（用户也勾了，尚未做）**：各游戏「后台行为对应表」（妖怪 855 行 / 攻沙 484 行…）、合区查询、xlsx 自动导入通道 —— ⚠️ `合区表.xls` 是**老 BIFF 格式**，Node 里没解出来（`tools/out/xls-text.cjs` 只是把文本扒出来的粗糙版），要自动吸得先**另存为 .xlsx** 或写 BIFF 解析。**常用语库已做**（见上，`bundle.phrases`；`全部常用语.xls` 仍是 BIFF，靠 `xls-text.cjs` 扒出可读句子后人工整理成 57 条）。
-- **测试**：`tools/smoke.cjs` 第 **8k** 节 **53 条**（**加密门：未解锁只看锁屏、不发 sopBundle 请求、错口令清空、对「客服冷静」才进、口令不进 localStorage/sessionStorage** / **数据与口令卡：写明「口令 = 服务端 SOP_TOKEN，不是解锁口令」+ 403 回落 + 本机导入 + 状态行** / **思维导图：5 个环节闭环小片（提交→核实→处理→登记→回访）5 个环节节点、导图里挂着具体步骤、默认只给提示 / 点「核实」出步骤和可复制话术 / 点中的环节在流程图与导图同时高亮 / 换「处理」环节内容跟着换 / 环节话术能复制** / **话术编辑 7 条（每条带 ✏️、点开出编辑框、保存后换新话术 + 提示 + 写进 sopBundleLocal、＋ 加话术、🗑 删一条）** / **常用语库 7 条（默认只报条数不铺满、先给提示、搜「角色」筛出、复制给提示、✏️ 改完生效、＋ 新增后条数与分类片更新、🗑 删回 3 条）** / **信息清单卡已拿掉（`#sopNeedBox`/`#sopFormOut`/「信息清单」字样都没了）+ 提单格式仍在场景卡折叠块里** / 要收集小片 / 标签页/抬头来源/容器/默认入口/搜「充值没到账」命中并展开/订单号与话术/内部口径单独标出/复制话术不抛错/搜不到给提示/分类筛选/红线命中「好评+误封」并给替换口径/干净话不误报/清空生效/粘贴导入 bundle 生效并推服务端）；`tools/smoke-server.cjs` **+7 条**（不带口令 403、错口令 403、对口令 200、query 传口令、普通 key 不受影响、别的 sop 前缀也受保护）；`tools/verify.mjs` 3h **17 条**静态断言（含服务端 `SOP_TOKEN`/`SOP_KEY_RE`/`denySop`/`tokenEq`、`npm run sop:seed`、加密门只存内存、**五环节分组函数 + 导图结构 + 连线/高亮样式 + 数据与口令说明 + 常用语库 + 话术编辑 + 落盘 + 版面折叠 + 清单卡确已移除**）。
+- **测试**：`tools/smoke.cjs` 第 **8k** 节 **54 条**（**加密门：未解锁只看锁屏、不发 sopBundle 请求、口令框是 text（不挡中文输入法）、错口令清空、对「客服冷静」才进、口令不进 localStorage/sessionStorage** / **数据与口令卡：写明「口令 = 服务端 SOP_TOKEN，不是解锁口令」+ 403 回落 + 本机导入 + 状态行** / **思维导图：5 个环节闭环小片（提交→核实→处理→登记→回访）5 个环节节点、导图里挂着具体步骤、默认只给提示 / 点「核实」出步骤和可复制话术 / 点中的环节在流程图与导图同时高亮 / 换「处理」环节内容跟着换 / 环节话术能复制** / **话术编辑 7 条（每条带 ✏️、点开出编辑框、保存后换新话术 + 提示 + 写进 sopBundleLocal、＋ 加话术、🗑 删一条）** / **常用语库 7 条（默认只报条数不铺满、先给提示、搜「角色」筛出、复制给提示、✏️ 改完生效、＋ 新增后条数与分类片更新、🗑 删回 3 条）** / **信息清单卡已拿掉（`#sopNeedBox`/`#sopFormOut`/「信息清单」字样都没了）+ 提单格式仍在场景卡折叠块里** / 要收集小片 / 标签页/抬头来源/容器/默认入口/搜「充值没到账」命中并展开/订单号与话术/内部口径单独标出/复制话术不抛错/搜不到给提示/分类筛选/红线命中「好评+误封」并给替换口径/干净话不误报/清空生效/粘贴导入 bundle 生效并推服务端）；`tools/smoke-server.cjs` **+7 条**（不带口令 403、错口令 403、对口令 200、query 传口令、普通 key 不受影响、别的 sop 前缀也受保护）；`tools/verify.mjs` 3h **18 条**静态断言（含服务端 `SOP_TOKEN`/`SOP_KEY_RE`/`denySop`/`tokenEq`、`npm run sop:seed`、加密门只存内存、**口令框是 text + text-security（不许回到 password）**、五环节分组函数 + 导图结构 + 连线/高亮样式 + 数据与口令说明 + 常用语库 + 话术编辑 + 落盘 + 版面折叠 + 清单卡确已移除）。
 
 ## 生管物料订单工作台（`public/pmc.html` · 临时工具，独立单页）
 
@@ -556,3 +557,7 @@ package.json               scripts: start / verify / verify:static / smoke:serve
   1. **删掉整张卡**：`#sopNeedBox` / `#sopFormBuildBtn` / `#sopFormCopyBtn` / `#sopFormOut` / `#sopFormHint` 全去掉，连同 `sopRenderNeed()`、`sopBuildForm()`、`sopCopy()` 三个函数和两处 `setClick` 绑定（`sopOpenScene()` 里那句 `sopRenderNeed(s)` 也删了）。⚠️ `sopCopy()` 只被这块卡用过，所以一起删；`teaSetHint` 仍在用，别动。
   2. **保留的**：场景卡里的「提单格式（折叠）」和「依据条款（折叠）」照旧 —— 用户只砍那块卡，不是砍提单信息；「要收集」小片也还在。
   3. **测试**：`smoke.cjs` 8k 把原来 4 条清单断言（列清单 / 生成文本含已收集 / 含还差与提单字段 / 复制给提示）换成 2 条（**这块卡已经拿掉** —— 那几个 id 都取不到、`body` 里也没有「信息清单」字样；**提单格式仍在场景卡里**），容器断言去掉那两个 id、加上 `sopPhList`，**361 → 359**；`verify.mjs` 3h 的容器/按钮/函数断言同步改成「这些 id 与函数**不该存在**」，仍是 17 条。`npm run verify` 全绿（359 / 42 / 169）。
+- 本轮：**SOP 锁屏口令框打不进中文 → 改成 `type="text"` + CSS 遮蔽**（用户：「一开始的口令不能输入中文了」）。
+  1. `#sopPassInput` 从 `type="password"` 改成 **`type="text"`**（password 类型在部分浏览器/输入法下会挡中文上屏，导致「客服冷静」打不进去），并加 `-webkit-text-security: disc` / `text-security: disc` 把字符遮成圆点（保留「看不出输入内容」的观感；不支持该属性的浏览器退化成明文，可接受）。placeholder 改成「输入使用口令（可用中文输入法）」。
+  2. ⚠️ **别再改回 `type="password"`** —— 冒烟与静态断言都锁了：`smoke.cjs` 8k 里有一条「口令框用 text」，`verify.mjs` 3h 断言 `id="sopPassInput" type="text"` + `-webkit-text-security: disc` 且不存在 `type="password"`。
+  3. **测试**：smoke **359 → 360**（8k 53 → 54），verify 3h **17 → 18**。`npm run verify` 全绿（360 / 42 / 169）。

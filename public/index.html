@@ -3302,6 +3302,13 @@
         #sopLockCard {
             border-left: 3px solid var(--warn);
         }
+        /* 口令框：故意用 type="text" —— password 类型在部分浏览器里会挡中文输入法，
+           导致「客服冷静」这种中文口令打不进去；这里用 CSS 把字符遮成圆点，
+           既保留「看不出输入内容」的观感，又能正常用输入法上屏（不支持的浏览器退化成明文，可接受）。 */
+        #sopPassInput {
+            -webkit-text-security: disc;
+            text-security: disc;
+        }
         /* SOP 处理流程：五环节闭环（提交 → 核实 → 处理 → 登记 → 回访）+ 思维导图 */
         .sop-flowline { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin: 2px 0 10px; }
         .sop-flow-pill {
@@ -3645,7 +3652,7 @@
                     <span class="hint-text" style="font-weight:400;">里头全是内部口径（含「严禁告知玩家」的规则），要先输口令才能用</span>
                 </label>
                 <div class="flex-row" style="margin-top:10px;">
-                    <input id="sopPassInput" type="password" placeholder="输入使用口令" autocomplete="off" style="max-width:240px;">
+                    <input id="sopPassInput" type="text" placeholder="输入使用口令（可用中文输入法）" autocomplete="off" autocapitalize="off" spellcheck="false" style="max-width:260px;">
                     <button id="sopUnlockBtn">解锁</button>
                     <span class="hint-text" id="sopPassHint"></span>
                 </div>

@@ -443,6 +443,9 @@ ok(/const SOP_PASS = '客服冷静';/.test(s) && /let sopUnlocked = false;/.test
   && /function sopUnlock\(\)/.test(s) && /function sopApplyLock\(\)/.test(s)
   && !/localStorage\.setItem\([^)]*SOP_PASS/.test(s) && !/sessionStorage\.setItem/.test(s),
   'SOP 加密：进这页要先输「客服冷静」，口令只在内存（不写 localStorage / sessionStorage）');
+ok(/id="sopPassInput" type="text"/.test(s) && /-webkit-text-security: disc/.test(s)
+  && !/id="sopPassInput" type="password"/.test(s),
+  'SOP 加密：口令框改成 text + CSS 遮蔽（password 类型会挡中文输入法，中文口令打不进去）');
 ok(/const SOP_FLOW = \[/.test(s) && /function sopStageOfStep/.test(s) && /function sopStageOfScript/.test(s)
   && /function sopStagePlan\(s\)/.test(s) && /function sopPickStage\(stageId\)/.test(s),
   'SOP：处理流程按 SOP 的五环节闭环分组（提交→核实→处理→登记→回访），步骤与话术各归各环节');

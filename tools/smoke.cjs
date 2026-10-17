@@ -1582,6 +1582,8 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     $('sopUnlockBtn').click();
     await sleep(40);
     check(/先输入/.test($('sopPassHint').textContent), 'SOP 加密：空口令也给提示');
+    check($('sopPassInput').type === 'text',
+      'SOP 加密：口令框用 text（password 类型在部分浏览器会挡中文输入法）', $('sopPassInput').type);
     // 对的口令（用户定的「客服冷静」）
     $('sopPassInput').value = '客服冷静';
     $('sopUnlockBtn').click();
