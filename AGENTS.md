@@ -49,7 +49,7 @@ npm run verify     # 改完代码、push 前的完整自检
 
 | 命令 | 内容 |
 |---|---|
-| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 345 项 + 「接口挂起时界面仍可用」+ 服务端冒烟 42 项 + 油猴脚本语法 + 单测 169 项 |
+| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 361 项 + 「接口挂起时界面仍可用」+ 服务端冒烟 42 项 + 油猴脚本语法 + 单测 169 项 |
 | `npm run verify:static` | 只要静态校验 + 语法检查（最快） |
 | `npm run report` | 打印一份真实生成的日报，肉眼确认排版（含 ⑥伙伴弹途 / ⑦异世界勇者） |
 | `npm run build:data` | 从 GM 玩家页快照提取 4 张权威映射表 + 与硬编码常量的**差异报告**（见下「游戏数据管线」） |
@@ -58,7 +58,7 @@ npm run verify     # 改完代码、push 前的完整自检
 | `npm run smoke:pmc` | **生管物料订单工作台**（`public/pmc.html`）自检，123 项（含加工周期工作日推算 + 在途锁定/调整建议 + 真实 8.5MB xlsx 端到端导入）；**不在 verify 里**，见下「生管物料订单工作台」一节 |
 | `npm test` | = `npm run verify` |
 
-`npm run verify` 失败就不要提交。它一共 7 段：静态结构 → 语法 → jsdom 集成冒烟 **345 项** → 接口挂起时界面仍可用 → 服务端冒烟 **42 项** → 油猴脚本语法（`node --check`）→ 油猴脚本单测 **169 项**。
+`npm run verify` 失败就不要提交。它一共 7 段：静态结构 → 语法 → jsdom 集成冒烟 **361 项** → 接口挂起时界面仍可用 → 服务端冒烟 **42 项** → 油猴脚本语法（`node --check`）→ 油猴脚本单测 **169 项**。
 
 - jsdom 未安装时前端冒烟会自动回落到本机 DSH 自带的那份。
 - `tools/smoke-server.cjs` 用 `PORT` + `DATA_FILE` 环境变量把服务端指到随机端口和 `tools/out/` 里的临时文件，**不会碰真实 `data.json`**；子进程 stdio 必须用 `ignore`/`inherit`（沙箱禁管道，`pipe` 会 EPERM）。
@@ -187,6 +187,7 @@ npm run verify     # 改完代码、push 前的完整自检
   - 服务端 `data.json` 里可能还留着历史的 `overseasBizData` 键，**已经没人读它**。
 - **10 个统计项** `OVBIZ_ITEMS`（周报的列，**已按用户要求删掉「邮件+SDK（猫旅馆物语）」**）：异世界群维系 / （繁花+乐缤纷+梦幻）群维系 / 海外SSO工单量（全产品）/ 海外CP后台工单（全产品）/ 海外邮件（全产品）/ 海外FB（全产品）/ 商店回复 / SSO国内工单 / 监控禁言 / 监控封号。**独立于客服生涯的项表**（自己一套 key，两边互不影响）。
   - ⚠️ 「邮件+SDK（猫旅馆物语）」在**客服生涯**里还有一个同名项，那是 `CAREER_HIDDEN_ITEMS` 里**只存档、不计入统计**的列（登记表口径），跟这里的删除无关，**别一起删**。
+  - ⚠️ 这里的「海外FB（全产品）」是**周报表里那一列**（一个数）；**日报侧（海外日报 → 客服生涯）2026-10 起已把 FB 拆成 `FB·梦幻` / `FB·月光` 两个字段、两项统计各自独立**，两个 tab 数据源不同，别互相套用。
   - ⚠️ 老表头里若还留着这一列，列名对不上就**整列忽略**（那几行的「总计」可能因此对不上 → 走下面的提示逻辑）。
 - **解析**（`ovbizParse` + `ovbizSplitLine`）：**CSV 和 TSV 都吃**（含制表符按 TSV，否则按 CSV，支持 `"…"` 引号与 `""` 转义）；**表头按列名对齐、顺序随意**；比对前用 `careerNormHeader` 归一（去空白、全角括号→半角），并**去掉括号内容再匹配一次**（「海外SSO工单量（全产品）」和「海外SSO工单量」都认）。
   - ⚠️ **这份周报表头第一格写的是 `22` 而不是「日期」**，所以 `OVBIZ_COLUMNS['22'] = '@date'` 是必须的；日期复用 `careerParseDate`（`2026/1/1`、`2026-01-01`、Excel 序列号都行）；不带表头时按原列序（日期,人员,班次,10 项,总计,特殊问题）。
@@ -260,17 +261,26 @@ npm run verify     # 改完代码、push 前的完整自检
   2. 在「⚙️ 数据与口令」里填 → 点「保存口令并重新加载」→ 存 `localStorage['sopToken']`（只在本机，**不进服务端、不进 git**），之后拉数据带 `x-sop-token` 头。
   3. 没填 / 填错 → 服务端 **403** → 页面回落「内置示例」（8 个场景，只作演示）；`#sopDataStatus` 会写「口令已填/未填 · 数据来自 X · 服务端 key sopBundle」。
   4. 整份数据可以「📥 粘贴导入 bundle JSON」写本机 `sopBundleLocal`（**优先级高于服务端**，不用口令也能用）或「📋 复制当前 bundle」备份；灌线上用 `npm run sop:seed`。
-- **数据模型**：`{ version, updatedAt, channels[], redlines[], scenes[] }`
+- **💬 常用语库（新卡 `#sopPhList`）**：把《全部常用语.xls》里的话术整理进 `bundle.phrases[] = { id, cat, tone, text }`（**只在本机 bundle、不进 git**；内置示例只放 3 条通用口径）。14 个分类（退款 / 未成年退款 / 充值到账 / 账号找回 / 换绑解绑 / 注销 / 封禁申诉 / 账号交易共享 / 活动与概率 / 礼包与充值 / 技术排查 / 迁移与渠道 / 收集与定位 / 安抚与收尾）。
+  - 交互：关键词搜索（`#sopPhQuery` + 搜索按钮 / 回车）+ 分类片筛选（`#sopPhCats`）；**默认不铺满**（只显示「共 N 条」，搜了才列），省得一屏几百条。每条卡片有 📋 复制 / ✏️ 改 / 🗑 删，卡上还有「＋ 新增常用语」。
+  - ⚠️ `sopPhRender()` 是唯一渲染入口（`sopPhSearch` / 分类点击 / 增删改后都调它）；筛选用 `sopPhCat` + `sopPhQ` 两个模块级变量。
+- **✏️ 话术可编辑（用户要求「后续要可以添加修改已有的话术」）**：场景卡的每条话术都有 **✏️ 改 / 🗑 删**，「对外话术」标题旁有 **＋ 加话术**；常用语库同样能增删改。两处共用同一个编辑框组件 `sopEditHtml(kind, idx, cat, tone, text)`（`kind='script'` 只有语气+正文，`'phrase'` 多一个分类）。
+  - 状态：`sopScriptEdit`（-1 空闲 / ≥0 改第 n 条 / -2 新增）、`sopPhEditId`（'' / 'new' / id）；保存走 `sopScriptSave()` / `sopPhSave(id)`，删除走 `sopScriptDel(idx)` / `sopPhDel(id)`（都 `confirm`）。
+  - 落盘 `sopPersist(note)`：**写 `localStorage['sopBundleLocal']` + 抬头来源改成「本机导入」+ 尝试带 `x-sop-token` POST 到 `/api/data/sopBundle`**（推不上去只影响别处能不能看到，本机照常）。所以改完刷新不丢；换设备要「📋 复制当前 bundle」或重新 seed。
+  - ⚠️ 编辑只动 `sopBundle` 内存/本机副本，**不改 `SOP_DEMO`**（内置示例保持极简，避免把内部话术写进仓库）。
+- **版面（用户：「字有点多和紧凑，能不能弄个更容易看的样式」）**：场景卡改成「区块卡片」——`.sop-block` 带边框/浅底/内边距，标题前加一根黄色细条；`.sop-script` 变成独立小卡（左边黄线 + 更大行高 1.95）；正文 `line-height` 从 1.7 提到 1.9 左右。**「提单格式」和「依据条款」折进 `details.sop-fold`（默认收起）**，长文本不再一屏堆满。常用语库默认不展开列表（见上）。
+- **数据模型**：`{ version, updatedAt, channels[], redlines[], scenes[], phrases[] }`
   - `redlines[] = { level:'red'|'amber', word 或 re, why, fix, src }` —— 命中「好评 / 误封 / 代言人 / 外挂 / 客服热线 / VIP客服 / 具体时间 / 存续期 / 苹果客服 / 抽奖概率 / 内部说明（正则）」等。
   - `scenes[] = { id, cat, product[], channel[], title, triggers[], needInfo[], steps[], scripts[{tone,visibility,text}], internal[], escalate[{when,do}], form{kicker,fields[]}, source }`。
+  - `phrases[] = { id, cat, tone, text }` —— 可缺省（`sopValidBundle` 只硬性要求 `scenes` + `redlines`）。
 - **三个能力**（一期，已实现）：
   1. **🔍 查场景**：搜玩家原话/关键词（多词要全部命中）、按分类/渠道筛选；命中 1 条自动展开；场景卡给「处理流程 / 要收集 / 对外话术（逐条复制）/ ⚠️内部口径（别发玩家，红框）/ 升级注意 / 提单格式 / 依据条款」。
   2. **🚩 红线检查**：粘一段准备发给玩家的话 → 逐条匹配 `redlines`（`word` 用 indexOf、`re` 用 RegExp）→ 按出现顺序列出「命中词 / 原因 / 改成什么 / 出处」；没命中给「OK，仍要自己核一遍」。
   3. **🧾 信息清单 / 提单文本**：勾上「已经问到的信息」→ 生成 `【SOP｜分类】标题` + 反馈三要素 + 已收集/还差 + 提单字段骨架 + 依据，可复制。
 - **数据来源优先级**：本机导入（`localStorage['sopBundleLocal']`）> 服务端 `sopBundle`（带口令）> **内置示例 `SOP_DEMO`**；抬头与「数据」卡都写明当前来源（本机导入 / 服务端 / 内置示例）。
 - **灌数据**：`SOP_TOKEN=xxx BASE_URL=https://work-bad.onrender.com npm run sop:seed`（默认读 `tools/out/sop/bundle.json`，POST 到 `/api/data/sopBundle`）；线上 Render 里要配 `SOP_TOKEN` 环境变量。页面也能「📥 粘贴导入 bundle JSON」（写本机 + 尝试推服务端）、「📋 复制当前 bundle」。
-- **二期（用户也勾了，尚未做）**：各游戏「后台行为对应表」（妖怪 855 行 / 攻沙 484 行…）、合区查询、常用语库、xlsx 自动导入通道 —— ⚠️ `合区表.xls`、`全部常用语.xls` 是**老 BIFF 格式**，Node 里没解出来（`tools/out/xls-text.cjs` 只是把文本扒出来的粗糙版），要自动吸得先**另存为 .xlsx** 或写 BIFF 解析。
-- **测试**：`tools/smoke.cjs` 第 **8k** 节 **41 条**（**加密门：未解锁只看锁屏、不发 sopBundle 请求、错口令清空、对「客服冷静」才进、口令不进 localStorage/sessionStorage** / **数据与口令卡：写明「口令 = 服务端 SOP_TOKEN，不是解锁口令」+ 403 回落 + 本机导入 + 状态行** / **思维导图：5 个环节闭环小片（提交→核实→处理→登记→回访）5 个环节节点、导图里挂着具体步骤、默认只给提示 / 点「核实」出步骤和可复制话术 / 点中的环节在流程图与导图同时高亮 / 换「处理」环节内容跟着换 / 环节话术能复制** / 要收集小片 / 标签页/抬头来源/容器/默认入口/搜「充值没到账」命中并展开/订单号与话术/内部口径单独标出/复制话术不抛错/搜不到给提示/分类筛选/红线命中「好评+误封」并给替换口径/干净话不误报/清空生效/清单勾选生成文本含已收集与还差/复制文本/粘贴导入 bundle 生效并推服务端）；`tools/smoke-server.cjs` **+7 条**（不带口令 403、错口令 403、对口令 200、query 传口令、普通 key 不受影响、别的 sop 前缀也受保护）；`tools/verify.mjs` 3h **13 条**静态断言（含服务端 `SOP_TOKEN`/`SOP_KEY_RE`/`denySop`/`tokenEq`、`npm run sop:seed`、加密门只存内存、**五环节分组函数 + 导图结构 + 连线/高亮样式 + 数据与口令说明**）。
+- **二期（用户也勾了，尚未做）**：各游戏「后台行为对应表」（妖怪 855 行 / 攻沙 484 行…）、合区查询、xlsx 自动导入通道 —— ⚠️ `合区表.xls` 是**老 BIFF 格式**，Node 里没解出来（`tools/out/xls-text.cjs` 只是把文本扒出来的粗糙版），要自动吸得先**另存为 .xlsx** 或写 BIFF 解析。**常用语库已做**（见上，`bundle.phrases`；`全部常用语.xls` 仍是 BIFF，靠 `xls-text.cjs` 扒出可读句子后人工整理成 57 条）。
+- **测试**：`tools/smoke.cjs` 第 **8k** 节 **55 条**（**加密门：未解锁只看锁屏、不发 sopBundle 请求、错口令清空、对「客服冷静」才进、口令不进 localStorage/sessionStorage** / **数据与口令卡：写明「口令 = 服务端 SOP_TOKEN，不是解锁口令」+ 403 回落 + 本机导入 + 状态行** / **思维导图：5 个环节闭环小片（提交→核实→处理→登记→回访）5 个环节节点、导图里挂着具体步骤、默认只给提示 / 点「核实」出步骤和可复制话术 / 点中的环节在流程图与导图同时高亮 / 换「处理」环节内容跟着换 / 环节话术能复制** / **话术编辑 7 条（每条带 ✏️、点开出编辑框、保存后换新话术 + 提示 + 写进 sopBundleLocal、＋ 加话术、🗑 删一条）** / **常用语库 7 条（默认只报条数不铺满、先给提示、搜「角色」筛出、复制给提示、✏️ 改完生效、＋ 新增后条数与分类片更新、🗑 删回 3 条）** / 要收集小片 / 标签页/抬头来源/容器/默认入口/搜「充值没到账」命中并展开/订单号与话术/内部口径单独标出/复制话术不抛错/搜不到给提示/分类筛选/红线命中「好评+误封」并给替换口径/干净话不误报/清空生效/清单勾选生成文本含已收集与还差/复制文本/粘贴导入 bundle 生效并推服务端）；`tools/smoke-server.cjs` **+7 条**（不带口令 403、错口令 403、对口令 200、query 传口令、普通 key 不受影响、别的 sop 前缀也受保护）；`tools/verify.mjs` 3h **17 条**静态断言（含服务端 `SOP_TOKEN`/`SOP_KEY_RE`/`denySop`/`tokenEq`、`npm run sop:seed`、加密门只存内存、**五环节分组函数 + 导图结构 + 连线/高亮样式 + 数据与口令说明 + 常用语库 + 话术编辑 + 落盘 + 版面折叠**）。
 
 ## 生管物料订单工作台（`public/pmc.html` · 临时工具，独立单页）
 
@@ -536,4 +546,9 @@ package.json               scripts: start / verify / verify:static / smoke:serve
   4. **数据与口令**：卡里补了 ①②③④ 使用说明（口令 = 服务端 `SOP_TOKEN`，**不是**解锁口令「客服冷静」；只存本机；403 回落内置示例；本机导入/复制备份），并新增状态行 `#sopDataStatus`（`sopDataStatus()`，`sopLoad` / 导入 / 保存口令后刷新）显示「口令已填/未填 · 数据来自 X · 服务端 key sopBundle」；403 提示文案也改成「口令没填 / 填错，或服务端没配 SOP_TOKEN」。
   5. **测试**：`smoke.cjs` 8k 换成导图断言（5 环节小片 + 5 环节节点 + 导图挂步骤 + 默认提示 + 点「核实」出步骤与可复制话术 + 双向高亮 + 换「处理」跟着换 + 环节话术复制）+ 2 条数据与口令（卡里说明、状态行），**337 → 345**；`verify.mjs` 3h 由 1 条步骤条断言换成 4 条（分组函数 / 导图结构 / 连线与高亮 / 数据与口令说明），**10 → 13**。`npm run verify` 全绿（345 / 42 / 169）。
   6. **顺手**：`tools/out/sop/bundle.json`（gitignore）里补了 13 个产品专项场景 + 1 条红线（来自附件《梦幻消除战》《唱全明星》SOP），`version: 2`，19 → **31 个场景**；要上线得用户自己 `npm run sop:seed`（要 `SOP_TOKEN`）。
-
+- 本轮：**SOP 加常用语库 + 话术可编辑 + 版面放松；海外日报把 FB 拆成梦幻/月光**（用户：「话术参考一下这个文件，后续要可以添加修改已有的话术，整个 SOP 功能页面字有点多和紧凑，能不能弄个更容易看的样式，海外客服的日报增加月光的 fb，数据统计单独，不合并在原有的梦幻 fb 中」+ 附件《全部常用语.xls》）。改了 public/index.html + tools/smoke.cjs + tools/verify.mjs + 本文件：
+  1. **常用语库**：bundle 加 phrases[]（id/cat/tone/text），SOP 标签页新增「💬 常用语库」卡：关键词搜索 + 14 个分类片 + 复制/新增/改/删；默认只报「共 N 条」不铺满。数据来自《全部常用语.xls》（老 BIFF，先用 tools/out/xls-text.cjs 扒出可读句子，再人工整理成 57 条写进 gitignore 的 tools/out/sop/bundle.json，version 3）；仓库里的 SOP_DEMO 只放 3 条通用口径。
+  2. **话术可编辑**：场景卡每条话术加 ✏️ 改 / 🗑 删、「＋ 加话术」；与常用语库共用编辑框组件 sopEditHtml；保存走 sopScriptSave/sopPhSave → sopPersist（写 localStorage sopBundleLocal + 尝试带 x-sop-token 推服务端），抬头来源自动变「本机导入」。
+  3. **版面**：.sop-block 卡片化（边框/浅底/内边距 + 标题黄细条）、.sop-script 独立小卡、行高 1.7 → 1.9，提单格式与依据条款折进 details.sop-fold（默认收起），常用语库默认不展开 —— 就是「字少一点、松一点」。
+  4. **海外日报 FB 拆分**：DAILY_OVERSEAS_FIELDS 把 fb 改名「FB·梦幻（来访）」并新增 fb_yl「FB·月光（来访）」（表单 14 → 15 字段）；日报正文改成「FB·梦幻：N例 / FB·月光：N例」两行、来访总计两项都算；CAREER_OVERSEAS_ITEMS 拆成 ov_fb（海外FB·梦幻）/ ov_fb_yl（海外FB·月光）两项（海外侧 10 → 11，合计 39 → 40）；粘贴导入的日报标签映射兼容旧的「FB：」（归梦幻），CAREER_IMPORT_ALIASES 加了「海外FB（全产品）」→ov_fb、「海外FB·月光」/「月光FB」→ov_fb_yl。海外业务统计（周报表）不动，仍是「海外FB（全产品）」一列。
+  5. **测试**：smoke 8c 字段数 14 → 15、月光FB 填 2（当日 68 → 70、海外 51 → 53，后续 130/134/72 一并对齐成 132/136/74）+ 新增 2 条（月光FB 单独入账不并进梦幻FB、日报正文两行），8k 加 14 条（话术编辑 7 + 常用语库 7），**345 → 361**；verify 3h 加 4 条（常用语库 / 话术编辑 / 落盘 / 版面），**13 → 17**，并把 3b 的数字改成 14 字段 / 11 项 / 29+11=40。npm run verify 全绿（361 / 42 / 169）。

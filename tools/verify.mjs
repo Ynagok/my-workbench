@@ -81,12 +81,12 @@ ok(/data-tab="career"/.test(s) && /id="tab-career"/.test(s), '客服生涯标签
   const ovCovered = new Set();
   for (const m of (ovBlk + sdkBlk).matchAll(/'overseas\.([a-zA-Z0-9_]+)'/g)) ovCovered.add(m[1]);
   const ovMissed = ovFields.filter(k => !ovCovered.has(k));
-  ok(ovFields.length === 13 && !ovMissed.length,
-    `海外侧覆盖海外日报全部 ${ovFields.length} 个数值字段（含 SDk 三项）` + (ovMissed.length ? '，漏：' + ovMissed.join('/') : ''));
+  ok(ovFields.length === 14 && !ovMissed.length,
+    `海外侧覆盖海外日报全部 ${ovFields.length} 个数值字段（含 SDk 三项 + 梦幻/月光两个 FB）` + (ovMissed.length ? '，漏：' + ovMissed.join('/') : ''));
   const ovN = (ovBlk.match(/side: 'overseas'/g) || []).length;
-  ok(ovN === 10, `海外侧 = ${ovN} 项（含异世界群维系 + （梦幻/繁花/乐缤纷）群维系）`);
+  ok(ovN === 11, `海外侧 = ${ovN} 项（含异世界群维系 + （梦幻/繁花/乐缤纷）群维系 + 梦幻/月光两个 FB）`);
   ok(/const CAREER_ITEMS = CAREER_TICKET_ITEMS\.concat\(CAREER_OVERSEAS_ITEMS\)/.test(s),
-    '合计 29 + 10 = 39 项计入统计');
+    '合计 29 + 11 = 40 项计入统计');
   ok(/key: 'mhl_group', label: '（梦幻\/繁花\/乐缤纷）群维系', side: 'overseas'/.test(ovBlk),
     '海外侧含异世界群维系与（梦幻/繁花/乐缤纷）群维系（都来自海外日报的手填字段）');
   // 海外日报新增的 3 个字段 → 海外侧 3 个统计项
@@ -454,6 +454,20 @@ ok(/\.sop-mind-body/.test(s) && /\.sop-mind-branch::before/.test(s) && /\.sop-mi
 ok(/id="sopDataStatus"/.test(s) && /function sopDataStatus\(\)/.test(s)
   && /跟进入本页要输的「客服冷静」不是一回事/.test(s) && /403/.test(s) && /sopBundleLocal/.test(s),
   'SOP 数据与口令：卡里讲清 SOP_TOKEN 怎么用（和解锁口令分开 / 403 回落内置示例 / 本机导入），并有状态行');
+ok(/id="sopPhList"/.test(s) && /id="sopPhCats"/.test(s) && /id="sopPhQuery"/.test(s) && /id="sopPhNewBtn"/.test(s)
+  && /function sopPhrases\(\)/.test(s) && /function sopPhRender\(\)/.test(s)
+  && /function sopPhSave\(id\)/.test(s) && /function sopPhDel\(id\)/.test(s) && /function sopPhCopy\(id\)/.test(s),
+  'SOP 常用语库：搜索 / 分类 / 复制 / 新增 / 改 / 删 都在');
+ok(/function sopScriptSave\(\)/.test(s) && /function sopScriptDel\(idx\)/.test(s)
+  && /data-sop-snew/.test(s) && /data-sop-sedit/.test(s) && /data-sop-sdel/.test(s)
+  && /function sopEditHtml\(kind, idx, cat, tone, text\)/.test(s),
+  'SOP 场景话术：可改 / 可删 / 可新增（同一个编辑框组件）');
+ok(/async function sopPersist\(note\)/.test(s) && /localStorage\.setItem\(SOP_LOCAL_KEY, JSON\.stringify\(sopBundle\)\)/.test(s)
+  && /method: 'POST'/.test(s),
+  'SOP 编辑落盘：写本机 sopBundleLocal 并尝试推服务端');
+ok(/details class="sop-fold"/.test(s) && /\.sop-ph-text/.test(s) && /\.sop-block \{/.test(s)
+  && /sop-edit/.test(s),
+  'SOP 版面：区块卡片化 + 提单/依据折叠 + 常用语卡片样式（不那么挤）');
 
 // ---- 4. 花括号/圆括号平衡（粗查，排除字符串内的干扰仅作参考） ----
 const count = (str, ch) => (str.split(ch).length - 1);

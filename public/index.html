@@ -3232,35 +3232,71 @@
 
         /* ---------- SOP 助手：场景卡 / 红线命中 ---------- */
         .sop-scene {
-            margin-top: 12px; padding: 12px; border: 1px solid var(--line-0);
-            background: var(--surface-2); border-radius: var(--r-md);
+            margin-top: 14px; padding: 14px; border: 1px solid var(--line-0);
+            background: var(--surface); border-radius: var(--r-md);
+            display: flex; flex-direction: column; gap: 12px;
         }
-        .sop-scene-head { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; margin-bottom: 6px; }
-        .sop-scene-head b { font-size: 14px; color: var(--ink-0); }
-        .sop-block { margin-top: 10px; }
+        .sop-scene-head { display: flex; flex-direction: column; gap: 4px; padding-bottom: 10px; border-bottom: 1px solid var(--line-0); }
+        .sop-scene-head b { font-size: 16px; color: var(--ink-0); letter-spacing: 0.01em; }
+        .sop-block {
+            border: 1px solid var(--line-0); background: var(--surface-2);
+            padding: 12px 14px; border-radius: var(--r-md);
+        }
         .sop-block-t {
-            font-size: 12px; letter-spacing: 0.04em; color: var(--accent-ink);
-            font-weight: 600; margin-bottom: 4px;
+            display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+            font-size: 13px; color: var(--ink-1); font-weight: 700; margin-bottom: 8px;
         }
-        .sop-ol, .sop-ul { margin: 0; padding-left: 20px; font-size: 13px; line-height: 1.7; color: var(--ink-1); }
-        .sop-script { border-left: 2px solid var(--accent-line); padding: 4px 0 4px 10px; margin: 6px 0; }
-        .sop-script-t { font-size: 12px; color: var(--ink-2); display: flex; gap: 8px; align-items: center; }
-        .sop-script-x { font-size: 13px; line-height: 1.7; color: var(--ink-1); margin-top: 2px; white-space: pre-wrap; }
+        .sop-block-t::before { content: ''; width: 3px; height: 13px; background: var(--accent); border-radius: 1px; }
+        .sop-ol, .sop-ul { margin: 0; padding-left: 22px; font-size: 13px; line-height: 1.9; color: var(--ink-1); }
+        .sop-script {
+            border: 1px solid var(--line-0); border-left: 3px solid var(--accent-line);
+            background: var(--surface); padding: 9px 12px; margin: 8px 0; border-radius: var(--r-sm);
+        }
+        .sop-script-t { font-size: 12px; color: var(--ink-2); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+        .sop-script-x { font-size: 13px; line-height: 1.95; color: var(--ink-1); margin-top: 4px; white-space: pre-wrap; }
         .sop-copy-btn { padding: 1px 8px !important; font-size: 12px !important; }
         .sop-internal {
-            border: 1px dashed var(--danger); background: var(--accent-dim); padding: 8px 10px; border-radius: var(--r-sm);
+            border: 1px dashed var(--danger); background: var(--accent-dim); padding: 12px 14px; border-radius: var(--r-sm);
         }
         .sop-internal .sop-block-t { color: var(--danger); }
-        .sop-form-preview { font-family: var(--mono, Consolas, monospace); font-size: 12px; color: var(--ink-1); word-break: break-all; }
+        .sop-internal .sop-block-t::before { background: var(--danger); }
+        .sop-form-preview { font-family: var(--mono, Consolas, monospace); font-size: 12px; color: var(--ink-1); word-break: break-all; line-height: 1.9; }
         .sop-need {
-            display: inline-flex; align-items: center; gap: 6px; margin: 0 12px 6px 0;
+            display: inline-flex; align-items: center; gap: 6px; margin: 0 12px 8px 0;
             font-size: 13px; color: var(--ink-1); cursor: pointer;
         }
-        .sop-hit { border-left: 3px solid var(--danger); background: var(--surface-2); padding: 8px 10px; margin-top: 8px; border-radius: var(--r-sm); }
+        .sop-hit { border-left: 3px solid var(--danger); background: var(--surface-2); padding: 10px 12px; margin-top: 10px; border-radius: var(--r-sm); }
         .sop-hit-amber { border-left-color: var(--warn); }
-        .sop-hit-t { font-size: 13px; font-weight: 600; color: var(--ink-0); }
-        .sop-hit-x, .sop-hit-fix { font-size: 13px; line-height: 1.7; color: var(--ink-1); }
+        .sop-hit-t { font-size: 13px; font-weight: 600; color: var(--ink-0); margin-bottom: 2px; }
+        .sop-hit-x, .sop-hit-fix { font-size: 13px; line-height: 1.85; color: var(--ink-1); }
         .sop-hit-fix { color: var(--ink-2); }
+        /* SOP 折叠块（提单格式 / 依据） */
+        details.sop-fold { border: 1px solid var(--line-0); background: var(--surface-2); border-radius: var(--r-md); padding: 10px 14px; }
+        details.sop-fold > summary { cursor: pointer; list-style: none; font-size: 13px; font-weight: 700; color: var(--ink-1); display: flex; gap: 8px; align-items: center; }
+        details.sop-fold > summary::-webkit-details-marker { display: none; }
+        details.sop-fold > summary::before { content: '▸'; color: var(--accent-ink); }
+        details.sop-fold[open] > summary::before { content: '▾'; }
+        details.sop-fold[open] > summary { margin-bottom: 8px; }
+        /* SOP 常用语库 */
+        .sop-ph-bar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
+        .sop-ph-bar input { max-width: 300px; }
+        .sop-ph-list { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+        .sop-ph {
+            border: 1px solid var(--line-0); border-left: 3px solid var(--accent-line);
+            background: var(--surface-2); padding: 10px 12px; border-radius: var(--r-sm);
+        }
+        .sop-ph-head { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+        .sop-ph-cat {
+            font-size: 12px; padding: 1px 7px; border-radius: var(--r-sm);
+            background: var(--accent-dim); color: var(--accent-ink); border: 1px solid var(--accent-line);
+        }
+        .sop-ph-text { font-size: 13px; line-height: 1.95; color: var(--ink-1); margin-top: 5px; white-space: pre-wrap; }
+        .sop-ph-empty { padding: 14px 0; }
+        .sop-edit { display: flex; flex-direction: column; gap: 8px; background: var(--surface); border: 1px dashed var(--accent-line); border-radius: var(--r-sm); padding: 10px 12px; }
+        .sop-edit-row { display: flex; gap: 8px; flex-wrap: wrap; }
+        .sop-edit-row input { max-width: 220px; }
+        .sop-edit textarea { width: 100%; }
+        .sop-edit-btns { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 
         /* SOP 加密锁屏 */
         #sopLockCard {
@@ -3658,6 +3694,20 @@
                 <textarea id="sopFormOut" rows="9" readonly placeholder="生成后这里出现文本" style="margin-top:10px;"></textarea>
             </div>
 
+            <div class="card">
+                <label>💬 常用语库
+                    <span class="hint-text" style="font-weight:400;">从《全部常用语》整理；搜关键词或点分类，可复制 / 新增 / 修改 / 删除（改完存本机，带口令时会顺便推服务端）</span>
+                </label>
+                <div class="sop-ph-bar">
+                    <input id="sopPhQuery" placeholder="搜常用语：退款 / 封号 / 返场 / 录屏 / 换绑…">
+                    <button id="sopPhSearchBtn" class="secondary">搜索</button>
+                    <button id="sopPhNewBtn">＋ 新增常用语</button>
+                    <span class="hint-text" id="sopPhHint"></span>
+                </div>
+                <div class="fb-chip-row" id="sopPhCats" style="margin-top:10px;"></div>
+                <div id="sopPhList" class="sop-ph-list"></div>
+            </div>
+
             <details class="card tea-shop-card" id="sopDataCard">
                 <summary>⚙️ 数据与口令<span class="hint-text" id="sopDataMeta">（—）</span><span class="hint-text" style="font-weight:400;">点开：口令 / 导入 bundle / 版本</span></summary>
                 <div class="flex-row" style="margin-top:10px;">
@@ -3669,7 +3719,8 @@
                     ① 口令 = 服务端环境变量 <code>SOP_TOKEN</code>，跟进入本页要输的「客服冷静」不是一回事（那个只是页面门）。<br>
                     ② 填在这里 → 点「保存口令并重新加载」：只存这台设备的 localStorage，不进服务端、不进 git；带着它对 <code>/api/data/sopBundle</code> 发请求。<br>
                     ③ 没填 / 填错 → 服务端回 403 → 页面自动回落到「内置示例」（8 个场景，只作演示）。<br>
-                    ④ 想把整份数据离线带走：「📥 粘贴导入 bundle JSON」写本机 <code>sopBundleLocal</code>（优先级高于服务端），或用「📋 复制当前 bundle」备份。
+                    ④ 想把整份数据离线带走：「📥 粘贴导入 bundle JSON」写本机 <code>sopBundleLocal</code>（优先级高于服务端），或用「📋 复制当前 bundle」备份。<br>
+                    ⑤ 改话术：场景卡里的「✏️ 改 / 🗑 删 / ＋ 加话术」和常用语库里的增删改，都写进本机 <code>sopBundleLocal</code> 并尝试推服务端 —— 所以改完刷新不会丢，换设备要靠导出的 bundle。
                 </div>
                 <div class="hint-text" id="sopDataStatus" style="margin-top:6px;"></div>
                 <div class="flex-row" style="margin-top:10px;">
@@ -6519,7 +6570,9 @@
                                         { key: 'name', label: '姓名', type: 'text', placeholder: '如：客服' },
                                         { key: 'ios', label: 'ios商店（评价）', type: 'number' },
                                         { key: 'google', label: 'Google Play（评价）', type: 'number' },
-                                        { key: 'fb', label: 'FB（来访）', type: 'number' },
+                                        { key: 'fb', label: 'FB·梦幻（来访）', type: 'number' },
+                                        // [需求] 「月光FB」单独一项，**不并进上面的梦幻FB**（日报正文 / 统计各算各的）
+                                        { key: 'fb_yl', label: 'FB·月光（来访）', type: 'number' },
                                         { key: 'email', label: '邮箱（来访）', type: 'number' },
                                         // SDk工单（来访）按用户要求分三项填；日报正文与统计总量里合并成「SDk工单」一个数
                                         { key: 'sdk_mh', label: 'SDk工单·梦幻', type: 'number' },
@@ -6568,7 +6621,9 @@
                                         { key: 'cn_ticket', label: '国内工单', side: 'overseas', kind: '工单/后台', from: ['overseas.cn_ticket'] },
                                         { key: 'store_reply', label: '商店回复', side: 'overseas', kind: '评价回复', from: ['overseas.ios', 'overseas.google'] },
                                         { key: 'ov_email', label: '海外邮件（全产品）', side: 'overseas', kind: '来访', from: ['overseas.email'] },
-                                        { key: 'ov_fb', label: '海外FB（全产品）', side: 'overseas', kind: '来访', from: ['overseas.fb'] },
+                                        { key: 'ov_fb', label: '海外FB·梦幻', side: 'overseas', kind: '来访', from: ['overseas.fb'] },
+                                        // [需求] 月光FB 单独统计，不并进梦幻FB
+                                        { key: 'ov_fb_yl', label: '海外FB·月光', side: 'overseas', kind: '来访', from: ['overseas.fb_yl'] },
                                         { key: 'mute', label: '监控禁言', side: 'overseas', kind: '监控', from: ['overseas.mute'] },
                                         { key: 'ban', label: '监控封号', side: 'overseas', kind: '监控', from: ['overseas.ban'] }
                                     ];
@@ -6600,7 +6655,12 @@
                                     // （登记表那列叫「（繁花+乐缤纷+梦幻）群维系」，就是海外侧的（梦幻/繁花/乐缤纷）群维系）
                                     const CAREER_IMPORT_ALIASES = {
                                         '（繁花+乐缤纷+梦幻）群维系': 'mhl_group',
-                                        'SSO国内工单': 't_sso'
+                                        'SSO国内工单': 't_sso',
+                                        // 旧登记表列名 / 新拆分后的两种写法都认（月光FB 只对 ov_fb_yl）
+                                        '海外FB（全产品）': 'ov_fb',
+                                        '海外FB·梦幻': 'ov_fb',
+                                        '海外FB·月光': 'ov_fb_yl',
+                                        '月光FB': 'ov_fb_yl'
                                     };
                                     const CAREER_SHEET_HIDDEN = CAREER_HIDDEN_ITEMS.map(it => it.key);
                                     const careerAllItems = () => CAREER_ITEMS.concat(CAREER_SDK_BREAKDOWN).concat(CAREER_HIDDEN_ITEMS);
@@ -10595,14 +10655,15 @@
                                             }
                                         } else {
                                             const ratingTotal = (parseFloat(d.ios) || 0) + (parseFloat(d.google) || 0);
-                                            const visitTotal = (parseFloat(d.fb) || 0) + (parseFloat(d.email) || 0) + careerSdkTotal(d);
+                                            const visitTotal = (parseFloat(d.fb) || 0) + (parseFloat(d.fb_yl) || 0) + (parseFloat(d.email) || 0) + careerSdkTotal(d);
                                             text += `${d.name || ''}  ${date.month}月${date.day}日\n\n`;
                                             text += `评价，\n`;
                                             text += `ios商店：${d.ios || 0}\n`;
                                             text += `Google Play：${d.google || 0}\n`;
                                             text += `总计：${ratingTotal}\n\n`;
                                             text += `来访，\n`;
-                                            text += `FB：${d.fb || 0}例\n`;
+                                            text += `FB·梦幻：${d.fb || 0}例\n`;
+                                            text += `FB·月光：${d.fb_yl || 0}例\n`;
                                             text += `邮箱：${d.email || 0}例\n`;
                                             text += `SDk工单：${careerSdkTotal(d)}例\n`;
                                             text += `总计：${visitTotal}例\n\n`;
@@ -11409,6 +11470,11 @@
                                         // 日报正文里的「SDk工单：N例」是三项之和（表单已拆成三项，正文仍写合并后的一个数）
                                         m['SDk工单'] = 'sdk';
                                         m['SDk工单（来访）'] = 'sdk';
+                                        // FB 拆成「梦幻 / 月光」后：旧日报只写「FB：」，仍归梦幻那一项
+                                        m['FB'] = 'fb';
+                                        m['FB·梦幻'] = 'fb';
+                                        m['FB·月光'] = 'fb_yl';
+                                        m['月光FB'] = 'fb_yl';
                                         return m;
                                     })();
                                     function careerReportDate(month, day) {
@@ -13241,6 +13307,12 @@
                                                 form: { kicker: '内部工单', fields: ['群名', '违规账号', '违规内容', '处理动作', '经办人', '时间'] },
                                                 source: '群维系·海外工单·监控交接文档 / 客服规范总汇'
                                             }
+                                        ],
+                                        // 常用语库（内置示例只放几条通用口径；完整版从《全部常用语》整理，只在 bundle 里）
+                                        phrases: [
+                                            { id: 'ph-demo-1', cat: '安抚', tone: '说明', text: '非常理解您现在的心情，这边先帮您核实一下，有结果第一时间回复您。' },
+                                            { id: 'ph-demo-2', cat: '收集', tone: '收集', text: '麻烦您提供一下角色ID、区服和角色名，以及发生问题的时间，我这边帮您查一下～' },
+                                            { id: 'ph-demo-3', cat: '收尾', tone: '收尾', text: '问题已经处理好了，麻烦您重进游戏看一下，还有异常随时找我。' }
                                         ]
                                     };
                                     function sopTokenGet() {
@@ -13282,6 +13354,7 @@
                                         const meta = document.getElementById('sopDataMeta');
                                         if (meta) meta.textContent = '（v' + (sopBundle.version || 0) + ' · ' + (sopBundle.scenes || []).length + ' 个场景 · 来自' + label + '）';
                                         sopDataStatus();
+                                        sopPhRender();
                                         return sopBundle;
                                     }
                                     function sopInit() {
@@ -13528,7 +13601,190 @@
                                         }
                                         box.innerHTML = h;
                                     }
+                                    // ---------- 话术 / 常用语库：编辑状态、保存 ----------
+                                    let sopScriptEdit = -1;   // -1 = 没在改；≥0 = 改第 n 条；-2 = 新增
+                                    let sopPhEditId = '';     // '' = 没在改；'new' = 新增；其它 = 常用语 id
+                                    let sopPhCat = '';        // 常用语分类筛选
+                                    let sopPhQ = '';          // 常用语关键词
+                                    function sopPhrases() {
+                                        const b = sopBundle || SOP_DEMO;
+                                        if (!Array.isArray(b.phrases)) b.phrases = [];
+                                        return b.phrases;
+                                    }
+                                    function sopPhById(id) { return sopPhrases().filter(x => x.id === id)[0] || null; }
+                                    function sopNewId(prefix) { return prefix + '-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5); }
+                                    // 公共编辑框：kind = 'script'（场景话术，只有语气+正文）| 'phrase'（常用语，多一个分类）
+                                    function sopEditHtml(kind, idx, cat, tone, text) {
+                                        const esc = escapeHtml;
+                                        const f = kind === 'script' ? 'data-sop-ef' : 'data-sop-pf';
+                                        const save = kind === 'script' ? 'data-sop-esave' : 'data-sop-psave';
+                                        const cancel = kind === 'script' ? 'data-sop-ecancel' : 'data-sop-pcancel';
+                                        return '<div class="sop-edit">'
+                                            + '<div class="sop-edit-row">'
+                                            + (kind === 'phrase' ? '<input ' + f + '="cat" placeholder="分类（退款 / 封禁 / 账号…）" value="' + esc(cat || '') + '">' : '')
+                                            + '<input ' + f + '="tone" placeholder="语气（收集 / 说明 / 方案 / 收尾…）" value="' + esc(tone || '') + '">'
+                                            + '</div>'
+                                            + '<textarea ' + f + '="text" rows="4" placeholder="话术正文">' + esc(text || '') + '</textarea>'
+                                            + '<div class="sop-edit-btns">'
+                                            + '<button type="button" ' + save + '="' + idx + '">保存</button>'
+                                            + '<button type="button" class="secondary" ' + cancel + '="1">取消</button>'
+                                            + '<span class="hint-text">保存后写本机 sopBundleLocal，带口令时会顺便推服务端</span>'
+                                            + '</div></div>';
+                                    }
+                                    function sopEditField(kind, name) {
+                                        const sel = (kind === 'script' ? '#sopSceneBox [data-sop-ef="' : '#sopPhList [data-sop-pf="') + name + '"]';
+                                        const el = document.querySelector(sel);
+                                        return el ? String(el.value || '') : '';
+                                    }
+                                    // 落盘：本机 sopBundleLocal（优先级最高）+ 带口令时顺手推服务端
+                                    async function sopPersist(note) {
+                                        if (!sopBundle) return;
+                                        sopBundle.updatedAt = new Date().toISOString().slice(0, 10);
+                                        try { localStorage.setItem(SOP_LOCAL_KEY, JSON.stringify(sopBundle)); } catch (e) { }
+                                        sopSourceLabel = '本机导入';
+                                        sopRenderHead();
+                                        sopDataStatus();
+                                        let pushed = '';
+                                        try {
+                                            const headers = { 'Content-Type': 'application/json' };
+                                            const tk = sopTokenGet(); if (tk) headers['x-sop-token'] = tk;
+                                            const resp = await fetchWithTimeout(API_BASE + SOP_STORE_KEY, {
+                                                method: 'POST', headers: headers, body: JSON.stringify({ value: sopBundle })
+                                            });
+                                            pushed = resp.ok ? '，已推服务端' : '（推服务端失败 HTTP ' + resp.status + '，只存本机）';
+                                        } catch (e) { pushed = '（推服务端失败，只存本机）'; }
+                                        teaSetHint('sopDataHint', (note || '已保存') + pushed);
+                                    }
+                                    // 场景话术：保存 / 删除
+                                    function sopScriptSave() {
+                                        const s = sopCurrent;
+                                        if (!s) return;
+                                        if (!Array.isArray(s.scripts)) s.scripts = [];
+                                        const tone = sopEditField('script', 'tone').trim();
+                                        const text = sopEditField('script', 'text').trim();
+                                        if (!text) { teaSetHint('sopDataHint', '话术正文不能为空'); return; }
+                                        if (sopScriptEdit >= 0) {
+                                            const old = s.scripts[sopScriptEdit] || {};
+                                            s.scripts[sopScriptEdit] = { tone: tone || old.tone || '话术', visibility: old.visibility || 'public', text: text };
+                                        } else {
+                                            s.scripts.push({ tone: tone || '话术', visibility: 'public', text: text });
+                                        }
+                                        sopScriptEdit = -1;
+                                        sopOpenScene(s.id);
+                                        sopPhRender();
+                                        sopPersist('话术已保存');
+                                    }
+                                    function sopScriptDel(idx) {
+                                        const s = sopCurrent;
+                                        if (!s || !Array.isArray(s.scripts)) return;
+                                        if (!window.confirm('删掉这条话术？')) return;
+                                        s.scripts.splice(idx, 1);
+                                        sopScriptEdit = -1;
+                                        sopOpenScene(s.id);
+                                        sopPersist('话术已删除');
+                                    }
+                                    // 常用语库：分类片 + 列表（默认不铺满，搜索/选分类才列出来）
+                                    function sopPhRender() {
+                                        const cats = document.getElementById('sopPhCats');
+                                        const list = document.getElementById('sopPhList');
+                                        const hint = document.getElementById('sopPhHint');
+                                        const all = sopPhrases();
+                                        const catSet = [];
+                                        all.forEach(p => { if (p.cat && catSet.indexOf(p.cat) === -1) catSet.push(p.cat); });
+                                        if (cats) {
+                                            const esc2 = escapeHtml;
+                                            cats.innerHTML = [{ c: '', n: '全部' }].concat(catSet.map(c => ({ c: c, n: c }))).map(x => {
+                                                const on = x.c ? sopPhCat === x.c : !sopPhCat;
+                                                return '<button type="button" class="fb-chip' + (on ? ' active' : '') + '" data-sop-phcat="' + esc2(x.c) + '">' + esc2(x.n) + '</button>';
+                                            }).join('');
+                                        }
+                                        const hasFilter = !!(sopPhQ || sopPhCat);
+                                        const out = all.filter(p => {
+                                            if (sopPhCat && p.cat !== sopPhCat) return false;
+                                            if (sopPhQ) {
+                                                const blob = [p.text || '', p.cat || '', p.tone || ''].join(' ');
+                                                if (blob.indexOf(sopPhQ) === -1) return false;
+                                            }
+                                            return true;
+                                        });
+                                        if (hint) {
+                                            hint.textContent = all.length
+                                                ? ('共 ' + all.length + ' 条' + (hasFilter ? '，筛出 ' + out.length + ' 条' : '（输入关键词或点分类查看）'))
+                                                : '还没有常用语';
+                                        }
+                                        if (!list) return;
+                                        const esc = escapeHtml;
+                                        let h = '';
+                                        if (sopPhEditId === 'new') h += sopEditHtml('phrase', 'new', '', '', '');
+                                        if (!all.length && sopPhEditId !== 'new') {
+                                            list.innerHTML = '<div class="hint-text sop-ph-empty">还没有常用语 —— 点「＋ 新增常用语」加一条，或在「数据与口令」里导入 bundle。</div>';
+                                            return;
+                                        }
+                                        if (!hasFilter && sopPhEditId !== 'new' && all.length) {
+                                            list.innerHTML = h + '<div class="hint-text sop-ph-empty">共 ' + all.length + ' 条常用语：输入关键词，或点上面的分类查看 / 编辑。点「＋ 新增常用语」也能直接加。</div>';
+                                            return;
+                                        }
+                                        out.forEach(p => {
+                                            if (sopPhEditId === p.id) {
+                                                h += sopEditHtml('phrase', p.id, p.cat, p.tone, p.text);
+                                                return;
+                                            }
+                                            h += '<div class="sop-ph">'
+                                                + '<div class="sop-ph-head">'
+                                                + '<span class="sop-ph-cat">' + esc(p.cat || '未分类') + '</span>'
+                                                + (p.tone ? '<span class="hint-text">' + esc(p.tone) + '</span>' : '')
+                                                + '<button type="button" class="secondary sop-copy-btn" data-sop-phcopy="' + esc(p.id) + '">📋 复制</button>'
+                                                + '<button type="button" class="secondary sop-copy-btn" data-sop-phedit="' + esc(p.id) + '">✏️</button>'
+                                                + '<button type="button" class="secondary sop-copy-btn" data-sop-phdel="' + esc(p.id) + '">🗑</button>'
+                                                + '</div>'
+                                                + '<div class="sop-ph-text">' + esc(p.text || '') + '</div>'
+                                                + '</div>';
+                                        });
+                                        if (!out.length && sopPhEditId !== 'new') {
+                                            h += '<div class="hint-text sop-ph-empty">没有匹配的常用语（关键词：' + esc(sopPhQ || sopPhCat) + '）—— 换个说法，或直接新增一条。</div>';
+                                        }
+                                        list.innerHTML = h;
+                                    }
+                                    function sopPhSearch() {
+                                        const q = document.getElementById('sopPhQuery');
+                                        sopPhQ = (((q && q.value) || '')).trim();
+                                        sopPhEditId = '';
+                                        sopPhRender();
+                                    }
+                                    function sopPhSave(id) {
+                                        const cat = sopEditField('phrase', 'cat').trim();
+                                        const tone = sopEditField('phrase', 'tone').trim();
+                                        const text = sopEditField('phrase', 'text').trim();
+                                        if (!text) { teaSetHint('sopPhHint', '话术正文不能为空'); return; }
+                                        const all = sopPhrases();
+                                        if (id === 'new') {
+                                            all.push({ id: sopNewId('ph'), cat: cat || '未分类', tone: tone, text: text });
+                                        } else {
+                                            const p = sopPhById(id);
+                                            if (p) { p.cat = cat || p.cat || '未分类'; p.tone = tone; p.text = text; }
+                                        }
+                                        sopPhEditId = '';
+                                        sopPhRender();
+                                        sopPersist('常用语已保存');
+                                    }
+                                    function sopPhDel(id) {
+                                        const all = sopPhrases();
+                                        const i = all.findIndex(x => x.id === id);
+                                        if (i < 0) return;
+                                        if (!window.confirm('删掉这条常用语？')) return;
+                                        all.splice(i, 1);
+                                        sopPhEditId = '';
+                                        sopPhRender();
+                                        sopPersist('常用语已删除');
+                                    }
+                                    function sopPhCopy(id) {
+                                        const p = sopPhById(id);
+                                        if (!p) return;
+                                        safeCopy(p.text || '');
+                                        teaSetHint('sopPhHint', '已复制这条常用语');
+                                    }
                                     function sopOpenScene(id) {
+                                        if (!id) return;
                                         const s = sopSceneById(id);
                                         if (!s) return;
                                         sopCurrent = s;
@@ -13560,19 +13816,27 @@
                                                 + '<div class="sop-stage-scripts" id="sopStageScripts"><span class="hint-text">点上面任一环节，看这一步该说的几句话术。</span></div>'
                                                 + '</div>';
                                         }
+                                        if ((s.scripts || []).length || sopScriptEdit !== -1) {
+                                            h += '<div class="sop-block"><div class="sop-block-t">对外话术（点复制；✏️ 改 / 🗑 删 / ＋ 加）'
+                                                + '<button type="button" class="secondary sop-copy-btn" data-sop-snew="1">＋ 加话术</button></div>';
+                                            (s.scripts || []).forEach((sc, i) => {
+                                                if (sopScriptEdit === i) {
+                                                    h += sopEditHtml('script', i, '', sc.tone || '', sc.text || '');
+                                                    return;
+                                                }
+                                                h += '<div class="sop-script"><div class="sop-script-t">' + esc(sc.tone || ('话术 ' + (i + 1)))
+                                                    + ' <button type="button" class="secondary sop-copy-btn" data-sop-copy="' + i + '">📋 复制</button>'
+                                                    + ' <button type="button" class="secondary sop-copy-btn" data-sop-sedit="' + i + '">✏️</button>'
+                                                    + ' <button type="button" class="secondary sop-copy-btn" data-sop-sdel="' + i + '">🗑</button></div>'
+                                                    + '<div class="sop-script-x">' + esc(sc.text) + '</div></div>';
+                                            });
+                                            if (sopScriptEdit === -2) h += sopEditHtml('script', 'new', '', '', '');
+                                            h += '</div>';
+                                        }
                                         if ((s.needInfo || []).length) {
                                             h += '<div class="sop-block"><div class="sop-block-t">要收集</div><div class="sop-needchips">'
                                                 + s.needInfo.map(x => '<span class="sop-needchip">' + esc(x) + '</span>').join('')
                                                 + '</div></div>';
-                                        }
-                                        if ((s.scripts || []).length) {
-                                            h += '<div class="sop-block"><div class="sop-block-t">对外话术（点复制）</div>';
-                                            s.scripts.forEach((sc, i) => {
-                                                h += '<div class="sop-script"><div class="sop-script-t">' + esc(sc.tone || ('话术 ' + (i + 1)))
-                                                    + ' <button class="secondary sop-copy-btn" data-sop-copy="' + i + '">📋 复制</button></div>'
-                                                    + '<div class="sop-script-x">' + esc(sc.text) + '</div></div>';
-                                            });
-                                            h += '</div>';
                                         }
                                         if ((s.internal || []).length) {
                                             h += '<div class="sop-block sop-internal"><div class="sop-block-t">⚠️ 内部口径（别发玩家）</div><ul class="sop-ul">'
@@ -13583,10 +13847,10 @@
                                                 + s.escalate.map(e => '<li>' + esc(e.when) + ' → <b>' + esc(e.do) + '</b></li>').join('') + '</ul></div>';
                                         }
                                         if (s.form && (s.form.fields || []).length) {
-                                            h += '<div class="sop-block"><div class="sop-block-t">提单格式（' + esc(s.form.kicker || '') + '）</div>'
-                                                + '<div class="sop-form-preview">' + esc(s.form.fields.map(f => f + '：').join('  ')) + '</div></div>';
+                                            h += '<details class="sop-fold"><summary>提单格式（' + esc(s.form.kicker || '') + '）</summary>'
+                                                + '<div class="sop-form-preview">' + esc(s.form.fields.map(f => f + '：').join('  ')) + '</div></details>';
                                         }
-                                        if (s.source) h += '<div class="hint-text" style="margin-top:8px;">依据：' + esc(s.source) + '</div>';
+                                        if (s.source) h += '<details class="sop-fold"><summary>依据条款</summary><div class="hint-text" style="line-height:1.9;">' + esc(s.source) + '</div></details>';
                                         h += '</div>';
                                         box.innerHTML = h;
                                         sopRenderNeed(s);
@@ -13698,6 +13962,7 @@
                                         } catch (e) { pushed = '（推服务端失败，本机照常可用）'; }
                                         teaSetHint('sopDataHint', '已导入 ' + b.scenes.length + ' 个场景' + pushed);
                                         sopDataStatus();
+                                        sopPhRender();
                                     }
                                     function sopExport() {
                                         if (!sopBundle) { teaSetHint('sopDataHint', '还没加载数据'); return; }
@@ -14521,10 +14786,43 @@
                                             if (scene) scene.addEventListener('click', (e) => {
                                                 const st = e.target.closest('[data-sop-stage]');
                                                 if (st) { sopPickStage(st.dataset.sopStage); return; }
+                                                // 话术编辑：改 / 删 / 加 / 保存 / 取消
+                                                const se = e.target.closest('[data-sop-sedit]');
+                                                if (se) { sopScriptEdit = +se.dataset.sopSedit; sopOpenScene(sopCurrent && sopCurrent.id); return; }
+                                                const sd = e.target.closest('[data-sop-sdel]');
+                                                if (sd) { sopScriptDel(+sd.dataset.sopSdel); return; }
+                                                if (e.target.closest('[data-sop-snew]')) { sopScriptEdit = -2; sopOpenScene(sopCurrent && sopCurrent.id); return; }
+                                                if (e.target.closest('[data-sop-esave]')) { sopScriptSave(); return; }
+                                                if (e.target.closest('[data-sop-ecancel]')) { sopScriptEdit = -1; sopOpenScene(sopCurrent && sopCurrent.id); return; }
                                                 const b = e.target.closest('[data-sop-copy]');
                                                 if (!b || !sopCurrent) return;
                                                 const sc = (sopCurrent.scripts || [])[+b.dataset.sopCopy];
                                                 if (sc) safeCopy(sc.text);
+                                            });
+                                            // 常用语库：搜索 / 分类 / 复制 / 改 / 删 / 保存
+                                            setClick('sopPhSearchBtn', sopPhSearch);
+                                            setClick('sopPhNewBtn', () => { sopPhEditId = 'new'; sopPhCat = ''; sopPhQ = ''; sopPhRender(); });
+                                            const phq = document.getElementById('sopPhQuery');
+                                            if (phq) phq.addEventListener('keydown', (e) => { if (e.key === 'Enter') sopPhSearch(); });
+                                            const phCats = document.getElementById('sopPhCats');
+                                            if (phCats) phCats.addEventListener('click', (e) => {
+                                                const c = e.target.closest('[data-sop-phcat]');
+                                                if (!c) return;
+                                                sopPhCat = c.dataset.sopPhcat || '';
+                                                sopPhEditId = '';
+                                                sopPhRender();
+                                            });
+                                            const phList = document.getElementById('sopPhList');
+                                            if (phList) phList.addEventListener('click', (e) => {
+                                                const cp = e.target.closest('[data-sop-phcopy]');
+                                                if (cp) { sopPhCopy(cp.dataset.sopPhcopy); return; }
+                                                const ed = e.target.closest('[data-sop-phedit]');
+                                                if (ed) { sopPhEditId = ed.dataset.sopPhedit; sopPhRender(); return; }
+                                                const dl = e.target.closest('[data-sop-phdel]');
+                                                if (dl) { sopPhDel(dl.dataset.sopPhdel); return; }
+                                                const sv = e.target.closest('[data-sop-psave]');
+                                                if (sv) { sopPhSave(sv.dataset.sopPsave); return; }
+                                                if (e.target.closest('[data-sop-pcancel]')) { sopPhEditId = ''; sopPhRender(); return; }
                                             });
                                         })();
                                         setClick('sopRedCheckBtn', sopCheckRedlines);

@@ -491,17 +491,19 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
 
   $('dailyTabOverseas').click();          // 海外表单要先切过去才渲染
   await sleep(40);
-  check($('dailyFormOverseas').querySelectorAll('[data-key]').length === 14, '海外日报表单 14 个字段（SDk 工单拆成梦幻/爱江山/月光三项）',
+  check($('dailyFormOverseas').querySelectorAll('[data-key]').length === 15
+    && !!$('dailyFormOverseas').querySelector('[data-key="fb_yl"]'),
+    '海外日报表单 15 个字段（SDk 三项 + FB 梦幻/月光分开）',
     $('dailyFormOverseas').querySelectorAll('[data-key]').length);
 
   // 工单栏：g7=异世界群维系(3+1)、①②⑤群维系(只为只存档层)、sso=SSO国内(5)
   // 海外栏：SDk 三项合计 12（梦幻5+爱江山4+月光3）、email=海外邮件(4)、ios+google=商店回复(14)、mute=禁言(7)、ban=封号(3)
-  //        新增三项：mhl_group=6、cp_ticket=2、cn_ticket=3
+  //        新增三项：mhl_group=6、cp_ticket=2、cn_ticket=3；月光FB=2（单独统计，不并进梦幻FB）
   const dailySets = [['dailyFormTicket', 'name', '测试员'], ['dailyFormTicket', 'shift', 'F'],
     ['dailyFormTicket', 'g7_wx', 3], ['dailyFormTicket', 'g7_dy', 1],
     ['dailyFormTicket', 'g1_wx', 2], ['dailyFormTicket', 'g2_dy', 1], ['dailyFormTicket', 'sso', 5],
     ['dailyFormOverseas', 'sdk_mh', 5], ['dailyFormOverseas', 'sdk_ajs', 4], ['dailyFormOverseas', 'sdk_yl', 3],
-    ['dailyFormOverseas', 'email', 4],
+    ['dailyFormOverseas', 'email', 4], ['dailyFormOverseas', 'fb_yl', 2],
     ['dailyFormOverseas', 'ios', 9], ['dailyFormOverseas', 'google', 5],
     ['dailyFormOverseas', 'mute', 7], ['dailyFormOverseas', 'ban', 3],
     ['dailyFormOverseas', 'mhl_group', 6], ['dailyFormOverseas', 'cp_ticket', 2], ['dailyFormOverseas', 'cn_ticket', 3]];
@@ -513,7 +515,9 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
   await sleep(60);
   const rec0 = (lastCareer() || { records: {} }).records[bjToday];
   check(!!rec0, '点「生成日报」后当天已自动归档', Object.keys((lastCareer() || { records: {} }).records).slice(0, 3));
-  check(rec0 && rec0.total === 68, '折算口径正确：当日工作量 = 68（工单 17 + 海外 51）', rec0 && rec0.total);
+  check(rec0 && rec0.total === 70, '折算口径正确：当日工作量 = 70（工单 17 + 海外 53）', rec0 && rec0.total);
+  check(rec0 && rec0.items.ov_fb_yl === 2 && rec0.items.ov_fb === undefined,
+    '月光FB 单独入账（2），没并进梦幻FB', rec0 && [rec0.items.ov_fb_yl, rec0.items.ov_fb]);
   check(rec0 && rec0.items.t_sso === 5 && rec0.items.t_g7_wx === 3 && rec0.items.store_reply === 14
     && rec0.items.ov_sso === 12 && rec0.items.ov_email === 4 && rec0.items.mute === 7 && rec0.items.ban === 3,
     '逐项折算正确（工单侧 SSO5/⑦工单来访3+1、海外侧 商店14/海外SSO12/邮件4/禁言7/封号3）', rec0 && rec0.items);
@@ -523,6 +527,8 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     'SDk 三项明细各自留存（梦幻5/爱江山4/月光3）', rec0 && rec0.items);
   const ovReport = $('dailyResultArea').value;
   check(ovReport.includes('SDk工单：12例'), '日报正文里 SDk 三项已合并成一个「SDk工单」数', ovReport.slice(-160));
+  check(ovReport.includes('FB·月光：2例') && ovReport.includes('FB·梦幻：0例'),
+    '海外日报正文把 FB 拆成「梦幻 / 月光」两行', ovReport.slice(-200));
   check(ovReport.includes('（梦幻/繁花/乐缤纷）群维系：6') && ovReport.includes('海外CP后台工单：2') && ovReport.includes('国内工单：3'),
     '海外日报正文已输出这 3 行', ovReport.slice(-110));
   check(rec0 && rec0.status === '已完成记录' && rec0.src === 'daily', '状态与来源标记正确', rec0 && [rec0.status, rec0.src]);
@@ -536,29 +542,29 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
 
   doc.querySelector('.tab-btn[data-tab="career"]').click();   // 切到客服生涯
   await sleep(40);
-  check(/累计工作量\s*68/.test(kpiText()), 'KPI：累计工作量 68（工单 17 + 海外 51）', kpiText().slice(0, 60));
+  check(/累计工作量\s*70/.test(kpiText()), 'KPI：累计工作量 70（工单 17 + 海外 53）', kpiText().slice(0, 60));
   check(/完整记录天数\s*1/.test(kpiText()), 'KPI：完整记录 1 天', kpiText().slice(0, 120));
-  check(/日均工作量\s*68/.test(kpiText()) && /最高单日\s*68/.test(kpiText()), 'KPI：日均/最高单日 = 68');
+  check(/日均工作量\s*70/.test(kpiText()) && /最高单日\s*70/.test(kpiText()), 'KPI：日均/最高单日 = 70');
   check(/最长连续记录\s*1 天/.test(kpiText()), 'KPI：连续记录天数');
   check(/环比|近 30 记录日日均/.test(kpiText()), 'KPI：趋势类指标已渲染');
   check($('careerTrend').querySelectorAll('span').length === 1, '趋势条 = 1 根', $('careerTrend').querySelectorAll('span').length);
-  check(/工单侧\s*17 \+ 海外侧\s*51 = 累计\s*68/.test($('careerSheetHint').textContent)
+  check(/工单侧\s*17 \+ 海外侧\s*53 = 累计\s*70/.test($('careerSheetHint').textContent)
     && !/登记表/.test($('careerSheetHint').textContent),
-    '汇总行：工单17 + 海外51 = 累计 68（不再提「登记表 14 项口径」）', $('careerSheetHint').textContent);
+    '汇总行：工单17 + 海外53 = 累计 70（不再提「登记表 14 项口径」）', $('careerSheetHint').textContent);
   check(!!$('careerSplitBar') && doc.querySelectorAll('#careerSplitBar > i').length === 2
-    && /工单侧\s*17/.test($('careerSplitLegend').textContent) && /海外侧\s*51/.test($('careerSplitLegend').textContent),
-    '两侧占比堆叠条：两段 + 图例（工单17 / 海外51）', $('careerSplitLegend').textContent);
+    && /工单侧\s*17/.test($('careerSplitLegend').textContent) && /海外侧\s*53/.test($('careerSplitLegend').textContent),
+    '两侧占比堆叠条：两段 + 图例（工单17 / 海外53）', $('careerSplitLegend').textContent);
   const sideTicket = $('careerSideTicket').textContent;
   const sideOverseas = $('careerSideOverseas').textContent;
   check(/工单侧累计\s*17/.test(sideTicket), '工单侧单独统计：累计 17', sideTicket.slice(0, 40));
-  check(/海外侧累计\s*51/.test(sideOverseas), '海外侧单独统计：累计 51', sideOverseas.slice(0, 40));
+  check(/海外侧累计\s*53/.test(sideOverseas), '海外侧单独统计：累计 53', sideOverseas.slice(0, 40));
   check(/53客服在线/.test(sideTicket) && /支付宝在线/.test(sideTicket) && /爱江山CP后台/.test(sideTicket)
     && /①繁花·微信/.test(sideTicket) && /⑤梦幻消除战·微信/.test(sideTicket) && /⑦异世界勇者·微信/.test(sideTicket)
     && !/异世界群维系/.test(sideTicket) && !/猫之城/.test(sideTicket),
     '工单侧 = 工单日报全部字段（①②⑤⑦ 都在），且不含只存档项', sideTicket.slice(0, 60));
   check(/异世界群维系/.test(sideOverseas) && /（梦幻\/繁花\/乐缤纷）群维系/.test(sideOverseas)
-    && /国内工单/.test(sideOverseas) && /海外CP后台工单/.test(sideOverseas) && /监控禁言/.test(sideOverseas),
-    '海外侧含 异世界群维系 /（梦幻/繁花/乐缤纷）群维系 / 国内工单 / 海外CP后台工单 / 禁言封号');
+    && /国内工单/.test(sideOverseas) && /海外CP后台工单/.test(sideOverseas) && /海外FB·月光/.test(sideOverseas) && /监控禁言/.test(sideOverseas),
+    '海外侧含 异世界群维系 /（梦幻/繁花/乐缤纷）群维系 / 国内工单 / 海外CP后台工单 / 海外FB·月光 / 禁言封号');
   check($('careerItemTable') === null && !/对外报表口径/.test(doc.body.textContent)
     && !/登记表 14 项/.test(doc.body.textContent),
     '对外报表口径那一块已从页面上移除');
@@ -597,16 +603,16 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
       '报表抬头右上 5 格元数据（身份 / 记录天数 / 累计 / 日均 / 出具日期）',
       $('careerReportMeta').textContent.slice(0, 90));
   }
-  // 身份筛选：只看海外时，工单卡藏起来、总览只算海外那 51
+  // 身份筛选：只看海外时，工单卡藏起来、总览只算海外那 53
   const scopeBtn = (scope) => doc.querySelector('#careerScopeBar button[data-scope="' + scope + '"]');
   scopeBtn('overseas').click();
   await sleep(40);
-  check(/海外侧累计\s*51/.test(kpiText()) && /完整记录天数\s*1/.test(kpiText()),
-    '身份=海外：总览只算海外侧（累计 51）', kpiText().slice(0, 60));
+  check(/海外侧累计\s*53/.test(kpiText()) && /完整记录天数\s*1/.test(kpiText()),
+    '身份=海外：总览只算海外侧（累计 53）', kpiText().slice(0, 60));
   check($('careerCardTicket').style.display === 'none' && $('careerCardOverseas').style.display !== 'none',
     '身份=海外：工单统计卡隐藏、海外统计卡显示');
   check($('careerSplitWrap').style.display === 'none', '身份=海外：两侧占比条隐藏（只剩一侧没意义）');
-  check(/海外侧累计\s*51/.test($('careerSheetHint').textContent) && /只统计「海外日报」里的项/.test($('careerSheetHint').textContent),
+  check(/海外侧累计\s*53/.test($('careerSheetHint').textContent) && /只统计「海外日报」里的项/.test($('careerSheetHint').textContent),
     '身份=海外：汇总行只讲海外侧', $('careerSheetHint').textContent);
   check(window.localStorage.getItem('careerScope') === 'overseas', '身份选择记在本机（刷新后保持）');
   scopeBtn('ticket').click();
@@ -615,14 +621,14 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     '身份=工单：总览只算工单侧（累计 17）+ 海外卡隐藏', kpiText().slice(0, 60));
   scopeBtn('all').click();
   await sleep(40);
-  check(/累计工作量\s*68/.test(kpiText()) && $('careerCardTicket').style.display !== 'none'
+  check(/累计工作量\s*70/.test(kpiText()) && $('careerCardTicket').style.display !== 'none'
     && $('careerCardOverseas').style.display !== 'none',
-    '身份=全部：回到两侧合计 68');
+    '身份=全部：回到两侧合计 70');
   // 指标详情：默认全部 / 按日；换成某一项时应能算出那一项的总量与平均
   check(!!$('careerDetailItem') && !!$('careerDetailGrain') && /全部工作量/.test($('careerDetailItem').textContent),
     '指标详情：范围下拉有「全部工作量」等选项');
-  check(/总量\s*68/.test($('careerDetailSummary').textContent) && /日均\s*68/.test($('careerDetailSummary').textContent),
-    '指标详情：全部 / 按日 → 总量 68、日均 68', $('careerDetailSummary').textContent.slice(0, 60));
+  check(/总量\s*70/.test($('careerDetailSummary').textContent) && /日均\s*70/.test($('careerDetailSummary').textContent),
+    '指标详情：全部 / 按日 → 总量 70、日均 70', $('careerDetailSummary').textContent.slice(0, 60));
   $('careerDetailItem').value = 'ov_sso';
   fire($('careerDetailItem'), 'change');
   await sleep(30);
@@ -677,8 +683,8 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     '打乱列顺序仍按表头正确落位', recs['2026-06-03'] && recs['2026-06-03'].items);
   check(recs['2026-06-03'] && recs['2026-06-03'].total === 42, '导入行总计 = 各列之和 42', recs['2026-06-03'] && recs['2026-06-03'].total);
   check(recs['2026-06-04'] && recs['2026-06-04'].note === '开服活动', '特殊问题列已带入');
-  check(/累计工作量\s*130/.test(kpiText()), 'KPI 更新：68 + 42 + 20 = 130', kpiText().slice(0, 40));
-  check(/=\s*累计\s*130/.test($('careerSheetHint').textContent), '汇总行同步为累计 130（68+42+20）', $('careerSheetHint').textContent);
+  check(/累计工作量\s*132/.test(kpiText()), 'KPI 更新：70 + 42 + 20 = 132', kpiText().slice(0, 40));
+  check(/=\s*累计\s*132/.test($('careerSheetHint').textContent), '汇总行同步为累计 132（70+42+20）', $('careerSheetHint').textContent);
   check(/待确认 1 天/.test($('careerQuality').textContent), '「总计为空/待确认」不入统计，单列提示', $('careerQuality').textContent.slice(0, 60));
   const monthTbl = $('careerMonthlyTable').textContent;
   check(monthTbl.includes('2026-06') && monthTbl.includes(bjToday.slice(0, 7)), '月度汇总含 2026-06 与本月', monthTbl.slice(0, 60));
@@ -703,7 +709,7 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
   const recs2 = (lastCareer() || { records: {} }).records;
   check(Object.keys(recs2).length === Object.keys(recs).length, '重复导入不产生重复记录', Object.keys(recs2).length);
   check(/覆盖已有 3 天/.test($('careerImportHint').textContent), '重复导入提示为覆盖', $('careerImportHint').textContent);
-  check(/累计工作量\s*130/.test(kpiText()), '重复导入后累计仍是 130（未翻倍）', kpiText().slice(0, 40));
+  check(/累计工作量\s*132/.test(kpiText()), '重复导入后累计仍是 132（未翻倍）', kpiText().slice(0, 40));
 
   // 补录 / 修正 / 删除
   $('careerEditDate').value = '2026-06-05';
@@ -714,14 +720,14 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
   $('careerSaveDayBtn').click();
   await sleep(30);
   check(/已保存 2026-06-05：工作量 6/.test($('careerEditHint').textContent), '补录保存成功', $('careerEditHint').textContent);
-  check(/累计工作量\s*136/.test(kpiText()), '补录后累计 130+6 = 136', kpiText().slice(0, 40));
+  check(/累计工作量\s*138/.test(kpiText()), '补录后累计 132+6 = 138', kpiText().slice(0, 40));
   $('careerLoadDayBtn').click();
   await sleep(30);
   check(/已载入 2026-06-05/.test($('careerEditHint').textContent)
     && $('careerEditGrid').querySelector('[data-career-key="store_reply"]').value === '6', '能回读已补录的那天');
   $('careerDeleteDayBtn').click();
   await sleep(30);
-  check(/累计工作量\s*130/.test(kpiText()), '删除后累计回到 130', kpiText().slice(0, 40));
+  check(/累计工作量\s*132/.test(kpiText()), '删除后累计回到 132', kpiText().slice(0, 40));
 
   // 导出：jsdom 里 <a>.click() 会触发 "navigation not implemented"，这里换成桩并把 Blob 内容抓出来验
   const origBlob = window.Blob;
@@ -771,7 +777,7 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
   const tkReportText = $('dailyResultArea').value;
   check(/①繁花微信【2】/.test(tkReportText) && /⑦异世界勇者微信【3】，抖音【1】/.test(tkReportText) && /SSO工单5/.test(tkReportText),
     '工单日报正文含各字段的值', tkReportText.slice(0, 90));
-  const totalWithSj = 72;                         // 工单 17 + 海外 51 + 异世界群维系 4
+  const totalWithSj = 74;                         // 工单 17 + 海外 53 + 异世界群维系 4
 
   // 先把当天记录删掉，证明接下来的数字确实是导入出来的
   $('careerEditDate').value = bjToday;
@@ -795,7 +801,7 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
   check(recR && recR.items.sj_group === 4 && recR.items.mhl_group === 6 && recR.items.ov_cp === 2
     && recR.items.cn_ticket === 3 && recR.items.store_reply === 14 && recR.items.mute === 7 && recR.items.ban === 3,
     '海外日报那段也还原了（含异世界群维系4 / 商店回复14=ios9+google5）', recR && recR.items);
-  check(/累计工作量\s*134/.test(kpiText()), '导入后累计 = 62 + 72 = 134（与归档口径一致）', kpiText().slice(0, 30));
+  check(/累计工作量\s*136/.test(kpiText()), '导入后累计 = 62 + 74 = 136（与归档口径一致）', kpiText().slice(0, 30));
   check(recR && recR.name === '测试员' && recR.shift === 'F', '姓名/班次也从日报文本里带出来了', recR && [recR.name, recR.shift]);
   // 只粘工单日报那一段时，海外侧旧值不应被清掉
   $('careerImportArea').value = tkReportText;
@@ -1719,6 +1725,65 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     await sleep(30);
     check(/已复制/.test($('sopFormHint').textContent), 'SOP：复制文本给提示',
       $('sopFormHint').textContent);
+
+    // 场景话术可改 / 可加 / 可删（用户：后续要可以添加修改已有的话术）
+    const seditBtn = doc.querySelector('#sopSceneBox [data-sop-sedit="0"]');
+    check(!!seditBtn, 'SOP 话术编辑：每条话术都带 ✏️ 改');
+    seditBtn.click();
+    await sleep(30);
+    check(!!doc.querySelector('#sopSceneBox .sop-edit [data-sop-ef="text"]'), 'SOP 话术编辑：点 ✏️ 出编辑框');
+    doc.querySelector('#sopSceneBox .sop-edit [data-sop-ef="tone"]').value = '收集信息';
+    doc.querySelector('#sopSceneBox .sop-edit [data-sop-ef="text"]').value = '改过的话术：请提供角色ID与区服～';
+    doc.querySelector('#sopSceneBox [data-sop-esave]').click();
+    await sleep(80);
+    check(/改过的话术/.test($('sopSceneBox').textContent) && !doc.querySelector('#sopSceneBox .sop-edit'),
+      'SOP 话术编辑：保存后场景卡里换成新话术');
+    check(/话术已保存/.test($('sopDataHint').textContent), 'SOP 话术编辑：提示已保存', $('sopDataHint').textContent);
+    check((window.localStorage.getItem('sopBundleLocal') || '').indexOf('改过的话术') >= 0,
+      'SOP 话术编辑：写进本机 sopBundleLocal（刷新不丢）');
+    doc.querySelector('#sopSceneBox [data-sop-snew]').click();
+    await sleep(30);
+    doc.querySelector('#sopSceneBox .sop-edit [data-sop-ef="text"]').value = '新增的一条话术';
+    doc.querySelector('#sopSceneBox [data-sop-esave]').click();
+    await sleep(80);
+    check(/新增的一条话术/.test($('sopSceneBox').textContent), 'SOP 话术编辑：＋ 加话术能加上');
+    const delBtns = [...doc.querySelectorAll('#sopSceneBox [data-sop-sdel]')];
+    delBtns[delBtns.length - 1].click();
+    await sleep(80);
+    check(doc.querySelectorAll('#sopSceneBox [data-sop-sdel]').length === delBtns.length - 1,
+      'SOP 话术编辑：🗑 能删掉一条');
+
+    // 常用语库：默认不铺满，搜索才列出来；可复制 / 改 / 新增 / 删除
+    check(/共 3 条/.test($('sopPhHint').textContent), 'SOP 常用语库：默认只报条数、不铺满', $('sopPhHint').textContent);
+    check(/输入关键词|点上面的分类/.test($('sopPhList').textContent), 'SOP 常用语库：先给提示（省得一屏几百条）');
+    $('sopPhQuery').value = '角色';
+    $('sopPhSearchBtn').click();
+    await sleep(40);
+    check(doc.querySelectorAll('#sopPhList .sop-ph').length >= 1 && /角色ID/.test($('sopPhList').textContent),
+      'SOP 常用语库：搜「角色」筛出对应常用语', doc.querySelectorAll('#sopPhList .sop-ph').length);
+    doc.querySelector('#sopPhList [data-sop-phcopy]').click();
+    await sleep(30);
+    check(/已复制/.test($('sopPhHint').textContent), 'SOP 常用语库：复制给提示');
+    doc.querySelector('#sopPhList [data-sop-phedit]').click();
+    await sleep(30);
+    doc.querySelector('#sopPhList .sop-edit [data-sop-pf="text"]').value = '改过的常用语（角色ID那条）';
+    doc.querySelector('#sopPhList [data-sop-psave]').click();
+    await sleep(80);
+    check(/改过的常用语/.test($('sopPhList').textContent), 'SOP 常用语库：✏️ 改完立刻生效');
+    $('sopPhNewBtn').click();
+    await sleep(30);
+    doc.querySelector('#sopPhList .sop-edit [data-sop-pf="cat"]').value = '测试分类';
+    doc.querySelector('#sopPhList .sop-edit [data-sop-pf="text"]').value = '新加的常用语';
+    doc.querySelector('#sopPhList [data-sop-psave]').click();
+    await sleep(80);
+    check(/共 4 条/.test($('sopPhHint').textContent) && /测试分类/.test($('sopPhCats').textContent),
+      'SOP 常用语库：＋ 新增后条数与分类片都更新', $('sopPhHint').textContent);
+    $('sopPhQuery').value = '新加的';
+    $('sopPhSearchBtn').click();
+    await sleep(40);
+    doc.querySelector('#sopPhList [data-sop-phdel]').click();
+    await sleep(80);
+    check(/共 3 条/.test($('sopPhHint').textContent), 'SOP 常用语库：🗑 删掉后回到 3 条', $('sopPhHint').textContent);
 
     // 导入 bundle（本机导入优先，且能推服务端）
     promptAnswer = JSON.stringify({
