@@ -3261,6 +3261,32 @@
         .sop-hit-t { font-size: 13px; font-weight: 600; color: var(--ink-0); }
         .sop-hit-x, .sop-hit-fix { font-size: 13px; line-height: 1.7; color: var(--ink-1); }
         .sop-hit-fix { color: var(--ink-2); }
+
+        /* SOP 加密锁屏 */
+        #sopLockCard {
+            border-left: 3px solid var(--warn);
+        }
+        /* SOP 处理流程：竖向步骤条（编号圆点 + 连接线） */
+        .sop-steps { list-style: none; margin: 0; padding: 0; }
+        .sop-steps > li { position: relative; display: flex; gap: 10px; padding-bottom: 12px; }
+        .sop-steps > li::before {
+            content: ''; position: absolute; left: 11px; top: 24px; bottom: 0; width: 2px;
+            background: var(--accent-line);
+        }
+        .sop-steps > li:last-child { padding-bottom: 0; }
+        .sop-steps > li:last-child::before { display: none; }
+        .sop-step-n {
+            flex: 0 0 24px; width: 24px; height: 24px; border-radius: 50%;
+            background: var(--accent); color: #0a0c0e; font-size: 12px; font-weight: 700;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .sop-step-x { font-size: 13px; line-height: 1.7; color: var(--ink-1); padding-top: 2px; }
+        /* SOP 要收集：小片 */
+        .sop-needchips { display: flex; flex-wrap: wrap; gap: 6px; }
+        .sop-needchip {
+            font-size: 12px; padding: 2px 8px; border: 1px solid var(--line-1);
+            background: var(--surface); border-radius: var(--r-sm); color: var(--ink-2);
+        }
     </style>
 </head>
 
@@ -3555,6 +3581,19 @@
                 <div class="crh-meta" id="sopReportMeta"></div>
             </div>
 
+            <div class="card" id="sopLockCard">
+                <label>🔒 这一页是加密的
+                    <span class="hint-text" style="font-weight:400;">里头全是内部口径（含「严禁告知玩家」的规则），要先输口令才能用</span>
+                </label>
+                <div class="flex-row" style="margin-top:10px;">
+                    <input id="sopPassInput" type="password" placeholder="输入使用口令" autocomplete="off" style="max-width:240px;">
+                    <button id="sopUnlockBtn">解锁</button>
+                    <span class="hint-text" id="sopPassHint"></span>
+                </div>
+                <div class="hint-text" style="margin-top:8px;">⚠️ <b>输入不会被保存</b>：口令只在内存里，刷新页面、关掉浏览器后要重新输；不写 localStorage、也不上传服务端。</div>
+            </div>
+
+            <div id="sopBody" style="display:none;">
             <div class="card">
                 <label>🔍 查场景
                     <span class="hint-text" style="font-weight:400;">打玩家原话或关键词（「收不到验证码」「充值没到账」「被封了」），也可以直接选分类</span>
@@ -3610,6 +3649,7 @@
                 </div>
                 <div class="hint-text" id="sopDataHint" style="margin-top:8px;"></div>
             </details>
+            </div>
         </div>
 
         <!-- ==================== 集卡页 card ==================== -->
@@ -13052,6 +13092,12 @@
                                     const SOP_STORE_KEY = 'sopBundle';
                                     const SOP_TOKEN_KEY = 'sopToken';
                                     const SOP_LOCAL_KEY = 'sopBundleLocal';
+                                    // ⚠️ 使用口令（用户要求「加密使用，设备首次进入要输入「客服冷静」，账号密码信息不保留」）：
+                                    // 这是**前端门锁**（防顺手看见），不是真加密；真数据保护靠服务端 SOP_TOKEN。
+                                    // 口令只在内存里（sopUnlocked）——**不写 localStorage / sessionStorage、不上传**，
+                                    // 刷新或重开浏览器都要重新输（用户要的「不保留」）。
+                                    const SOP_PASS = '客服冷静';
+                                    let sopUnlocked = false;
                                     let sopBundle = null;
                                     let sopCurrent = null;
                                     let sopSourceLabel = '内置示例';
@@ -13208,7 +13254,45 @@
                                         if (meta) meta.textContent = '（v' + (sopBundle.version || 0) + ' · ' + (sopBundle.scenes || []).length + ' 个场景 · 来自' + label + '）';
                                         return sopBundle;
                                     }
-                                    function sopInit() { if (!sopBundle) sopLoad(); }
+                                    function sopInit() {
+                                        sopApplyLock();
+                                        if (!sopUnlocked) return;     // 没解锁不拉数据、也不渲染场景
+                                        if (!sopBundle) sopLoad();
+                                    }
+                                    function sopSetPassHint(t) {
+                                        const el = document.getElementById('sopPassHint');
+                                        if (el) el.textContent = t || '';
+                                    }
+                                    // 锁屏 / 内容区切换（只是 display，数据在没解锁时根本不会加载）
+                                    function sopApplyLock() {
+                                        const lock = document.getElementById('sopLockCard');
+                                        const body = document.getElementById('sopBody');
+                                        if (lock) lock.style.display = sopUnlocked ? 'none' : '';
+                                        if (body) body.style.display = sopUnlocked ? '' : 'none';
+                                        if (!sopUnlocked) {
+                                            const sub = document.getElementById('sopReportSub');
+                                            if (sub) sub.textContent = '🔒 加密页：先输使用口令（不会保存，下次进入要再输）';
+                                            const meta = document.getElementById('sopReportMeta');
+                                            if (meta) meta.innerHTML = '';
+                                            const pass = document.getElementById('sopPassInput');
+                                            if (pass) pass.value = '';      // 任何时候都不留密码在输入框里
+                                        }
+                                    }
+                                    function sopUnlock() {
+                                        const el = document.getElementById('sopPassInput');
+                                        const v = (((el && el.value) || '')).trim();
+                                        if (!v) { sopSetPassHint('先输入口令'); return; }
+                                        if (v !== SOP_PASS) {
+                                            if (el) el.value = '';      // 输错就清掉，不留在框里
+                                            sopSetPassHint('口令不对，再试一次');
+                                            return;
+                                        }
+                                        sopUnlocked = true;
+                                        if (el) el.value = '';          // 用完整即清空（不保留）
+                                        sopSetPassHint('');
+                                        sopApplyLock();
+                                        sopLoad(true);
+                                    }
                                     function sopRenderHead() {
                                         const b = sopBundle || SOP_DEMO;
                                         const scenes = b.scenes || [];
@@ -13312,12 +13396,16 @@
                                             + ' · 渠道 ' + esc((s.channel || []).join('/')) + '</span></div>';
                                         if ((s.triggers || []).length) h += '<div class="hint-text">触发词：' + esc(s.triggers.join('、')) + '</div>';
                                         if ((s.steps || []).length) {
-                                            h += '<div class="sop-block"><div class="sop-block-t">处理流程</div><ol class="sop-ol">'
-                                                + s.steps.map(x => '<li>' + esc(x) + '</li>').join('') + '</ol></div>';
+                                            // 流程用时间线/步骤条呈现（比一串文字直观）；最后一步不再画连接线
+                                            h += '<div class="sop-block"><div class="sop-block-t">处理流程</div><ol class="sop-steps">'
+                                                + s.steps.map((x, i) => '<li><span class="sop-step-n">' + (i + 1) + '</span>'
+                                                    + '<span class="sop-step-x">' + esc(x) + '</span></li>').join('')
+                                                + '</ol></div>';
                                         }
                                         if ((s.needInfo || []).length) {
-                                            h += '<div class="sop-block"><div class="sop-block-t">要收集</div><ul class="sop-ul">'
-                                                + s.needInfo.map(x => '<li>' + esc(x) + '</li>').join('') + '</ul></div>';
+                                            h += '<div class="sop-block"><div class="sop-block-t">要收集</div><div class="sop-needchips">'
+                                                + s.needInfo.map(x => '<span class="sop-needchip">' + esc(x) + '</span>').join('')
+                                                + '</div></div>';
                                         }
                                         if ((s.scripts || []).length) {
                                             h += '<div class="sop-block"><div class="sop-block-t">对外话术（点复制）</div>';
@@ -14241,7 +14329,13 @@
                                         setClick('fbGenerateBtn', fbGenerate);
                                         setClick('fbCopyBtn', fbCopy);
                                         setClick('fbClearBtn', fbClear);
-                                        // SOP 助手（检索 / 红线检查 / 信息清单 · 数据要口令）
+                                        // SOP 助手（先过口令门 → 检索 / 红线检查 / 信息清单）
+                                        setClick('sopUnlockBtn', sopUnlock);
+                                        (function bindSopPass() {
+                                            const p = document.getElementById('sopPassInput');
+                                            if (p) p.addEventListener('keydown', (e) => { if (e.key === 'Enter') sopUnlock(); });
+                                        })();
+                                        sopApplyLock();
                                         setClick('sopSearchBtn', sopSearch);
                                         setClick('sopClearBtn', () => {
                                             const q = document.getElementById('sopQuery');

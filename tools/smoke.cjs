@@ -1553,6 +1553,44 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     await sleep(150);
     check(!!$('tab-sop') && $('tab-sop').classList.contains('active'),
       'SOP：标签页能切换过去');
+    // 加密门：没解锁时只看到锁屏，内容区不显示、也不去拉数据
+    check(!!$('sopLockCard') && window.getComputedStyle($('sopLockCard')).display !== 'none'
+      && window.getComputedStyle($('sopBody')).display === 'none',
+      'SOP 加密：未解锁时只显示锁屏，内容区隐藏',
+      window.getComputedStyle($('sopBody')).display);
+    check(posts.filter(p => p.url.includes('sopBundle')).length === 0,
+      'SOP 加密：没解锁就不去请求 sopBundle（数据不会提前到浏览器）',
+      posts.filter(p => p.url.includes('sopBundle')).map(p => p.url));
+    check(/加密/.test($('sopReportSub').textContent),
+      'SOP 加密：抬头也写明要口令', $('sopReportSub').textContent.slice(0, 40));
+    // 错口令
+    $('sopPassInput').value = '随便乱打';
+    $('sopUnlockBtn').click();
+    await sleep(60);
+    check(/口令不对/.test($('sopPassHint').textContent)
+      && window.getComputedStyle($('sopBody')).display === 'none'
+      && $('sopPassInput').value === '',
+      'SOP 加密：口令错 → 提示并清空输入框（不留在框里）', $('sopPassHint').textContent);
+    // 空口令
+    $('sopPassInput').value = '';
+    $('sopUnlockBtn').click();
+    await sleep(40);
+    check(/先输入/.test($('sopPassHint').textContent), 'SOP 加密：空口令也给提示');
+    // 对的口令（用户定的「客服冷静」）
+    $('sopPassInput').value = '客服冷静';
+    $('sopUnlockBtn').click();
+    await sleep(200);
+    check(window.getComputedStyle($('sopLockCard')).display === 'none'
+      && window.getComputedStyle($('sopBody')).display !== 'none',
+      'SOP 加密：输对「客服冷静」→ 进得去，锁屏收起');
+    check($('sopPassInput').value === '',
+      'SOP 加密：解锁后输入框里的口令被清掉（不在页面里留着）');
+    // 「账号密码信息不保留」：口令不进任何持久化存储
+    const lsDump = JSON.stringify(window.localStorage);
+    const ssDump = JSON.stringify(window.sessionStorage || {});
+    check(lsDump.indexOf('客服冷静') === -1 && ssDump.indexOf('客服冷静') === -1,
+      'SOP 加密：口令不写 localStorage / sessionStorage（下次进入要重新输）',
+      lsDump.slice(0, 80));
     check(/内置示例/.test($('sopReportSub').textContent) && /个场景/.test($('sopReportSub').textContent),
       'SOP：抬头显示数据来源与场景数（服务端没数据时用内置示例）', $('sopReportSub').textContent.slice(0, 70));
     check(!!$('sopQuery') && !!$('sopHits') && !!$('sopSceneBox') && !!$('sopRedInput')
@@ -1569,6 +1607,13 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
       && /要收集/.test($('sopSceneBox').textContent),
       'SOP：搜「充值没到账」→ 展开充值场景卡（流程 + 要收集）',
       $('sopSceneBox').textContent.replace(/\s+/g, ' ').slice(0, 60));
+    // 流程用「步骤条」呈现：编号圆点 + 连接线
+    const stepLis = [...doc.querySelectorAll('#sopSceneBox .sop-steps > li')];
+    check(stepLis.length >= 3 && stepLis[0].querySelector('.sop-step-n').textContent === '1'
+      && stepLis[1].querySelector('.sop-step-n').textContent === '2',
+      'SOP：处理流程渲染成步骤条（1、2、3… 编号）', stepLis.map(li => li.textContent.slice(0, 12)));
+    check(doc.querySelectorAll('#sopSceneBox .sop-needchip').length >= 3,
+      'SOP：要收集的信息做成小片', doc.querySelectorAll('#sopSceneBox .sop-needchip').length);
     check(/订单号/.test($('sopSceneBox').textContent) && /对外话术/.test($('sopSceneBox').textContent),
       'SOP：场景卡里有订单号等必收信息与可复制话术');
     check(/内部口径/.test($('sopSceneBox').textContent),

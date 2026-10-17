@@ -436,6 +436,15 @@ ok(/const SOP_TOKEN = process\.env\.SOP_TOKEN \|\| '';/.test(sv) && /const SOP_K
   '服务端：sop* 开头的 key 要 SOP_TOKEN（没配就关掉），普通 key 行为不变');
 ok(fs.existsSync('tools/sop-seed.cjs') && /sop:seed/.test(fs.readFileSync('package.json', 'utf8')),
   'SOP：有 npm run sop:seed 把 bundle 推到服务端');
+ok(/const SOP_PASS = '客服冷静';/.test(s) && /let sopUnlocked = false;/.test(s)
+  && /id="sopLockCard"/.test(s) && /id="sopBody"/.test(s)
+  && /id="sopPassInput"/.test(s) && /id="sopUnlockBtn"/.test(s)
+  && /function sopUnlock\(\)/.test(s) && /function sopApplyLock\(\)/.test(s)
+  && !/localStorage\.setItem\([^)]*SOP_PASS/.test(s) && !/sessionStorage\.setItem/.test(s),
+  'SOP 加密：进这页要先输「客服冷静」，口令只在内存（不写 localStorage / sessionStorage）');
+ok(/class="sop-steps"/.test(s) && /sop-step-n/.test(s) && /\.sop-steps > li::before/.test(s)
+  && /sop-needchip/.test(s),
+  'SOP：处理流程改成竖向步骤条（编号圆点 + 连接线），要收集做成小片');
 
 // ---- 4. 花括号/圆括号平衡（粗查，排除字符串内的干扰仅作参考） ----
 const count = (str, ch) => (str.split(ch).length - 1);
