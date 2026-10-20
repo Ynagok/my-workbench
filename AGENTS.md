@@ -48,7 +48,7 @@ npm run verify     # 改完代码、push 前的完整自检
 
 | 命令 | 内容 |
 |---|---|
-| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 360 项 + 「接口挂起时界面仍可用」+ 服务端冒烟 42 项 |
+| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 373 项 + 「接口挂起时界面仍可用」+ 服务端冒烟 42 项 |
 | `npm run verify:static` | 只要静态校验 + 语法检查（最快） |
 | `npm run report` | 打印一份真实生成的日报，肉眼确认排版（含 ⑥伙伴弹途 / ⑦异世界勇者） |
 | `npm run build:data` | 从 GM 玩家页快照提取 4 张权威映射表 + 与硬编码常量的**差异报告**（见下「游戏数据管线」） |
@@ -56,7 +56,7 @@ npm run verify     # 改完代码、push 前的完整自检
 | `npm run smoke:pmc` | **生管物料订单工作台**（`public/pmc.html`）自检，123 项（含加工周期工作日推算 + 在途锁定/调整建议 + 真实 8.5MB xlsx 端到端导入）；**不在 verify 里**，见下「生管物料订单工作台」一节 |
 | `npm test` | = `npm run verify` |
 
-`npm run verify` 失败就不要提交。它一共 5 段：静态结构 → 语法 → jsdom 集成冒烟 **360 项** → 接口挂起时界面仍可用 → 服务端冒烟 **42 项**。
+`npm run verify` 失败就不要提交。它一共 5 段：静态结构 → 语法 → jsdom 集成冒烟 **373 项** → 接口挂起时界面仍可用 → 服务端冒烟 **42 项**。
 
 - jsdom 未安装时前端冒烟会自动回落到本机 DSH 自带的那份。
 - `tools/smoke-server.cjs` 用 `PORT` + `DATA_FILE` 环境变量把服务端指到随机端口和 `tools/out/` 里的临时文件，**不会碰真实 `data.json`**；子进程 stdio 必须用 `ignore`/`inherit`（沙箱禁管道，`pipe` 会 EPERM）。
@@ -129,7 +129,14 @@ npm run verify     # 改完代码、push 前的完整自检
   - ⚠️ 冒烟对这些块用的是 `textContent` 精确/正则断言（如 `工单侧 17 + 海外侧 53 = 累计 70`、`Top3 集中度：`、`合计占`、`待确认 1 天`、`异常线 μ+2σ`、`活动 / 版本峰值标注`、`只存在这台设备的浏览器里`、`不上传服务端`）—— 改芯片文案要同步改断言。
 - **报告式「一句话摘要」+ 工具条收拢（2026-10）**：两个统计页顶部 `.stat-headline`（`#careerHeadline` / `#ovbizHeadline`）由 `renderCareer()` / `ovbizRender()` 填 —— 「累计 X · 日均 Y · 最高单日 Z（日期）· 在岗 N 天 / 区间 M 天（休 K）」一行读完；没数据时回落成一片提示芯片。KPI 卡左侧加了一根 2px 强调条（主指标黄、次指标灰），表格首列加粗、行高收到 1.6。
   - **工具条**：客服生涯总览卡只留「🗂️ 归档今日日报」+「🗓️ 排班休息」两个主按钮，导出CSV / 导出JSON / 导入JSON / 清空本机 折进 `details.card-more`（点「⋯ 更多」展开）——**按钮 id 没变**，测试照旧能点。
-- **🗓️ 排班休息（2026-10 用户要求）**：客服生涯工具条上的「🗓️ 排班休息」按钮（`#careerRestBtn`）展开 `#careerRestCard` 面板 —— 月份输入 `#careerRestMonth`（默认当月）+ 整月方格 `#careerRestGrid`（点一天 = 切换休息，休的格子带 `.rest` 并显示「休」，周末虚线框）+「周末全休」(`#careerRestWeekendBtn`) /「清空本月」(`#careerRestClearMonthBtn`)。
+- **🗓️ 排班休息（2026-10 用户要求，后改成微软日历样式）**：客服生涯工具条上的「🗓️ 排班休息」按钮（`#careerRestBtn`）展开 `#careerRestCard` 面板。
+  - **月历版式（2026-10 用户要求：「按微软日历的样式排布，要有星期」）**：`#careerRestGrid` 里先画一行星期表头 `.rest-cal-week`（`CAREER_WEEK_LABELS` = 日 / 一 / 二 / 三 / 四 / 五 / 六，**周日排最前，跟 Windows / Outlook 中文日历一致**；周末两列 `.wd.is-weekend` 标红），下面 `.rest-cal-grid` 是 **7 列网格**，每天一格 `.career-rest-day`（数字在左上）。
+    - **对齐**：月初按 `firstDow = new Date(Date.UTC(y, m - 1, 1)).getUTCDay()` 补 `.rest-cal-blank` 空格子，月末再补到整周，所以 1 号永远落在它自己那一列、格子不会塌。
+    - **标记**：周末格带 `.weekend`（`--surface-2` 底）；今天带 `.is-today`（数字反色成黄底黑字）；休息格带 `.rest`（黄淡底 + 黄边）并露出「休」小片 `.career-rest-day i`（平时 `visibility:hidden` 占位，尺寸不跳）。
+    - **切月份**：`‹` `#careerRestPrev` / `›` `#careerRestNext` 走 `careerStepRestMonth(±1)`（跨年也对），中间抬头 `#careerRestTitle` 写「YYYY 年 M 月」；右边的 `#careerRestMonth`（`type="month"`）留作**跳到某个月**，改它也会重画（冒烟就是直接改它的 value）。
+    - **口径那套没动**：`careerRestLoad/Save/Toggle`、`careerRestSet`、`.rest` 类名、`data-rest` 属性全都保留（冒烟 8m 靠它们），只是外观换了；「周末全休」(`#careerRestWeekendBtn`) /「清空本月」(`#careerRestClearMonthBtn`) 照旧。
+  - **测试**：`tools/smoke.cjs` 第 **8p** 节 **13 条**（星期表头「日一二三四五六」/ 只有日与六标周末色 / 2026-06 共 30 天且前后补齐成整周（月初空 1 + 月末补 4）/ 6/1 落在「一」下面 / 周末 8 天带 `.weekend` / 抬头「2026 年 6 月」/ 非当月没有「今天」/ `›` 到 7 月 / `‹‹` 退到 5 月 / 当月「今天」那格带 `.is-today` / 休息格显「休」且 `aria-pressed` / 提示「休息 1 天」/ 再点取消）；上面 8m 那 15 条（休息日不进统计）也照旧跑。
+  - ⚠️ 全局 `button` 在「收口层」里带 `clip-path: var(--clip-btn)` 和 `letter-spacing: .14em`，日历格子与 `‹ ›` 按钮都显式 `clip-path: none; letter-spacing: 0` 盖掉了 —— 改这块别把这两条删了，否则格子会变成切角 + 字距散开。
   - **存哪儿**：只写本机 `localStorage['careerRestDays']`（`YYYY-MM-DD` 数组，`careerRestLoad` / `careerRestSave` / `careerRestToggle`），**不进 `/api/data`** —— 跟 `careerData` 一个规矩。
   - **统计口径（`careerStats` 里只有这一处）**：`const restSet = careerRestSet()` 之后 —— ① **断档只数工作日**（`gapWorkDays()` 跳过休息日）；② **连续记录不休息日打断**（中间全是休息日就继续连续）；③ 新增 `restDays`（记录区间内的休息天数）与 `dutyDays = spanDays - restDays`（**在岗天数**），KPI「记录区间」副标与「数据质量」芯片都会显示「在岗 / 休息」。
   - **归档体检也跳过休息日**：休息日不报「漏登记」，另起一片「休息 N 天（不算漏登记）」。

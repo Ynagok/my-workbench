@@ -1772,6 +1772,66 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
       '切回工单栏重新渲染，分组与字段数都还原');
   }
 
+  console.log('--- 8p. 排班休息月历（微软日历样式：星期表头 / 7 列 / 今天 / 上个月·下个月） ---');
+  {
+    doc.querySelector('.tab-btn[data-tab="career"]').click();
+    await sleep(60);
+    if ($('careerRestCard').style.display === 'none') $('careerRestBtn').click();
+    await sleep(30);
+    $('careerRestMonth').value = '2026-06';
+    $('careerRestMonth').dispatchEvent(new window.Event('change'));
+    await sleep(30);
+    const wd = Array.from(doc.querySelectorAll('#careerRestGrid .rest-cal-week .wd')).map(el => el.textContent);
+    check(wd.join('') === '日一二三四五六',
+      '月历第一行是星期表头（日一二三四五六，周日排最前，跟微软日历一致）', wd.join(''));
+    check(doc.querySelectorAll('#careerRestGrid .rest-cal-week .wd.is-weekend').length === 2,
+      '只有「日」和「六」标成周末色', doc.querySelectorAll('#careerRestGrid .rest-cal-week .wd.is-weekend').length);
+    const cells = doc.querySelectorAll('#careerRestGrid .rest-cal-grid > *').length;
+    const blanks = doc.querySelectorAll('#careerRestGrid .rest-cal-blank').length;
+    const days = doc.querySelectorAll('#careerRestGrid .career-rest-day').length;
+    check(days === 30 && cells % 7 === 0 && blanks === 5,
+      '2026-06 共 30 天，前后用空格子补齐成整周（6/1 是周一 → 月初空 1 格，月末补 4 格）',
+      { days, blanks, cells });
+    const firstCell = doc.querySelector('#careerRestGrid .rest-cal-grid > *');
+    check(firstCell && firstCell.classList.contains('rest-cal-blank'),
+      '6/1 落在「一」下面（最左边是空的周日位）', firstCell && firstCell.className);
+    check(doc.querySelectorAll('#careerRestGrid .career-rest-day.weekend').length === 8,
+      '周末那 8 天带 .weekend 底色', doc.querySelectorAll('#careerRestGrid .career-rest-day.weekend').length);
+    check(($('careerRestTitle').textContent || '').trim() === '2026 年 6 月',
+      '抬头写着「2026 年 6 月」', $('careerRestTitle').textContent);
+    check(doc.querySelectorAll('#careerRestGrid .career-rest-day.is-today').length === 0,
+      '不是当月时没有「今天」标记');
+    $('careerRestNext').click();
+    await sleep(30);
+    check($('careerRestMonth').value === '2026-07' && /2026 年 7 月/.test($('careerRestTitle').textContent),
+      '点 › 到 2026 年 7 月（月份输入框跟着变）', $('careerRestMonth').value + ' / ' + $('careerRestTitle').textContent);
+    $('careerRestPrev').click();
+    $('careerRestPrev').click();
+    await sleep(30);
+    check($('careerRestMonth').value === '2026-05' && /2026 年 5 月/.test($('careerRestTitle').textContent),
+      '点 ‹‹ 会跨月回退（6 月 → 5 月）', $('careerRestMonth').value);
+    // 回到本月：今天那格要有标记
+    $('careerRestMonth').value = bjToday.slice(0, 7);
+    $('careerRestMonth').dispatchEvent(new window.Event('change'));
+    await sleep(30);
+    const todayCell = doc.querySelector('#careerRestGrid .career-rest-day.is-today');
+    check(!!todayCell && todayCell.dataset.rest === bjToday && todayCell.querySelector('b').textContent === String(+bjToday.slice(8, 10)),
+      '当月里「今天」那格带 .is-today（数字高亮）', todayCell && todayCell.dataset.rest);
+    // 休息标记：带 .rest + 「休」+ aria-pressed
+    todayCell.click();
+    await sleep(40);
+    const restCell = doc.querySelector('#careerRestGrid .career-rest-day.rest[data-rest="' + bjToday + '"]');
+    check(!!restCell && restCell.querySelector('i').textContent === '休'
+      && restCell.getAttribute('aria-pressed') === 'true',
+      '标了休息的格子显示「休」小片并 aria-pressed=true', restCell && restCell.querySelector('i').textContent);
+    check(/休息 1 天/.test($('careerRestHint').textContent),
+      '标题行右边写「休息 1 天」（不再重复月份）', $('careerRestHint').textContent);
+    doc.querySelector('#careerRestGrid .career-rest-day.is-today').click();   // ⚠️ 重画后要重新取节点
+    await sleep(40);
+    check(doc.querySelectorAll('#careerRestGrid .career-rest-day.rest').length === 0,
+      '再点一次取消，月历里没有休息格了');
+  }
+
   console.log('--- 9. 无未捕获异常 ---');
   check(!warns.some(w => w.startsWith('ERROR')), 'console.error 未被调用：' + warns.filter(w => w.startsWith('ERROR')).join(' | '));
   check(jsdomErrors.length === 0, '页面无未捕获异常（jsdomError）', jsdomErrors.slice(0, 3));

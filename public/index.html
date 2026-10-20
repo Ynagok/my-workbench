@@ -3416,19 +3416,69 @@
             font-size: 13px; line-height: 1.85; color: var(--ink-1);
             display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
         }
-        /* 🗓️ 排班休息：一个月的方格，点一下标休息 */
-        .career-rest-day {
-            width: 46px; height: 46px; padding: 0 !important;
-            display: inline-flex; flex-direction: column; align-items: center; justify-content: center;
-            border: 1px solid var(--line-0); background: var(--surface); border-radius: var(--r-sm);
-            font-size: 12px; line-height: 1.15; color: var(--ink-2); cursor: pointer;
+        /* 🗓️ 排班休息：微软日历那种月视图（星期表头 + 7 列 + 今天/休 标记） */
+        .rest-cal-bar {
+            display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+            margin: 8px 0 6px;
         }
-        .career-rest-day b { font-size: 13px; font-variant-numeric: tabular-nums; color: var(--ink-1); }
-        .career-rest-day i { font-style: normal; font-size: 10px; min-height: 11px; color: var(--accent-ink); }
-        .career-rest-day.weekend { border-style: dashed; }
-        .career-rest-day:hover { border-color: var(--accent-line); background: var(--accent-dim); }
-        .career-rest-day.rest { background: var(--accent-dim); border-color: var(--accent-line); }
+        .rest-cal-nav {
+            width: 26px; height: 26px; padding: 0 !important;
+            display: inline-flex; align-items: center; justify-content: center;
+            clip-path: none; border-radius: var(--r-sm);
+            font-size: 15px; line-height: 1; letter-spacing: 0;
+        }
+        .rest-cal-month { width: 138px; height: 30px; font-size: 12.5px; }
+        .rest-cal-title {
+            font-family: var(--font-display); font-size: 13px; font-weight: 700;
+            color: var(--ink-0); letter-spacing: 0.06em; margin-left: 2px;
+            font-variant-numeric: tabular-nums;
+        }
+        .rest-cal-bar #careerRestHint { margin-left: auto; }
+        .rest-cal-week {
+            display: grid; grid-template-columns: repeat(7, minmax(0, 1fr));
+            gap: 4px; margin-bottom: 4px;
+        }
+        .rest-cal-week .wd {
+            text-align: center; padding: 3px 0;
+            font-family: var(--font-display); font-size: 11px; font-weight: 700;
+            letter-spacing: 0.14em; color: var(--ink-3);
+        }
+        .rest-cal-week .wd.is-weekend { color: var(--danger); opacity: 0.75; }
+        .rest-cal-grid {
+            display: grid; grid-template-columns: repeat(7, minmax(0, 1fr));
+            gap: 4px;
+        }
+        .rest-cal-blank { min-height: 58px; }
+        .career-rest-day {
+            position: relative; min-height: 58px; padding: 6px 7px 5px !important;
+            display: flex; flex-direction: column; align-items: flex-start;
+            background: var(--surface); border: 1px solid var(--line-0);
+            border-radius: var(--r-md); clip-path: none;
+            font-size: 12px; line-height: 1.15; letter-spacing: 0; color: var(--ink-2);
+            text-align: left; cursor: pointer;
+        }
+        .career-rest-day b {
+            font-family: var(--font-mono); font-size: 13px; font-weight: 700;
+            color: var(--ink-0); font-variant-numeric: tabular-nums;
+            padding: 0 4px; margin-left: -4px; border-radius: var(--r-sm);
+        }
+        .career-rest-day i {
+            font-style: normal; margin-top: auto;
+            font-size: 10px; line-height: 1; padding: 1px 4px;
+            color: var(--accent-ink); background: var(--accent-dim);
+            border: 1px solid var(--accent-line); border-radius: var(--r-sm);
+            visibility: hidden;
+        }
+        .career-rest-day.weekend { background: var(--surface-2); }
+        .career-rest-day:hover {
+            background: var(--accent-dim); border-color: var(--accent-line);
+            color: var(--ink-0); box-shadow: none;
+        }
+        .career-rest-day.rest { background: var(--accent-dim); border-color: var(--accent); }
         .career-rest-day.rest b { color: var(--accent-ink); }
+        .career-rest-day.rest i { visibility: visible; }
+        .career-rest-day.is-today { border-color: var(--accent); }
+        .career-rest-day.is-today b { background: var(--accent); color: var(--dark); }
 
     </style>
 </head>
@@ -3901,13 +3951,16 @@
 
             <div class="card" id="careerRestCard" data-seg-card="overview" style="display: none;">
                 <label>🗓️ 排班休息 <span class="card-sub">点日期标休息 · 休息日不算断档 / 连续 / 在岗天数</span></label>
-                <div class="flex-row" style="margin: 10px 0; gap: 8px; align-items: center; flex-wrap: wrap;">
-                    <input type="month" id="careerRestMonth" style="width: 168px;">
+                <div class="rest-cal-bar">
+                    <button type="button" class="rest-cal-nav" id="careerRestPrev" title="上个月" aria-label="上个月">‹</button>
+                    <span class="rest-cal-title" id="careerRestTitle">—</span>
+                    <button type="button" class="rest-cal-nav" id="careerRestNext" title="下个月" aria-label="下个月">›</button>
+                    <input type="month" id="careerRestMonth" class="rest-cal-month" title="跳到某个月">
                     <button id="careerRestWeekendBtn" class="secondary">周末全休</button>
                     <button id="careerRestClearMonthBtn" class="reset-btn">清空本月</button>
                     <span class="hint-text" id="careerRestHint"></span>
                 </div>
-                <div id="careerRestGrid" style="display: flex; flex-wrap: wrap; gap: 6px;"></div>
+                <div id="careerRestGrid" class="rest-cal"></div>
             </div>
 
             <div class="card" id="careerCardEdit" data-seg-card="data">
@@ -10947,6 +11000,8 @@
                                         const y = +String(ym).slice(0, 4), m = +String(ym).slice(5, 7);
                                         return new Date(Date.UTC(y, m, 0)).getUTCDate();
                                     }
+                                    // 微软日历那种月视图：星期表头（周日在最前）+ 7 列月历 + 今天/休息标记
+                                    const CAREER_WEEK_LABELS = ['日', '一', '二', '三', '四', '五', '六'];
                                     function careerRenderRestGrid() {
                                         const grid = document.getElementById('careerRestGrid');
                                         if (!grid) return;
@@ -10954,21 +11009,54 @@
                                         const ym = (mo && mo.value) || careerRestMonthState || careerToday().slice(0, 7);
                                         careerRestMonthState = ym;
                                         if (mo && mo.value !== ym) mo.value = ym;
-                                        const rest = careerRestSet();
+                                        const y = +String(ym).slice(0, 4);
+                                        const m = +String(ym).slice(5, 7);
                                         const n = careerDaysInMonth(ym);
-                                        let h = '';
+                                        const firstDow = new Date(Date.UTC(y, m - 1, 1)).getUTCDay();  // 0 = 周日
+                                        const rest = careerRestSet();
+                                        const today = careerToday();
+
+                                        let h = '<div class="rest-cal-week">'
+                                            + CAREER_WEEK_LABELS.map((w, i) => '<span class="wd'
+                                                + (i === 0 || i === 6 ? ' is-weekend' : '') + '">' + w + '</span>').join('')
+                                            + '</div><div class="rest-cal-grid">';
+                                        // 月初/月末留空格子：让每一天落在自己那一列（周日在最左）
+                                        for (let i = 0; i < firstDow; i++) h += '<span class="rest-cal-blank" aria-hidden="true"></span>';
                                         for (let d = 1; d <= n; d++) {
                                             const date = ym + '-' + String(d).padStart(2, '0');
                                             const dow = new Date(date + 'T00:00:00Z').getUTCDay();
+                                            const isRest = rest.has(date);
                                             h += '<button type="button" class="career-rest-day'
-                                                + (rest.has(date) ? ' rest' : '') + ((dow === 0 || dow === 6) ? ' weekend' : '')
-                                                + '" data-rest="' + date + '" title="' + date + '">'
-                                                + '<b>' + d + '</b><i>' + (rest.has(date) ? '休' : '') + '</i></button>';
+                                                + (isRest ? ' rest' : '')
+                                                + ((dow === 0 || dow === 6) ? ' weekend' : '')
+                                                + (date === today ? ' is-today' : '')
+                                                + '" data-rest="' + date + '"'
+                                                + ' aria-pressed="' + (isRest ? 'true' : 'false') + '"'
+                                                + ' title="' + date + ' 周' + CAREER_WEEK_LABELS[dow] + (isRest ? '（休息）' : '') + '">'
+                                                + '<b>' + d + '</b><i>' + (isRest ? '休' : '') + '</i></button>';
                                         }
+                                        const tail = (firstDow + n) % 7;
+                                        for (let i = tail; i > 0 && i < 7; i++) h += '<span class="rest-cal-blank" aria-hidden="true"></span>';
+                                        h += '</div>';
                                         grid.innerHTML = h;
+
+                                        const title = document.getElementById('careerRestTitle');
+                                        if (title) title.textContent = y + ' 年 ' + m + ' 月';
                                         const cnt = Array.from(rest).filter(d => d.slice(0, 7) === ym).length;
                                         const hint = document.getElementById('careerRestHint');
-                                        if (hint) hint.textContent = ym + '：休息 ' + cnt + ' 天 · 点日期切换（只存本机）';
+                                        if (hint) hint.textContent = '休息 ' + cnt + ' 天 · 点日期切换（只存本机）';
+                                    }
+
+                                    // 上个月 / 下个月（微软日历那种左右箭头）
+                                    function careerStepRestMonth(delta) {
+                                        const ym = careerRestMonthState || careerToday().slice(0, 7);
+                                        let y = +String(ym).slice(0, 4);
+                                        let m = +String(ym).slice(5, 7) + delta;
+                                        if (m < 1) { m = 12; y--; } else if (m > 12) { m = 1; y++; }
+                                        careerRestMonthState = y + '-' + String(m).padStart(2, '0');
+                                        const mo = document.getElementById('careerRestMonth');
+                                        if (mo) mo.value = careerRestMonthState;
+                                        careerRenderRestGrid();
                                     }
 
                                     function careerStats(scope) {
@@ -14330,6 +14418,8 @@
                                                 }
                                             });
                                             if (mo) mo.addEventListener('change', () => { careerRestMonthState = mo.value; careerRenderRestGrid(); });
+                                            setClick('careerRestPrev', () => careerStepRestMonth(-1));
+                                            setClick('careerRestNext', () => careerStepRestMonth(1));
                                             setClick('careerRestWeekendBtn', () => {
                                                 const ym = careerRestMonthState || careerToday().slice(0, 7);
                                                 const list = careerRestLoad();

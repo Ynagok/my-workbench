@@ -493,6 +493,19 @@ ok(/const restSet = careerRestSet\(\);/.test(s) && /const gapWorkDays = /.test(s
 ok(/localStorage\.setItem\(CAREER_REST_KEY/.test(s) && !/saveData\('careerRestDays'/.test(s)
   && /rest\.has\(d\)/.test(s),
   '排班休息只存本机 localStorage（不走 /api/data），归档体检也跳过休息日');
+ok(/const CAREER_WEEK_LABELS = \['日', '一', '二', '三', '四', '五', '六'\];/.test(s)
+  && /class="rest-cal-week"/.test(s) && /class="rest-cal-blank"/.test(s)
+  && /const firstDow = new Date\(Date\.UTC\(y, m - 1, 1\)\)\.getUTCDay\(\);/.test(s),
+  '排班休息改月历：星期表头（日一二三四五六）+ 月初留空让每天落在自己那一列');
+ok(/id="careerRestTitle"/.test(s) && /id="careerRestPrev"/.test(s) && /id="careerRestNext"/.test(s)
+  && /function careerStepRestMonth\(delta\)/.test(s)
+  && /setClick\('careerRestPrev', \(\) => careerStepRestMonth\(-1\)\)/.test(s)
+  && /setClick\('careerRestNext', \(\) => careerStepRestMonth\(1\)\)/.test(s),
+  '月历带「‹ 月份 ›」切换（跨年也对）+ 抬头「YYYY 年 M 月」');
+ok(/class="career-rest-day'[\s\S]{0,420}?is-today/.test(s) && /\.career-rest-day\.is-today b \{/.test(s)
+  && /\.rest-cal-week \.wd\.is-weekend \{/.test(s) && /\.career-rest-day\.rest i \{ visibility: visible; \}/.test(s),
+  '月历样式：今天高亮 / 周末列标色 / 休息格才显示「休」小片');
+
 
 // ---- 3k. 统计页分段导航 / 一句话摘要 / 工具条收拢 ----
 ok(/class="seg-bar" data-for="tab-career"/.test(s) && /class="seg-bar" data-for="tab-overseas"/.test(s)
