@@ -408,77 +408,17 @@ ok(/const TEA_SHOPS_CACHE_KEY = 'teaShopsCache';/.test(s) && /function teaSaveSh
   && /const o = \(typeof s === 'string'\) \? \{ name: s \} : s;/.test(s),
   '下午茶：店家只存店名 + 本机另存备份，服务端那份没了就自动恢复（永不随投票一起清）');
 
-// ---- 3h. SOP 助手（场景检索 / 红线检查 / 信息清单 · 数据在服务端 sopBundle 要口令）----
-ok(/data-tab="sop"/.test(s) && /id="tab-sop"/.test(s) && /SOP ASSIST/.test(s),
-  '「SOP 助手」标签页已注入（侧边栏 + 页面 + 报表抬头）');
-ok(['sopQuery', 'sopHits', 'sopSceneBox', 'sopRedInput', 'sopRedBox',
-  'sopDataCard', 'sopTokenInput', 'sopCatSel', 'sopChannelSel', 'sopPhList']
-  .every(id => s.includes('id="' + id + '"'))
-  && !/id="sopNeedBox"/.test(s) && !/id="sopFormOut"/.test(s) && !/信息清单 \/ 提单文本/.test(s),
-  'SOP：检索 / 结果 / 红线 / 常用语 / 数据 容器齐全（「信息清单 / 提单文本」卡已拿掉）');
-ok(/const SOP_STORE_KEY = 'sopBundle';/.test(s) && /const SOP_TOKEN_KEY = 'sopToken';/.test(s)
-  && /x-sop-token/.test(s) && /const SOP_DEMO = \{/.test(s) && /function sopValidBundle/.test(s)
-  && /function sopLoad\(force\)/.test(s),
-  'SOP：数据走服务端 sopBundle（带口令）+ 本机导入优先 + 内置示例兜底');
-ok(/function sopSearch\(\)/.test(s) && /function sopOpenScene\(id\)/.test(s)
-  && /function sopCheckRedlines\(\)/.test(s) && /function sopImport\(\)/.test(s)
-  && !/function sopBuildForm\(\)/.test(s) && !/function sopRenderNeed\(s\)/.test(s),
-  'SOP：检索 / 场景卡 / 红线检查 / 导入 都在（清单生成那两个函数随卡片移除）');
-ok(/内部口径（别发玩家）/.test(s) && /const SOP_DEMO/.test(s) && /redlines: \[/.test(s)
-  && /好评/.test(s) && /误封/.test(s) && /代言人/.test(s),
-  'SOP：内部口径单独标红，红线词表含「好评 / 误封 / 代言人」等 SOP 明令禁语');
-ok(/setClick\('sopSearchBtn', sopSearch\)/.test(s) && /setClick\('sopRedCheckBtn', sopCheckRedlines\)/.test(s)
-  && /setClick\('sopImportBtn', sopImport\)/.test(s) && /setClick\('sopPhNewBtn'/.test(s)
-  && /dataset\.tab === 'sop'\) sopInit\(\)/.test(s),
-  'SOP：搜索 / 红线 / 导入 / 新增常用语 按钮与标签页初始化都挂上了');
+// ---- 3h. SOP 助手已整块删除（2026-10，用户要求）；服务端的 sop 口令关与 seed 工具保留 ----
+ok(!/sop/i.test(s),
+  'SOP 助手已从页面上整块删除（侧边栏 / 页面 / 样式 / 脚本 / 绑定里都不再出现 sop）');
+ok(!/\bsop[A-Z_$]/i.test(s) && !/\.sop-/.test(s) && !/#sop/.test(s) && !/data-sop/.test(s),
+  'SOP 的样式类 / id / data 属性也清干净了，没留死代码');
 ok(/const SOP_TOKEN = process\.env\.SOP_TOKEN \|\| '';/.test(sv) && /const SOP_KEY_RE = \/\^sop\/i;/.test(sv)
   && /function denySop\(req, res\)/.test(sv) && /res\.status\(403\)\.json\(\{ error: 'SOP 口令不对' \}\)/.test(sv)
   && /x-sop-token/.test(sv) && /function tokenEq/.test(sv),
-  '服务端：sop* 开头的 key 要 SOP_TOKEN（没配就关掉），普通 key 行为不变');
+  '服务端：sop* 开头的 key 仍要 SOP_TOKEN（页面删了、数据保护守着），普通 key 行为不变');
 ok(fs.existsSync('tools/sop-seed.cjs') && /sop:seed/.test(fs.readFileSync('package.json', 'utf8')),
-  'SOP：有 npm run sop:seed 把 bundle 推到服务端');
-ok(/const SOP_PASS = '客服冷静';/.test(s) && /let sopUnlocked = false;/.test(s)
-  && /id="sopLockCard"/.test(s) && /id="sopBody"/.test(s)
-  && /id="sopPassInput"/.test(s) && /id="sopUnlockBtn"/.test(s)
-  && /function sopUnlock\(\)/.test(s) && /function sopApplyLock\(\)/.test(s)
-  && !/localStorage\.setItem\([^)]*SOP_PASS/.test(s) && !/sessionStorage\.setItem/.test(s),
-  'SOP 加密：进这页要先输「客服冷静」，口令只在内存（不写 localStorage / sessionStorage）');
-ok(/id="sopPassInput" type="text"/.test(s) && /-webkit-text-security: disc/.test(s)
-  && !/id="sopPassInput" type="password"/.test(s),
-  'SOP 加密：口令框改成 text + CSS 遮蔽（password 类型会挡中文输入法，中文口令打不进去）');
-ok(/const SOP_FLOW = \[/.test(s) && /function sopStageOfStep/.test(s) && /function sopStageOfScript/.test(s)
-  && /function sopStagePlan\(s\)/.test(s) && /function sopPickStage\(stageId\)/.test(s),
-  'SOP：处理流程按 SOP 的五环节闭环分组（提交→核实→处理→登记→回访），步骤与话术各归各环节');
-ok(/class="sop-flowline"/.test(s) && /class="sop-mind"/.test(s) && /class="sop-mind-stage/.test(s)
-  && /data-sop-stage/.test(s) && /id="sopStageScripts"/.test(s) && /dataset\.sopStage/.test(s),
-  'SOP：流程画成思维导图（环节可点，点了在下面出这一步的步骤与话术）');
-ok(/\.sop-mind-body/.test(s) && /\.sop-mind-branch::before/.test(s) && /\.sop-mind-stage\.active/.test(s)
-  && /sop-needchip/.test(s),
-  'SOP：导图连线 + 选中环节高亮 + 要收集小片');
-ok(/id="sopDataStatus"/.test(s) && /function sopDataStatus\(\)/.test(s)
-  && /跟进入本页要输的「客服冷静」不是一回事/.test(s) && /403/.test(s) && /sopBundleLocal/.test(s),
-  'SOP 数据与口令：卡里讲清 SOP_TOKEN 怎么用（和解锁口令分开 / 403 回落内置示例 / 本机导入），并有状态行');
-ok(/id="sopPhList"/.test(s) && /id="sopPhCats"/.test(s) && /id="sopPhQuery"/.test(s) && /id="sopPhNewBtn"/.test(s)
-  && /function sopPhrases\(\)/.test(s) && /function sopPhRender\(\)/.test(s)
-  && /function sopPhSave\(id\)/.test(s) && /function sopPhDel\(id\)/.test(s) && /function sopPhCopy\(id\)/.test(s),
-  'SOP 常用语库：搜索 / 分类 / 复制 / 新增 / 改 / 删 都在');
-ok(/function sopScriptSave\(\)/.test(s) && /function sopScriptDel\(idx\)/.test(s)
-  && /data-sop-snew/.test(s) && /data-sop-sedit/.test(s) && /data-sop-sdel/.test(s)
-  && /function sopEditHtml\(kind, idx, cat, tone, text, title\)/.test(s),
-  'SOP 场景话术：可改 / 可删 / 可新增（同一个编辑框组件）');
-ok(/const SOP_PH_CAT_RULES = \{/.test(s) && /function sopPhCatsForScene\(s\)/.test(s)
-  && /function sopPhGoCat\(cat\)/.test(s) && /data-sop-phgo/.test(s) && /sop-phchips/.test(s)
-  && /SOP_PH_PRODUCT_CATS/.test(s),
-  'SOP 常用语：按用户自己分好的问题分类挂到场景（点分类片 → 常用语库筛到那一类）');
-ok(/sopEditHtml\('phrase', p\.id, p\.cat, p\.tone, p\.text, p\.title\)/.test(s)
-  && /f \+ '="title"/.test(s) && /p\.title/.test(s),
-  'SOP 常用语：带「标题」（这条是问什么问题），列表与编辑框都有');
-ok(/async function sopPersist\(note\)/.test(s) && /localStorage\.setItem\(SOP_LOCAL_KEY, JSON\.stringify\(sopBundle\)\)/.test(s)
-  && /method: 'POST'/.test(s),
-  'SOP 编辑落盘：写本机 sopBundleLocal 并尝试推服务端');
-ok(/details class="sop-fold"/.test(s) && /\.sop-ph-text/.test(s) && /\.sop-block \{/.test(s)
-  && /sop-edit/.test(s),
-  'SOP 版面：区块卡片化 + 提单/依据折叠 + 常用语卡片样式（不那么挤）');
+  'SOP：seed 工具留着（以后要恢复页面，数据还能灌回去）');
 
 // ---- 4. 花括号/圆括号平衡（粗查，排除字符串内的干扰仅作参考） ----
 const count = (str, ch) => (str.split(ch).length - 1);

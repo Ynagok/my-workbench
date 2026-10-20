@@ -3230,131 +3230,65 @@
         details.tea-shop-card > summary:hover { color: var(--accent-ink); }
         details.tea-shop-card[open] > summary { margin-bottom: 8px; }
 
-        /* ---------- SOP 助手：场景卡 / 红线命中 ---------- */
-        .sop-scene {
-            margin-top: 14px; padding: 14px; border: 1px solid var(--line-0);
-            background: var(--surface); border-radius: var(--r-md);
-            display: flex; flex-direction: column; gap: 12px;
-        }
-        .sop-scene-head { display: flex; flex-direction: column; gap: 4px; padding-bottom: 10px; border-bottom: 1px solid var(--line-0); }
-        .sop-scene-head b { font-size: 16px; color: var(--ink-0); letter-spacing: 0.01em; }
-        .sop-block {
+        /* ---------- 统计页通用：紧凑信息条（少写字、多给数） ---------- */
+        /* 用来替代原来成段的说明文字：一条事实 = 一片，扫一眼就能读。 */
+        .stat-chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+        .stat-chip {
+            display: inline-flex; align-items: baseline; gap: 4px;
+            font-size: 12px; line-height: 18px; padding: 2px 8px;
             border: 1px solid var(--line-0); background: var(--surface-2);
-            padding: 12px 14px; border-radius: var(--r-md);
+            color: var(--ink-2); border-radius: var(--r-sm); white-space: nowrap;
         }
-        .sop-block-t {
-            display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
-            font-size: 13px; color: var(--ink-1); font-weight: 700; margin-bottom: 8px;
+        .stat-chip b { color: var(--ink-0); font-weight: 700; font-variant-numeric: tabular-nums; }
+        .stat-chip.k-accent { border-color: var(--accent-line); background: var(--accent-dim); color: var(--accent-ink); }
+        .stat-chip.k-accent b { color: var(--accent-ink); }
+        .stat-chip.k-warn { border-color: var(--warn); color: var(--warn); }
+        .stat-chip.k-warn b { color: var(--warn); }
+        .stat-chip.k-danger { border-color: var(--danger); color: var(--danger); }
+        .stat-chip.k-danger b { color: var(--danger); }
+        .stat-chip.k-plain { border-style: dashed; color: var(--ink-3); }
+        .stat-chip.k-op { border: none; background: none; color: var(--ink-3); padding: 2px 1px; font-variant-numeric: tabular-nums; }
+        /* 折叠的格式说明 / 口径说明（默认收起，需要时再展开） */
+        details.stat-fold { margin-top: 8px; }
+        details.stat-fold > summary {
+            cursor: pointer; list-style: none; font-size: 12px; color: var(--ink-3);
+            display: inline-flex; align-items: center; gap: 5px;
         }
-        .sop-block-t::before { content: ''; width: 3px; height: 13px; background: var(--accent); border-radius: 1px; }
-        .sop-ol, .sop-ul { margin: 0; padding-left: 22px; font-size: 13px; line-height: 1.9; color: var(--ink-1); }
-        .sop-script {
-            border: 1px solid var(--line-0); border-left: 3px solid var(--accent-line);
-            background: var(--surface); padding: 9px 12px; margin: 8px 0; border-radius: var(--r-sm);
+        details.stat-fold > summary::-webkit-details-marker { display: none; }
+        details.stat-fold > summary::before { content: '▸'; }
+        details.stat-fold[open] > summary::before { content: '▾'; }
+        details.stat-fold > summary:hover { color: var(--accent-ink); }
+        details.stat-fold > div { margin-top: 8px; font-size: 12px; line-height: 1.85; color: var(--ink-2); }
+        /* 卡片标题右侧的极小副标（替代原来一整句 hint-text） */
+        .card-sub { font-size: 11px; color: var(--ink-3); font-weight: 400; margin-left: 8px; letter-spacing: 0.02em; }
+        /* 空表 / 空块 */
+        .empty-cell { color: var(--ink-3); text-align: center; padding: 14px 0 !important; }
+        /* 宽表更好用：滚动区里表头吸顶、首列（日期 / 项目名）吸左，横向拖动时不会跟丢 */
+        .career-scroll table.career-table > thead th {
+            position: sticky; top: 0; z-index: 3; background: var(--surface-3);
         }
-        .sop-script-t { font-size: 12px; color: var(--ink-2); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-        .sop-script-x { font-size: 13px; line-height: 1.95; color: var(--ink-1); margin-top: 4px; white-space: pre-wrap; }
-        .sop-copy-btn { padding: 1px 8px !important; font-size: 12px !important; }
-        .sop-internal {
-            border: 1px dashed var(--danger); background: var(--accent-dim); padding: 12px 14px; border-radius: var(--r-sm);
+        .career-scroll table.career-table > tbody > tr > td:first-child,
+        .career-scroll table.career-table > tfoot > tr > td:first-child {
+            position: sticky; left: 0; z-index: 2; background: var(--surface);
         }
-        .sop-internal .sop-block-t { color: var(--danger); }
-        .sop-internal .sop-block-t::before { background: var(--danger); }
-        .sop-form-preview { font-family: var(--mono, Consolas, monospace); font-size: 12px; color: var(--ink-1); word-break: break-all; line-height: 1.9; }
-        .sop-need {
-            display: inline-flex; align-items: center; gap: 6px; margin: 0 12px 8px 0;
-            font-size: 13px; color: var(--ink-1); cursor: pointer;
+        .career-scroll table.career-table > tbody > tr:nth-child(even) > td:first-child { background: var(--surface-2); }
+        .career-scroll table.career-table > tfoot > tr.total-row > td:first-child { background: var(--accent-dim); }
+        /* 统计页页内跳转：长页面不用一路滚，点一下到那一块 */
+        .jump-bar {
+            display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+            position: sticky; top: 0; z-index: 6;
+            margin: 0 0 12px; padding: 8px 0;
+            background: var(--bg-0);
+            border-bottom: 1px solid var(--line-0);
         }
-        .sop-hit { border-left: 3px solid var(--danger); background: var(--surface-2); padding: 10px 12px; margin-top: 10px; border-radius: var(--r-sm); }
-        .sop-hit-amber { border-left-color: var(--warn); }
-        .sop-hit-t { font-size: 13px; font-weight: 600; color: var(--ink-0); margin-bottom: 2px; }
-        .sop-hit-x, .sop-hit-fix { font-size: 13px; line-height: 1.85; color: var(--ink-1); }
-        .sop-hit-fix { color: var(--ink-2); }
-        /* SOP 折叠块（提单格式 / 依据） */
-        details.sop-fold { border: 1px solid var(--line-0); background: var(--surface-2); border-radius: var(--r-md); padding: 10px 14px; }
-        details.sop-fold > summary { cursor: pointer; list-style: none; font-size: 13px; font-weight: 700; color: var(--ink-1); display: flex; gap: 8px; align-items: center; }
-        details.sop-fold > summary::-webkit-details-marker { display: none; }
-        details.sop-fold > summary::before { content: '▸'; color: var(--accent-ink); }
-        details.sop-fold[open] > summary::before { content: '▾'; }
-        details.sop-fold[open] > summary { margin-bottom: 8px; }
-        /* SOP 常用语库 */
-        .sop-ph-bar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
-        .sop-ph-bar input { max-width: 300px; }
-        .sop-ph-list { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
-        .sop-ph {
-            border: 1px solid var(--line-0); border-left: 3px solid var(--accent-line);
-            background: var(--surface-2); padding: 10px 12px; border-radius: var(--r-sm);
+        .jump-chip {
+            font-size: 12px !important; padding: 2px 10px !important;
+            border: 1px solid var(--line-0); background: var(--surface);
+            color: var(--ink-2); border-radius: var(--r-pill); line-height: 18px;
         }
-        .sop-ph-head { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-        .sop-ph-cat {
-            font-size: 12px; padding: 1px 7px; border-radius: var(--r-sm);
-            background: var(--accent-dim); color: var(--accent-ink); border: 1px solid var(--accent-line);
-        }
-        .sop-ph-title { font-size: 12px; font-weight: 600; color: var(--ink-1); }
-        .sop-phchips { margin-top: 2px; }
-        .sop-ph-text { font-size: 13px; line-height: 1.95; color: var(--ink-1); margin-top: 5px; white-space: pre-wrap; }
-        .sop-ph-empty { padding: 14px 0; }
-        .sop-edit { display: flex; flex-direction: column; gap: 8px; background: var(--surface); border: 1px dashed var(--accent-line); border-radius: var(--r-sm); padding: 10px 12px; }
-        .sop-edit-row { display: flex; gap: 8px; flex-wrap: wrap; }
-        .sop-edit-row input { max-width: 220px; }
-        .sop-edit textarea { width: 100%; }
-        .sop-edit-btns { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+        .jump-chip:hover { border-color: var(--accent-line); background: var(--accent-dim); color: var(--accent-ink); }
+        .jump-chip.active { border-color: var(--accent-line); background: var(--accent-dim); color: var(--accent-ink); }
 
-        /* SOP 加密锁屏 */
-        #sopLockCard {
-            border-left: 3px solid var(--warn);
-        }
-        /* 口令框：故意用 type="text" —— password 类型在部分浏览器里会挡中文输入法，
-           导致「客服冷静」这种中文口令打不进去；这里用 CSS 把字符遮成圆点，
-           既保留「看不出输入内容」的观感，又能正常用输入法上屏（不支持的浏览器退化成明文，可接受）。 */
-        #sopPassInput {
-            -webkit-text-security: disc;
-            text-security: disc;
-        }
-        /* SOP 处理流程：五环节闭环（提交 → 核实 → 处理 → 登记 → 回访）+ 思维导图 */
-        .sop-flowline { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin: 2px 0 10px; }
-        .sop-flow-pill {
-            font-size: 12px; padding: 2px 8px; border: 1px solid var(--line-1);
-            background: var(--surface-2); color: var(--ink-2); border-radius: var(--r-sm); cursor: pointer;
-        }
-        .sop-flow-arrow { font-size: 12px; color: var(--ink-3); }
-        .sop-mind { display: flex; gap: 12px; align-items: flex-start; }
-        .sop-mind-root {
-            flex: 0 0 auto; max-width: 180px; padding: 8px 10px; border: 1px solid var(--accent-line);
-            background: var(--surface-2); border-radius: var(--r-sm);
-        }
-        .sop-mind-k { display: block; font-size: 11px; letter-spacing: 0.08em; color: var(--ink-3); }
-        .sop-mind-root b { font-size: 13px; color: var(--ink-0); }
-        .sop-mind-body {
-            flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 8px;
-            padding-left: 12px; border-left: 2px solid var(--line-1);
-        }
-        .sop-mind-branch { position: relative; }
-        .sop-mind-branch::before {
-            content: ''; position: absolute; left: -12px; top: 13px; width: 10px; height: 2px; background: var(--line-1);
-        }
-        .sop-mind-stage {
-            display: block; width: 100%; text-align: left; font-size: 13px !important;
-            padding: 4px 9px !important; background: var(--surface) !important; color: var(--ink-1);
-            border: 1px solid var(--line-1);
-        }
-        .sop-mind-stage:hover { background: var(--surface-2) !important; color: var(--ink-0); }
-        .sop-mind-dim { opacity: 0.6; }
-        .sop-mind-c { font-size: 11px; color: var(--ink-3); margin-left: 6px; }
-        .sop-flow-pill.active, .sop-mind-stage.active {
-            background: var(--accent-dim) !important; border-color: var(--accent-line) !important; color: var(--ink-0);
-        }
-        .sop-mind-steps { list-style: none; margin: 4px 0 0; padding: 0; }
-        .sop-mind-steps > li { position: relative; font-size: 12px; line-height: 1.6; color: var(--ink-2); padding-left: 10px; }
-        .sop-mind-steps > li::before { content: '·'; position: absolute; left: 2px; color: var(--ink-3); }
-        .sop-stage-scripts { margin-top: 10px; padding-top: 8px; border-top: 1px dashed var(--line-1); }
-        .sop-stage-head { display: flex; gap: 8px; align-items: baseline; margin-bottom: 6px; }
-        /* SOP 要收集：小片 */
-        .sop-needchips { display: flex; flex-wrap: wrap; gap: 6px; }
-        .sop-needchip {
-            font-size: 12px; padding: 2px 8px; border: 1px solid var(--line-1);
-            background: var(--surface); border-radius: var(--r-sm); color: var(--ink-2);
-        }
     </style>
 </head>
 
@@ -3408,7 +3342,6 @@
 
             <button class="tab-btn" data-tab="reply"> 工单回复</button>
             <button class="tab-btn" data-tab="feedback"> 反馈模板</button>
-            <button class="tab-btn" data-tab="sop"> SOP 助手</button>
             <button class="tab-btn" data-tab="daily"> 每日日报</button>
             <button class="tab-btn" data-tab="career"> 客服生涯</button>
             <button class="tab-btn" data-tab="overseas"> 海外业务统计</button>
@@ -3589,9 +3522,7 @@
             </div>
 
             <div class="card">
-                <label>① 选择模板
-                    <span class="hint-text" style="font-weight:400;">粘贴的内容要跟模板对得上：选错了会提示、并告诉你该用哪个</span>
-                </label>
+                <label>① 选择模板 <span class="card-sub">选错会提示换哪个</span></label>
                 <div class="fb-chip-row" id="fbTemplateGroup">
                     <button class="fb-chip" data-fb-template="menghuan">梦幻消除战</button>
                     <button class="fb-chip" data-fb-template="changwu">常规游戏</button>
@@ -3599,9 +3530,7 @@
                     <button class="fb-chip" data-fb-template="gongdan">内部工单</button>
                 </div>
 
-                <label style="margin-top:16px;">② 选择来源
-                    <span class="hint-text" style="font-weight:400;">会写进结果的「来源：」那一行；可选项跟着上面的模板走</span>
-                </label>
+                <label style="margin-top:16px;">② 选择来源 <span class="card-sub">可选项跟模板走</span></label>
                 <div class="fb-chip-row" id="fbSourceGroup">
                     <button class="fb-chip" data-fb-source="抖音小店">抖音小店</button>
                     <button class="fb-chip" data-fb-source="抖音后台">抖音后台</button>
@@ -3618,9 +3547,15 @@
             </div>
 
             <div class="card">
-                <label>③ 粘贴原始字符串
-                    <span class="hint-text" style="font-weight:400;">内部工单按「字段名 值」多行粘；梦幻 / 常规按空格分隔的一整行粘；乐缤纷CP后台按后台表格复制出来的行粘（一次可以多行，一行出一段）</span>
-                </label>
+                <label>③ 粘贴原始字符串 <span class="card-sub">三种格式见下方说明</span></label>
+                <details class="stat-fold">
+                    <summary>三种格式怎么粘</summary>
+                    <div>
+                        <b>内部工单</b>：按「字段名 值」多行粘<br>
+                        <b>梦幻 / 常规</b>：按空格分隔的一整行粘<br>
+                        <b>乐缤纷CP后台</b>：按后台表格复制出来的行粘（一次可多行，一行出一段）
+                    </div>
+                </details>
                 <textarea id="fbRawInput" rows="7" placeholder="例（常规游戏）：12345678 梦幻消除战-微信 安卓 1001 服务器名 87654321 角色名 2026-01-02&#10;例（乐缤纷CP后台，制表符分隔，可多行）：92930999&#9;weChat (wechat)&#9;2.1.7.62&#9;问题反馈&#9;没有显示也没有发掘币&#9;2026-10-02 10:05:53&#9;未查看&#9;&#9;&#9;2026-10-02 10:05:53&#9;回复 删除&#10;例（内部工单）：工单号 XXX-123&#10;来源 企微&#10;游戏 异世界勇者&#10;区服 XX服&#10;UID 12345678&#10;账号 abc&#10;角色ID 87654321&#10;角色名 张三&#10;问题描述 玩家反馈，麻烦看看&#10;提交人 李四&#10;联系人 王五&#10;手机号码 13800000000"></textarea>
                 <div class="flex-row" style="margin-top:10px;">
                     <button id="fbGenerateBtn">⚡ 生成反馈格式</button>
@@ -3631,100 +3566,8 @@
             </div>
 
             <div class="card">
-                <label>④ 生成结果
-                    <span class="hint-text" style="font-weight:400;">「编号：」留空自己补</span>
-                </label>
+                <label>④ 生成结果 <span class="card-sub">「编号：」自己补</span></label>
                 <textarea id="fbOutput" rows="11" readonly></textarea>
-            </div>
-        </div>
-
-        <!-- ==================== SOP 助手 ==================== -->
-        <div id="tab-sop" class="tab-content">
-            <div class="career-report-head" id="sopReportHead">
-                <div>
-                    <div class="crh-kicker">SOP ASSIST / 客服 SOP 助手</div>
-                    <div class="crh-title">SOP 助手</div>
-                    <div class="crh-sub" id="sopReportSub">—</div>
-                </div>
-                <div class="crh-meta" id="sopReportMeta"></div>
-            </div>
-
-            <div class="card" id="sopLockCard">
-                <label>🔒 这一页是加密的
-                    <span class="hint-text" style="font-weight:400;">里头全是内部口径（含「严禁告知玩家」的规则），要先输口令才能用</span>
-                </label>
-                <div class="flex-row" style="margin-top:10px;">
-                    <input id="sopPassInput" type="text" placeholder="输入使用口令（可用中文输入法）" autocomplete="off" autocapitalize="off" spellcheck="false" style="max-width:260px;">
-                    <button id="sopUnlockBtn">解锁</button>
-                    <span class="hint-text" id="sopPassHint"></span>
-                </div>
-                <div class="hint-text" style="margin-top:8px;">⚠️ <b>输入不会被保存</b>：口令只在内存里，刷新页面、关掉浏览器后要重新输；不写 localStorage、也不上传服务端。</div>
-            </div>
-
-            <div id="sopBody" style="display:none;">
-            <div class="card">
-                <label>🔍 查场景
-                    <span class="hint-text" style="font-weight:400;">打玩家原话或关键词（「收不到验证码」「充值没到账」「被封了」），也可以直接选分类</span>
-                </label>
-                <div class="flex-row" style="margin-top:8px;">
-                    <input id="sopQuery" placeholder="玩家原话 / 关键词…" style="max-width:400px;">
-                    <select id="sopCatSel" style="max-width:170px;"></select>
-                    <select id="sopChannelSel" style="max-width:130px;"></select>
-                    <button id="sopSearchBtn">搜索</button>
-                    <button id="sopClearBtn" class="secondary">清空</button>
-                </div>
-                <div class="fb-chip-row" id="sopHits" style="margin-top:10px;"></div>
-                <div id="sopSceneBox"></div>
-            </div>
-
-            <div class="card">
-                <label>🚩 红线检查
-                    <span class="hint-text" style="font-weight:400;">把准备发给玩家的话粘进来，检查有没有踩 SOP 红线（好评 / 误封 / 代言人 / 外挂 / 具体时间点…）</span>
-                </label>
-                <textarea id="sopRedInput" rows="4" placeholder="粘贴准备回复玩家的内容…" style="margin-top:8px;"></textarea>
-                <div class="flex-row" style="margin-top:8px;">
-                    <button id="sopRedCheckBtn">检查</button>
-                    <button id="sopRedClearBtn" class="secondary">清空</button>
-                    <span class="hint-text" id="sopRedHint"></span>
-                </div>
-                <div id="sopRedBox" style="margin-top:10px;"></div>
-            </div>
-
-            <div class="card">
-                <label>💬 常用语库
-                    <span class="hint-text" style="font-weight:400;">从《全部常用语》整理；搜关键词或点分类，可复制 / 新增 / 修改 / 删除（改完存本机，带口令时会顺便推服务端）</span>
-                </label>
-                <div class="sop-ph-bar">
-                    <input id="sopPhQuery" placeholder="搜常用语：退款 / 封号 / 返场 / 录屏 / 换绑…">
-                    <button id="sopPhSearchBtn" class="secondary">搜索</button>
-                    <button id="sopPhNewBtn">＋ 新增常用语</button>
-                    <span class="hint-text" id="sopPhHint"></span>
-                </div>
-                <div class="fb-chip-row" id="sopPhCats" style="margin-top:10px;"></div>
-                <div id="sopPhList" class="sop-ph-list"></div>
-            </div>
-
-            <details class="card tea-shop-card" id="sopDataCard">
-                <summary>⚙️ 数据与口令<span class="hint-text" id="sopDataMeta">（—）</span><span class="hint-text" style="font-weight:400;">点开：口令 / 导入 bundle / 版本</span></summary>
-                <div class="flex-row" style="margin-top:10px;">
-                    <input id="sopTokenInput" placeholder="SOP 口令（服务端 SOP_TOKEN）" style="max-width:260px;">
-                    <button id="sopTokenSaveBtn">保存口令并重新加载</button>
-                    <button id="sopReloadBtn" class="secondary">重新加载</button>
-                </div>
-                <div class="hint-text" style="margin-top:8px;">
-                    ① 口令 = 服务端环境变量 <code>SOP_TOKEN</code>，跟进入本页要输的「客服冷静」不是一回事（那个只是页面门）。<br>
-                    ② 填在这里 → 点「保存口令并重新加载」：只存这台设备的 localStorage，不进服务端、不进 git；带着它对 <code>/api/data/sopBundle</code> 发请求。<br>
-                    ③ 没填 / 填错 → 服务端回 403 → 页面自动回落到「内置示例」（8 个场景，只作演示）。<br>
-                    ④ 想把整份数据离线带走：「📥 粘贴导入 bundle JSON」写本机 <code>sopBundleLocal</code>（优先级高于服务端），或用「📋 复制当前 bundle」备份。<br>
-                    ⑤ 改话术：场景卡里的「✏️ 改 / 🗑 删 / ＋ 加话术」和常用语库里的增删改，都写进本机 <code>sopBundleLocal</code> 并尝试推服务端 —— 所以改完刷新不会丢，换设备要靠导出的 bundle。
-                </div>
-                <div class="hint-text" id="sopDataStatus" style="margin-top:6px;"></div>
-                <div class="flex-row" style="margin-top:10px;">
-                    <button id="sopImportBtn" class="secondary">📥 粘贴导入 bundle JSON</button>
-                    <button id="sopExportBtn" class="secondary">📋 复制当前 bundle</button>
-                </div>
-                <div class="hint-text" id="sopDataHint" style="margin-top:8px;"></div>
-            </details>
             </div>
         </div>
 
@@ -3778,7 +3621,7 @@
 
             <div class="card">
                 <div class="result-header">
-                    <label>📄 日报预览 <span class="hint-text" style="margin-left:8px;">（自动按北京时间逐日刷新；点「生成日报」会同时归档进「客服生涯」）</span></label>
+                    <label>📄 日报预览 <span class="card-sub">北京时间逐日刷新 · 生成即归档</span></label>
                     <div class="flex-row">
                         <button id="generateDailyBtn">✨ 生成日报</button>
                         <button id="copyDailyBtn" class="secondary">📋 复制</button>
@@ -3799,10 +3642,21 @@
                 </div>
                 <div class="crh-meta" id="careerReportMeta"></div>
             </div>
-            <div class="card">
+            <div class="jump-bar" id="careerJumpBar">
+                <button type="button" class="jump-chip active" data-jump="careerCardOverview">总览</button>
+                <button type="button" class="jump-chip" data-jump="careerCardTicket">工单</button>
+                <button type="button" class="jump-chip" data-jump="careerCardOverseas">海外</button>
+                <button type="button" class="jump-chip" data-jump="careerCardDetail">指标详情</button>
+                <button type="button" class="jump-chip" data-jump="careerCardTrend">趋势 · 月度</button>
+                <button type="button" class="jump-chip" data-jump="careerCardWeekly">周维度</button>
+                <button type="button" class="jump-chip" data-jump="careerCardQuality">数据质量</button>
+                <button type="button" class="jump-chip" data-jump="careerCardEdit">补录</button>
+                <button type="button" class="jump-chip" data-jump="careerCardImport">导入</button>
+            </div>
+            <div class="card" id="careerCardOverview">
                 <div class="flex-row" style="justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
                     <label style="margin:0;">🎖️ 客服生涯 · 工作量总览
-                        <span class="hint-text" style="margin-left:8px;">日报「工单」「海外」两栏自动折算入账；数据只存本机浏览器</span>
+                        <span class="card-sub">日报两栏自动入账</span>
                     </label>
                     <div class="flex-row">
                         <button id="careerArchiveBtn" class="secondary">🗂️ 归档今日日报</button>
@@ -3814,13 +3668,17 @@
                     </div>
                 </div>
                 <div class="flex-row" style="margin-top: 12px; gap: 10px; flex-wrap: wrap; align-items: center;">
-                    <span class="hint-text">身份：</span>
                     <div class="career-scope-bar" id="careerScopeBar">
                         <button type="button" data-scope="all" class="active">全部</button>
                         <button type="button" data-scope="ticket">📋 工单</button>
                         <button type="button" data-scope="overseas">🌐 海外</button>
                     </div>
-                    <span class="hint-text" id="careerScopeHint">选「工单」或「海外」，整页统计只算那一侧</span>
+                    <span class="hint-text" id="careerScopeHint">只看某一侧</span>
+                    <span class="stat-chips" id="careerTopChips" style="margin-left:auto;">
+                        <span class="stat-chip k-warn">只存本机</span>
+                        <span class="stat-chip k-plain">异常线 μ+2σ</span>
+                        <span class="stat-chip k-plain">同比 = 4 周前</span>
+                    </span>
                 </div>
                 <div id="careerKpi" class="career-kpi-grid" style="margin-top: 14px;"></div>
                 <div id="careerSplitWrap" style="margin-top: 14px;">
@@ -3832,23 +3690,17 @@
             </div>
 
             <div class="card" id="careerCardTicket">
-                <label>📋 工单统计
-                    <span class="hint-text" style="margin-left:8px;">统计项与数据都取自「工单日报」（含 CP 后台、在线客服、各组群维系）</span>
-                </label>
+                <label>📋 工单统计 <span class="card-sub">取自工单日报</span></label>
                 <div id="careerSideTicket" style="margin-top: 12px;"></div>
             </div>
 
             <div class="card" id="careerCardOverseas">
-                <label>🌐 海外统计
-                    <span class="hint-text" style="margin-left:8px;">统计项与数据都取自「海外日报」</span>
-                </label>
+                <label>🌐 海外统计 <span class="card-sub">取自海外日报</span></label>
                 <div id="careerSideOverseas" style="margin-top: 12px;"></div>
             </div>
 
-            <div class="card">
-                <label>🔎 指标详情
-                    <span class="hint-text" style="margin-left:8px;">挑一项（或某一侧）看它的总量、平均值，以及按日 / 按月的趋势</span>
-                </label>
+            <div class="card" id="careerCardDetail">
+                <label>🔎 指标详情 <span class="card-sub">按日 / 按月</span></label>
                 <div class="career-detail-controls">
                     <select id="careerDetailItem" style="min-width: 240px;"></select>
                     <select id="careerDetailGrain" style="width: 118px;">
@@ -3862,10 +3714,8 @@
                 <div class="career-scroll" style="margin-top: 12px; max-height: 300px;"><table class="career-table" id="careerDetailTable"></table></div>
             </div>
 
-            <div class="card">
-                <label>📈 趋势 · 月度汇总
-                    <span class="hint-text" style="margin-left:8px;">最近 30 个记录日的单日工作量 + 按月汇总</span>
-                </label>
+            <div class="card" id="careerCardTrend">
+                <label>📈 趋势 · 月度汇总 <span class="card-sub">近 30 记录日 + 按月</span></label>
                 <div class="career-trend" id="careerTrend" style="margin-top: 12px;"></div>
                 <div class="career-legend" style="margin-top: 6px;">
                     <span><i class="peak"></i>备注里标了 活动 / 版本 / 开服… 的日子</span>
@@ -3874,7 +3724,7 @@
                 <div id="careerCoverBox" style="margin-top: 10px;"></div>
                 <div class="career-scroll" style="margin-top: 12px; max-height: 300px;"><table class="career-table" id="careerMonthlyTable"></table></div>
                 <div style="margin-top: 16px; border-top: 1px solid var(--line-0); padding-top: 10px;">
-                    <label style="font-size: 13px;">🧩 来源结构 <span class="hint-text" style="font-weight:400;">各来源大类占比 + Top3 集中度</span></label>
+                    <label style="font-size: 13px;">🧩 来源结构 <span class="card-sub">大类占比 + Top3 集中度</span></label>
                     <div id="careerStructureBox" style="margin-top: 8px;"></div>
                 </div>
                 <div style="margin-top: 16px; border-top: 1px solid var(--line-0); padding-top: 10px;">
@@ -3883,22 +3733,23 @@
                 </div>
             </div>
 
-            <div class="card">
-                <label>🗓️ 周维度
-                    <span class="hint-text" style="margin-left:8px;">按周（周一～周日）汇总：总量 / 日均 / 周环比 / 同比</span>
-                </label>
+            <div class="card" id="careerCardWeekly">
+                <label>🗓️ 周维度 <span class="card-sub">周一～周日 · 环比 + 同比</span></label>
                 <div class="career-scroll" style="margin-top: 10px; max-height: 340px;"><table class="career-table" id="careerWeeklyTable"></table></div>
-                <div class="hint-text" style="margin-top: 6px;">同比用「4 周前那一周」（≈ 一个月前）当代理 —— 本机只有日报数据，没有去年同周可比。</div>
+                <details class="stat-fold">
+                    <summary>同比为什么用「4 周前」</summary>
+                    <div>本机只有日报数据，没有去年同周可比，所以拿「4 周前那一周」（≈ 一个月前）当代理。</div>
+                </details>
             </div>
 
-            <div class="card">
-                <label>🧪 数据质量与备注</label>
+            <div class="card" id="careerCardQuality">
+                <label>🧪 数据质量与备注 <span class="card-sub">待确认 / 断档 / 备注</span></label>
                 <div id="careerQuality" style="margin-top: 10px;"></div>
             </div>
 
-            <div class="card">
+            <div class="card" id="careerCardEdit">
                 <button type="button" class="career-collapse-btn" id="careerEditToggleBtn" aria-expanded="false">
-                    <span>✍️ 补录 / 修正某一天 <span class="hint-text" style="font-weight:400;">（点这里展开；日期可改，用来补历史或改掉误归档的那天）</span></span>
+                    <span>✍️ 补录 / 修正某一天 <span class="card-sub">补历史 · 改误归档</span></span>
                     <span class="career-arrow">▾</span>
                 </button>
                 <div id="careerEditBody" style="display: none;">
@@ -3929,16 +3780,20 @@
                 </div>
             </div>
 
-            <div class="card">
+            <div class="card" id="careerCardImport">
                 <button type="button" class="career-collapse-btn" id="careerImportToggleBtn" aria-expanded="false">
-                    <span>📋 粘贴导入 <span class="hint-text" style="font-weight:400;">（点这里展开；支持登记表 TSV 与工作台生成的日报文本）</span></span>
+                    <span>📋 粘贴导入 <span class="card-sub">登记表 TSV · 日报文本</span></span>
                     <span class="career-arrow">▾</span>
                 </button>
                 <div id="careerImportBody" style="display: none;">
-                <div class="hint-text" style="margin: 8px 0;">
-                    支持两种内容：<b>① 从 Excel 复制登记表那段</b>（带表头按列名对齐、顺序随意；不带表头按 A~T 顺序）；<b>② 直接粘工作台生成的日报文本</b>（工单日报 / 海外日报，两段可以一起粘，也可粘多天）。<br>
-                    日期接受 Excel 序列号或 2026-06-03、2026/6/3；日报文本按「N月N日」识别，年份取当前年。同一天的已有记录会被覆盖（只覆盖你粘的那一侧）。
-                </div>
+                <details class="stat-fold">
+                    <summary>支持哪两种内容 / 日期怎么认</summary>
+                    <div>
+                        <b>① Excel 登记表</b>（带表头按列名对齐、顺序随意；不带表头按 A~T 顺序）<br>
+                        <b>② 工作台日报文本</b>（工单日报 / 海外日报，两段可一起粘，也可粘多天）<br>
+                        日期认 Excel 序列号、2026-06-03、2026/6/3；日报按「N月N日」识别，年份取当前年。同一天会被覆盖（只覆盖你粘的那一侧）。
+                    </div>
+                </details>
                 <textarea id="careerImportArea" rows="6" placeholder="日期&#9;人员&#9;班次&#9;异世界群维系&#9;…&#9;总计&#9;数据状态&#9;特殊问题"></textarea>
                 <div class="flex-row" style="margin-top: 10px;">
                     <button id="careerImportBtn">📥 导入</button>
@@ -3959,16 +3814,27 @@
                 </div>
                 <div class="crh-meta" id="ovbizReportMeta"></div>
             </div>
+            <div class="jump-bar" id="ovbizJumpBar">
+                <button type="button" class="jump-chip active" data-jump="ovbizCardPaste">粘贴导入</button>
+                <button type="button" class="jump-chip" data-jump="ovbizCardOverview">岗位总览</button>
+                <button type="button" class="jump-chip" data-jump="ovbizCardDetail">详情图表</button>
+                <button type="button" class="jump-chip" data-jump="ovbizCardItems">逐项</button>
+                <button type="button" class="jump-chip" data-jump="ovbizCardMonthly">月度</button>
+                <button type="button" class="jump-chip" data-jump="ovbizCardWeekly">周维度</button>
+                <button type="button" class="jump-chip" data-jump="ovbizCardPeople">按人员</button>
+                <button type="button" class="jump-chip" data-jump="ovbizCardDaily">每日明细</button>
+            </div>
 
-            <div class="card">
-                <label>📋 粘贴周报数据
-                    <span class="hint-text" style="font-weight:400;">把「群维系+监控+海外工单+FB塔防周报」整张表复制进来（CSV / TSV 都行；带表头按列名对齐、顺序随意，不带表头按原列序）</span>
-                </label>
-                <div class="hint-text" style="margin: 8px 0;">
-                    一行 = 某天某人：<b>日期 · 人员 · 班次</b> + 10 个统计项（异世界群维系 /（繁花+乐缤纷+梦幻）群维系 / 海外SSO工单量（全产品）/ 海外CP后台工单（全产品）/ 海外邮件（全产品）/ 海外FB（全产品）/ 商店回复 / SSO国内工单 / 监控禁言 / 监控封号）+ 总计 + 特殊问题。<br>
-                    同一天两行（两个人同班）会<b>按天合计</b>；重复导入同一天同一个人＝覆盖那一条；「总计」与各项之和对不上时会提示，并按各项之和入账；空白行自动跳过。<br>
-                    <b>这份统计只存在这台设备的浏览器里</b>：不会同步给别人、也不会传到服务端（换设备请用下面的「导出CSV」再导入）。
-                </div>
+            <div class="card" id="ovbizCardPaste">
+                <label>📋 粘贴周报数据 <span class="card-sub">CSV / TSV · 表头随意</span></label>
+                <details class="stat-fold">
+                    <summary>一行是什么 / 怎么合并 / 数据存哪</summary>
+                    <div>
+                        一行 = 某天某人：<b>日期 · 人员 · 班次</b> + 10 个统计项（异世界群维系 /（繁花+乐缤纷+梦幻）群维系 / 海外SSO工单量 / 海外CP后台工单 / 海外邮件 / 海外FB / 商店回复 / SSO国内工单 / 监控禁言 / 监控封号）+ 总计 + 特殊问题。<br>
+                        同一天两行（两人同班）按天合计；同一天同一人重复导入＝覆盖；「总计」对不上会提示并按各项之和入账；空白行跳过。<br>
+                        <b>只存在这台设备的浏览器里</b>：不同步、不上传；换设备用「导出CSV」再导入。
+                    </div>
+                </details>
                 <textarea id="ovbizPasteArea" rows="7" placeholder="日期,人员,班次,异世界群维系,（繁花+乐缤纷+梦幻）群维系,…&#10;2026/1/1,陈智锋,,0,35,,11,5,1,1,,,13,19,85,"></textarea>
                 <div class="flex-row" style="margin-top: 10px;">
                     <button id="ovbizImportBtn">📥 解析导入</button>
@@ -3976,11 +3842,11 @@
                     <button id="ovbizClearBtn" class="reset-btn">🧹 清空本机数据</button>
                     <span class="hint-text" id="ovbizHint"></span>
                 </div>
-                <div class="hint-text" id="ovbizSyncHint" style="margin-top: 8px;"></div>
+                <div class="stat-chips" id="ovbizSyncHint" style="margin-top: 8px;"></div>
             </div>
 
-            <div class="card">
-                <label>📊 岗位总览 <span class="hint-text" style="font-weight:400;">按天合计后的整体口径 + 最近 30 个记录日的走势</span></label>
+            <div class="card" id="ovbizCardOverview">
+                <label>📊 岗位总览 <span class="card-sub">按天合计 · 近 30 记录日</span></label>
                 <div id="ovbizKpi" class="career-kpi-grid" style="margin-top: 12px;"></div>
                 <div id="ovbizSheetHint" class="hint-text" style="margin-top: 8px;"></div>
                 <div class="career-trend" id="ovbizTrend" style="margin-top: 12px;"></div>
@@ -3990,10 +3856,8 @@
                 </div>
             </div>
 
-            <div class="card">
-                <label>🔎 详情图表
-                    <span class="hint-text" style="margin-left:8px;">挑一项（或全部）看它的总量、平均值，以及按日 / 按月的柱子与逐期明细</span>
-                </label>
+            <div class="card" id="ovbizCardDetail">
+                <label>🔎 详情图表 <span class="card-sub">按日 / 按月</span></label>
                 <div class="career-detail-controls">
                     <select id="ovbizDetailItem" style="min-width: 240px;"></select>
                     <select id="ovbizDetailGrain" style="width: 118px;">
@@ -4007,29 +3871,29 @@
                 <div class="career-scroll" style="margin-top: 12px; max-height: 300px;"><table class="career-table" id="ovbizDetailTable"></table></div>
             </div>
 
-            <div class="card">
-                <label>🧩 逐项统计 <span class="hint-text" style="font-weight:400;">10 个统计项各自的累计、占比与结构</span></label>
+            <div class="card" id="ovbizCardItems">
+                <label>🧩 逐项统计 <span class="card-sub">10 项 · 累计 / 占比</span></label>
                 <div class="career-scroll" style="margin-top: 10px;"><table class="career-table" id="ovbizItemTable"></table></div>
                 <div id="ovbizStructureBox" style="margin-top: 12px;"></div>
             </div>
 
-            <div class="card">
-                <label>🗓️ 月度汇总 <span class="hint-text" style="font-weight:400;">按月的总量与各项（横向可滚动）</span></label>
+            <div class="card" id="ovbizCardMonthly">
+                <label>🗓️ 月度汇总 <span class="card-sub">按月 · 横向可滚动</span></label>
                 <div class="career-scroll" style="margin-top: 10px; max-height: 340px;"><table class="career-table" id="ovbizMonthlyTable"></table></div>
             </div>
 
-            <div class="card">
-                <label>📅 周维度 <span class="hint-text" style="font-weight:400;">按周（周一～周日）：周环比 + 同比（4 周前代理）</span></label>
+            <div class="card" id="ovbizCardWeekly">
+                <label>📅 周维度 <span class="card-sub">周一～周日 · 环比 + 同比</span></label>
                 <div class="career-scroll" style="margin-top: 10px; max-height: 340px;"><table class="career-table" id="ovbizWeeklyTable"></table></div>
             </div>
 
-            <div class="card">
-                <label>👥 按人员统计 <span class="hint-text" style="font-weight:400;">三个人各自的工作量</span></label>
+            <div class="card" id="ovbizCardPeople">
+                <label>👥 按人员统计 <span class="card-sub">记录天数 / 日均 / 占比</span></label>
                 <div class="career-scroll" style="margin-top: 10px;"><table class="career-table" id="ovbizPeopleTable"></table></div>
             </div>
 
-            <div class="card">
-                <label>📆 每日明细 <span class="hint-text" style="font-weight:400;">按天合计（含当天值班人员），最新在最上面</span></label>
+            <div class="card" id="ovbizCardDaily">
+                <label>📆 每日明细 <span class="card-sub">按天合计 · 最新在上</span></label>
                 <div class="career-scroll" style="margin-top: 10px; max-height: 400px;"><table class="career-table" id="ovbizDailyTable"></table></div>
                 <div id="ovbizAnomalyBox" style="margin-top: 10px;"></div>
             </div>
@@ -4048,7 +3912,7 @@
 
             <div class="card">
                 <label>🧋 今天的下午茶
-                    <span class="hint-text" style="font-weight:400;">勾一家或几家投一票（可多选）；到截止时间只展示结果，当天 23:00 连投票一起清除 —— <b>店家一直保留</b></span>
+                    <span class="card-sub">可多选 · 到点只展示结果 · 23:00 清除（店家一直保留）</span>
                 </label>
                 <div id="teaVoteOpenBox" style="margin-top:10px;">
                     <div class="fb-chip-row" id="teaVoteShopBox"></div>
@@ -4082,7 +3946,7 @@
 
             <div class="card">
                 <label>📊 实时结果
-                    <span class="hint-text" style="font-weight:400;">只统计票数，不显示谁投了什么</span>
+                    <span class="card-sub">只统计票数，不显示谁投了什么</span>
                 </label>
                 <div id="teaResultMeta" class="hint-text" style="margin-top:8px;"></div>
                 <div class="career-scroll" style="margin-top:12px;"><table class="career-table" id="teaResultBox"></table></div>
@@ -4094,7 +3958,7 @@
 
             <!-- 预设店家：收在折叠面板里（平时不用管，也永远不会被清除） -->
             <details class="card tea-shop-card" id="teaShopCard">
-                <summary>🍵 预设店家<span class="hint-text" id="teaShopCount">（—）</span><span class="hint-text" style="font-weight:400;">点开管理；一直保留，不会被清空</span></summary>
+                <summary>🍵 预设店家<span class="hint-text" id="teaShopCount">（—）</span><span class="card-sub">点开管理 · 一直保留</span></summary>
                 <div class="career-scroll" style="margin-top:10px;"><table class="career-table" id="teaShopTable"></table></div>
                 <div class="flex-row" style="margin-top:10px;">
                     <input id="teaShopName" placeholder="店名，如：蜜雪冰城" style="max-width:220px;">
@@ -10718,6 +10582,17 @@
                                         return parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',') + (parts[1] ? '.' + parts[1] : '');
                                     }
                                     function careerPct(x) { return ((Number(x) || 0) * 100).toFixed(1) + '%'; }
+                                    // 统计页的「一片一件事」：把成段说明压成芯片（cls: ''/k-accent/k-warn/k-danger/k-plain/k-op）
+                                    function statChip(text, cls, title) {
+                                        return '<span class="stat-chip' + (cls ? ' ' + cls : '') + '"'
+                                            + (title ? ' title="' + escapeHtml(title) + '"' : '') + '>'
+                                            + (text && text.html ? text.html : escapeHtml(String(text === undefined ? '' : text)))
+                                            + '</span>';
+                                    }
+                                    // 芯片组（不用 escape 的是已经拼好的 html）
+                                    function statChips(list) {
+                                        return '<div class="stat-chips">' + list.join('') + '</div>';
+                                    }
 
                                     // 某条记录在某个「身份」下的工作量：全部 = 39 项之和；某一侧 = 该侧项之和
                                     function careerSideTotal(rec, scope) {
@@ -10976,12 +10851,27 @@
                                         const sheetHint = document.getElementById('careerSheetHint');
                                         if (sheetHint) {
                                             const tSum = s.sideStats.ticket.sum, oSum = s.sideStats.overseas.sum;
-                                            sheetHint.textContent = scoped
-                                                ? scopeLabel + '侧累计 ' + careerNum(s.sum) + '；日均 ' + careerNum(s.avg, 1) + '（按 ' + s.days + ' 个完整记录日）'
-                                                    + '；只统计「' + scopeLabel + '日报」里的项；数据只存在这台设备的浏览器里，不会同步给别的设备。'
-                                                : '工单侧 ' + careerNum(tSum) + ' + 海外侧 ' + careerNum(oSum) + ' = 累计 ' + careerNum(s.sum)
-                                                    + '；日均 ' + careerNum(s.avg, 1) + '（按 ' + s.days + ' 个完整记录日）'
-                                                    + '；数据只存在这台设备的浏览器里，不会同步给别的设备。';
+                                            // 原来是一整句，现在拆成芯片：扫一眼就是「哪一侧 + 多少 + 日均 + 几天」
+                                            if (scoped) {
+                                                sheetHint.innerHTML = statChips([
+                                                    statChip(scopeLabel + '侧累计 ' + careerNum(s.sum), 'k-accent'),
+                                                    statChip('日均 ' + careerNum(s.avg, 1)),
+                                                    statChip('按 ' + s.days + ' 个完整记录日'),
+                                                    statChip('只统计「' + scopeLabel + '日报」里的项'),
+                                                    statChip('只存本机', 'k-warn')
+                                                ]);
+                                            } else {
+                                                sheetHint.innerHTML = statChips([
+                                                    statChip('工单侧 ' + careerNum(tSum)),
+                                                    statChip(' + ', 'k-op'),
+                                                    statChip('海外侧 ' + careerNum(oSum)),
+                                                    statChip(' = ', 'k-op'),
+                                                    statChip('累计 ' + careerNum(s.sum), 'k-accent'),
+                                                    statChip('日均 ' + careerNum(s.avg, 1)),
+                                                    statChip('按 ' + s.days + ' 个完整记录日'),
+                                                    statChip('只存本机', 'k-warn')
+                                                ]);
+                                            }
                                         }
 
                                         const mt = document.getElementById('careerMonthlyTable');
@@ -11052,32 +10942,46 @@
                                                     + kinds.map((k, i) => '<span><i style="background:' + CAREER_KIND_COLORS[i % CAREER_KIND_COLORS.length] + '"></i>'
                                                         + escapeHtml(k) + ' ' + careerNum(kindTotals[k]) + '（' + careerPct(kindTotals[k] / grand) + '）</span>').join('')
                                                     + '</div>'
-                                                    + '<div class="hint-text" style="margin-top:6px;">Top3 集中度：'
-                                                    + top.filter(it => (s.itemTotals[it.key] || 0) > 0).map(it => escapeHtml(it.label) + ' ' + careerNum(s.itemTotals[it.key] || 0)).join(' · ')
-                                                    + ' —— 合计占 <b>' + careerPct(grand ? topSum / grand : 0) + '</b>；'
-                                                    + kinds.length + ' 个来源大类、' + items.filter(it => (s.itemTotals[it.key] || 0) > 0).length + ' 项有产出</div>';
+                                                    + '<div class="stat-chips" style="margin-top:8px;">'
+                                                    + statChip('Top3 集中度：合计占 ' + careerPct(grand ? topSum / grand : 0), 'k-accent')
+                                                    + top.filter(it => (s.itemTotals[it.key] || 0) > 0)
+                                                        .map(it => statChip(it.label + ' ' + careerNum(s.itemTotals[it.key] || 0))).join('')
+                                                    + statChip(kinds.length + ' 个来源大类')
+                                                    + statChip(items.filter(it => (s.itemTotals[it.key] || 0) > 0).length + ' 项有产出', 'k-plain')
+                                                    + '</div>';
                                             }
                                         }
 
                                         // 异常日（μ+2σ）与活动峰值（备注里的关键词）
                                         const ab = document.getElementById('careerAnomalyBox');
                                         if (ab) {
-                                            let h = '<div class="hint-text">';
+                                            let h = '<div class="stat-chips">';
                                             if (s.anomalyLine) {
-                                                h += '异常线 μ+2σ = ' + careerNum(s.anomalyLine, 1) + '；'
-                                                    + (s.anomalies.length
-                                                        ? '异常 <b>' + s.anomalies.length + '</b> 天：' + s.anomalies.slice(0, 12).map(a => escapeHtml(a.date) + '（' + careerNum(a.total) + '，' + a.sigma.toFixed(1) + 'σ）').join('、')
-                                                            + (s.anomalies.length > 12 ? ' 等 ' + s.anomalies.length + ' 天' : '')
-                                                        : '没有超过这条线的日子（都算平稳）');
+                                                h += statChip('异常线 μ+2σ = ' + careerNum(s.anomalyLine, 1));
+                                                h += s.anomalies.length
+                                                    ? statChip('异常 ' + s.anomalies.length + ' 天', 'k-danger')
+                                                    : statChip('没有超过这条线的日子', 'k-plain');
                                             } else {
-                                                h += '记录少于 2 天或波动为 0，暂时算不出异常线 μ+2σ';
+                                                h += statChip('异常线 μ+2σ：记录少于 2 天或波动为 0，暂时算不出', 'k-plain');
                                             }
-                                            h += '</div><div class="hint-text" style="margin-top:6px;">活动 / 版本峰值标注：'
-                                                + (s.peaks.length
-                                                    ? s.peaks.slice(0, 12).map(r => escapeHtml(r.date) + '（' + escapeHtml(r.note) + '，' + careerNum(r.total) + '）').join('、')
-                                                        + (s.peaks.length > 12 ? ' 等 ' + s.peaks.length + ' 天' : '')
-                                                    : '暂无 —— 在下面「补录 / 修正某一天」给那天写个备注（写「活动」「版本」这类词）就会自动标出来')
-                                                + '</div>';
+                                            h += '</div><div class="stat-chips" style="margin-top:6px;">'
+                                                + statChip('活动 / 版本峰值标注', 'k-op');
+                                            if (s.peaks.length) {
+                                                s.peaks.slice(0, 12).forEach(r => {
+                                                    h += statChip(r.date + ' · ' + r.note + ' ' + careerNum(r.total), 'k-warn');
+                                                });
+                                                if (s.peaks.length > 12) h += statChip('等 ' + s.peaks.length + ' 天', 'k-plain');
+                                            } else {
+                                                h += statChip('暂无 —— 给某天写备注（含「活动」「版本」）就自动标出来', 'k-plain');
+                                            }
+                                            h += '</div>';
+                                            // 异常日明细也压成芯片，一屏能扫完
+                                            if (s.anomalyLine && s.anomalies.length) {
+                                                h += '<div class="stat-chips" style="margin-top:6px;">'
+                                                    + s.anomalies.slice(0, 12).map(a => statChip(a.date + ' ' + careerNum(a.total) + '（' + a.sigma.toFixed(1) + 'σ）', 'k-danger')).join('')
+                                                    + (s.anomalies.length > 12 ? statChip('等 ' + s.anomalies.length + ' 天', 'k-plain') : '')
+                                                    + '</div>';
+                                            }
                                             ab.innerHTML = h;
                                         }
 
@@ -11137,12 +11041,18 @@
                                         if (cb) {
                                             if (scoped) {
                                                 const st = s.sideStats[scope];
-                                                cb.innerHTML = '<div class="hint-text">' + scopeLabel + '侧覆盖：' + st.itemCount + ' 个统计项里有 <b>'
-                                                    + st.active + '</b> 项有产出</div>';
+                                                cb.innerHTML = statChips([
+                                                    statChip(scopeLabel + '侧覆盖'),
+                                                    statChip(st.itemCount + ' 个统计项'),
+                                                    statChip(st.active + ' 项有产出', 'k-accent')
+                                                ]);
                                             } else {
-                                                cb.innerHTML = '<div class="hint-text">渠道覆盖：' + CAREER_ITEMS.length + ' 个统计项里有 <b>' + s.activeKinds
-                                                    + '</b> 项有产出；单日最多同时触达 ' + s.dayMaxKinds.n + ' 项'
-                                                    + (s.dayMaxKinds.date ? '（' + escapeHtml(s.dayMaxKinds.date) + '）' : '') + '</div>';
+                                                cb.innerHTML = statChips([
+                                                    statChip('渠道覆盖'),
+                                                    statChip(CAREER_ITEMS.length + ' 个统计项'),
+                                                    statChip(s.activeKinds + ' 项有产出', 'k-accent'),
+                                                    statChip('单日最多触达 ' + s.dayMaxKinds.n + ' 项' + (s.dayMaxKinds.date ? '（' + s.dayMaxKinds.date + '）' : ''), 'k-plain')
+                                                ]);
                                             }
                                         }
 
@@ -11162,15 +11072,26 @@
 
                                         const q = document.getElementById('careerQuality');
                                         if (q) {
-                                            let h = '<div class="hint-text">完整记录 ' + s.days + ' 天 · 待确认 ' + s.pending.length + ' 天 · 记录区间 ' + s.spanDays
-                                                + ' 天 · 断档 ' + s.gapDays + ' 天 · 最低单日 ' + careerNum(s.min) + '</div>';
+                                            // 一行芯片讲完数据质量；有问题的项才用彩色片顶出来
+                                            let h = statChips([
+                                                statChip('完整记录 ' + s.days + ' 天', 'k-accent'),
+                                                statChip('待确认 ' + s.pending.length + ' 天', s.pending.length ? 'k-warn' : 'k-plain'),
+                                                statChip('记录区间 ' + s.spanDays + ' 天'),
+                                                statChip('断档 ' + s.gapDays + ' 天', s.gapDays ? 'k-warn' : 'k-plain'),
+                                                statChip('最低单日 ' + careerNum(s.min))
+                                            ]);
                                             if (s.pending.length) {
-                                                h += '<div class="hint-text" style="margin-top:8px;">待确认（没进统计）：'
-                                                    + s.pending.map(r => escapeHtml(r.date)).join('、') + '</div>';
+                                                h += '<div class="stat-chips" style="margin-top:6px;">'
+                                                    + statChip('待确认（没进统计）', 'k-op')
+                                                    + s.pending.map(r => statChip(r.date, 'k-warn')).join('')
+                                                    + '</div>';
                                             }
                                             if (s.notes.length) {
-                                                h += '<div style="margin-top:10px;font-size:13px;">特殊问题：<ul style="margin:6px 0 0 18px;">'
-                                                    + s.notes.slice(0, 30).map(n => '<li>' + escapeHtml(n.date) + ' — ' + escapeHtml(n.note) + '</li>').join('') + '</ul></div>';
+                                                h += '<div class="stat-chips" style="margin-top:6px;">'
+                                                    + statChip('备注', 'k-op')
+                                                    + s.notes.slice(0, 30).map(n => statChip(n.date + ' ' + n.note)).join('')
+                                                    + (s.notes.length > 30 ? statChip('等 ' + s.notes.length + ' 条', 'k-plain') : '')
+                                                    + '</div>';
                                             }
                                             q.innerHTML = h;
                                         }
@@ -11985,8 +11906,13 @@
                                         const el = document.getElementById('ovbizSyncHint');
                                         if (!el) return;
                                         const n = Object.keys(ovbizData.rows).length;
-                                        el.textContent = '💾 只存在这台设备的浏览器里（' + n + ' 行原始记录），不上传服务端、别人看不到；'
-                                            + '换电脑 / 换浏览器要用「导出CSV」再把文件内容粘回来。';
+                                        // 一片一件事：几行文字压成芯片
+                                        el.innerHTML = statChips([
+                                            statChip('只存在这台设备的浏览器里', 'k-warn'),
+                                            statChip(n + ' 行原始记录'),
+                                            statChip('不上传服务端', 'k-plain'),
+                                            statChip('换设备：导出CSV 再粘回来', 'k-plain')
+                                        ]);
                                     }
                                     // 取某一天（按天合计后）某个范围的值：'all' = 当天总量，其余 = 那一项
                                     function ovbizDetailValue(day, sel) {
@@ -12129,11 +12055,15 @@
                                         }
                                         const sheetHint = document.getElementById('ovbizSheetHint');
                                         if (sheetHint) {
-                                            sheetHint.textContent = s.n
-                                                ? ('合计 ' + careerNum(s.sum) + '（' + s.n + ' 个完整记录日 · 日均 ' + careerNum(s.avg, 1) + '）'
-                                                    + '；覆盖 ' + (names.length ? names.join('、') : '未填人员') + ' 共 ' + s.peopleCount + ' 人'
-                                                    + '；这份数据只存在这台设备的浏览器里，不会同步给别的设备。')
-                                                : '还没有数据 —— 把周报整表粘贴到上面「📋 粘贴周报数据」再点「解析导入」。';
+                                            sheetHint.innerHTML = s.n
+                                                ? statChips([
+                                                    statChip('合计 ' + careerNum(s.sum), 'k-accent'),
+                                                    statChip(s.n + ' 个完整记录日'),
+                                                    statChip('日均 ' + careerNum(s.avg, 1)),
+                                                    statChip((names.length ? names.join('、') : '未填人员') + ' · ' + s.peopleCount + ' 人'),
+                                                    statChip('只存在这台设备的浏览器里', 'k-warn')
+                                                ])
+                                                : statChips([statChip('还没有数据 —— 把周报整表粘到上面「📋 粘贴周报数据」再点「解析导入」', 'k-plain')]);
                                         }
                                         ovbizRenderStorageHint();
                                         // ---- 走势条（最近 30 个记录日，异常日红、备注带活动字样橙） ----
@@ -12174,8 +12104,9 @@
                                             const topSum = top.reduce((a, r) => a + r.v, 0);
                                             const active = OVBIZ_ITEMS.filter(x => (s.itemTotals[x.key] || 0) > 0).length;
                                             stb.innerHTML = s.sum
-                                                ? '<div class="hint-text">Top3 集中度：' + top.map(r => escapeHtml(r.it.label) + ' ' + careerNum(r.v)).join(' · ')
-                                                    + ' —— 合计占 <b>' + careerPct(topSum / s.sum) + '</b>；' + active + ' / ' + OVBIZ_ITEMS.length + ' 项有产出</div>'
+                                                ? statChips([statChip('Top3 集中度：合计占 ' + careerPct(topSum / s.sum), 'k-accent')]
+                                                    .concat(top.map(r => statChip(r.it.label + ' ' + careerNum(r.v))))
+                                                    .concat([statChip(active + ' / ' + OVBIZ_ITEMS.length + ' 项有产出', 'k-plain')]))
                                                 : '';
                                         }
                                         // ---- 月度汇总（含各项） ----
@@ -12264,23 +12195,31 @@
                                                 + '<td></td></tr></tfoot>';
                                             dt.innerHTML = h;
                                         }
-                                        // ---- 异常日 & 备注 ----
+                                        // ---- 异常日 & 备注（芯片版：一屏能扫完） ----
                                         const ab = document.getElementById('ovbizAnomalyBox');
                                         if (ab) {
-                                            let h = '<div class="hint-text">';
+                                            let h = '<div class="stat-chips">';
                                             if (s.anomalyLine) {
-                                                h += '异常线 μ+2σ = ' + careerNum(s.anomalyLine, 1) + '；'
-                                                    + (s.anomalies.length
-                                                        ? '异常 <b>' + s.anomalies.length + '</b> 天：' + s.anomalies.slice(0, 12).map(a => escapeHtml(a.date) + '（' + careerNum(a.total) + '，' + a.sigma.toFixed(1) + 'σ）').join('、')
-                                                            + (s.anomalies.length > 12 ? ' 等 ' + s.anomalies.length + ' 天' : '')
-                                                        : '没有超过这条线的日子（都算平稳）');
+                                                h += statChip('异常线 μ+2σ = ' + careerNum(s.anomalyLine, 1));
+                                                h += s.anomalies.length
+                                                    ? statChip('异常 ' + s.anomalies.length + ' 天', 'k-danger')
+                                                    : statChip('没有超过这条线的日子（都算平稳）', 'k-plain');
                                             } else {
-                                                h += '记录少于 2 天或波动为 0，暂时算不出异常线 μ+2σ';
+                                                h += statChip('记录少于 2 天或波动为 0，算不出 μ+2σ', 'k-plain');
+                                            }
+                                            if (s.anomalies.length) {
+                                                s.anomalies.slice(0, 12).forEach(a => {
+                                                    h += statChip(a.date + ' ' + careerNum(a.total) + '（' + a.sigma.toFixed(1) + 'σ）', 'k-danger');
+                                                });
+                                                if (s.anomalies.length > 12) h += statChip('等 ' + s.anomalies.length + ' 天', 'k-plain');
                                             }
                                             h += '</div>';
                                             if (s.notes.length) {
-                                                h += '<div style="margin-top:8px;font-size:13px;">特殊问题：<ul style="margin:6px 0 0 18px;">'
-                                                    + s.notes.slice(0, 30).map(x => '<li>' + escapeHtml(x.date) + ' — ' + escapeHtml(x.note) + '</li>').join('') + '</ul></div>';
+                                                h += '<div class="stat-chips" style="margin-top:6px;">'
+                                                    + statChip('特殊问题', 'k-op')
+                                                    + s.notes.slice(0, 30).map(x => statChip(x.date + ' ' + x.note, 'k-warn')).join('')
+                                                    + (s.notes.length > 30 ? statChip('等 ' + s.notes.length + ' 条', 'k-plain') : '')
+                                                    + '</div>';
                                             }
                                             ab.innerHTML = h;
                                         }
@@ -13172,803 +13111,6 @@
                                         }
                                     }
 
-                                    // ==================== SOP 助手（⚠️ 数据在服务端 sopBundle，要口令） ====================
-                                    // 数据来源：客服部工作SOP / 后台常用话术 / 游戏问题处理流程 / 客服规范总汇 / 交接文档
-                                    // 结构：{ version, updatedAt, channels[], redlines[], scenes[] }
-                                    //   scene = { id, cat, product[], channel[], title, triggers[], needInfo[], steps[],
-                                    //             scripts[{tone,visibility,text}], internal[], escalate[{when,do}],
-                                    //             form{kicker,fields[]}, source }
-                                    // ⚠️ 这里**不发任何消息给玩家**：只查、只抄、只校验；发送仍由人做。
-                                    // ⚠️ 服务端 `sop*` 开头的 key 需要 SOP_TOKEN（见 server.js），口令只存本机 localStorage。
-                                    const SOP_STORE_KEY = 'sopBundle';
-                                    const SOP_TOKEN_KEY = 'sopToken';
-                                    const SOP_LOCAL_KEY = 'sopBundleLocal';
-                                    // ⚠️ 使用口令（用户要求「加密使用，设备首次进入要输入「客服冷静」，账号密码信息不保留」）：
-                                    // 这是**前端门锁**（防顺手看见），不是真加密；真数据保护靠服务端 SOP_TOKEN。
-                                    // 口令只在内存里（sopUnlocked）——**不写 localStorage / sessionStorage、不上传**，
-                                    // 刷新或重开浏览器都要重新输（用户要的「不保留」）。
-                                    const SOP_PASS = '客服冷静';
-                                    let sopUnlocked = false;
-                                    let sopBundle = null;
-                                    let sopCurrent = null;
-                                    let sopSourceLabel = '内置示例';
-                                    // 内置示例（服务端还没灌数据时的兜底；完整版用 npm run sop:seed 推上去）
-                                    const SOP_DEMO = {
-                                        version: 0,
-                                        updatedAt: '2026-10-17',
-                                        channels: ['53', '抖小', '海外', '工单', '群维'],
-                                        redlines: [
-                                            { level: 'red', word: '好评', why: 'TapTap 引导话术里不能出现「好评」两个字', fix: '改用「TapTap 意见征集活动」', src: 'SOP 1.3' },
-                                            { level: 'red', word: '误封', why: '解封了也不能说「误封」', fix: '「收到您的申诉已通过，账号已解封，请登录确认」', src: 'SOP 1.3' },
-                                            { level: 'red', word: '代言人', why: '周年庆对外只能说「品牌大使」', fix: '改成「品牌大使」', src: 'SOP 1.3' },
-                                            { level: 'red', word: '外挂', why: '不提及外挂细节；CP 扣资源统一说「系统检测到使用第三方非法工具异常获取资源，已自动扣除」', fix: '「系统检测到使用第三方非法工具异常获取资源，已自动扣除」', src: 'SOP 1.3' },
-                                            { level: 'amber', word: 'VIP客服', why: '对未认证玩家不能提「VIP客服 / 专属客服 / 认证礼包」', fix: '未认证只说「在线客服」', src: 'SOP 1.3' },
-                                            { level: 'amber', re: '(内部|请勿告知|严禁透露)', why: '内部说明不能写进给玩家的话里', fix: '删掉内部说明，只留对外口径', src: 'SOP 1.1' },
-                                            { level: 'amber', word: '存续期', why: '奖励补发的「存续期 X 天」不告知具体天数', fix: '「请在活动结束前尽快领取」', src: 'SOP 1.2' }
-                                        ],
-                                        scenes: [
-                                            {
-                                                id: 'acc.recover.bound', cat: '账号信息', product: ['通用'], channel: ['53', '抖小'],
-                                                title: '账号找回（有绑定手机号）',
-                                                triggers: ['账号找不回', '换手机了', '收不到验证码', '账号忘了', '登录不上老号'],
-                                                needInfo: ['游戏 / 区服 / 角色名 / UID', '绑定手机号是否还能收短信', '近期充值订单截图（如需核验归属）'],
-                                                steps: ['核实绑定手机号是否可正常使用', '可用 → 引导玩家用验证码自助找回（悬浮窗—账户）', '不可用 → 走解绑流程，解绑后再帮找回'],
-                                                scripts: [{ tone: '核实可用', visibility: 'public', text: '您好呀！刚核实到您的账户有绑定手机号且可以正常使用，建议用手机号接收验证码自助找回；如果收不到，请先检查短信拦截或换个网络再试一次哦～' }],
-                                                internal: ['同一天内「提示频繁」可特殊处理一次（十分钟后再试），别承诺天天都能处理'],
-                                                escalate: [{ when: '号码已注销并被运营商回收再售', do: '玩家主动提及才可走解绑；不主动提这条隐藏规则' }],
-                                                form: { kicker: 'SSO 内部提单', fields: ['工单号', '提交者', '游戏', 'uid', '角色名', '角色id', '区服', '问题', '来源', '编号', '联系方式'] },
-                                                source: 'SOP 2.1 / 后台常用话术·账号找回'
-                                            },
-                                            {
-                                                id: 'acc.unbind', cat: '账号信息', product: ['异世界勇者', '通用'], channel: ['53', '抖小'],
-                                                title: '手机号解绑 / 换绑',
-                                                triggers: ['换绑', '解绑手机', '手机号不用了', '号码空号'],
-                                                needInfo: ['游戏 / 区服（001 与 000 规则不同）/ 角色名 / UID', '新手机号（尽量不绑其他账号）', '注册时间 / 地点 / 常登录地点设备', '充值记录', '原号码是否空号（需电话确认）'],
-                                                steps: ['异世界 001 才支持换绑，其它产品只处理解绑申诉', '原手机号收不到短信 → 电话确认是否空号（仅处理空号）', '确认空号 → 收集信息 → SSO 后台内部提单', '提单后告知工单号 → 质检交流群同步'],
-                                                scripts: [{ tone: '引导提供换绑号', visibility: 'public', text: '您好呀，关于换绑手机号客服已经了解啦！请您提供一个需要换绑的手机号码，尽量不要绑定其他游戏账号哦～若该号码绑定过其他账号，申诉成功后那些账号会自动解绑，请及时保存好账号密码哈。' }],
-                                                internal: ['001 只能用手机号登录；000 可用账号密码或手机号', '无论是否成功，每个环节负责人都要在工单内备注当前进度'],
-                                                escalate: [],
-                                                form: { kicker: 'SSO 内部提单', fields: ['工单号', '提交者', '游戏', 'uid', '角色名', '角色id', '区服', '原号码是否空号', '新号码', '问题', '来源', '编号', '联系方式'] },
-                                                source: 'SOP 2.2 / 后台常用话术·换绑'
-                                            },
-                                            {
-                                                id: 'pay.notreceived', cat: '充值与退款', product: ['通用', '梦幻消除战', '繁花'], channel: ['53', '抖小', '海外'],
-                                                title: '充值不到账',
-                                                triggers: ['充值没到账', '付了没到', '钱扣了道具没给', '订单没到账'],
-                                                needInfo: ['游戏 / 区服 / 角色名 / UID', '充值时间', '金额', '充值内容', '订单号 + 商户订单号截图'],
-                                                steps: ['先收集订单截图、时间、金额、内容', 'SSO/SDK 后台查订单状态', '已同步 → 核对 CP 后台是否到账；没有则联系 CP', '已支付未同步 → 联系平台技术', '未支付 → 后台确认后联系技术'],
-                                                scripts: [{ tone: '收集截图', visibility: 'public', text: '您好呀，为了尽快核实到账情况，麻烦您提供充值截图（要能看到订单号和商户订单号哦）、充值时间、金额和充值的内容呀～' }],
-                                                internal: ['iOS 要 App Store 购买记录；微信看钱包账单；支付宝看我的—账单'],
-                                                escalate: [{ when: '同一时间 3 人以上反馈充值异常', do: '按批量问题：收集游戏/区服/角色/人数 → 立即发群 → 钉钉没人回就打电话' }],
-                                                form: { kicker: 'SSO 内部提单', fields: ['工单号', '提交者', '游戏', 'uid', '角色名', '角色id', '区服', '订单号', '商户订单号', '金额', '充值时间', '问题', '来源', '编号', '联系方式'] },
-                                                source: 'SOP 3.1 / 游戏问题处理流程·充值类'
-                                            },
-                                            {
-                                                id: 'ban.general', cat: '封禁与处罚', product: ['通用'], channel: ['53', '抖小', '工单'],
-                                                title: '被封禁 / 禁言申诉',
-                                                triggers: ['被封了', '为什么封号', '解封', '禁言了', '申诉解封'],
-                                                needInfo: ['游戏 / 区服 / 角色名 / UID', '封禁时间', '后台封禁原因', '是否首次违规'],
-                                                steps: ['核对玩家信息 → 后台查禁言/封禁记录', '禁言：看聊天记录判断能否教育解除（研发操作的提组长）', '封禁：看封禁原因判断能否教育解封（开挂类按规则处理）', '查无记录 → 告知未被禁言/封禁，请仔细回想'],
-                                                scripts: [{ tone: '教育解封', visibility: 'public', text: '您好，这边已收到您的申诉并核实，账号已为您解封，请登录确认～后续请遵守游戏规则哦，避免再次被处理呢。' }],
-                                                internal: ['⚠️ 解封也不说「误封」', '处罚次数 / 封禁原因明细不透露', '灰产刷资源类不适用教育解封'],
-                                                escalate: [{ when: '开挂被封要求解封', do: '按开挂封禁规则处理，不教育解封；有争议升级组长' }],
-                                                form: { kicker: '内部工单', fields: ['工单号', '提交者', '游戏', 'uid', '角色名', '角色id', '区服', '封禁时间', '问题', '来源', '编号', '联系方式'] },
-                                                source: 'SOP 4.1 / 4.5 / 游戏问题处理流程·封禁类'
-                                            },
-                                            {
-                                                id: 'game.flow', cat: '游戏问题', product: ['通用'], channel: ['53', '抖小', '海外'],
-                                                title: '数据 / 流水查询（道具为什么少了）',
-                                                triggers: ['道具少了', '钻石不见了', '流水', '消耗记录'],
-                                                needInfo: ['游戏 / 区服 / 角色名 / UID', '道具名称', '减少前后数量', '大概时间'],
-                                                steps: ['后台查该道具的获得与消耗流水', '找到消耗 → 告知时间、数量、目前无异常', '查不到 → 取证后提单'],
-                                                scripts: [{ tone: '查到消耗', visibility: 'public', text: '这边帮您查到了：您的【道具】在【时间】消耗了【数量】，目前数据无异常哦。建议后续操作时多留意一下，避免不必要的损失呢～' }],
-                                                internal: ['正常不会无故丢失，先假定是玩家自己用掉', '掉落概率 / 内部规则不对外'],
-                                                escalate: [],
-                                                form: { kicker: '内部工单', fields: ['工单号', '提交者', '游戏', 'uid', '角色名', '角色id', '区服', '道具', '数量', '发生时间', '问题', '来源', '编号'] },
-                                                source: 'SOP 5.1 / 5.3'
-                                            },
-                                            {
-                                                id: 'game.login', cat: '游戏问题', product: ['通用'], channel: ['53', '抖小', '海外', '群维'],
-                                                title: '登录异常 / 卡顿 / 闪退',
-                                                triggers: ['登不上', '卡在加载', '闪退', '进不去', '转圈'],
-                                                needInfo: ['游戏 / 区服 / 角色名 / UID', '设备型号与系统', '网络环境', '是否维护期', '报错截图/录屏'],
-                                                steps: ['先判断是否维护期 → 是则告知后让玩家等维护结束', '客服自己测能否登录', '能登 → 引导：大退 → 换网络 → 重登 → 重装', '仍不行 → 收集信息反馈；≥3 人同类按批量处理'],
-                                                scripts: [{ tone: '引导自查', visibility: 'public', text: '麻烦您按这个顺序试一下：①退出游戏进程 ②切换网络（WiFi/流量互换）③重新登录 ④还不行就重装客户端。还是进不去的话，把报错截图发我，我帮您反馈核实哦～' }],
-                                                internal: ['维护期以公告为准，不预估修复时间', '批量问题：收集游戏/区服/角色/人数 → 发群 → 钉钉没人回就打电话'],
-                                                escalate: [{ when: '同一时间 3 人以上反馈', do: '整理信息立即发群，按升级顺序打电话直到有人接' }],
-                                                form: { kicker: '内部工单', fields: ['工单号', '提交者', '游戏', 'uid', '角色名', '角色id', '区服', '设备', '网络', '现象', '来源', '编号'] },
-                                                source: 'SOP 5.5 / 游戏问题处理流程·无法登录'
-                                            },
-                                            {
-                                                id: 'invoice', cat: '发票', product: ['通用'], channel: ['53', '工单'],
-                                                title: '开发票（普通 / VIP）',
-                                                triggers: ['开发票', '要发票', '电子发票', '专票', '报销'],
-                                                needInfo: ['游戏 / 区服 / UID', '要开票的订单截图', '发票抬头（个人姓名/公司名）', '收件邮箱'],
-                                                steps: ['确认要开票的账号（UID）', '要订单截图', '核对后告知金额，请玩家给抬头 + 邮箱', '整理信息发财务对接人', '专票/纸质要求：拒绝并给标准口径'],
-                                                scripts: [{ tone: '核对完成', visibility: 'public', text: '您的开票信息已经核对，本次开票金额：XX 元，发票为增值税普通发票，服务项目是信息服务费，将通过电子发票的形式发送给您，麻烦提供一下发票抬头和收件邮箱哦～' }],
-                                                internal: ['抬头默认「个人」，要写名字放备注区', '公司抬头需营业执照 + 盖章委托书，与财务确认后才可操作', '不主动告知服务项目名称，用户问才说'],
-                                                escalate: [{ when: 'VIP 玩家且满足 VIP 开票条件', do: '让玩家从 VIP 客服渠道提交开票申请' }],
-                                                form: { kicker: '给财务的开票信息', fields: ['游戏', '开票类型', '抬头', '服务名称', '公司主体', 'UID', '充值开始', '充值截止', '区服', '角色名', '开票金额', '收件邮箱'] },
-                                                source: 'SOP 6 / 游戏问题处理流程·发票流程'
-                                            },
-                                            {
-                                                id: 'group.violation', cat: '群维系', product: ['异世界勇者', '繁花', '乐缤纷', '梦幻消除战'], channel: ['群维'],
-                                                title: '群内违规信息处理（风纪）',
-                                                triggers: ['群里发广告', '发其他游戏链接', '刷屏', '骂人', '发黄图'],
-                                                needInfo: ['群名 / 平台', '违规账号', '违规内容截图', '处理动作（撤回/禁言/移出）'],
-                                                steps: ['宣传 BUG / 卡回复 → 撤回 + 禁言 1 天', '发其他游戏链接 → 撤回 + 禁言 1 小时以上；连续 3 条左右移出', '发广告 → 直接移出群聊', '辱骂 / 违规起名 → 先提醒，仍违规则禁言或移出'],
-                                                scripts: [{ tone: '提醒', visibility: 'public', text: '您好，群内请不要发布与本游戏无关的链接/广告哦，感谢配合～' }],
-                                                internal: ['接到举报 5 分钟内必须处理', '禁言超 24 小时或提前解封必须发交接登记内部工单说明原因'],
-                                                escalate: [{ when: '高 V 玩家违规', do: '组长判断是否禁言或封禁' }],
-                                                form: { kicker: '内部工单', fields: ['群名', '违规账号', '违规内容', '处理动作', '经办人', '时间'] },
-                                                source: '群维系·海外工单·监控交接文档 / 客服规范总汇'
-                                            }
-                                        ],
-                                        // 常用语库（内置示例只放几条，分类名沿用《全部常用语》那套问题分类；完整版只在 bundle 里）
-                                        phrases: [
-                                            { id: 'ph-demo-1', cat: '退款', title: '安抚', tone: '说明', text: '非常理解您现在的心情，这边先帮您核实一下，有结果第一时间回复您。' },
-                                            { id: 'ph-demo-2', cat: '询问信息', title: '询问游戏信息', tone: '收集', text: '麻烦您提供一下角色ID、区服和角色名，以及发生问题的时间，我这边帮您查一下～' },
-                                            { id: 'ph-demo-3', cat: '安抚', title: '稍等', tone: '收尾', text: '问题已经处理好了，麻烦您重进游戏看一下，还有异常随时找我。' }
-                                        ]
-                                    };
-                                    function sopTokenGet() {
-                                        try { return localStorage.getItem(SOP_TOKEN_KEY) || ''; } catch (e) { return ''; }
-                                    }
-                                    function sopTokenSet(t) {
-                                        try { localStorage.setItem(SOP_TOKEN_KEY, String(t || '')); } catch (e) { }
-                                    }
-                                    function sopValidBundle(b) {
-                                        return !!(b && Array.isArray(b.scenes) && b.scenes.length && Array.isArray(b.redlines));
-                                    }
-                                    // 读数据：本机导入 > 服务端 > 内置示例（服务端要口令）
-                                    async function sopLoad(force) {
-                                        if (sopBundle && !force) return sopBundle;
-                                        let bundle = null, label = '内置示例';
-                                        try {
-                                            const c = JSON.parse(localStorage.getItem(SOP_LOCAL_KEY) || 'null');
-                                            if (sopValidBundle(c)) { bundle = c; label = '本机导入'; }
-                                        } catch (e) { }
-                                        if (!bundle) {
-                                            try {
-                                                const headers = {};
-                                                const tk = sopTokenGet();
-                                                if (tk) headers['x-sop-token'] = tk;
-                                                const resp = await fetchWithTimeout(API_BASE + SOP_STORE_KEY, { headers: headers });
-                                                if (resp.ok) {
-                                                    const json = await resp.json();
-                                                    if (sopValidBundle(json && json.value)) { bundle = json.value; label = '服务端'; }
-                                                } else if (resp.status === 403) {
-                                                    teaSetHint('sopDataHint', '服务端 403：口令没填 / 填错，或服务端没配 SOP_TOKEN —— 现在用内置示例');
-                                                }
-                                            } catch (e) { console.warn('读取 SOP 数据失败（用内置示例）', e); }
-                                        }
-                                        sopBundle = bundle || SOP_DEMO;
-                                        sopSourceLabel = label;
-                                        sopRenderHead();
-                                        sopFillSelects();
-                                        sopShowHot();
-                                        const meta = document.getElementById('sopDataMeta');
-                                        if (meta) meta.textContent = '（v' + (sopBundle.version || 0) + ' · ' + (sopBundle.scenes || []).length + ' 个场景 · 来自' + label + '）';
-                                        sopDataStatus();
-                                        sopPhRender();
-                                        return sopBundle;
-                                    }
-                                    function sopInit() {
-                                        sopApplyLock();
-                                        if (!sopUnlocked) return;     // 没解锁不拉数据、也不渲染场景
-                                        if (!sopBundle) sopLoad();
-                                    }
-                                    function sopSetPassHint(t) {
-                                        const el = document.getElementById('sopPassHint');
-                                        if (el) el.textContent = t || '';
-                                    }
-                                    // 锁屏 / 内容区切换（只是 display，数据在没解锁时根本不会加载）
-                                    function sopApplyLock() {
-                                        const lock = document.getElementById('sopLockCard');
-                                        const body = document.getElementById('sopBody');
-                                        if (lock) lock.style.display = sopUnlocked ? 'none' : '';
-                                        if (body) body.style.display = sopUnlocked ? '' : 'none';
-                                        if (!sopUnlocked) {
-                                            const sub = document.getElementById('sopReportSub');
-                                            if (sub) sub.textContent = '🔒 加密页：先输使用口令（不会保存，下次进入要再输）';
-                                            const meta = document.getElementById('sopReportMeta');
-                                            if (meta) meta.innerHTML = '';
-                                            const pass = document.getElementById('sopPassInput');
-                                            if (pass) pass.value = '';      // 任何时候都不留密码在输入框里
-                                        }
-                                    }
-                                    function sopUnlock() {
-                                        const el = document.getElementById('sopPassInput');
-                                        const v = (((el && el.value) || '')).trim();
-                                        if (!v) { sopSetPassHint('先输入口令'); return; }
-                                        if (v !== SOP_PASS) {
-                                            if (el) el.value = '';      // 输错就清掉，不留在框里
-                                            sopSetPassHint('口令不对，再试一次');
-                                            return;
-                                        }
-                                        sopUnlocked = true;
-                                        if (el) el.value = '';          // 用完整即清空（不保留）
-                                        sopSetPassHint('');
-                                        sopApplyLock();
-                                        sopLoad(true);
-                                    }
-                                    function sopDataStatus() {
-                                        const el = document.getElementById('sopDataStatus');
-                                        if (!el) return;
-                                        el.textContent = '当前状态：口令' + (sopTokenGet() ? '已填（只存本机）' : '未填')
-                                            + '　·　数据来自：' + (sopSourceLabel || '内置示例')
-                                            + '　·　服务端 key：sopBundle（sop 前缀一律要口令）';
-                                    }
-                                    function sopRenderHead() {
-                                        const b = sopBundle || SOP_DEMO;
-                                        const scenes = b.scenes || [];
-                                        const cats = [];
-                                        scenes.forEach(s => { if (cats.indexOf(s.cat) === -1) cats.push(s.cat); });
-                                        const sub = document.getElementById('sopReportSub');
-                                        if (sub) sub.textContent = 'v' + (b.version || 0) + '　·　更新于 ' + (b.updatedAt || '—')
-                                            + '　·　' + scenes.length + ' 个场景 / ' + cats.length + ' 类 / ' + (b.redlines || []).length + ' 条红线'
-                                            + '　·　数据来自：' + sopSourceLabel;
-                                        const meta = document.getElementById('sopReportMeta');
-                                        if (meta) {
-                                            const cells = [
-                                                ['场景', scenes.length + ' 个'],
-                                                ['红线', (b.redlines || []).length + ' 条'],
-                                                ['渠道', (b.channels || []).length + ' 个'],
-                                                ['数据来源', sopSourceLabel],
-                                                ['更新日期', b.updatedAt || '—']
-                                            ];
-                                            meta.innerHTML = cells.map(c => '<div><span class="m-k">' + escapeHtml(String(c[0]))
-                                                + '</span><span class="m-v">' + escapeHtml(String(c[1])) + '</span></div>').join('');
-                                        }
-                                    }
-                                    function sopFillSelects() {
-                                        const b = sopBundle || SOP_DEMO;
-                                        const catSel = document.getElementById('sopCatSel');
-                                        if (catSel) {
-                                            const cats = [];
-                                            (b.scenes || []).forEach(s => { if (cats.indexOf(s.cat) === -1) cats.push(s.cat); });
-                                            catSel.innerHTML = '<option value="">全部分类</option>'
-                                                + cats.map(c => '<option value="' + escapeHtml(c) + '">' + escapeHtml(c) + '</option>').join('');
-                                        }
-                                        const chSel = document.getElementById('sopChannelSel');
-                                        if (chSel) {
-                                            chSel.innerHTML = '<option value="">全部渠道</option>'
-                                                + (b.channels || []).map(c => '<option value="' + escapeHtml(c) + '">' + escapeHtml(c) + '</option>').join('');
-                                        }
-                                    }
-                                    function sopSceneById(id) {
-                                        const b = sopBundle || SOP_DEMO;
-                                        return (b.scenes || []).filter(s => s.id === id)[0] || null;
-                                    }
-                                    function sopShowHot() {
-                                        const b = sopBundle || SOP_DEMO;
-                                        const list = (b.scenes || []).slice(0, 8);
-                                        sopHits(list, '场景（共 ' + (b.scenes || []).length + ' 个，直接点开或上面搜索）：');
-                                    }
-                                    let sopHitList = [];
-                                    function sopHits(list, hint) {
-                                        sopHitList = list || [];
-                                        const box = document.getElementById('sopHits');
-                                        if (!box) return;
-                                        if (!sopHitList.length) {
-                                            box.innerHTML = '<span class="hint-text">' + escapeHtml(hint || '没搜到，换个说法试试（如「账号」「充值」「封」「登录」）') + '</span>';
-                                            return;
-                                        }
-                                        box.innerHTML = (hint ? '<span class="hint-text" style="width:100%;">' + escapeHtml(hint) + '</span>' : '')
-                                            + sopHitList.map(s => '<button class="fb-chip" data-sop-open="' + escapeHtml(s.id) + '">'
-                                                + escapeHtml(s.cat + '·' + s.title) + '</button>').join('');
-                                    }
-                                    function sopSearch() {
-                                        const b = sopBundle || SOP_DEMO;
-                                        const qEl = document.getElementById('sopQuery');
-                                        const catEl = document.getElementById('sopCatSel');
-                                        const chEl = document.getElementById('sopChannelSel');
-                                        const q = ((qEl && qEl.value) || '').trim();
-                                        const cat = (catEl && catEl.value) || '';
-                                        const ch = (chEl && chEl.value) || '';
-                                        const words = q.split(/\s+/).filter(Boolean);
-                                        const out = [];
-                                        (b.scenes || []).forEach(s => {
-                                            if (cat && s.cat !== cat) return;
-                                            if (ch && (s.channel || []).indexOf(ch) === -1) return;
-                                            const hay = [s.title, s.cat, (s.triggers || []).join(' '), (s.steps || []).join(' '),
-                                            (s.needInfo || []).join(' '), (s.scripts || []).map(x => x.text).join(' '),
-                                            (s.internal || []).join(' '), (s.product || []).join(' ')].join(' ');
-                                            let hit = !words.length;
-                                            for (const w of words) { if (hay.indexOf(w) !== -1) { hit = true; } }
-                                            // 全部关键词都命中才算（多词时更精确）
-                                            if (words.length > 1) hit = words.every(w => hay.indexOf(w) !== -1);
-                                            if (hit) out.push(s);
-                                        });
-                                        if (!out.length) {
-                                            sopHits([], '没搜到匹配的场景' + (q ? '（关键词：' + q + '）' : '')
-                                                + ' —— 换个说法试试，比如「账号」「充值」「封」「登录」');
-                                            return;
-                                        }
-                                        const hint = '找到 ' + out.length + ' 个场景' + (q ? '（关键词：' + q + '）' : '') + '：';
-                                        sopHits(out, hint);
-                                        if (out.length === 1) sopOpenScene(out[0].id);
-                                    }
-                                    // 处理流程的五环节闭环（口径来自《梦幻消除战》《唱舞全明星》SOP §2.1：提交 → 核实 → 处理 → 登记 → 回访）
-                                    // strong = 强特征词（权重 2），weak = 弱特征词（权重 1）；分数相同取靠前的环节。
-                                    const SOP_FLOW = [
-                                        {
-                                            id: 'submit', name: '提交', tip: '按模板收齐要素，先让玩家把信息给全',
-                                            empty: '这个场景没有单独写「提交」环节；按上面的「要收集」问齐就行。',
-                                            strong: ['收集', '收齐', '收取', '索要', '先问', '要求玩家'],
-                                            weak: ['问', '截图', '提供', '要素', '确认诉求', '玩家ID', '录屏']
-                                        },
-                                        {
-                                            id: 'check', name: '核实', tip: '后台查流水 / 订单 / 触发条件，判定是否异常',
-                                            empty: '这个场景没有单独写「核实」环节；以后台能查到的数据为准。',
-                                            strong: ['核实', '核对', '判定', '复现', '上号'],
-                                            weak: ['查', '确认', '条件', '排期', '对比', '后台', '记录']
-                                        },
-                                        {
-                                            id: 'handle', name: '处理', tip: '补发 / 更换 / 扣回 / 解除 / 删除后重发',
-                                            empty: '这个场景没有单独写「处理」环节；按流程里的动作做。',
-                                            strong: ['补发', '更换', '补单', '删除', '解除', '撤回', '重置', '换发', '扣掉', '扣回', '封停', '禁言', '移出', '封号'],
-                                            weak: ['扣', '发送', '操作', '处理', '引导', '刷新']
-                                        },
-                                        {
-                                            id: 'record', name: '登记', tip: '客诉汇总表 / 内部提单 / 群里同步',
-                                            empty: '这个场景没有单独写「登记」环节；批量问题记得进客诉汇总表，提单后同步群里。',
-                                            strong: ['登记', '提单', '汇总', '上报'],
-                                            weak: ['记录', '备注', '同步', '标记', '汇总表']
-                                        },
-                                        {
-                                            id: 'follow', name: '回访', tip: '确认到账 / 恢复，玩家认可后结单',
-                                            empty: '这个场景没有单独写「回访」环节；处理完回一句确认。',
-                                            strong: ['回访', '结单', '确认到账', '告知结果'],
-                                            weak: ['回复玩家', '跟进', '安抚', '告知玩家']
-                                        }
-                                    ];
-                                    // 话术按「语气标签」挂到环节（收集/引导 → 提交，核实/说明 → 核实，方案/补发 → 处理，收尾/回访 → 回访）
-                                    const SOP_TONE_STAGE = [
-                                        [/收集|引导|索取|询问|要素/, 'submit'],
-                                        [/核实|核对|结论|口径|说明|解释|答复|规则|排期|无异常|条件|查/, 'check'],
-                                        [/方案|补发|更换|补单|解封|处理|安抚|解决|拒绝|通道|升级/, 'handle'],
-                                        [/登记|记录|汇总|提单/, 'record'],
-                                        [/收尾|结单|回访|到账|跟进/, 'follow']
-                                    ];
-                                    function sopStageOfStep(text) {
-                                        const t = String(text || '');
-                                        let best = '', bestScore = 0;
-                                        SOP_FLOW.forEach(st => {
-                                            let n = 0;
-                                            st.strong.forEach(w => { if (t.indexOf(w) >= 0) n += 2; });
-                                            st.weak.forEach(w => { if (t.indexOf(w) >= 0) n += 1; });
-                                            if (n > bestScore) { bestScore = n; best = st.id; }
-                                        });
-                                        return best || 'handle';
-                                    }
-                                    function sopStageOfScript(tone) {
-                                        const t = String(tone || '');
-                                        for (let i = 0; i < SOP_TONE_STAGE.length; i++) {
-                                            if (SOP_TONE_STAGE[i][0].test(t)) return SOP_TONE_STAGE[i][1];
-                                        }
-                                        return 'check';
-                                    }
-                                    // 场景 → 五环节：步骤归环节、话术挂环节（命中多个环节的按权重取最高的那个）
-                                    function sopStagePlan(s) {
-                                        const steps = (s.steps || []).map(x => (typeof x === 'string' ? x : ((x && (x.t || x.text)) || ''))).filter(Boolean);
-                                        const scripts = (s.scripts || []).map((sc, i) => ({ idx: i, tone: sc.tone || '', text: sc.text || '' }));
-                                        return SOP_FLOW.map(st => ({
-                                            id: st.id, name: st.name, tip: st.tip, empty: st.empty,
-                                            steps: steps.filter(t => sopStageOfStep(t) === st.id),
-                                            scripts: scripts.filter(sc => sopStageOfScript(sc.tone) === st.id)
-                                        }));
-                                    }
-                                    // 点环节：高亮 + 在这个环节下展示「这一步做什么 / 要说哪几句」
-                                    function sopPickStage(stageId) {
-                                        const s = sopCurrent;
-                                        if (!s) return;
-                                        const st = sopStagePlan(s).filter(x => x.id === stageId)[0];
-                                        const box = document.getElementById('sopStageScripts');
-                                        const scene = document.getElementById('sopSceneBox');
-                                        if (scene) Array.from(scene.querySelectorAll('[data-sop-stage]')).forEach(el => {
-                                            el.classList.toggle('active', el.dataset.sopStage === stageId);
-                                        });
-                                        if (!st || !box) return;
-                                        const esc = escapeHtml;
-                                        let h = '<div class="sop-stage-head"><b>' + esc(st.name) + '</b><span class="hint-text">' + esc(st.tip) + '</span></div>';
-                                        if (st.steps.length) {
-                                            h += '<ul class="sop-mind-steps" style="margin-bottom:8px;">'
-                                                + st.steps.map(x => '<li>' + esc(x) + '</li>').join('') + '</ul>';
-                                        } else {
-                                            h += '<div class="hint-text" style="margin-bottom:8px;">' + esc(st.empty) + '</div>';
-                                        }
-                                        if (st.scripts.length) {
-                                            h += '<div class="sop-block-t">这一步要说的话术（' + st.scripts.length + ' 条 · 点复制）</div>';
-                                            st.scripts.forEach(sc => {
-                                                h += '<div class="sop-script"><div class="sop-script-t">' + esc(sc.tone || '话术')
-                                                    + ' <button class="secondary sop-copy-btn" data-sop-copy="' + sc.idx + '">📋 复制</button></div>'
-                                                    + '<div class="sop-script-x">' + esc(sc.text) + '</div></div>';
-                                            });
-                                        } else if ((s.scripts || []).length) {
-                                            h += '<div class="sop-block-t">这一步没有单列话术 —— 先用整卡话术</div>';
-                                            (s.scripts || []).forEach((sc, i) => {
-                                                h += '<div class="sop-script"><div class="sop-script-t">' + esc(sc.tone || ('话术 ' + (i + 1)))
-                                                    + ' <button class="secondary sop-copy-btn" data-sop-copy="' + i + '">📋 复制</button></div>'
-                                                    + '<div class="sop-script-x">' + esc(sc.text) + '</div></div>';
-                                            });
-                                        } else {
-                                            h += '<div class="hint-text">这个场景没有写对外话术。</div>';
-                                        }
-                                        box.innerHTML = h;
-                                    }
-                                    // ---------- 话术 / 常用语库：编辑状态、保存 ----------
-                                    let sopScriptEdit = -1;   // -1 = 没在改；≥0 = 改第 n 条；-2 = 新增
-                                    let sopPhEditId = '';     // '' = 没在改；'new' = 新增；其它 = 常用语 id
-                                    let sopPhCat = '';        // 常用语分类筛选
-                                    let sopPhQ = '';          // 常用语关键词
-                                    function sopPhrases() {
-                                        const b = sopBundle || SOP_DEMO;
-                                        if (!Array.isArray(b.phrases)) b.phrases = [];
-                                        return b.phrases;
-                                    }
-                                    function sopPhById(id) { return sopPhrases().filter(x => x.id === id)[0] || null; }
-                                    function sopNewId(prefix) { return prefix + '-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5); }
-                                    // 场景 → 常用语分类（用的是用户自己分好的 22 个问题分类，见 bundle.phrases[].cat）
-                                    const SOP_PH_CAT_RULES = {
-                                        '账号信息': ['账号密码找回', '解绑换绑', '换绑', '询问信息', '信息异常'],
-                                        '充值与退款': ['退款', '信息异常', '询问信息'],
-                                        '封禁与处罚': ['封禁', '账号交易', '投诉'],
-                                        '游戏问题': ['通用游戏机制问题', '误操作', '安抚', '信息异常', '询问信息'],
-                                        '发票': ['询问信息', '结束'],
-                                        'VIP 与运营': ['VIP', '安抚'],
-                                        '群维系': ['账号交易', '封禁', '投诉', '安抚'],
-                                        '交接与升级': ['投诉', '安抚', '结束', '开头语', '询问信息']
-                                    };
-                                    const SOP_PH_PRODUCT_CATS = { '梦幻消除战': ['梦幻常规'], '唱舞全明星': ['唱舞常规'] };
-                                    function sopPhCatsForScene(s) {
-                                        const want = [];
-                                        (SOP_PH_CAT_RULES[s.cat] || []).forEach(c => { if (want.indexOf(c) < 0) want.push(c); });
-                                        (s.product || []).forEach(p => (SOP_PH_PRODUCT_CATS[p] || []).forEach(c => { if (want.indexOf(c) < 0) want.push(c); }));
-                                        const have = {};
-                                        sopPhrases().forEach(p => { if (p.cat) have[p.cat] = (have[p.cat] || 0) + 1; });
-                                        return want.filter(c => have[c]).map(c => ({ cat: c, n: have[c] }));
-                                    }
-                                    // 点场景卡上的分类片：把常用语库筛到那一类（并滚过去）
-                                    function sopPhGoCat(cat) {
-                                        sopPhCat = cat || '';
-                                        sopPhQ = '';
-                                        sopPhEditId = '';
-                                        const q = document.getElementById('sopPhQuery');
-                                        if (q) q.value = '';
-                                        sopPhRender();
-                                        teaSetHint('sopPhHint', '已筛到「' + cat + '」分类');
-                                        const card = document.getElementById('sopPhList');
-                                        if (card && card.scrollIntoView) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                                    }
-                                    // 公共编辑框：kind = 'script'（场景话术，只有语气+正文）| 'phrase'（常用语：分类 + 标题 + 正文）
-                                    function sopEditHtml(kind, idx, cat, tone, text, title) {
-                                        const esc = escapeHtml;
-                                        const f = kind === 'script' ? 'data-sop-ef' : 'data-sop-pf';
-                                        const save = kind === 'script' ? 'data-sop-esave' : 'data-sop-psave';
-                                        const cancel = kind === 'script' ? 'data-sop-ecancel' : 'data-sop-pcancel';
-                                        return '<div class="sop-edit">'
-                                            + '<div class="sop-edit-row">'
-                                            + (kind === 'phrase' ? '<input ' + f + '="cat" placeholder="问题分类（退款 / 封禁 / 账号密码找回…）" value="' + esc(cat || '') + '">' : '')
-                                            + (kind === 'phrase' ? '<input ' + f + '="title" placeholder="标题（这条是问什么问题）" value="' + esc(title || '') + '">' : '')
-                                            + '<input ' + f + '="tone" placeholder="语气（收集 / 说明 / 方案 / 收尾…）" value="' + esc(tone || '') + '">'
-                                            + '</div>'
-                                            + '<textarea ' + f + '="text" rows="4" placeholder="话术正文">' + esc(text || '') + '</textarea>'
-                                            + '<div class="sop-edit-btns">'
-                                            + '<button type="button" ' + save + '="' + idx + '">保存</button>'
-                                            + '<button type="button" class="secondary" ' + cancel + '="1">取消</button>'
-                                            + '<span class="hint-text">保存后写本机 sopBundleLocal，带口令时会顺便推服务端</span>'
-                                            + '</div></div>';
-                                    }
-                                    function sopEditField(kind, name) {
-                                        const sel = (kind === 'script' ? '#sopSceneBox [data-sop-ef="' : '#sopPhList [data-sop-pf="') + name + '"]';
-                                        const el = document.querySelector(sel);
-                                        return el ? String(el.value || '') : '';
-                                    }
-                                    // 落盘：本机 sopBundleLocal（优先级最高）+ 带口令时顺手推服务端
-                                    async function sopPersist(note) {
-                                        if (!sopBundle) return;
-                                        sopBundle.updatedAt = new Date().toISOString().slice(0, 10);
-                                        try { localStorage.setItem(SOP_LOCAL_KEY, JSON.stringify(sopBundle)); } catch (e) { }
-                                        sopSourceLabel = '本机导入';
-                                        sopRenderHead();
-                                        sopDataStatus();
-                                        let pushed = '';
-                                        try {
-                                            const headers = { 'Content-Type': 'application/json' };
-                                            const tk = sopTokenGet(); if (tk) headers['x-sop-token'] = tk;
-                                            const resp = await fetchWithTimeout(API_BASE + SOP_STORE_KEY, {
-                                                method: 'POST', headers: headers, body: JSON.stringify({ value: sopBundle })
-                                            });
-                                            pushed = resp.ok ? '，已推服务端' : '（推服务端失败 HTTP ' + resp.status + '，只存本机）';
-                                        } catch (e) { pushed = '（推服务端失败，只存本机）'; }
-                                        teaSetHint('sopDataHint', (note || '已保存') + pushed);
-                                    }
-                                    // 场景话术：保存 / 删除
-                                    function sopScriptSave() {
-                                        const s = sopCurrent;
-                                        if (!s) return;
-                                        if (!Array.isArray(s.scripts)) s.scripts = [];
-                                        const tone = sopEditField('script', 'tone').trim();
-                                        const text = sopEditField('script', 'text').trim();
-                                        if (!text) { teaSetHint('sopDataHint', '话术正文不能为空'); return; }
-                                        if (sopScriptEdit >= 0) {
-                                            const old = s.scripts[sopScriptEdit] || {};
-                                            s.scripts[sopScriptEdit] = { tone: tone || old.tone || '话术', visibility: old.visibility || 'public', text: text };
-                                        } else {
-                                            s.scripts.push({ tone: tone || '话术', visibility: 'public', text: text });
-                                        }
-                                        sopScriptEdit = -1;
-                                        sopOpenScene(s.id);
-                                        sopPhRender();
-                                        sopPersist('话术已保存');
-                                    }
-                                    function sopScriptDel(idx) {
-                                        const s = sopCurrent;
-                                        if (!s || !Array.isArray(s.scripts)) return;
-                                        if (!window.confirm('删掉这条话术？')) return;
-                                        s.scripts.splice(idx, 1);
-                                        sopScriptEdit = -1;
-                                        sopOpenScene(s.id);
-                                        sopPersist('话术已删除');
-                                    }
-                                    // 常用语库：分类片 + 列表（默认不铺满，搜索/选分类才列出来）
-                                    function sopPhRender() {
-                                        const cats = document.getElementById('sopPhCats');
-                                        const list = document.getElementById('sopPhList');
-                                        const hint = document.getElementById('sopPhHint');
-                                        const all = sopPhrases();
-                                        const catSet = [];
-                                        all.forEach(p => { if (p.cat && catSet.indexOf(p.cat) === -1) catSet.push(p.cat); });
-                                        if (cats) {
-                                            const esc2 = escapeHtml;
-                                            cats.innerHTML = [{ c: '', n: '全部' }].concat(catSet.map(c => ({ c: c, n: c }))).map(x => {
-                                                const on = x.c ? sopPhCat === x.c : !sopPhCat;
-                                                return '<button type="button" class="fb-chip' + (on ? ' active' : '') + '" data-sop-phcat="' + esc2(x.c) + '">' + esc2(x.n) + '</button>';
-                                            }).join('');
-                                        }
-                                        const hasFilter = !!(sopPhQ || sopPhCat);
-                                        const out = all.filter(p => {
-                                            if (sopPhCat && p.cat !== sopPhCat) return false;
-                                            if (sopPhQ) {
-                                                const blob = [p.text || '', p.cat || '', p.title || '', p.tone || ''].join(' ');
-                                                if (blob.indexOf(sopPhQ) === -1) return false;
-                                            }
-                                            return true;
-                                        });
-                                        if (hint) {
-                                            hint.textContent = all.length
-                                                ? ('共 ' + all.length + ' 条' + (hasFilter ? '，筛出 ' + out.length + ' 条' : '（输入关键词或点分类查看）'))
-                                                : '还没有常用语';
-                                        }
-                                        if (!list) return;
-                                        const esc = escapeHtml;
-                                        let h = '';
-                                        if (sopPhEditId === 'new') h += sopEditHtml('phrase', 'new', '', '', '');
-                                        if (!all.length && sopPhEditId !== 'new') {
-                                            list.innerHTML = '<div class="hint-text sop-ph-empty">还没有常用语 —— 点「＋ 新增常用语」加一条，或在「数据与口令」里导入 bundle。</div>';
-                                            return;
-                                        }
-                                        if (!hasFilter && sopPhEditId !== 'new' && all.length) {
-                                            list.innerHTML = h + '<div class="hint-text sop-ph-empty">共 ' + all.length + ' 条常用语：输入关键词，或点上面的分类查看 / 编辑。点「＋ 新增常用语」也能直接加。</div>';
-                                            return;
-                                        }
-                                        out.forEach(p => {
-                                            if (sopPhEditId === p.id) {
-                                                h += sopEditHtml('phrase', p.id, p.cat, p.tone, p.text, p.title);
-                                                return;
-                                            }
-                                            h += '<div class="sop-ph">'
-                                                + '<div class="sop-ph-head">'
-                                                + '<span class="sop-ph-cat">' + esc(p.cat || '未分类') + '</span>'
-                                                + (p.title ? '<span class="sop-ph-title">' + esc(p.title) + '</span>' : '')
-                                                + (p.tone ? '<span class="hint-text">' + esc(p.tone) + '</span>' : '')
-                                                + '<button type="button" class="secondary sop-copy-btn" data-sop-phcopy="' + esc(p.id) + '">📋 复制</button>'
-                                                + '<button type="button" class="secondary sop-copy-btn" data-sop-phedit="' + esc(p.id) + '">✏️</button>'
-                                                + '<button type="button" class="secondary sop-copy-btn" data-sop-phdel="' + esc(p.id) + '">🗑</button>'
-                                                + '</div>'
-                                                + '<div class="sop-ph-text">' + esc(p.text || '') + '</div>'
-                                                + '</div>';
-                                        });
-                                        if (!out.length && sopPhEditId !== 'new') {
-                                            h += '<div class="hint-text sop-ph-empty">没有匹配的常用语（关键词：' + esc(sopPhQ || sopPhCat) + '）—— 换个说法，或直接新增一条。</div>';
-                                        }
-                                        list.innerHTML = h;
-                                    }
-                                    function sopPhSearch() {
-                                        const q = document.getElementById('sopPhQuery');
-                                        sopPhQ = (((q && q.value) || '')).trim();
-                                        sopPhEditId = '';
-                                        sopPhRender();
-                                    }
-                                    function sopPhSave(id) {
-                                        const cat = sopEditField('phrase', 'cat').trim();
-                                        const title = sopEditField('phrase', 'title').trim();
-                                        const tone = sopEditField('phrase', 'tone').trim();
-                                        const text = sopEditField('phrase', 'text').trim();
-                                        if (!text) { teaSetHint('sopPhHint', '话术正文不能为空'); return; }
-                                        const all = sopPhrases();
-                                        if (id === 'new') {
-                                            all.push({ id: sopNewId('ph'), cat: cat || '未分类', title: title, tone: tone, text: text });
-                                        } else {
-                                            const p = sopPhById(id);
-                                            if (p) { p.cat = cat || p.cat || '未分类'; p.title = title; p.tone = tone; p.text = text; }
-                                        }
-                                        sopPhEditId = '';
-                                        sopPhRender();
-                                        sopPersist('常用语已保存');
-                                    }
-                                    function sopPhDel(id) {
-                                        const all = sopPhrases();
-                                        const i = all.findIndex(x => x.id === id);
-                                        if (i < 0) return;
-                                        if (!window.confirm('删掉这条常用语？')) return;
-                                        all.splice(i, 1);
-                                        sopPhEditId = '';
-                                        sopPhRender();
-                                        sopPersist('常用语已删除');
-                                    }
-                                    function sopPhCopy(id) {
-                                        const p = sopPhById(id);
-                                        if (!p) return;
-                                        safeCopy(p.text || '');
-                                        teaSetHint('sopPhHint', '已复制这条常用语');
-                                    }
-                                    function sopOpenScene(id) {
-                                        if (!id) return;
-                                        const s = sopSceneById(id);
-                                        if (!s) return;
-                                        sopCurrent = s;
-                                        const box = document.getElementById('sopSceneBox');
-                                        if (!box) return;
-                                        const esc = escapeHtml;
-                                        let h = '<div class="sop-scene">';
-                                        h += '<div class="sop-scene-head"><b>' + esc(s.title) + '</b>'
-                                            + '<span class="hint-text">' + esc(s.cat) + ' · ' + esc((s.product || []).join('/'))
-                                            + ' · 渠道 ' + esc((s.channel || []).join('/')) + '</span></div>';
-                                        if ((s.triggers || []).length) h += '<div class="hint-text">触发词：' + esc(s.triggers.join('、')) + '</div>';
-                                        if ((s.steps || []).length) {
-                                            // 处理流程：按 SOP 的五环节闭环画成思维导图；点环节 → 下方给出这一步的步骤与话术
-                                            const plan = sopStagePlan(s);
-                                            h += '<div class="sop-block"><div class="sop-block-t">处理流程（思维导图 · 点环节看这一步的话术）</div>'
-                                                + '<div class="sop-flowline">'
-                                                + SOP_FLOW.map((st, i) => '<span class="sop-flow-pill" data-sop-stage="' + st.id + '">' + (i + 1) + '. ' + esc(st.name) + '</span>'
-                                                    + (i < SOP_FLOW.length - 1 ? '<span class="sop-flow-arrow">→</span>' : '')).join('')
-                                                + '</div>'
-                                                + '<div class="sop-mind">'
-                                                + '<div class="sop-mind-root"><span class="sop-mind-k">场景</span><b>' + esc(s.title) + '</b></div>'
-                                                + '<div class="sop-mind-body">'
-                                                + plan.map(st => '<div class="sop-mind-branch">'
-                                                    + '<button type="button" class="sop-mind-stage' + ((st.steps.length + st.scripts.length) ? '' : ' sop-mind-dim') + '" data-sop-stage="' + st.id + '">' + esc(st.name)
-                                                    + '<span class="sop-mind-c">' + st.steps.length + ' 步 · ' + st.scripts.length + ' 话术</span></button>'
-                                                    + (st.steps.length ? '<ul class="sop-mind-steps">' + st.steps.map(x => '<li>' + esc(x) + '</li>').join('') + '</ul>' : '')
-                                                    + '</div>').join('')
-                                                + '</div></div>'
-                                                + '<div class="sop-stage-scripts" id="sopStageScripts"><span class="hint-text">点上面任一环节，看这一步该说的几句话术。</span></div>'
-                                                + '</div>';
-                                        }
-                                        if ((s.scripts || []).length || sopScriptEdit !== -1) {
-                                            h += '<div class="sop-block"><div class="sop-block-t">对外话术（点复制；✏️ 改 / 🗑 删 / ＋ 加）'
-                                                + '<button type="button" class="secondary sop-copy-btn" data-sop-snew="1">＋ 加话术</button></div>';
-                                            (s.scripts || []).forEach((sc, i) => {
-                                                if (sopScriptEdit === i) {
-                                                    h += sopEditHtml('script', i, '', sc.tone || '', sc.text || '');
-                                                    return;
-                                                }
-                                                h += '<div class="sop-script"><div class="sop-script-t">' + esc(sc.tone || ('话术 ' + (i + 1)))
-                                                    + ' <button type="button" class="secondary sop-copy-btn" data-sop-copy="' + i + '">📋 复制</button>'
-                                                    + ' <button type="button" class="secondary sop-copy-btn" data-sop-sedit="' + i + '">✏️</button>'
-                                                    + ' <button type="button" class="secondary sop-copy-btn" data-sop-sdel="' + i + '">🗑</button></div>'
-                                                    + '<div class="sop-script-x">' + esc(sc.text) + '</div></div>';
-                                            });
-                                            if (sopScriptEdit === -2) h += sopEditHtml('script', 'new', '', '', '');
-                                            h += '</div>';
-                                        }
-                                        if ((s.needInfo || []).length) {
-                                            h += '<div class="sop-block"><div class="sop-block-t">要收集</div><div class="sop-needchips">'
-                                                + s.needInfo.map(x => '<span class="sop-needchip">' + esc(x) + '</span>').join('')
-                                                + '</div></div>';
-                                        }
-                                        // 「相关常用语」：按用户自己分好的问题分类挂到场景上，点分类 → 常用语库筛到那一类
-                                        const phCats = sopPhCatsForScene(s);
-                                        if (phCats.length) {
-                                            h += '<div class="sop-block"><div class="sop-block-t">💬 相关常用语（按问题分类 · 点一下去库里看）</div>'
-                                                + '<div class="fb-chip-row sop-phchips">'
-                                                + phCats.map(x => '<button type="button" class="fb-chip" data-sop-phgo="' + esc(x.cat) + '">'
-                                                    + esc(x.cat) + '<span class="sop-mind-c">' + x.n + '</span></button>').join('')
-                                                + '</div></div>';
-                                        }
-                                        if ((s.internal || []).length) {
-                                            h += '<div class="sop-block sop-internal"><div class="sop-block-t">⚠️ 内部口径（别发玩家）</div><ul class="sop-ul">'
-                                                + s.internal.map(x => '<li>' + esc(x) + '</li>').join('') + '</ul></div>';
-                                        }
-                                        if ((s.escalate || []).length) {
-                                            h += '<div class="sop-block"><div class="sop-block-t">升级 / 注意</div><ul class="sop-ul">'
-                                                + s.escalate.map(e => '<li>' + esc(e.when) + ' → <b>' + esc(e.do) + '</b></li>').join('') + '</ul></div>';
-                                        }
-                                        if (s.form && (s.form.fields || []).length) {
-                                            h += '<details class="sop-fold"><summary>提单格式（' + esc(s.form.kicker || '') + '）</summary>'
-                                                + '<div class="sop-form-preview">' + esc(s.form.fields.map(f => f + '：').join('  ')) + '</div></details>';
-                                        }
-                                        if (s.source) h += '<details class="sop-fold"><summary>依据条款</summary><div class="hint-text" style="line-height:1.9;">' + esc(s.source) + '</div></details>';
-                                        h += '</div>';
-                                        box.innerHTML = h;
-                                    }
-                                    function sopRedlineRules() {
-                                        const b = sopBundle || SOP_DEMO;
-                                        return b.redlines || [];
-                                    }
-                                    function sopCheckRedlines() {
-                                        const input = document.getElementById('sopRedInput');
-                                        const box = document.getElementById('sopRedBox');
-                                        const hint = document.getElementById('sopRedHint');
-                                        const text = ((input && input.value) || '').trim();
-                                        if (!text) { if (hint) hint.textContent = '先粘一段要发给玩家的话'; return; }
-                                        const rules = sopRedlineRules();
-                                        const hits = [];
-                                        rules.forEach(r => {
-                                            let idx = -1, matched = '';
-                                            if (r.re) {
-                                                let m = null;
-                                                try { m = new RegExp(r.re).exec(text); } catch (e) { m = null; }
-                                                if (m) { idx = m.index; matched = m[0]; }
-                                            } else if (r.word) {
-                                                idx = text.indexOf(r.word);
-                                                matched = r.word;
-                                            }
-                                            if (idx >= 0) hits.push({ r: r, idx: idx, matched: matched });
-                                        });
-                                        hits.sort((a, b) => a.idx - b.idx);
-                                        if (hint) hint.textContent = hits.length ? ('命中 ' + hits.length + ' 处红线') : 'OK：没命中已知红线（仍要自己再核一遍）';
-                                        if (!box) return;
-                                        if (!hits.length) { box.innerHTML = '<div class="hint-text">✅ 没命中已知红线。</div>'; return; }
-                                        box.innerHTML = hits.map(h2 => {
-                                            const r = h2.r;
-                                            return '<div class="sop-hit sop-hit-' + (r.level === 'red' ? 'red' : 'amber') + '">'
-                                                + '<div class="sop-hit-t">' + (r.level === 'red' ? '❌' : '⚠️') + ' 「' + escapeHtml(h2.matched) + '」'
-                                                + (r.src ? '<span class="hint-text">（' + escapeHtml(r.src) + '）</span>' : '') + '</div>'
-                                                + '<div class="sop-hit-x">原因：' + escapeHtml(r.why || '') + '</div>'
-                                                + '<div class="sop-hit-fix">改成：' + escapeHtml(r.fix || '') + '</div></div>';
-                                        }).join('');
-                                    }
-                                    async function sopImport() {
-                                        const t = prompt('把 SOP bundle JSON 粘进来（{ version, updatedAt, channels[], redlines[], scenes[] }）：');
-                                        if (!t) return;
-                                        let b = null;
-                                        try { b = JSON.parse(t); } catch (e) { teaSetHint('sopDataHint', 'JSON 解析失败：' + (e && e.message)); return; }
-                                        if (!sopValidBundle(b)) { teaSetHint('sopDataHint', '结构不对：至少要 scenes[] 和 redlines[]'); return; }
-                                        try { localStorage.setItem(SOP_LOCAL_KEY, JSON.stringify(b)); } catch (e) { }
-                                        sopBundle = b; sopSourceLabel = '本机导入'; sopCurrent = null;
-                                        sopRenderHead(); sopFillSelects(); sopShowHot();
-                                        let pushed = '';
-                                        try {
-                                            const headers = { 'Content-Type': 'application/json' };
-                                            const tk = sopTokenGet(); if (tk) headers['x-sop-token'] = tk;
-                                            const resp = await fetchWithTimeout(API_BASE + SOP_STORE_KEY, {
-                                                method: 'POST', headers: headers, body: JSON.stringify({ value: b })
-                                            });
-                                            pushed = resp.ok ? '，并已推到服务端' : '（推服务端失败 HTTP ' + resp.status + '，本机照常可用）';
-                                        } catch (e) { pushed = '（推服务端失败，本机照常可用）'; }
-                                        teaSetHint('sopDataHint', '已导入 ' + b.scenes.length + ' 个场景' + pushed);
-                                        sopDataStatus();
-                                        sopPhRender();
-                                    }
-                                    function sopExport() {
-                                        if (!sopBundle) { teaSetHint('sopDataHint', '还没加载数据'); return; }
-                                        safeCopy(JSON.stringify(sopBundle, null, 2));
-                                        teaSetHint('sopDataHint', '已复制当前 bundle JSON');
-                                    }
-                                    async function sopSaveToken() {
-                                        const el = document.getElementById('sopTokenInput');
-                                        sopTokenSet(((el && el.value) || '').trim());
-                                        sopResetState();
-                                        await sopLoad(true);
-                                        teaSetHint('sopDataHint', '口令已保存，重新加载完成（数据来自：' + sopSourceLabel + '）');
-                                        sopDataStatus();
-                                    }
-                                    function sopResetState() { sopBundle = null; sopCurrent = null; }
-                                    function sopReload() { sopResetState(); sopLoad(true); }
-
                                     // ==================== 界面设置（背景色 / 强调色 / 渐变） ====================
 
                                     // ==================== 界面设置（背景色 / 强调色 / 渐变） ====================
@@ -14526,12 +13668,31 @@
                                             this.classList.add('active');
                                             const targetTab = document.getElementById(`tab-${this.dataset.tab}`);
                                             if (targetTab) targetTab.classList.add('active');
+                                            const tabKey = this.dataset.tab;
+                                            // 统计页页内跳转条：切进来时把高亮放回第一个（避免上次的残留）
+                                            const jumpBar = document.querySelector('#tab-' + tabKey + ' .jump-bar');
+                                            if (jumpBar) {
+                                                jumpBar.querySelectorAll('.jump-chip').forEach((c, i) => c.classList.toggle('active', i === 0));
+                                            }
                                             if (this.dataset.tab === 'career') renderCareer();
                                             if (this.dataset.tab === 'overseas') { ovbizRender(); renderOvbizDetail(); }   // 切进来重画一遍（数据只在本机）
                                             if (this.dataset.tab === 'tea') teaInit();                                  // 下午茶：切进来拉一次服务端
-                                            if (this.dataset.tab === 'sop') sopInit();                                  // SOP：切进来拉一次（要口令 / token）
                                             if (this.dataset.tab === 'feedback') fbRenderChips();
                                         });
+                                        // 统计页页内跳转：点一下滚到那一块（jsdom 里没有 scrollIntoView，所以先判一下）
+                                        (function bindJumpBar() {
+                                            document.querySelectorAll('.jump-bar').forEach(bar => {
+                                                bar.addEventListener('click', (e) => {
+                                                    const b = e.target.closest('.jump-chip');
+                                                    if (!b) return;
+                                                    const t = document.getElementById(b.dataset.jump || '');
+                                                    if (t && typeof t.scrollIntoView === 'function') {
+                                                        t.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                                    }
+                                                    bar.querySelectorAll('.jump-chip').forEach(x => x.classList.toggle('active', x === b));
+                                                });
+                                            });
+                                        })();
 
                                         // 规则搜索
                                         const typeFilter = document.getElementById('ruleTypeFilter');
@@ -14743,89 +13904,6 @@
                                         setClick('fbGenerateBtn', fbGenerate);
                                         setClick('fbCopyBtn', fbCopy);
                                         setClick('fbClearBtn', fbClear);
-                                        // SOP 助手（先过口令门 → 检索 / 红线检查 / 常用语库）
-                                        setClick('sopUnlockBtn', sopUnlock);
-                                        (function bindSopPass() {
-                                            const p = document.getElementById('sopPassInput');
-                                            if (p) p.addEventListener('keydown', (e) => { if (e.key === 'Enter') sopUnlock(); });
-                                        })();
-                                        sopApplyLock();
-                                        setClick('sopSearchBtn', sopSearch);
-                                        setClick('sopClearBtn', () => {
-                                            const q = document.getElementById('sopQuery');
-                                            if (q) q.value = '';
-                                            const c1 = document.getElementById('sopCatSel'); if (c1) c1.value = '';
-                                            const c2 = document.getElementById('sopChannelSel'); if (c2) c2.value = '';
-                                            const sb = document.getElementById('sopSceneBox'); if (sb) sb.innerHTML = '';
-                                            sopCurrent = null; sopShowHot();
-                                        });
-                                        (function bindSopInputs() {
-                                            const q = document.getElementById('sopQuery');
-                                            if (q) q.addEventListener('keydown', (e) => { if (e.key === 'Enter') sopSearch(); });
-                                            const c1 = document.getElementById('sopCatSel');
-                                            if (c1) c1.addEventListener('change', sopSearch);
-                                            const c2 = document.getElementById('sopChannelSel');
-                                            if (c2) c2.addEventListener('change', sopSearch);
-                                            const hits = document.getElementById('sopHits');
-                                            if (hits) hits.addEventListener('click', (e) => {
-                                                const b = e.target.closest('[data-sop-open]');
-                                                if (b) sopOpenScene(b.dataset.sopOpen);
-                                            });
-                                            const scene = document.getElementById('sopSceneBox');
-                                            if (scene) scene.addEventListener('click', (e) => {
-                                                const st = e.target.closest('[data-sop-stage]');
-                                                if (st) { sopPickStage(st.dataset.sopStage); return; }
-                                                const pg = e.target.closest('[data-sop-phgo]');
-                                                if (pg) { sopPhGoCat(pg.dataset.sopPhgo); return; }
-                                                // 话术编辑：改 / 删 / 加 / 保存 / 取消
-                                                const se = e.target.closest('[data-sop-sedit]');
-                                                if (se) { sopScriptEdit = +se.dataset.sopSedit; sopOpenScene(sopCurrent && sopCurrent.id); return; }
-                                                const sd = e.target.closest('[data-sop-sdel]');
-                                                if (sd) { sopScriptDel(+sd.dataset.sopSdel); return; }
-                                                if (e.target.closest('[data-sop-snew]')) { sopScriptEdit = -2; sopOpenScene(sopCurrent && sopCurrent.id); return; }
-                                                if (e.target.closest('[data-sop-esave]')) { sopScriptSave(); return; }
-                                                if (e.target.closest('[data-sop-ecancel]')) { sopScriptEdit = -1; sopOpenScene(sopCurrent && sopCurrent.id); return; }
-                                                const b = e.target.closest('[data-sop-copy]');
-                                                if (!b || !sopCurrent) return;
-                                                const sc = (sopCurrent.scripts || [])[+b.dataset.sopCopy];
-                                                if (sc) safeCopy(sc.text);
-                                            });
-                                            // 常用语库：搜索 / 分类 / 复制 / 改 / 删 / 保存
-                                            setClick('sopPhSearchBtn', sopPhSearch);
-                                            setClick('sopPhNewBtn', () => { sopPhEditId = 'new'; sopPhCat = ''; sopPhQ = ''; sopPhRender(); });
-                                            const phq = document.getElementById('sopPhQuery');
-                                            if (phq) phq.addEventListener('keydown', (e) => { if (e.key === 'Enter') sopPhSearch(); });
-                                            const phCats = document.getElementById('sopPhCats');
-                                            if (phCats) phCats.addEventListener('click', (e) => {
-                                                const c = e.target.closest('[data-sop-phcat]');
-                                                if (!c) return;
-                                                sopPhCat = c.dataset.sopPhcat || '';
-                                                sopPhEditId = '';
-                                                sopPhRender();
-                                            });
-                                            const phList = document.getElementById('sopPhList');
-                                            if (phList) phList.addEventListener('click', (e) => {
-                                                const cp = e.target.closest('[data-sop-phcopy]');
-                                                if (cp) { sopPhCopy(cp.dataset.sopPhcopy); return; }
-                                                const ed = e.target.closest('[data-sop-phedit]');
-                                                if (ed) { sopPhEditId = ed.dataset.sopPhedit; sopPhRender(); return; }
-                                                const dl = e.target.closest('[data-sop-phdel]');
-                                                if (dl) { sopPhDel(dl.dataset.sopPhdel); return; }
-                                                const sv = e.target.closest('[data-sop-psave]');
-                                                if (sv) { sopPhSave(sv.dataset.sopPsave); return; }
-                                                if (e.target.closest('[data-sop-pcancel]')) { sopPhEditId = ''; sopPhRender(); return; }
-                                            });
-                                        })();
-                                        setClick('sopRedCheckBtn', sopCheckRedlines);
-                                        setClick('sopRedClearBtn', () => {
-                                            const i = document.getElementById('sopRedInput'); if (i) i.value = '';
-                                            const b = document.getElementById('sopRedBox'); if (b) b.innerHTML = '';
-                                            const h = document.getElementById('sopRedHint'); if (h) h.textContent = '';
-                                        });
-                                        setClick('sopTokenSaveBtn', sopSaveToken);
-                                        setClick('sopReloadBtn', sopReload);
-                                        setClick('sopImportBtn', sopImport);
-                                        setClick('sopExportBtn', sopExport);
                                         // 界面设置（齿轮面板：背景色 / 强调色 / 渐变）
                                         themeInit();
                                         setClick('themeGear', () => themeTogglePanel());

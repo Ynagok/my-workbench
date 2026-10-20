@@ -49,7 +49,7 @@ npm run verify     # 改完代码、push 前的完整自检
 
 | 命令 | 内容 |
 |---|---|
-| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 363 项 + 「接口挂起时界面仍可用」+ 服务端冒烟 42 项 + 油猴脚本语法 + 单测 169 项 |
+| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 308 项 + 「接口挂起时界面仍可用」+ 服务端冒烟 42 项 + 油猴脚本语法 + 单测 169 项 |
 | `npm run verify:static` | 只要静态校验 + 语法检查（最快） |
 | `npm run report` | 打印一份真实生成的日报，肉眼确认排版（含 ⑥伙伴弹途 / ⑦异世界勇者） |
 | `npm run build:data` | 从 GM 玩家页快照提取 4 张权威映射表 + 与硬编码常量的**差异报告**（见下「游戏数据管线」） |
@@ -58,7 +58,7 @@ npm run verify     # 改完代码、push 前的完整自检
 | `npm run smoke:pmc` | **生管物料订单工作台**（`public/pmc.html`）自检，123 项（含加工周期工作日推算 + 在途锁定/调整建议 + 真实 8.5MB xlsx 端到端导入）；**不在 verify 里**，见下「生管物料订单工作台」一节 |
 | `npm test` | = `npm run verify` |
 
-`npm run verify` 失败就不要提交。它一共 7 段：静态结构 → 语法 → jsdom 集成冒烟 **363 项** → 接口挂起时界面仍可用 → 服务端冒烟 **42 项** → 油猴脚本语法（`node --check`）→ 油猴脚本单测 **169 项**。
+`npm run verify` 失败就不要提交。它一共 7 段：静态结构 → 语法 → jsdom 集成冒烟 **308 项** → 接口挂起时界面仍可用 → 服务端冒烟 **42 项** → 油猴脚本语法（`node --check`）→ 油猴脚本单测 **169 项**。
 
 - jsdom 未安装时前端冒烟会自动回落到本机 DSH 自带的那份。
 - `tools/smoke-server.cjs` 用 `PORT` + `DATA_FILE` 环境变量把服务端指到随机端口和 `tools/out/` 里的临时文件，**不会碰真实 `data.json`**；子进程 stdio 必须用 `ignore`/`inherit`（沙箱禁管道，`pipe` 会 EPERM）。
@@ -137,6 +137,13 @@ npm run verify     # 改完代码、push 前的完整自检
   - 只存本机 `localStorage['themeSettings']`（`{bg, accent, effect}`，全默认就删键），**不进 `/api/data`**；启动时 `themeInit()` 立刻应用（避免闪一下默认色），并**兼容迁移旧键 `themeBgColor`**（读到就并进 themeSettings 再删旧键）。
   - **测试**：`tools/smoke.cjs` 第 **8i** 节 **22 条**（抬头齿轮 + 面板默认收起 / 点齿轮展开（`.open` + aria）/ 8+8+6 个选项 / 默认不动令牌也没本机记录 / 选暖米 → `--bg-0` + 浅色令牌 / 卡片面由底色推导 / **派生令牌逐条校验是合法颜色（`isColor`，防 `#aNaNaN`）** / 选蓝 → `--accent` 变蓝（合法值、≠默认黄）/ 六个 accent 令牌一起换 / **换绿再换回蓝都不是「取消」** / 渐变挂 `data-bg-effect` / 选炭黑 → 自动暗色且强调色提亮 / 两个取色器 / 点外面收起 / 恢复默认清令牌+属性+记录 / 不往服务端存）；`tools/verify.mjs` 另有 10 条静态断言（抬头+面板注入、旧调色条已移除、8+8+6 选项、三个 apply 函数、**`themeMix` 必须逐通道混**、区间钳制、令牌派生与属性、6 种渐变的 CSS、只存本机+迁移旧键、齿轮开合与排序守护）。
 - **客服生涯 · 报表版式**：`.career-report-head`（英文 kicker `WORKLOAD REPORT / 工作量统计报表` + 标题 + `#careerReportSub` 数据范围/口径 + 右上 `#careerReportMeta` 5 格元数据：身份/记录天数/累计/日均/出具日期，由 `renderCareer()` 填；**「反馈模板」标签页也复用了这套抬头**）；卡片自动编号 `01…`（`#tab-career` 上 `counter-reset: career-card`，编号画在 `.card > label::before` / `.flex-row > label::before` / `.career-collapse-btn::before`）；KPI 卡改成等宽大数字 + 右上角刻度线（`.career-kpi::after`）；报表页**关掉了卡片的斜纹底**（`#tab-career .card::after { display:none }`）。
+- **统计页的「紧凑信息条」（2026-10 加，用来替代成段说明文字）**：
+  - `.stat-chips` + `.stat-chip`（含 `k-accent` / `k-warn` / `k-danger` / `k-plain` / `k-op` 变体）=「**一片一件事**」，数字用 `b` 强调；JS 里用 `statChip(text, cls, title)` / `statChips([...])` 两个 helper 生成（**它们内部会 `escapeHtml`，别再手动转义**；要放 HTML 就传 `{ html: "…" }`）。
+  - `details.stat-fold` = 默认收起的格式说明 / 口径说明（原来的长段落都折进去了）。
+  - `.card-sub` = 卡片标题右边那截极小的副标（替代原来一整句 `hint-text`）。
+  - `.jump-bar` + `.jump-chip` = 统计页**页内跳转条**（吸顶），`data-jump="卡片id"` → 滚过去；绑定在 `bindAll` 的 `bindJumpBar()` 里，**jsdom 没有 `scrollIntoView`，所以那里判了 `typeof === "function"`**（别写成裸调用，冒烟会红）。
+  - `.career-scroll table.career-table` 现在**表头吸顶 + 首列吸左**（宽表横向拖动时不跟丢）。
+  - ⚠️ 冒烟对这些块用的是 `textContent` 精确/正则断言（如 `工单侧 17 + 海外侧 53 = 累计 70`、`Top3 集中度：`、`合计占`、`待确认 1 天`、`异常线 μ+2σ`、`活动 / 版本峰值标注`、`只存在这台设备的浏览器里`、`不上传服务端`）—— 改芯片文案要同步改断言。
 - ⚠️ 想再换回暗色：把 `:root` 的 `--bg-0/--surface*/--ink*/--line*/--accent*` 换回深色值即可，但**要同时删掉/改掉「浅色收口层 · 柔和白」这一段 + `color-scheme: light` + select 箭头 SVG 的 `%23c89500`**，否则会有浅底白线。
 
 ## 反馈模板（工单信息提取器）
@@ -238,52 +245,12 @@ npm run verify     # 改完代码、push 前的完整自检
 - **测试**：`tools/smoke.cjs` 第 **8j** 节（**47 条**）：店家存服务端（**只有店名、不再写备注**）+ **店家管理是默认收起的 `<details>`、标题带家数** + **本机备份 `teaShopsCache`** + **服务端店家被清空时用备份自动恢复并推回去** + **投票被 23:00 清掉后店家原样还在** / 发起 today 的投票 + 名字快照与默认标题 / 分享链接格式 / 复制分享文案 / 第一次投票生成 voterId / **投票走 `/api/vote` 服务端合并** / 结果按店家计数且**不出现人名** / 另一台设备投票合并进同一份 / 改票覆盖不翻倍 / 撤销 / 复制结果 / 手动截止后 409 挡住 / 过期 GET 连数据删掉 / 状态行讲 23:00 清除；**截止时间 12 条**（`type=time` / 存进 `deadline` / 状态行写「HH:MM 截止」/ 过了的时间不让发起 / **到点后投票区收起 + 只留说明 + 数据还在 + 结果照常** / 到点后前端挡下不发请求 / 绕开前端直接 POST → 服务端 409 `closedReason:'deadline'` / 改回未到点又能投 / 手动截止也是「只能看结果」）；**另起一个 jsdom**（URL 带 `?vote=`）验 `data-vote-only` / 侧边栏与店家管理被藏 / **没发那 9 个启动请求** / 能选店能投 / 与自己 voterId 不同 / 两台设备统计在一起 / **到点后只投票页也收起投票区且点提交不发请求**。`tools/smoke-server.cjs` 另有 **23 条**（合并语义、改票、非法 voterId/shopIds/key、404/409/410、**过期投票被真的从 data.json 删掉**、当天 23:00 前不误删、**deadline 到点前后各一遍 + `closed/closedReason` + 格式不对的 deadline 忽略**）。`tools/verify.mjs` 3g 有 15 条静态断言（含「备注整段拿掉 + 店家折叠 + 本机备份/自动恢复」两条）。
   - ⚠️ 冒烟里的 fetch mock（`makeFetchMock(store, log)`）**照着真服务端实现了 `/api/vote` 的合并与过期清理**，两个 jsdom 共用同一个 `serverData` 来模拟「两台设备连同一个服务端」—— 改服务端语义时这里要一起改。
 
-## SOP 助手（`data-tab="sop"` · ⚠️ 数据要口令）
+## SOP 助手（**已删除** · 2026-10，用户要求）
 
-**「SOP 助手」标签页**（侧边栏在「反馈模板」下面）—— 把《客服部工作SOP》《后台常用话术》《游戏问题处理流程》《客服规范总汇》《群维系/海外/监控交接》整理成**可检索的处理卡**，并提供**红线检查**与**常用语库**。**不发任何消息给玩家**：只查、只抄、只校验，发送仍由人确认。
+「SOP 助手」标签页已**整块删除**：侧边栏入口 / `#tab-sop` 页面 / `.sop-*` 样式 / `sopXxx()` 全部脚本 / 事件绑定都清了，页面上不再出现任何 sop 字样。`verify.mjs` 3h（4 条）与 `smoke.cjs` 8k（2 条）现在断言的是「**它不该存在**」：要恢复就 `git show 60745e5:public/index.html`，配套测试也一起捡回来。
 
-- ⚠️⚠️ **合规前提（用户选的方案）**：SOP 里有 32 处「内部了解，严禁告知玩家」、判定阈值、升级顺序（含员工姓名/电话）——**不能裸奔**。所以：
-  1. 数据存服务端 key **`sopBundle`**（`sop*` 前缀），**`server.js` 只对 sop 前缀要口令**：环境变量 **`SOP_TOKEN`**；请求头 `x-sop-token`（或 `?token=`）必须一致，否则 403；**`SOP_TOKEN` 没配 → sop 数据一律 403**（宁可不可用也不裸奔）。
-  2. 口令只存本机 `localStorage['sopToken']`，**不进服务端、不进 git**；页面上「⚙️ 数据与口令」里填。
-  3. 完整 bundle **不入 git**（放 `tools/out/sop/bundle.json`，gitignore）+ `npm run sop:seed` 推上服务端；仓库里只有**内置示例**（8 个场景，去掉了姓名/电话）。
-- **🔒 页面加密门**（用户要求：「设备首次进入该功能要输入口令，账号密码信息不保留」）：口令写死在前端常量 **`const SOP_PASS = '客服冷静';`**。
-  - 未解锁时只显示 `#sopLockCard`（🔒 标题 + `#sopPassInput` + 「进入」+ 提示 + 「输入不会被保存」一行），`#sopBody`（三个功能卡 + 数据卡）整块 `display:none`；**不解锁就不发 `sopBundle` 请求**（`sopInit()` 先 `sopApplyLock()`，锁着直接 return）。
-  - ⚠️ **`#sopPassInput` 是 `type="text"` + CSS `-webkit-text-security: disc`，不是 `type="password"`**：password 类型在部分浏览器/输入法下会挡中文上屏，导致「客服冷静」这种中文口令打不进去（用户反馈「一开始的口令不能输入中文了」）。用 text 保住输入法，用 `text-security` 把字符遮成圆点；不支持该属性的浏览器退化成明文（可接受，口令本身不是个人密码）。**别再改回 `type="password"`**。
-  - 解锁状态是**内存变量 `let sopUnlocked = false;`**：**不写 localStorage / sessionStorage、不写服务端**，所以刷新/重开页面就要重新输 —— 这就是「不保留」的落地方式。输入框在成功或失败后都清空；失败提示「口令不对，再试一次」，空输入另行提示。
-  - ⚠️ 它只是**页面门**，真正的数据保护仍是服务端 `SOP_TOKEN`（上面第 1 条）；别把口令存起来「方便下次」。
-- **流程可视化（思维导图 · 五环节闭环）**：场景卡的「处理流程」按《梦幻消除战》《唱舞全明星》SOP §2.1 的**提交 → 核实 → 处理 → 登记 → 回访**五个环节画成思维导图，**点环节 → 下面出这一步的步骤 + 该说哪几句话术**（可单条复制）。
-  - 结构：`.sop-flowline`（顶部闭环小片，带 `→`）+ `.sop-mind`（左边 `.sop-mind-root` 场景名，右边 `.sop-mind-body` 五条 `.sop-mind-branch`，连线用 `branch::before` + `body` 的左边框）+ `#sopStageScripts`（点环节后的内容面板）。
-  - 分组是**启发式**：`SOP_FLOW` 每个环节有 `strong`（权重 2）/`weak`（权重 1）词表，`sopStageOfStep()` 按命中词打分取最高（同分取靠前环节，0 分默认「处理」）；话术按**语气标签**挂环节（`SOP_TONE_STAGE`：收集/引导→提交，核实/说明/结论→核实，方案/补发/拒绝→处理，登记/记录→登记，收尾/回访→回访）。两个表都在 `index.html`，调映射就改这两张表。
-  - 某环节没挂到话术时**不瞎编**：面板写「这一步没有单列话术 —— 先用整卡话术」，并把整卡话术列出来（点环节的按钮上也标着「N 步 · N 话术」，0 步 0 话术的环节 `.sop-mind-dim` 变淡）。
-  - 「要收集」仍是 `.sop-needchip` 小片；内部口径仍是红框 `.sop-internal` 单独一块。
-  - ⚠️ **旧的竖向步骤条（`.sop-steps` / `.sop-step-n`）已经删掉**，不要再加回来；冒烟/静态断言已改成导图的。
-- **⚙️ 数据与口令怎么用**（卡片里也写了 ①②③④）：
-  1. **口令 = 服务端环境变量 `SOP_TOKEN`**，跟进入本页要输的「客服冷静」**不是一回事**（那个只是页面门）；两边可以一样也可以不一样，改的时候别混。
-  2. 在「⚙️ 数据与口令」里填 → 点「保存口令并重新加载」→ 存 `localStorage['sopToken']`（只在本机，**不进服务端、不进 git**），之后拉数据带 `x-sop-token` 头。
-  3. 没填 / 填错 → 服务端 **403** → 页面回落「内置示例」（8 个场景，只作演示）；`#sopDataStatus` 会写「口令已填/未填 · 数据来自 X · 服务端 key sopBundle」。
-  4. 整份数据可以「📥 粘贴导入 bundle JSON」写本机 `sopBundleLocal`（**优先级高于服务端**，不用口令也能用）或「📋 复制当前 bundle」备份；灌线上用 `npm run sop:seed`。
-- **💬 常用语库（新卡 `#sopPhList`）**：数据来自《全部常用语.xls》**原表**（列：`分类名称 / 分类类别 / 标题 / 内容 / 排序 / 高级常用语`），`bundle.phrases[] = { id, cat, title, tone, text }` —— **`cat` 就是用户自己分好的 22 个问题分类**（换绑 / 询问信息 / 结束 / 通用游戏机制问题 / 安抚 / 账号注销 / 退款 / 盗号 / 解绑换绑 / 封禁 / 误操作 / 唱舞常规 / 账号密码找回 / 江湖常规 / 梦幻常规 / 信息异常 / VIP / 开头语 / 迁移 / 账号交易 / 其他游戏 / 投诉），**`title` 是原表「标题」列**（这条在问什么），共 **238 条**（只在本机 bundle、不进 git；内置示例只放 3 条，分类也用这套）。
-  - ⚠️ **.xls 是 BIFF8，但现在已经能正确读了**：`G:\work-bad\node_modules\xlsx`（SheetJS，`npm i xlsx@0.18.5 --no-save` 装的，`node_modules/` 已 gitignore）→ `node tools/out/sop/xls-rows.cjs <file.xls>` 导出 `tools/out/sop/xls-rows.txt`（每行 `行号\t分类名称\t分类类别\t标题\t内容\t排序\t高级常用语`），再用 `tools/out/sop/rebuild-phrases.cjs` 重建 `bundle.phrases`。**旧的 `xls-text.cjs`（盲扫文本）只作兜底，别再用它当数据源。**
-  - **场景 ↔ 问题分类自动匹配**：`SOP_PH_CAT_RULES`（按场景 `cat`：账号信息→账号密码找回/解绑换绑/换绑/询问信息/信息异常；充值与退款→退款/信息异常/询问信息；封禁与处罚→封禁/账号交易/投诉；游戏问题→通用游戏机制问题/误操作/安抚/信息异常/询问信息；发票→询问信息/结束；VIP 与运营→VIP/安抚；群维系→账号交易/封禁/投诉/安抚；交接与升级→投诉/安抚/结束/开头语/询问信息）+ `SOP_PH_PRODUCT_CATS`（梦幻消除战→梦幻常规、唱舞全明星→唱舞常规）。场景卡上出「💬 相关常用语（按问题分类）」分类片，**点一下 → 常用语库自动筛到那一类并滚过去**（`sopPhGoCat()`）。分类名在库里不存在时不出片（`sopPhCatsForScene` 会过滤）。
-  - 交互：关键词搜索（`#sopPhQuery` + 搜索按钮 / 回车，**搜分类 / 标题 / 正文**）+ 分类片筛选（`#sopPhCats`）；**默认不铺满**（只显示「共 N 条」，搜了才列），省得一屏两百多条。每条卡片显示 **分类片 + 标题 + 正文**，有 📋 复制 / ✏️ 改 / 🗑 删，卡上还有「＋ 新增常用语」。
-  - ⚠️ `sopPhRender()` 是唯一渲染入口（`sopPhSearch` / 分类点击 / `sopPhGoCat` / 增删改后都调它）；筛选用 `sopPhCat` + `sopPhQ` 两个模块级变量。
-- **✏️ 话术可编辑（用户要求「后续要可以添加修改已有的话术」）**：场景卡的每条话术都有 **✏️ 改 / 🗑 删**，「对外话术」标题旁有 **＋ 加话术**；常用语库同样能增删改。两处共用同一个编辑框组件 `sopEditHtml(kind, idx, cat, tone, text, title)`（`kind='script'` 只有语气+正文，`'phrase'` 有 **问题分类 + 标题 + 语气 + 正文**）。
-  - 状态：`sopScriptEdit`（-1 空闲 / ≥0 改第 n 条 / -2 新增）、`sopPhEditId`（'' / 'new' / id）；保存走 `sopScriptSave()` / `sopPhSave(id)`，删除走 `sopScriptDel(idx)` / `sopPhDel(id)`（都 `confirm`）。
-  - 落盘 `sopPersist(note)`：**写 `localStorage['sopBundleLocal']` + 抬头来源改成「本机导入」+ 尝试带 `x-sop-token` POST 到 `/api/data/sopBundle`**（推不上去只影响别处能不能看到，本机照常）。所以改完刷新不丢；换设备要「📋 复制当前 bundle」或重新 seed。
-  - ⚠️ 编辑只动 `sopBundle` 内存/本机副本，**不改 `SOP_DEMO`**（内置示例保持极简，避免把内部话术写进仓库）。
-- **版面（用户：「字有点多和紧凑，能不能弄个更容易看的样式」）**：场景卡改成「区块卡片」——`.sop-block` 带边框/浅底/内边距，标题前加一根黄色细条；`.sop-script` 变成独立小卡（左边黄线 + 更大行高 1.95）；正文 `line-height` 从 1.7 提到 1.9 左右。**「提单格式」和「依据条款」折进 `details.sop-fold`（默认收起）**，长文本不再一屏堆满。常用语库默认不展开列表（见上）。
-- **数据模型**：`{ version, updatedAt, channels[], redlines[], scenes[], phrases[] }`
-  - `redlines[] = { level:'red'|'amber', word 或 re, why, fix, src }` —— 命中「好评 / 误封 / 代言人 / 外挂 / 客服热线 / VIP客服 / 具体时间 / 存续期 / 苹果客服 / 抽奖概率 / 内部说明（正则）」等。
-  - `scenes[] = { id, cat, product[], channel[], title, triggers[], needInfo[], steps[], scripts[{tone,visibility,text}], internal[], escalate[{when,do}], form{kicker,fields[]}, source }`。
-  - `phrases[] = { id, cat, title, tone, text }` —— `cat` 是用户自己分好的问题分类、`title` 是原表「标题」；可缺省（`sopValidBundle` 只硬性要求 `scenes` + `redlines`）。
-- **两个能力**（一期）：
-  1. **🔍 查场景**：搜玩家原话/关键词（多词要全部命中）、按分类/渠道筛选；命中 1 条自动展开；场景卡给「处理流程（导图）/ 要收集 / 对外话术（可复制可编辑）/ ⚠️内部口径（别发玩家，红框）/ 升级注意 / 提单格式（折叠）/ 依据条款（折叠）」。
-  2. **🚩 红线检查**：粘一段准备发给玩家的话 → 逐条匹配 `redlines`（`word` 用 indexOf、`re` 用 RegExp）→ 按出现顺序列出「命中词 / 原因 / 改成什么 / 出处」；没命中给「OK，仍要自己核一遍」。
-  - ⚠️ **原来的「🧾 信息清单 / 提单文本」卡已按用户要求整块删除**（2026-10）：`#sopNeedBox` / `#sopFormOut` / `sopBuildForm()` / `sopRenderNeed()` / `sopCopy()` 全部移除，别再加回来；**提单格式还留在场景卡里**（折叠块 `details.sop-fold`），只是不再往那块卡里生成文本。
-- **数据来源优先级**：本机导入（`localStorage['sopBundleLocal']`）> 服务端 `sopBundle`（带口令）> **内置示例 `SOP_DEMO`**；抬头与「数据」卡都写明当前来源（本机导入 / 服务端 / 内置示例）。
-- **灌数据**：`SOP_TOKEN=xxx BASE_URL=https://work-bad.onrender.com npm run sop:seed`（默认读 `tools/out/sop/bundle.json`，POST 到 `/api/data/sopBundle`）；线上 Render 里要配 `SOP_TOKEN` 环境变量。页面也能「📥 粘贴导入 bundle JSON」（写本机 + 尝试推服务端）、「📋 复制当前 bundle」。
-- **二期（用户也勾了，尚未做）**：各游戏「后台行为对应表」（妖怪 855 行 / 攻沙 484 行…）、合区查询、xlsx 自动导入通道 —— **.xls 现在能读了**（装 SheetJS 后 `tools/out/sop/xls-rows.cjs` 直接导行），所以 `合区表.xls`/其它 `.xls` 都能走这条路；剩下的是把导出的行对进场景（行为对照表/合区查询还没做）。**常用语库已做**（见上，`bundle.phrases` 238 条，直接来自原表，不再是「人工整理 57 条」）。
-- **测试**：`tools/smoke.cjs` 第 **8k** 节 **57 条**（**加密门：未解锁只看锁屏、不发 sopBundle 请求、口令框是 text（不挡中文输入法）、错口令清空、对「客服冷静」才进、口令不进 localStorage/sessionStorage** / **数据与口令卡：写明「口令 = 服务端 SOP_TOKEN，不是解锁口令」+ 403 回落 + 本机导入 + 状态行** / **思维导图：5 个环节闭环小片（提交→核实→处理→登记→回访）5 个环节节点、导图里挂着具体步骤、默认只给提示 / 点「核实」出步骤和可复制话术 / 点中的环节在流程图与导图同时高亮 / 换「处理」环节内容跟着换 / 环节话术能复制** / **话术编辑 7 条（每条带 ✏️、点开出编辑框、保存后换新话术 + 提示 + 写进 sopBundleLocal、＋ 加话术、🗑 删一条）** / **常用语库 7 条（默认只报条数不铺满、先给提示、搜「角色」筛出、复制给提示、✏️ 改完生效、＋ 新增后条数与分类片更新、🗑 删回 3 条）** / **相关常用语 3 条（场景卡按问题分类出分类片 / 点分类片 → 常用语库自动筛到那一类 / 筛出来的条目就是这一类）** / **信息清单卡已拿掉（`#sopNeedBox`/`#sopFormOut`/「信息清单」字样都没了）+ 提单格式仍在场景卡折叠块里** / 要收集小片 / 标签页/抬头来源/容器/默认入口/搜「充值没到账」命中并展开/订单号与话术/内部口径单独标出/复制话术不抛错/搜不到给提示/分类筛选/红线命中「好评+误封」并给替换口径/干净话不误报/清空生效/粘贴导入 bundle 生效并推服务端）；`tools/smoke-server.cjs` **+7 条**（不带口令 403、错口令 403、对口令 200、query 传口令、普通 key 不受影响、别的 sop 前缀也受保护）；`tools/verify.mjs` 3h **20 条**静态断言（含服务端 `SOP_TOKEN`/`SOP_KEY_RE`/`denySop`/`tokenEq`、`npm run sop:seed`、加密门只存内存、**口令框是 text + text-security（不许回到 password）**、**问题分类映射 `SOP_PH_CAT_RULES` + 场景分类片 + `sopPhGoCat`**、**常用语带标题**、五环节分组函数 + 导图结构 + 连线/高亮样式 + 数据与口令说明 + 话术编辑 + 落盘 + 版面折叠 + 清单卡确已移除）。
+- **服务端没动**：`server.js` 的 `SOP_TOKEN` + `sop*` 前缀口令关、`tools/sop-seed.cjs`（`npm run sop:seed`）都留着 —— 服务端 `data.json` 里那份 `sopBundle` 还在，删前端不等于删数据，而且数据含内部口径与员工姓名/电话，**别裸奔、别入库**（只在本机 `tools/out/sop/bundle.json`，已 gitignore）。
+- 想彻底清干净：删 Render 的 `SOP_TOKEN` 环境变量 + `data.json` 里的 `sopBundle` + `server.js` 的 `denySop`/`SOP_KEY_RE`/`tokenEq` + `tools/sop-seed.cjs`（**这几步都没做**，等用户发话）。
 
 ## 生管物料订单工作台（`public/pmc.html` · 临时工具，独立单页）
 
@@ -340,12 +307,12 @@ npm run verify     # 改完代码、push 前的完整自检
 ## 目录结构
 
 ```
-public/index.html          全部前端（单文件，约 14500 行：内联 CSS + 内联 JS 的 async IIFE；含「客服生涯」「海外业务统计」「反馈模板」「SOP 助手」「下午茶」标签页 + ?vote= 只投票页）
+public/index.html          全部前端（单文件，约 14500 行：内联 CSS + 内联 JS 的 async IIFE；含「客服生涯」「海外业务统计」「反馈模板」「下午茶」标签页 + ?vote= 只投票页）
 public/gemjy-openid-helper.user.js  油猴脚本（反馈后台：卡片式悬浮窗，提取 头像/昵称/图片/openid，一键复制 openid；当前内容 0.4.0，就发在这一条链接上；与前端无代码耦合）
 public/pmc.html            生管物料订单工作台（临时工具单页：内置 H93A 26.5/26.6 样例 + 浏览器端解析真实 xlsx + 逐日库存/缺料日/建议下单 + 按供应商导出 CSV；只存本机，与工作台零耦合）
 server.js                  express：静态托管 public/ + GET/POST /api/data/:key ↔ data.json（含 key 白名单）+ GET/POST /api/vote/:key（下午茶投票：原子合并 + 当天 23:00 过期清理）
 data.json                  服务端数据（随使用增长；前端字段缺失会被默认值自动补齐）
-tools/                     自检脚本（verify / smoke / smoke-nonblocking / smoke-server / smoke-pmc / test-openid-helper / print-report / build-game-data）＋ sop-seed.cjs（把 SOP bundle 推到服务端）
+tools/                     自检脚本（verify / smoke / smoke-nonblocking / smoke-server / smoke-pmc / test-openid-helper / print-report / build-game-data）＋ sop-seed.cjs（遗留：SOP 页面已删，只用来把旧 bundle 推给服务端）
 tools/fixtures/            build:data 的输入；player-page.html 含玩家隐私已 gitignore，样例已入库
 tools/out/                 build:data 的产出（4 张表 + 差异报告）＋ pmc 样例数据管线 ＋ sop/（附件抽出来的文本与 bundle，已 gitignore），已 gitignore
 package.json               scripts: start / verify / verify:static / smoke:server / smoke:pmc / sop:seed / report / build:data / test
@@ -571,3 +538,9 @@ package.json               scripts: start / verify / verify:static / smoke:serve
   3. **库里带标题**：搜索 blob 改成 标题 + 正文 + 分类 + 语气；每条卡显示「分类片 + 标题 + 正文」；编辑框多一个「标题」输入 —— `sopEditHtml(kind, idx, cat, tone, text, title)` 签名变了（改调用点记得带第 6 个参数）。`SOP_DEMO` 那 3 条示例也按这套分类改（退款 / 询问信息 / 安抚）。
   4. **测试**：`smoke.cjs` 8k 新增 3 条（场景卡按问题分类出分类片 / 点分类片 → 常用语库自动筛到那一类 / 筛出来的条目就是这一类），**360 → 363**；`verify.mjs` 3h 加 2 条（`SOP_PH_CAT_RULES` + `sopPhCatsForScene` + `sopPhGoCat` + `data-sop-phgo` + `.sop-phchips`；`title` 字段与 6 参数签名），**18 → 20**。`npm run verify` 全绿（363 / 42 / 169）。
   5. **要上线得用户自己来**：Render 里那个环境变量的 **KEY 现在叫 `workbad`，服务端只认 `SOP_TOKEN`** —— 要么改名、要么再加一个同名值的 `SOP_TOKEN`；之后 `SOP_TOKEN=xxx BASE_URL=https://work-bad.onrender.com npm run sop:seed` 把 v4（238 条）推上去。没推之前页面只在「本机导入 / 内置示例」之间切。
+- 本轮：**删掉 SOP 页面 + 客服生涯 / 海外业务统计去文字化 + 全站「更直观更实用」**（用户：「删除sop功能页面，优化客服生涯和海外业务的数据统计，尽量避免大量文字堆砌。整个网站的ui设计以更直观，更实用的方向进行优化」）。改了 `public/index.html` + `tools/smoke.cjs` + `tools/verify.mjs` + 本文件：
+  1. **SOP 页整块删除**：侧边栏按钮、`#tab-sop` 页面、那段 `.sop-*` CSS、`SOP_*` 常量 / `SOP_DEMO` / `sopXxx()` 全部函数（约 800 行 JS）、事件绑定全部移除；`git diff --numstat` 是纯删除，没有整篇重排。**服务端 `SOP_TOKEN` 口令关与 `npm run sop:seed` 保留**（数据仍在服务端 / 本机 bundle，含内部口径不能裸奔）。测试改成「断言它不该存在」：`smoke.cjs` 8k 由 57 条 → **2 条**（无入口 / 全页无 sop 字样），`verify.mjs` 3h 由 20 条 → **4 条**（页面无 sop / 无死代码 / 服务端口令关仍在 / seed 工具留着）。冒烟 **363 → 308**。
+  2. **统计页去文字化**：新增 `statChip` / `statChips` helper 与 `.stat-chips` / `.stat-chip` / `details.stat-fold` / `.card-sub` 一套样式 —— 原来成段的「工单侧 X + 海外侧 Y = 累计 Z；日均…；数据只存在这台设备…」改成**芯片条**；来源结构 / 异常日 & 峰值 / 数据质量 / 覆盖 / 海外逐项 Top3 / 海外异常日与备注全部芯片化；卡片标题那一整句 `hint-text` 压成 `.card-sub` 副标；「日期怎么认 / 三种格式怎么粘 / 同比为什么用 4 周前」折进 `details.stat-fold`。
+  3. **更好用**：两个统计页顶部加**吸顶页内跳转条**（`.jump-bar` / `.jump-chip` + `bindJumpBar()`，`data-jump` 指向卡片 id，含 `scrollIntoView` 判空）；`.career-scroll` 里的宽表**表头吸顶 + 首列吸左**；反馈模板 / 下午茶 / 日报预览的说明文字同样压成 `.card-sub` + 折叠。
+  4. **测试**：`smoke.cjs` **308 项全绿**（唯一要改的是「异常线 μ+2σ」那句必须继续出现在 1 天数据的兜底文案里）；`verify.mjs` 4 条 SOP 断言 + 花括号/CSS 平衡全绿。`npm run verify` 全绿（**308 / 42 / 169**）。
+  5. ⚠️ 视觉是**推算的**（这台机器截不了图）：芯片换行、吸顶跳转条、粘性表头需要在浏览器里 `Ctrl+F5` 后瞄一眼，挤了就说一声。
