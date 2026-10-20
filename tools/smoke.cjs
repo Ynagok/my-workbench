@@ -1560,6 +1560,65 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
       'SOP 助手已从页面移除：整页（含内联脚本）不再出现 sop 字样，没留死代码');
   }
 
+  console.log('--- 8l. 高频回复 / 归档体检 / 增量导入 ---');
+  {
+    // ① 高频回复：生成 + 复制各算一次，只存本机
+    const postsBefore = posts.length;
+    $('openingInput').value = '亲爱的玩家您好，';
+    $('replyContentInput').value = '已经为您核对并处理，请重新登录查看。';
+    $('closingInput').value = '有任何问题随时联系我们。';
+    $('generateReplyBtn').click();
+    await sleep(30);
+    check(/已经为您核对并处理/.test($('replyResultArea').value), '生成回复正常', $('replyResultArea').value.slice(0, 40));
+    let top = JSON.parse(window.localStorage.getItem('replyTopUsage') || '[]');
+    check(top.length === 1 && top[0].count === 1 && top[0].gen === 1,
+      '第一次生成就记进高频统计（gen=1）', top);
+    check(/用 1 次/.test($('replyTopList').textContent), '高频列表显示「用 N 次」', $('replyTopList').textContent.slice(0, 60));
+    $('generateReplyBtn').click(); await sleep(20);
+    $('generateReplyBtn').click(); await sleep(20);
+    $('copyReplyBtn').click(); await sleep(20);
+    top = JSON.parse(window.localStorage.getItem('replyTopUsage') || '[]');
+    check(top[0].count === 4 && top[0].cop === 1,
+      '生成 3 次 + 复制 1 次 = 4 次（复制也算一次）', top[0]);
+    $('replyContentInput').value = '这条用得少一些的第二句。';
+    $('generateReplyBtn').click(); await sleep(20);
+    top = JSON.parse(window.localStorage.getItem('replyTopUsage') || '[]');
+    check(top.length === 2 && top[0].count === 4,
+      '用得少的那句排在后面（按次数降序）', top.map(x => x.count));
+    const delBtn = doc.querySelector('#replyTopList [data-replytop-del="1"]');
+    check(!!delBtn, '每条高频回复都有删除按钮');
+    if (delBtn) delBtn.click();
+    await sleep(20);
+    check(JSON.parse(window.localStorage.getItem('replyTopUsage') || '[]').length === 1,
+      '删掉一条后统计里只剩 1 条');
+    $('replyTopClearBtn').click();
+    await sleep(20);
+    check(JSON.parse(window.localStorage.getItem('replyTopUsage') || '[]').length === 0
+      && /还没有记录/.test($('replyTopList').textContent), '清空统计后回到空态');
+    check(posts.length === postsBefore, '高频回复全程不发请求（只存本机 localStorage）');
+
+    // ② 归档体检 / 漏登记提醒
+    const audit = $('careerAuditBox');
+    check(!!audit && /漏登记|都归档了/.test(audit.textContent),
+      '客服生涯有归档体检提示（漏登记 / 最近 7 天都归档了）', audit && audit.textContent.slice(0, 80));
+
+    // ③ 海外业务：增量导入只补没导过的日期
+    const before = Object.keys(JSON.parse(window.localStorage.getItem('overseasBizData') || '{"rows":{}}').rows || {}).length;
+    $('ovbizPasteArea').value = '2026-12-01,新同事,,1,2,3,,,,,,4,5,6';
+    $('ovbizImportNewBtn').click();
+    await sleep(30);
+    let after = Object.keys(JSON.parse(window.localStorage.getItem('overseasBizData') || '{"rows":{}}').rows || {}).length;
+    check(after === before + 1 && /增量导入 1 行/.test($('ovbizHint').textContent),
+      '增量导入：新日期才进来（+1 行）', $('ovbizHint').textContent.slice(0, 60));
+    $('ovbizImportNewBtn').click();
+    await sleep(30);
+    after = Object.keys(JSON.parse(window.localStorage.getItem('overseasBizData') || '{"rows":{}}').rows || {}).length;
+    check(after === before + 1 && /没有新日期可导入/.test($('ovbizHint').textContent),
+      '增量导入：同一天再点一次不重复进来', $('ovbizHint').textContent.slice(0, 60));
+    check(/最新数据到 2026-12-01/.test($('ovbizSyncHint').textContent),
+      '状态行显示「最新数据到 YYYY-MM-DD」', $('ovbizSyncHint').textContent.slice(0, 80));
+  }
+
   console.log('--- 9. 无未捕获异常 ---');
   check(!warns.some(w => w.startsWith('ERROR')), 'console.error 未被调用：' + warns.filter(w => w.startsWith('ERROR')).join(' | '));
   check(jsdomErrors.length === 0, '页面无未捕获异常（jsdomError）', jsdomErrors.slice(0, 3));

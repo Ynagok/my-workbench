@@ -3288,6 +3288,21 @@
         }
         .jump-chip:hover { border-color: var(--accent-line); background: var(--accent-dim); color: var(--accent-ink); }
         .jump-chip.active { border-color: var(--accent-line); background: var(--accent-dim); color: var(--accent-ink); }
+        /* ⭐ 高频回复：一行一条，标题行放计数芯片，正文折两行 */
+        .reply-top-item {
+            border: 1px solid var(--line-0); border-left: 3px solid var(--accent-line);
+            background: var(--surface); padding: 8px 10px; border-radius: var(--r-sm); margin-bottom: 8px;
+        }
+        .reply-top-head { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 4px; }
+        .reply-top-rank {
+            width: 18px; height: 18px; line-height: 18px; text-align: center; border-radius: 50%;
+            background: var(--surface-3); color: var(--ink-2); font-size: 11px; font-variant-numeric: tabular-nums;
+        }
+        .reply-top-btn { padding: 1px 8px !important; font-size: 12px !important; }
+        .reply-top-text {
+            font-size: 13px; line-height: 1.85; color: var(--ink-1);
+            display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+        }
 
     </style>
 </head>
@@ -3508,6 +3523,14 @@
                 </div>
                 <div id="replyPresetList" style="margin-top:12px;"></div>
             </div>
+
+            <div class="card">
+                <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
+                    <label style="margin:0;">⭐ 高频回复 <span class="card-sub">本机自动统计：生成 + 复制各算一次，只留最多 10 条</span></label>
+                    <button id="replyTopClearBtn" class="reset-btn">🧹 清空统计</button>
+                </div>
+                <div id="replyTopList" style="margin-top:6px;"></div>
+            </div>
         </div>
 
         <!-- ==================== 反馈模板 feedback ==================== -->
@@ -3687,6 +3710,7 @@
                 </div>
                 <div id="careerSheetHint" class="hint-text" style="margin-top: 8px;"></div>
                 <div id="careerArchiveHint" class="hint-text" style="margin-top: 4px;"></div>
+                <div id="careerAuditBox" class="stat-chips" style="margin-top: 8px;"></div>
             </div>
 
             <div class="card" id="careerCardTicket">
@@ -3838,6 +3862,7 @@
                 <textarea id="ovbizPasteArea" rows="7" placeholder="日期,人员,班次,异世界群维系,（繁花+乐缤纷+梦幻）群维系,…&#10;2026/1/1,陈智锋,,0,35,,11,5,1,1,,,13,19,85,"></textarea>
                 <div class="flex-row" style="margin-top: 10px;">
                     <button id="ovbizImportBtn">📥 解析导入</button>
+                    <button id="ovbizImportNewBtn" class="secondary">📌 只导入新日期</button>
                     <button id="ovbizExportBtn" class="secondary">📊 导出CSV</button>
                     <button id="ovbizClearBtn" class="reset-btn">🧹 清空本机数据</button>
                     <span class="hint-text" id="ovbizHint"></span>
@@ -10340,6 +10365,72 @@
                                         const cl = (document.getElementById('closingInput').value || '').replace(/\s+/g, ' ').trim();
                                         const text = [op, ct, cl].filter(s => s).join('');
                                         document.getElementById('replyResultArea').value = text;
+                                        replyTopTrack(text, 'gen');
+                                    }
+
+                                    // ---------- ⭐ 高频回复（用户要求：不存 openid，只统计「这台设备生成 / 复制最多的话术」，最多 10 条） ----------
+                                    // 只写本机 localStorage['replyTopUsage']，不进 /api/data、不认玩家。
+                                    const REPLY_TOP_KEY = 'replyTopUsage';
+                                    const REPLY_TOP_MAX = 10;    // 展示条数（用户要求「至多十条」）
+                                    const REPLY_TOP_KEEP = 60;   // 本机最多留多少条原始统计，防止无限长
+                                    let replyTopUsage = [];
+                                    function replyTopLoad() {
+                                        try {
+                                            const arr = JSON.parse(localStorage.getItem(REPLY_TOP_KEY) || '[]');
+                                            replyTopUsage = Array.isArray(arr) ? arr.filter(x => x && typeof x.text === 'string' && x.text) : [];
+                                        } catch (e) { replyTopUsage = []; }
+                                        return replyTopUsage;
+                                    }
+                                    function replyTopSave() {
+                                        try { localStorage.setItem(REPLY_TOP_KEY, JSON.stringify(replyTopUsage)); } catch (e) { }
+                                    }
+                                    function replyTopRanked() {
+                                        replyTopLoad();
+                                        return replyTopUsage.slice()
+                                            .sort((a, b) => (b.count - a.count) || String(b.last || '').localeCompare(String(a.last || '')))
+                                            .slice(0, REPLY_TOP_MAX);
+                                    }
+                                    // 记一次使用：生成算一次、复制也算一次；用得多了自然挤进前 10（用户要求）
+                                    function replyTopTrack(text, kind) {
+                                        const t = String(text || '').replace(/\s+/g, ' ').trim();
+                                        if (t.length < 4) return;          // 空回复 / 一两个字不记
+                                        replyTopLoad();
+                                        let hit = replyTopUsage.filter(x => x.text === t)[0];
+                                        if (!hit) {
+                                            hit = { text: t, count: 0, gen: 0, cop: 0, last: '' };
+                                            replyTopUsage.push(hit);
+                                        }
+                                        hit.count = (hit.count || 0) + 1;
+                                        if (kind === 'gen') hit.gen = (hit.gen || 0) + 1; else hit.cop = (hit.cop || 0) + 1;
+                                        hit.last = careerToday();
+                                        replyTopUsage.sort((a, b) => (b.count - a.count) || String(b.last || '').localeCompare(String(a.last || '')));
+                                        if (replyTopUsage.length > REPLY_TOP_KEEP) replyTopUsage.length = REPLY_TOP_KEEP;
+                                        replyTopSave();
+                                        renderReplyTopList();
+                                    }
+                                    function renderReplyTopList() {
+                                        const box = document.getElementById('replyTopList');
+                                        if (!box) return;
+                                        const list = replyTopRanked();
+                                        if (!list.length) {
+                                            box.innerHTML = '<div class="stat-chips">'
+                                                + statChip('还没有记录 —— 用「✨ 生成回复」或「📋 复制」几次，这里会自动排出最常用的几条', 'k-plain')
+                                                + '</div>';
+                                            return;
+                                        }
+                                        box.innerHTML = list.map((x, i) => '<div class="reply-top-item">'
+                                            + '<div class="reply-top-head">'
+                                            + '<span class="reply-top-rank">' + (i + 1) + '</span>'
+                                            + statChip('用 ' + x.count + ' 次', 'k-accent')
+                                            + (x.gen ? statChip('生成 ' + x.gen, 'k-plain') : '')
+                                            + (x.cop ? statChip('复制 ' + x.cop, 'k-plain') : '')
+                                            + (x.last ? statChip('最近 ' + x.last, 'k-plain') : '')
+                                            + '<span style="margin-left:auto;"></span>'
+                                            + '<button class="secondary reply-top-btn" data-replytop-copy="' + i + '">📋 复制</button>'
+                                            + '<button class="reset-btn reply-top-btn" data-replytop-del="' + i + '">🗑 删</button>'
+                                            + '</div>'
+                                            + '<div class="reply-top-text">' + escapeHtml(x.text) + '</div>'
+                                            + '</div>').join('');
                                     }
 
                                     // ==================== 日报生成 · 逻辑 ====================
@@ -11106,7 +11197,35 @@
                                         const ed = document.getElementById('careerEditDate');
                                         if (ed && !ed.value) ed.value = careerToday();
 
+                                        renderCareerAudit();
                                         renderCareerDetail();
+                                    }
+
+                                    // ---------- 🗓️ 归档体检 / 漏登记提醒（用户要求） ----------
+                                    // 看最近 N 天（不含今天，今天还没到归档时间）里哪天没有记录 —— 有缺口就点名。
+                                    function careerRecentDays(n) {
+                                        const base = Date.parse(careerToday() + 'T00:00:00Z');
+                                        const out = [];
+                                        for (let i = n; i >= 1; i--) out.push(new Date(base - i * 86400000).toISOString().slice(0, 10));
+                                        return out;
+                                    }
+                                    function renderCareerAudit() {
+                                        const box = document.getElementById('careerAuditBox');
+                                        if (!box) return;
+                                        const recs = (careerData && careerData.records) || {};
+                                        const days = careerRecentDays(7);
+                                        const missing = days.filter(d => !recs[d]);
+                                        const have = days.filter(d => !!recs[d]);
+                                        const chips = [];
+                                        if (!missing.length) {
+                                            chips.push(statChip('最近 7 天都归档了', 'k-accent'));
+                                            chips.push(statChip('已归档 ' + have.length + ' 天', 'k-plain'));
+                                        } else {
+                                            chips.push(statChip('漏登记 ' + missing.length + ' 天', 'k-warn'));
+                                            missing.forEach(d => chips.push(statChip(d, 'k-warn')));
+                                            chips.push(statChip('去「每日日报」生成后点「🗂️ 归档今日日报」，或在下面「✍️ 补录」补上', 'k-plain'));
+                                        }
+                                        box.innerHTML = statChips(chips);
                                     }
 
                                     // ---------- 指标详情：挑一项（或某一侧），看它的总量 / 平均值 / 按日·按月的趋势 ----------
@@ -11913,10 +12032,12 @@
                                         const el = document.getElementById('ovbizSyncHint');
                                         if (!el) return;
                                         const n = Object.keys(ovbizData.rows).length;
+                                        const last = ovbizLastDate();
                                         // 一片一件事：几行文字压成芯片
                                         el.innerHTML = statChips([
                                             statChip('只存在这台设备的浏览器里', 'k-warn'),
                                             statChip(n + ' 行原始记录'),
+                                            statChip(last ? '最新数据到 ' + last : '还没有数据'),
                                             statChip('不上传服务端', 'k-plain'),
                                             statChip('换设备：导出CSV 再粘回来', 'k-plain')
                                         ]);
@@ -12262,8 +12383,59 @@
                                             + (res.skipped ? '，跳过 ' + res.skipped + ' 行（日期无法识别）' : '')
                                             + (res.mismatch ? '；有 ' + res.mismatch + ' 行「总计」与各项之和对不上，已按各项之和入账' : ''));
                                     }
-                                    function ovbizCsvText() {
+                                    // 📌 增量导入（用户要求）：只补「本机还没有的日期」，已存在的日期整段跳过
+                                    function ovbizImportNew() {
                                         ovbizEnsureLoaded();
+                                        const area = document.getElementById('ovbizPasteArea');
+                                        const text = (area && area.value) || '';
+                                        if (!text.trim()) { ovbizSetHint('没有内容可导入'); return; }
+                                        const res = ovbizParse(text);
+                                        if (!res.rows.length) {
+                                            ovbizSetHint('没识别出有效行' + (res.skipped ? '（' + res.skipped + ' 行日期不合法）' : ''));
+                                            return;
+                                        }
+                                        const haveDays = {};
+                                        for (const k of Object.keys(ovbizData.rows)) haveDays[ovbizData.rows[k].date] = 1;
+                                        let add = 0, skip = 0;
+                                        const newDays = {};
+                                        for (const r of res.rows) {
+                                            if (haveDays[r.date]) { skip++; continue; }
+                                            const key = r.date + '|' + r.name;
+                                            ovbizData.rows[key] = {
+                                                date: r.date, name: r.name, shift: r.shift, items: r.items,
+                                                total: r.total, note: r.note, at: new Date().toISOString()
+                                            };
+                                            newDays[r.date] = 1;
+                                            add++;
+                                        }
+                                        if (!add) {
+                                            const last = ovbizLastDate();
+                                            ovbizSetHint('没有新日期可导入 —— 粘进来的 ' + Object.keys(daysOf(res.rows)).length + ' 天本机都有了'
+                                                + (last ? '（最新数据到 ' + last + '）' : ''));
+                                            return;
+                                        }
+                                        ovbizData.updatedAt = new Date().toISOString();
+                                        ovbizData.clearedAt = null;
+                                        ovbizSaveCache();      // ⚠️ 只写本机 localStorage
+                                        ovbizRender();
+                                        ovbizSetHint('增量导入 ' + add + ' 行（新增 ' + Object.keys(newDays).length + ' 天）· 跳过 ' + skip + ' 行（本机已有那些日期）'
+                                            + (res.skipped ? '，另有 ' + res.skipped + ' 行日期无法识别' : ''));
+                                    }
+                                    function daysOf(rows) {
+                                        const o = {};
+                                        for (const r of rows) o[r.date] = 1;
+                                        return o;
+                                    }
+                                    // 本机数据里最新的那一天（给「只导入新日期」和状态行用）
+                                    function ovbizLastDate() {
+                                        let last = '';
+                                        for (const k of Object.keys((ovbizData && ovbizData.rows) || {})) {
+                                            const d = ovbizData.rows[k].date;
+                                            if (d > last) last = d;
+                                        }
+                                        return last;
+                                    }
+                                    function ovbizCsvText() {                                        ovbizEnsureLoaded();
                                         const q = (v) => {
                                             const t = String(v == null ? '' : v);
                                             return /[",\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t;
@@ -13844,6 +14016,7 @@
                                         setClick('careerImportBtn', careerImport);
                                         // 海外业务统计
                                         setClick('ovbizImportBtn', ovbizImport);
+                                        setClick('ovbizImportNewBtn', ovbizImportNew);
                                         setClick('ovbizExportBtn', () => {
                                             if (!careerDownload('海外业务统计_' + careerToday() + '.csv', ovbizCsvText(), 'text/csv')) alert('当前环境不支持导出');
                                         });
@@ -14081,7 +14254,40 @@
                                             if (tagsInput) tagsInput.value = '';
                                         });
 
-                                        setClick('copyReplyBtn', () => safeCopy(document.getElementById('replyResultArea').value));
+                                        setClick('copyReplyBtn', () => {
+                                            const text = document.getElementById('replyResultArea').value;
+                                            safeCopy(text);
+                                            replyTopTrack(text, 'cop');   // 复制也算一次使用
+                                        });
+
+                                        // 高频回复：复制 / 删除 / 清空（只动本机统计）
+                                        (function bindReplyTop() {
+                                            const box = document.getElementById('replyTopList');
+                                            if (box) box.addEventListener('click', (e) => {
+                                                const cp = e.target.closest('[data-replytop-copy]');
+                                                if (cp) {
+                                                    const it = replyTopRanked()[+cp.dataset.replytopCopy];
+                                                    if (it) { safeCopy(it.text); replyTopTrack(it.text, 'cop'); }
+                                                    return;
+                                                }
+                                                const dl = e.target.closest('[data-replytop-del]');
+                                                if (dl) {
+                                                    const it = replyTopRanked()[+dl.dataset.replytopDel];
+                                                    if (!it) return;
+                                                    if (!window.confirm('从高频回复里删掉这条统计？')) return;
+                                                    replyTopLoad();
+                                                    replyTopUsage = replyTopUsage.filter(x => x.text !== it.text);
+                                                    replyTopSave();
+                                                    renderReplyTopList();
+                                                }
+                                            });
+                                            setClick('replyTopClearBtn', () => {
+                                                if (!window.confirm('清空本机的高频回复统计？')) return;
+                                                replyTopUsage = [];
+                                                replyTopSave();
+                                                renderReplyTopList();
+                                            });
+                                        })();
 
                                         setClick('exportReplyBtn', () => {
                                             const text = document.getElementById('replyResultArea').value;
@@ -14227,6 +14433,7 @@
                                             }
                                             renderReplySelects();
                                             renderReplyPresetList();
+                                            renderReplyTopList();   // ⭐ 高频回复（读本机统计）
                                             renderCareer();
                                             ovbizRender();
                                         } catch (e) {

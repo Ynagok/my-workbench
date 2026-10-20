@@ -40,8 +40,7 @@ npm run verify     # 改完代码、push 前的完整自检
 ```
 
 线上部署：**https://work-bad.onrender.com/**（Render，push 后自动部署；托管同一份 `public/`）。日报模板、映射表、短语、**下午茶投票**走 `/api/data` ↔ `data.json`，注意 Render 的磁盘是**临时的**，重启/重新部署会丢 `data.json`；**「客服生涯」和「海外业务统计」不走服务端**（只在本机 localStorage，见下两节），所以换设备/换浏览器看不到别人的统计，也丢不了别人的（要搬数据就用页面上的 JSON / CSV 导出导入）；**下午茶投票反过来走服务端**（跨设备统计，见「下午茶投票」一节）。
-油猴脚本安装地址：https://work-bad.onrender.com/gemjy-openid-helper.user.js
-（**就这一条链接**：0.4.0 是覆盖在同一文件名上的，以前装过 0.3.0 的人 Tampermonkey 检查更新时会自动升上来。）
+（油猴脚本「反馈提取助手」已按用户要求删除，安装链接不再提供。）
 
 ⚠️ 不要用双击 `public/index.html` 的方式打开：`file://` 下 `/api/data` 请求会失败，数据只留在本机浏览器，换设备不共享。
 
@@ -49,16 +48,15 @@ npm run verify     # 改完代码、push 前的完整自检
 
 | 命令 | 内容 |
 |---|---|
-| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 308 项 + 「接口挂起时界面仍可用」+ 服务端冒烟 42 项 + 油猴脚本语法 + 单测 169 项 |
+| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 321 项 + 「接口挂起时界面仍可用」+ 服务端冒烟 42 项 |
 | `npm run verify:static` | 只要静态校验 + 语法检查（最快） |
 | `npm run report` | 打印一份真实生成的日报，肉眼确认排版（含 ⑥伙伴弹途 / ⑦异世界勇者） |
 | `npm run build:data` | 从 GM 玩家页快照提取 4 张权威映射表 + 与硬编码常量的**差异报告**（见下「游戏数据管线」） |
 | `npm run smoke:server` | 单独跑服务端冒烟（真起进程 + 真发 HTTP，42 项，含 SOP 口令 7 项） |
-| `npm run test:helper` | 反馈提取助手（油猴脚本 0.4.0）单测，169 项 |
 | `npm run smoke:pmc` | **生管物料订单工作台**（`public/pmc.html`）自检，123 项（含加工周期工作日推算 + 在途锁定/调整建议 + 真实 8.5MB xlsx 端到端导入）；**不在 verify 里**，见下「生管物料订单工作台」一节 |
 | `npm test` | = `npm run verify` |
 
-`npm run verify` 失败就不要提交。它一共 7 段：静态结构 → 语法 → jsdom 集成冒烟 **308 项** → 接口挂起时界面仍可用 → 服务端冒烟 **42 项** → 油猴脚本语法（`node --check`）→ 油猴脚本单测 **169 项**。
+`npm run verify` 失败就不要提交。它一共 5 段：静态结构 → 语法 → jsdom 集成冒烟 **321 项** → 接口挂起时界面仍可用 → 服务端冒烟 **42 项**。
 
 - jsdom 未安装时前端冒烟会自动回落到本机 DSH 自带的那份。
 - `tools/smoke-server.cjs` 用 `PORT` + `DATA_FILE` 环境变量把服务端指到随机端口和 `tools/out/` 里的临时文件，**不会碰真实 `data.json`**；子进程 stdio 必须用 `ignore`/`inherit`（沙箱禁管道，`pipe` 会 EPERM）。
@@ -78,34 +76,11 @@ npm run verify     # 改完代码、push 前的完整自检
   - ⚠️ **物品名表没做全量对账**（1768 条）：要全量得把玩家页存成 `tools/fixtures/player-page.html` 再 `npm run build:data` 出 diff；本轮只按页面里看得见的 id 抽核（137 条）。
   - ⚠️ 两处存疑未动：`774` 表里是「珍蚌」、页面原文像是「珍虾」（还愿锦鲤的珍珠蚌更合理，先留）；`997` 页面本身写作「茶楼经营**簿**茶壶」而来源表写「茶楼经营**薄**任务奖励」，按页面原样抄成「簿」。
 
-## 反馈提取助手（油猴脚本，**不跨工作台**、不联网）
+## 反馈提取助手（油猴脚本）—— **已删除**（2026-10，用户要求「油猴助手要删了」）
 
-**就一份文件：`public/gemjy-openid-helper.user.js`，现在的内容是 0.4.0**（0.3.0 被它覆盖在同一条链接上，靠 `@version` 从 0.3.0 升到 0.4.0 触发 Tampermonkey 自动升级；`npm run verify` 会 `node --check` 它并跑单测）。
-
-只在**反馈后台**（`@match` 就 `*://mp.weixin.qq.com/*` 一处）跑：把每条反馈的 **头像 / 昵称 / 图片 / openid** 提取出来，**卡片式**排进右下角悬浮窗；客服点「复制 openid」拿走，自己去别处粘贴查询。（⚠️ **问题文本 0.4 仍会解析并保存进记录**，只是面板不再渲染它 —— 需要时把 `buildItem` 里注释掉的 `.gj-q` 那段打开。）
-
-- **它不跨工作台**：不 import、不共享全局、不碰 `index.html` / `server.js` / `data.json`；`@match` 里也没有工作台域名，工作台页面一行都不注入。改它不影响前端任何东西。
-- **它不联网**：没有 `@connect`、没有 `GM_xmlhttpRequest` / `fetch` / `XMLHttpRequest`。0.2.x 那套「自动查 operator + 卡片徽标 + B 端批量查询抽屉」已按用户要求**整段删掉**（历史在 `b9334b3` / `0be1e1b`，要捡回来用 `git show`）。因此不存在跨域、掉登录、接口形态待校准，**也不再需要补 operator 接口参数**。
-- **它由 `express.static` 顺带托管**：安装地址 `https://work-bad.onrender.com/gemjy-openid-helper.user.js`（本地 `http://localhost:3000/gemjy-openid-helper.user.js`）。
-- **结构**：IIFE → `CONFIG`（全部可调）→ 纯函数层（`openidsIn/hasOpenid/distinctIdCount/linesOf/looksLikeDate/isNoiseLine/cleanName/guessName/pickQuestion/absolutize/isLikelyImageUrl/normalizeImages/isAvatarish/pickAvatar/buildRecord/mergeRecord/capRecords/openidListText/diagnosticText`）→ 存储与状态 → DOM 层（`findItemContainer/domLinesOf/imagesOf/avatarCandidatesOf/scan` + 悬浮窗 + `buildDiagnosticText`）→ `API` → Node 导出守卫 → `boot()`。
-  - ⚠️ **纯函数层不得引用 `document` / `GM_*`**；导出守卫在 `module.exports` 后 `return`，所以 `require()` 它不会碰 DOM。改完必须 `npm run test:helper` 绿。
-  - 面板/按钮/吐司带 `gj-` 类名，扫描时 `closest('.gj-panel,.gj-launcher,.gj-toast')` 排除自己 —— **面板里显示着 openid，不排除就会自己收自己**（单测锁了这条）。
-- **提取口径（启发式；当初和用户说好「先按通用启发式做，跑起来再调」）**：
-  - 一条反馈 = 从 openid 那个文本节点往上爬祖先，直到「这个祖先里出现第二个不同 openid」为止的那一层。
-    - ⚠️ 数个数必须用 `distinctIdCount`（**宽松**匹配），不能用 `openidsIn`：容器的 `textContent` 是拼接的，openid 后面常紧跟日期数字（`…00012026-06-03`），边界规则会把它当成「长串的一部分」而漏掉，结果容器一路爬到 `body`，把整页并成一条记录。**这个坑有单测锁**。
-  - 昵称：优先「昵称：xxx」/「微信昵称 xxx」标签行；否则取靠前的短行（要求同卡片里还有更长的行当问题）。`玩家反馈无法登录` 这种不会被误当昵称。
-  - 问题：把非噪声行按文档顺序接起来（丢掉时间行、纯数字、只有标签的行、「展开/收起/暂无/加载中」这类按钮文字），超 `maxQuestionLen` 截断；**0.4 只存不显示**。
-  - 图片（截图）：`img` 的 `src`/懒加载属性（`data-src` 等）+ 内联 `background-image` + 指向图片的链接；丢掉头像/图标/svg/小于 `minImageSize`(40px) 的图，去重后最多 `maxImages`(6) 张。
-  - **头像（0.4 新增）**：`avatarCandidatesOf` 单独收一份候选（img + `[class*=avatar|head]`/内联背景图，并把 class/alt/父级 class 当 `hint`），`isAvatarish` 判定「URL/hint 里带 avatar/headimg/qlogo/mmhead/头像 等线索」或「没线索但边长 16–48 且接近正方形」，`pickAvatar` 在命中的里**取面积最小的**那个（挑不到返回空串）。`buildRecord` 把它存进 `avatar` 并**从截图列表里剔掉**；`mergeRecord` 与名字/问题同规矩（新值空则不覆盖旧头像）。
-    - ⚠️ 副作用（是有意的）：若卡里同时有「真头像 40×40」和「更小的 24×24 头像图标」，会挑到小的那个 —— 单测的假页面里特意用 14×14 的 icon 当噪声，避免这种歧义。
-  - 取文本优先 `innerText`（自带换行）；不可用时（jsdom 等）按块级元素边界自己插换行 —— 这样单测能端到端跑。
-- **保存**：`GM_setValue('gemjyHelper:feedbacks')`（无 GM 环境退化成 `localStorage`），最新在前、按 openid upsert（更新后提到最前、`hits` 累加、空值不覆盖旧值、`firstSeen` 保留），上限 `CONFIG.maxItems`(300)；`gemjyHelper:panelUi` 记面板展开/收起。**0.3 与 0.4 共用同一套存储键**（同一浏览器里装两份会看到同一批记录）。
-- ⚠️ **它的数据一律不往工作台存**（用户明确要求）：不引用 `/api/data`、不碰 `data.json`、不碰工作台自己的数据键（`dailyData`/`careerData`/`itemNameMap`/…），也不写进仓库里任何日志或文件 —— 只落在本机浏览器，键名统一 `gemjyHelper:` 前缀（既跟反馈页自己的 localStorage 分开，也让单测能断言「这一页的 localStorage 里只有本脚本的键」）。提取到的玩家信息（含「诊断」复制的 JSON）**只贴到对话里给我调启发式，不要写进仓库文件**。这四条都有单测锁。
-- **悬浮窗（0.4 卡片式）**：右下角「反馈 N」按钮（收起时变白底）；面板每条是一张卡片 —— **左侧头像**（挑不到就退化成昵称首字圆底）＋ 右侧「昵称 · 时间/见几次」/ openid 行 + **「复制 openid」** / 截图三列网格（点击开原图）；工具条：`扫描本页` / `复制全部 openid`（一行一个）/ `诊断` / `清空`。菜单命令同名四件套。**复制动作只有 openid**（用户明确要求）。
-- **提取不准时**：点「诊断」会复制一段 JSON（版本、URL、CONFIG、前 3 条记录、**第一条反馈容器的原始文本与 HTML 片段**）——把它发我，照着调 `guessName` / `pickQuestion` / `isAvatarish` / `isNoiseLine` / `CONFIG` 即可。
-- 已声明 **`@updateURL` / `@downloadURL` 都指向这一条链接** `https://work-bad.onrender.com/gemjy-openid-helper.user.js`：0.4.0 就是**覆盖在原链接上**发布的（文件名不变），改完并部署后，以前装过 0.3.0 的人检查更新时会自动升到新版。**换版本号不必换文件名。**
-  - ⚠️ 单测会断言「`@updateURL`/`@downloadURL` 的文件名 == 实际文件名」＋「文件里不出现 `-0.4` 这类临时链接」——**改文件名就得同步改这两行**，否则 `npm run test:helper` 直接红。
-- 单测：`tools/test-openid-helper.cjs`（**169 项**）= 纯函数层（openid 边界与宽松计数、行切分、时间行/噪声行、猜昵称、取问题与截断、图片绝对化/过滤/去重/上限、**头像 `isAvatarish`/`pickAvatar`（线索/尺寸/方形/取最小/去重/相对地址/data URI/字符串候选）**、记录组装与 upsert 语义（**含头像：新记录没头像不覆盖旧头像、换头像会覆盖、旧记录没这字段补空串**）、`hits` 与 `firstSeen`、复制文本、诊断 JSON）+ 脚本头约束（`@version` 与内部 `API.version` 一致且 = **0.4.0**、`@match` 只有反馈后台一处、元数据里无 `@connect`、全文件无 `GM_xmlhttpRequest`/`fetch`/`XMLHttpRequest`、**`@updateURL`/`@downloadURL` 指向原链接且文件名对得上、不含 -0.4 临时链接**、`@grant` 声明）+ **不许碰工作台的静态断言**（代码里没有 `/api/data`、没有 `data.json`、没有工作台任何数据键、localStorage 只用变量键）+ **jsdom 端到端**（造一张假反馈页：卡片带头像 img，另有 14×14 噪声小图标 → 注入脚本 → 断言头像/昵称/图片/openid 真的提出来了、头像被单独挑出且不重复进截图、卡片式面板建出来（有头像 img、没头像退化成首字圆底、**面板里没有 `.gj-q`**）、面板里的 openid 不会被自己再收一遍、非反馈站点不注入、localStorage 里只出现 `gemjyHelper:` 前缀的键、落盘与清空）。
+`public/gemjy-openid-helper.user.js` 与 `tools/test-openid-helper.cjs` **已从仓库删除**，`package.json` 里的 `test:helper` 脚本和 `verify` 链里的那两段也一起去掉了（verify 现在 5 段）。
+线上那条安装链接 `https://work-bad.onrender.com/gemjy-openid-helper.user.js` **部署后会 404**；已经装过 0.3.0 / 0.4.0 的人，脚本还在他们浏览器里，只是再也收不到更新。
+要恢复就 `git show a6d2833:public/gemjy-openid-helper.user.js`（测试文件同理）。
 
 ## 界面主题（柔和白 · 明日方舟 / 终末地 视觉语言）
 
@@ -147,7 +122,17 @@ npm run verify     # 改完代码、push 前的完整自检
   - `.jump-bar` + `.jump-chip` = 统计页**页内跳转条**（吸顶），`data-jump="卡片id"` → 滚过去；绑定在 `bindAll` 的 `bindJumpBar()` 里，**jsdom 没有 `scrollIntoView`，所以那里判了 `typeof === "function"`**（别写成裸调用，冒烟会红）。
   - `.career-scroll table.career-table` 现在**表头吸顶 + 首列吸左**（宽表横向拖动时不跟丢）。
   - ⚠️ 冒烟对这些块用的是 `textContent` 精确/正则断言（如 `工单侧 17 + 海外侧 53 = 累计 70`、`Top3 集中度：`、`合计占`、`待确认 1 天`、`异常线 μ+2σ`、`活动 / 版本峰值标注`、`只存在这台设备的浏览器里`、`不上传服务端`）—— 改芯片文案要同步改断言。
+- **归档体检 / 漏登记提醒（2026-10）**：客服生涯总览卡里的 `#careerAuditBox` 由 `renderCareerAudit()` 填 —— 看**最近 7 天（不含今天）**有哪些日子 `careerData.records` 里没有，有就出 `k-warn` 芯片点名（「漏登记 N 天」+ 每个日期一片 + 指路「去每日日报归档或下面补录」），齐了就一片「最近 7 天都归档了」。日期用 `careerRecentDays(7)` 按 UTC 递减算，不依赖时区。
 - ⚠️ 想再换回暗色：把 `:root` 的 `--bg-0/--surface*/--ink*/--line*/--accent*` 换回深色值即可，但**要同时删掉/改掉「浅色收口层 · 柔和白」这一段 + `color-scheme: light` + select 箭头 SVG 的 `%23c89500`**，否则会有浅底白线。
+
+## 工单回复（`data-tab="reply"` · ⭐ 高频回复自动统计）
+
+选开头 / 正文 / 结束语 → 「✨ 生成回复」→ 「📋 复制」，另有标签预设。**2026-10 用户要求加了「高频回复」**：
+
+- **口径**：不存玩家 openid、不认人，只统计「**这台设备生成 / 复制过的话术**」哪几句最多；生成算一次、复制也算一次（含从高频列表里点复制）。只写本机 `localStorage['replyTopUsage']` = `[{ text, count, gen, cop, last }]`，**不进 `/api/data`**，上限 `REPLY_TOP_KEEP = 60` 条原始统计。
+- **展示**：卡片 `#replyTopList` 按 `count` 降序、同次数按 `last` 新的在前，**只显示 `REPLY_TOP_MAX = 10` 条**（用户要求「至多十条」）；新的句子用得多了自然会挤进前 10。每行有「用 N 次 / 生成 N / 复制 N / 最近 日期」芯片 + 📋 复制 + 🗑 删；右上「🧹 清空统计」(`#replyTopClearBtn`)，清空/删除都带 confirm。
+- ⚠️ 不到 4 个字的回复不记（`replyTopTrack` 里 `t.length < 4` 直接 return），免得分隔符/一句话灌满统计。
+- ⚠️ 它是**纯本机统计**：换设备就没了，也不该同步（跟 `careerData` / `ovbizData` 是一个规矩）。
 
 ## 反馈模板（工单信息提取器）
 
@@ -210,6 +195,7 @@ npm run verify     # 改完代码、push 前的完整自检
   - ⚠️ 图表与表格都建立在**按天合计**后的 `s.days` 上（跟卡片口径一致）；某一期该项是 0 就跳过。
   - ⚠️ **`ovbizRender()` 末尾会调 `renderOvbizDetail()`**（导入 / 清空 / 切标签页都会一起刷新），两个下拉各自绑了 `change`。
   - ⚠️ 备注判橙用的是新加的 **`OVBIZ_PEAK_RE`**（客服生涯那个 `PEAK_RE` 是 `renderCareer` 里的局部 const，拿不到，别混用）。
+- **📌 只导入新日期（增量导入，2026-10 用户要求）**：`ovbizImportNew()` —— 同样吃粘贴框里的整表，但**本机已经有那个日期的行就整段跳过**（不覆盖、不重复），提示写「增量导入 N 行（新增 M 天）· 跳过 K 行」；一天都没有新的时提示「没有新日期可导入（最新数据到 YYYY-MM-DD）」。状态行 `#ovbizSyncHint` 多一片「最新数据到 YYYY-MM-DD」（`ovbizLastDate()`）。
 - **落盘/导出**：`📥 解析导入`（`ovbizImport`，**只写本机缓存 `ovbizSaveCache()`**）、`📊 导出CSV`（`ovbizCsvText`，带 BOM + 表头，导出的文件能再粘回来）、`🧹 清空本机数据`（`ovbizClearAll`，只清本机，confirm 文案已改成「只影响本机」）。报表抬头 `#ovbizReportSub` / `#ovbizReportMeta`；状态行 `#ovbizSyncHint`（文案：只存在这台设备的浏览器里 / 不上传服务端 / 换设备用导出CSV）。
 - **真实数据对账**（用户给的这份周报，402 行原始数据）：解析出 **392 行 / 271 天**（10 行空白跳过），**1 行总计对不上**（2026/8/14 陈智锋，表里 92、各项之和 91）→ 提示并按 91 入账；**累计 40,685**、日均 150.1、中位数 143、最高单日 623@2026-04-11、异常 8 天（最高 2026-04-11 的 8.2σ）；三人 温泽鸿 156 天/17,444（42.9%）、陈智锋 152 天/17,436（42.9%）、姚宏杰 84 天/5,805（14.3%）；月度 9 个月、周 40 周。⚠️ 这是**删「邮件+SDK」之前**的数字（那一列原本全是 0，所以口径不变）。
 - **测试**：`tools/smoke.cjs` 第 **8g** 节 **30 条**（乱序表头 + 同一天两行 → 3 行入账 / 2 天 / 单行 85+67 按各项之和 / 累计 277 / 最高单日 152 / 每日表带人员与备注 / 人员表 2 人 / **逐项 10 行合计 277 且不含「邮件+SDK」** / 月度 2 行 / 抬头 5 格 / **导入与清空全程一次请求都不发、服务端自始至终没有这份数据、同步按钮已删** / 状态行与汇总行都讲「只存在这台设备」/ 切标签页只重画 / 走势条 2 根且带「活动」的备注涂橙 / **详情图表：可选 11 个范围、默认全部 5 张汇总卡 277、柱 2 根、切按月 → 月均、切「监控禁言」→ 总量 31** / 重复导入覆盖不翻倍 / 总计对不上提示 / 清空 → 本机归零且不发请求）；`tools/verify.mjs` 另有 11 条静态断言（标签页、10 项、**没有「邮件+SDK」**、CSV+TSV+「22」表头、**只存本机**（断言里不存在 saveData / GET / 并集那一套）、懒加载、按天合计+周+异常线、15 个容器、**详情图表实现**、走势条上色、按钮与刷新挂载）。
@@ -311,11 +297,10 @@ npm run verify     # 改完代码、push 前的完整自检
 
 ```
 public/index.html          全部前端（单文件，约 14500 行：内联 CSS + 内联 JS 的 async IIFE；含「客服生涯」「海外业务统计」「反馈模板」「下午茶」标签页 + ?vote= 只投票页）
-public/gemjy-openid-helper.user.js  油猴脚本（反馈后台：卡片式悬浮窗，提取 头像/昵称/图片/openid，一键复制 openid；当前内容 0.4.0，就发在这一条链接上；与前端无代码耦合）
 public/pmc.html            生管物料订单工作台（临时工具单页：内置 H93A 26.5/26.6 样例 + 浏览器端解析真实 xlsx + 逐日库存/缺料日/建议下单 + 按供应商导出 CSV；只存本机，与工作台零耦合）
 server.js                  express：静态托管 public/ + GET/POST /api/data/:key ↔ data.json（含 key 白名单）+ GET/POST /api/vote/:key（下午茶投票：原子合并 + 当天 23:00 过期清理）
 data.json                  服务端数据（随使用增长；前端字段缺失会被默认值自动补齐）
-tools/                     自检脚本（verify / smoke / smoke-nonblocking / smoke-server / smoke-pmc / test-openid-helper / print-report / build-game-data）＋ sop-seed.cjs（遗留：SOP 页面已删，只用来把旧 bundle 推给服务端）
+tools/                     自检脚本（verify / smoke / smoke-nonblocking / smoke-server / smoke-pmc / print-report / build-game-data）＋ sop-seed.cjs（遗留：SOP 页面已删，只用来把旧 bundle 推给服务端）
 tools/fixtures/            build:data 的输入；player-page.html 含玩家隐私已 gitignore，样例已入库
 tools/out/                 build:data 的产出（4 张表 + 差异报告）＋ pmc 样例数据管线 ＋ sop/（附件抽出来的文本与 bundle，已 gitignore），已 gitignore
 package.json               scripts: start / verify / verify:static / smoke:server / smoke:pmc / sop:seed / report / build:data / test
@@ -553,3 +538,9 @@ package.json               scripts: start / verify / verify:static / smoke:serve
   3. **物品名表**：补 419 pass卡点 / 783 装饰配套火锅 / 804 孔明灯积分 / 997 茶楼经营簿茶壶 / 4105004 布娃娃·秋婉 / 4105005 布娃娃·清露；修正 769 松鼠精地块积分、782 装饰松鼠精、784 装饰配套喜羊羊，以及 **799/800 瑶池觅宝「奖励分数 / 竞速积分」原本对调**。
   4. ⚠️ 没做全量的物品名对账（1768 条 vs 页面几千条）：要全量得把页面存成 `tools/fixtures/player-page.html` 跑 `npm run build:data`。本轮只抽核了页面里能看到的 137 个 id。
   5. **测试**：常量表改动不影响任何断言（幻狐/霞光的断言未受影响），`npm run verify` 全绿（**308 / 42 / 169**）。
+- 本轮：**删掉油猴助手 + 加三个小功能（归档体检 / 增量导入 / 高频回复）**（用户：「漏登记提醒，增量导入可以有。工单回复这个不用保存玩家的openid，而是识别该设备生成或者复制的话术最多的几个，自动归类成常用回复。如果有新的话术使用增多，则也可以加进去，至多十条。油猴助手要删了。」）。改了 `public/index.html` + `tools/verify.mjs` + `tools/smoke.cjs` + `package.json` + 删两个文件 + 本文件：
+  1. **油猴「反馈提取助手」整份删除**：`public/gemjy-openid-helper.user.js`、`tools/test-openid-helper.cjs` 从仓库移除；`package.json` 去掉 `test:helper`，`verify` 链里的 `node --check` 与单测两段也去掉 —— `npm run verify` 现在 **5 段**（静态 → 语法 → 冒烟 321 → 挂起 → 服务端 42）。线上 `/gemjy-openid-helper.user.js` 部署后 404（装过的人脚本还在，只是不再更新）。
+  2. **归档体检（漏登记提醒）**：客服生涯总览卡加 `#careerAuditBox`，`renderCareerAudit()` 看最近 7 天（不含今天）哪几天没记录，出「漏登记 N 天」+ 日期芯片；齐了出「最近 7 天都归档了」。
+  3. **增量导入**：海外业务统计加「📌 只导入新日期」（`ovbizImportNew()`）—— 本机已有那天的整段跳过，提示「增量导入 N 行 · 跳过 K 行」；状态行多一片「最新数据到 YYYY-MM-DD」。
+  4. **高频回复**：工单回复标签页新增卡片，`replyTopTrack()` 在「生成」与「复制」时各记一次，按次数排序**只显示 10 条**，可复制 / 删 / 清空；数据只写 `localStorage['replyTopUsage']`，不存 openid、不认玩家、不走服务端。
+  5. **测试**：`smoke.cjs` 新增 **8l 节 13 条**（生成记一次 / 复制也算 / 按次数排序 / 删一条 / 清空回空态 / 全程不发请求 / 归档体检有提示 / 增量导入只进新日期 / 同一天再点不重复 / 状态行最新日期），**308 → 321**；`verify.mjs` 新增 **3i 节 5 条**静态断言（高频回复实现与只存本机、归档体检、增量导入、油猴脚本已删干净）。`npm run verify` 全绿（**321 / 42**）。

@@ -420,6 +420,27 @@ ok(/const SOP_TOKEN = process\.env\.SOP_TOKEN \|\| '';/.test(sv) && /const SOP_K
 ok(fs.existsSync('tools/sop-seed.cjs') && /sop:seed/.test(fs.readFileSync('package.json', 'utf8')),
   'SOP：seed 工具留着（以后要恢复页面，数据还能灌回去）');
 
+// ---- 3i. 三个小功能（高频回复 / 归档体检 / 增量导入）+ 油猴脚本已删除 ----
+ok(/const REPLY_TOP_KEY = 'replyTopUsage';/.test(s) && /const REPLY_TOP_MAX = 10;/.test(s)
+  && /function replyTopTrack\(/.test(s) && /function renderReplyTopList\(/.test(s)
+  && /id="replyTopList"/.test(s) && /id="replyTopClearBtn"/.test(s)
+  && /replyTopTrack\(text, 'gen'\)/.test(s) && /replyTopTrack\(text, 'cop'\)/.test(s),
+  '高频回复：本机统计「生成 / 复制」次数，最多 10 条（不认玩家、不存 openid）');
+ok(/localStorage\.setItem\(REPLY_TOP_KEY/.test(s) && !/saveData\('replyTopUsage'/.test(s),
+  '高频回复：只写本机 localStorage，不走 /api/data');
+ok(/id="careerAuditBox"/.test(s) && /function renderCareerAudit\(/.test(s)
+  && /function careerRecentDays\(/.test(s) && /renderCareerAudit\(\);/.test(s)
+  && /漏登记 /.test(s),
+  '归档体检：最近 7 天哪天没记录就点名提醒（漏登记）');
+ok(/id="ovbizImportNewBtn"/.test(s) && /function ovbizImportNew\(/.test(s)
+  && /function ovbizLastDate\(/.test(s) && /setClick\('ovbizImportNewBtn', ovbizImportNew\)/.test(s)
+  && /没有新日期可导入/.test(s),
+  '海外业务：增量导入只补本机没导过的日期 + 状态行显示「最新数据到」');
+ok(!fs.existsSync('public/gemjy-openid-helper.user.js') && !fs.existsSync('tools/test-openid-helper.cjs')
+  && !/test:helper/.test(fs.readFileSync('package.json', 'utf8'))
+  && !/gemjy-openid-helper/.test(fs.readFileSync('package.json', 'utf8')),
+  '油猴「反馈提取助手」已删干净（脚本 + 测试 + npm 脚本 + verify 链）');
+
 // ---- 4. 花括号/圆括号平衡（粗查，排除字符串内的干扰仅作参考） ----
 const count = (str, ch) => (str.split(ch).length - 1);
 const braces = count(js, '{') - count(js, '}');
