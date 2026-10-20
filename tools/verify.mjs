@@ -441,6 +441,20 @@ ok(!fs.existsSync('public/gemjy-openid-helper.user.js') && !fs.existsSync('tools
   && !/gemjy-openid-helper/.test(fs.readFileSync('package.json', 'utf8')),
   '油猴「反馈提取助手」已删干净（脚本 + 测试 + npm 脚本 + verify 链）');
 
+// ---- 3j. 排班休息（当月哪天休息、休息日不进统计）----
+ok(/const CAREER_REST_KEY = 'careerRestDays';/.test(s) && /function careerRestToggle\(/.test(s)
+  && /id="careerRestBtn"/.test(s) && /id="careerRestCard"/.test(s) && /id="careerRestGrid"/.test(s)
+  && /id="careerRestMonth"/.test(s) && /id="careerRestWeekendBtn"/.test(s)
+  && /id="careerRestClearMonthBtn"/.test(s) && /setClick\('careerRestBtn'/.test(s),
+  '排班休息：按钮 + 月份面板 + 点日期切换 + 周末全休 / 清空本月');
+ok(/const restSet = careerRestSet\(\);/.test(s) && /const gapWorkDays = /.test(s)
+  && /const dutyDays = Math\.max\(0, spanDays - restDays\);/.test(s)
+  && /中间全是休息日 → 连续不断/.test(s),
+  '休息日不进统计：断档只数工作日、休息不打断连续、另出「在岗 / 休息」天数');
+ok(/localStorage\.setItem\(CAREER_REST_KEY/.test(s) && !/saveData\('careerRestDays'/.test(s)
+  && /rest\.has\(d\)/.test(s),
+  '排班休息只存本机 localStorage（不走 /api/data），归档体检也跳过休息日');
+
 // ---- 4. 花括号/圆括号平衡（粗查，排除字符串内的干扰仅作参考） ----
 const count = (str, ch) => (str.split(ch).length - 1);
 const braces = count(js, '{') - count(js, '}');

@@ -48,7 +48,7 @@ npm run verify     # 改完代码、push 前的完整自检
 
 | 命令 | 内容 |
 |---|---|
-| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 321 项 + 「接口挂起时界面仍可用」+ 服务端冒烟 42 项 |
+| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 336 项 + 「接口挂起时界面仍可用」+ 服务端冒烟 42 项 |
 | `npm run verify:static` | 只要静态校验 + 语法检查（最快） |
 | `npm run report` | 打印一份真实生成的日报，肉眼确认排版（含 ⑥伙伴弹途 / ⑦异世界勇者） |
 | `npm run build:data` | 从 GM 玩家页快照提取 4 张权威映射表 + 与硬编码常量的**差异报告**（见下「游戏数据管线」） |
@@ -56,7 +56,7 @@ npm run verify     # 改完代码、push 前的完整自检
 | `npm run smoke:pmc` | **生管物料订单工作台**（`public/pmc.html`）自检，123 项（含加工周期工作日推算 + 在途锁定/调整建议 + 真实 8.5MB xlsx 端到端导入）；**不在 verify 里**，见下「生管物料订单工作台」一节 |
 | `npm test` | = `npm run verify` |
 
-`npm run verify` 失败就不要提交。它一共 5 段：静态结构 → 语法 → jsdom 集成冒烟 **321 项** → 接口挂起时界面仍可用 → 服务端冒烟 **42 项**。
+`npm run verify` 失败就不要提交。它一共 5 段：静态结构 → 语法 → jsdom 集成冒烟 **336 项** → 接口挂起时界面仍可用 → 服务端冒烟 **42 项**。
 
 - jsdom 未安装时前端冒烟会自动回落到本机 DSH 自带的那份。
 - `tools/smoke-server.cjs` 用 `PORT` + `DATA_FILE` 环境变量把服务端指到随机端口和 `tools/out/` 里的临时文件，**不会碰真实 `data.json`**；子进程 stdio 必须用 `ignore`/`inherit`（沙箱禁管道，`pipe` 会 EPERM）。
@@ -122,6 +122,10 @@ npm run verify     # 改完代码、push 前的完整自检
   - `.jump-bar` + `.jump-chip` = 统计页**页内跳转条**（吸顶），`data-jump="卡片id"` → 滚过去；绑定在 `bindAll` 的 `bindJumpBar()` 里，**jsdom 没有 `scrollIntoView`，所以那里判了 `typeof === "function"`**（别写成裸调用，冒烟会红）。
   - `.career-scroll table.career-table` 现在**表头吸顶 + 首列吸左**（宽表横向拖动时不跟丢）。
   - ⚠️ 冒烟对这些块用的是 `textContent` 精确/正则断言（如 `工单侧 17 + 海外侧 53 = 累计 70`、`Top3 集中度：`、`合计占`、`待确认 1 天`、`异常线 μ+2σ`、`活动 / 版本峰值标注`、`只存在这台设备的浏览器里`、`不上传服务端`）—— 改芯片文案要同步改断言。
+- **🗓️ 排班休息（2026-10 用户要求）**：客服生涯工具条上的「🗓️ 排班休息」按钮（`#careerRestBtn`）展开 `#careerRestCard` 面板 —— 月份输入 `#careerRestMonth`（默认当月）+ 整月方格 `#careerRestGrid`（点一天 = 切换休息，休的格子带 `.rest` 并显示「休」，周末虚线框）+「周末全休」(`#careerRestWeekendBtn`) /「清空本月」(`#careerRestClearMonthBtn`)。
+  - **存哪儿**：只写本机 `localStorage['careerRestDays']`（`YYYY-MM-DD` 数组，`careerRestLoad` / `careerRestSave` / `careerRestToggle`），**不进 `/api/data`** —— 跟 `careerData` 一个规矩。
+  - **统计口径（`careerStats` 里只有这一处）**：`const restSet = careerRestSet()` 之后 —— ① **断档只数工作日**（`gapWorkDays()` 跳过休息日）；② **连续记录不休息日打断**（中间全是休息日就继续连续）；③ 新增 `restDays`（记录区间内的休息天数）与 `dutyDays = spanDays - restDays`（**在岗天数**），KPI「记录区间」副标与「数据质量」芯片都会显示「在岗 / 休息」。
+  - **归档体检也跳过休息日**：休息日不报「漏登记」，另起一片「休息 N 天（不算漏登记）」。
 - **归档体检 / 漏登记提醒（2026-10）**：客服生涯总览卡里的 `#careerAuditBox` 由 `renderCareerAudit()` 填 —— 看**最近 7 天（不含今天）**有哪些日子 `careerData.records` 里没有，有就出 `k-warn` 芯片点名（「漏登记 N 天」+ 每个日期一片 + 指路「去每日日报归档或下面补录」），齐了就一片「最近 7 天都归档了」。日期用 `careerRecentDays(7)` 按 UTC 递减算，不依赖时区。
 - ⚠️ 想再换回暗色：把 `:root` 的 `--bg-0/--surface*/--ink*/--line*/--accent*` 换回深色值即可，但**要同时删掉/改掉「浅色收口层 · 柔和白」这一段 + `color-scheme: light` + select 箭头 SVG 的 `%23c89500`**，否则会有浅底白线。
 
@@ -544,3 +548,8 @@ package.json               scripts: start / verify / verify:static / smoke:serve
   3. **增量导入**：海外业务统计加「📌 只导入新日期」（`ovbizImportNew()`）—— 本机已有那天的整段跳过，提示「增量导入 N 行 · 跳过 K 行」；状态行多一片「最新数据到 YYYY-MM-DD」。
   4. **高频回复**：工单回复标签页新增卡片，`replyTopTrack()` 在「生成」与「复制」时各记一次，按次数排序**只显示 10 条**，可复制 / 删 / 清空；数据只写 `localStorage['replyTopUsage']`，不存 openid、不认玩家、不走服务端。
   5. **测试**：`smoke.cjs` 新增 **8l 节 13 条**（生成记一次 / 复制也算 / 按次数排序 / 删一条 / 清空回空态 / 全程不发请求 / 归档体检有提示 / 增量导入只进新日期 / 同一天再点不重复 / 状态行最新日期），**308 → 321**；`verify.mjs` 新增 **3i 节 5 条**静态断言（高频回复实现与只存本机、归档体检、增量导入、油猴脚本已删干净）。`npm run verify` 全绿（**321 / 42**）。
+- 本轮：**客服生涯加「🗓️ 排班休息」**（用户：「客服生涯加个小按钮进去可以设置当月排班休息的情况，这样数据统计时可以不计算休息的天。」）。改了 `public/index.html` + `tools/verify.mjs` + `tools/smoke.cjs` + 本文件：
+  1. **面板**：工具条按钮 `#careerRestBtn` 展开 `#careerRestCard`（默认 `display:none`）—— 月份 `#careerRestMonth` + 整月方格 `#careerRestGrid` + 「周末全休」「清空本月」；点格子切换休息，`.career-rest-day.rest` 高亮并显示「休」。
+  2. **存储**：`localStorage['careerRestDays']`（`YYYY-MM-DD` 数组），只存本机、不进 `/api/data`。
+  3. **口径**：`careerStats()` 里读 `careerRestSet()` —— 断档改由 `gapWorkDays()` 只数工作日；连续记录遇到「中间全是休息日」不算断；新增 `restDays` / `dutyDays`（在岗 = 区间 − 休息），KPI 与数据质量芯片都显示。`renderCareerAudit()` 也跳过休息日（改成「休息 N 天（不算漏登记）」）。
+  4. **测试**：`smoke.cjs` 新增 **8m 节 15 条**（默认收起 / 展开 / 月份默认当月 / 整月格子 / 标 6/4 休息 → 断档 1→0、在岗 2 天、localStorage 记录 / 再点取消 / 周末全休 8 天 / 清空本月），**321 → 336**；`verify.mjs` 新增 **3j 节 3 条**静态断言。`npm run verify` 全绿（**336 / 42**）。

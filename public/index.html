@@ -3303,6 +3303,19 @@
             font-size: 13px; line-height: 1.85; color: var(--ink-1);
             display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
         }
+        /* 🗓️ 排班休息：一个月的方格，点一下标休息 */
+        .career-rest-day {
+            width: 46px; height: 46px; padding: 0 !important;
+            display: inline-flex; flex-direction: column; align-items: center; justify-content: center;
+            border: 1px solid var(--line-0); background: var(--surface); border-radius: var(--r-sm);
+            font-size: 12px; line-height: 1.15; color: var(--ink-2); cursor: pointer;
+        }
+        .career-rest-day b { font-size: 13px; font-variant-numeric: tabular-nums; color: var(--ink-1); }
+        .career-rest-day i { font-style: normal; font-size: 10px; min-height: 11px; color: var(--accent-ink); }
+        .career-rest-day.weekend { border-style: dashed; }
+        .career-rest-day:hover { border-color: var(--accent-line); background: var(--accent-dim); }
+        .career-rest-day.rest { background: var(--accent-dim); border-color: var(--accent-line); }
+        .career-rest-day.rest b { color: var(--accent-ink); }
 
     </style>
 </head>
@@ -3683,6 +3696,7 @@
                     </label>
                     <div class="flex-row">
                         <button id="careerArchiveBtn" class="secondary">🗂️ 归档今日日报</button>
+                        <button id="careerRestBtn" class="secondary">🗓️ 排班休息</button>
                         <button id="careerExportCsvBtn" class="secondary">📊 导出CSV</button>
                         <button id="careerExportJsonBtn" class="secondary">💾 导出JSON</button>
                         <button id="careerImportJsonBtn" class="secondary">📤 导入JSON</button>
@@ -3769,6 +3783,17 @@
             <div class="card" id="careerCardQuality">
                 <label>🧪 数据质量与备注 <span class="card-sub">待确认 / 断档 / 备注</span></label>
                 <div id="careerQuality" style="margin-top: 10px;"></div>
+            </div>
+
+            <div class="card" id="careerRestCard" style="display: none;">
+                <label>🗓️ 排班休息 <span class="card-sub">点日期标休息 · 休息日不算断档 / 连续 / 在岗天数</span></label>
+                <div class="flex-row" style="margin: 10px 0; gap: 8px; align-items: center; flex-wrap: wrap;">
+                    <input type="month" id="careerRestMonth" style="width: 168px;">
+                    <button id="careerRestWeekendBtn" class="secondary">周末全休</button>
+                    <button id="careerRestClearMonthBtn" class="reset-btn">清空本月</button>
+                    <span class="hint-text" id="careerRestHint"></span>
+                </div>
+                <div id="careerRestGrid" style="display: flex; flex-wrap: wrap; gap: 6px;"></div>
             </div>
 
             <div class="card" id="careerCardEdit">
@@ -10699,6 +10724,56 @@
                                         return careerItemsOfSide(scope).reduce((a, it) => a + (parseFloat(items[it.key]) || 0), 0);
                                     }
 
+                                    // ---------- 🗓️ 排班休息（用户要求：能标当月哪天休息，统计时把休息日剔掉） ----------
+                                    // 只存本机 localStorage['careerRestDays'] = ['YYYY-MM-DD', …]（跟 careerData 一个规矩：不进服务端）
+                                    const CAREER_REST_KEY = 'careerRestDays';
+                                    let careerRestMonthState = '';
+                                    function careerRestLoad() {
+                                        try {
+                                            const arr = JSON.parse(localStorage.getItem(CAREER_REST_KEY) || '[]');
+                                            return Array.isArray(arr) ? arr.filter(d => /^\d{4}-\d{2}-\d{2}$/.test(String(d))) : [];
+                                        } catch (e) { return []; }
+                                    }
+                                    function careerRestSet() { return new Set(careerRestLoad()); }
+                                    function careerRestSave(list) {
+                                        const uniq = Array.from(new Set(list.filter(d => /^\d{4}-\d{2}-\d{2}$/.test(String(d))))).sort();
+                                        try { localStorage.setItem(CAREER_REST_KEY, JSON.stringify(uniq)); } catch (e) { }
+                                    }
+                                    function careerRestToggle(date) {
+                                        const list = careerRestLoad();
+                                        const i = list.indexOf(date);
+                                        if (i === -1) list.push(date); else list.splice(i, 1);
+                                        careerRestSave(list);
+                                        return i === -1;
+                                    }
+                                    function careerDaysInMonth(ym) {
+                                        const y = +String(ym).slice(0, 4), m = +String(ym).slice(5, 7);
+                                        return new Date(Date.UTC(y, m, 0)).getUTCDate();
+                                    }
+                                    function careerRenderRestGrid() {
+                                        const grid = document.getElementById('careerRestGrid');
+                                        if (!grid) return;
+                                        const mo = document.getElementById('careerRestMonth');
+                                        const ym = (mo && mo.value) || careerRestMonthState || careerToday().slice(0, 7);
+                                        careerRestMonthState = ym;
+                                        if (mo && mo.value !== ym) mo.value = ym;
+                                        const rest = careerRestSet();
+                                        const n = careerDaysInMonth(ym);
+                                        let h = '';
+                                        for (let d = 1; d <= n; d++) {
+                                            const date = ym + '-' + String(d).padStart(2, '0');
+                                            const dow = new Date(date + 'T00:00:00Z').getUTCDay();
+                                            h += '<button type="button" class="career-rest-day'
+                                                + (rest.has(date) ? ' rest' : '') + ((dow === 0 || dow === 6) ? ' weekend' : '')
+                                                + '" data-rest="' + date + '" title="' + date + '">'
+                                                + '<b>' + d + '</b><i>' + (rest.has(date) ? '休' : '') + '</i></button>';
+                                        }
+                                        grid.innerHTML = h;
+                                        const cnt = Array.from(rest).filter(d => d.slice(0, 7) === ym).length;
+                                        const hint = document.getElementById('careerRestHint');
+                                        if (hint) hint.textContent = ym + '：休息 ' + cnt + ' 天 · 点日期切换（只存本机）';
+                                    }
+
                                     function careerStats(scope) {
                                         scope = (scope === 'ticket' || scope === 'overseas') ? scope : 'all';
                                         const dates = Object.keys(careerData.records).sort();
@@ -10801,9 +10876,18 @@
                                             return { days: s.length, sum: t, avg: s.length ? t / s.length : 0 };
                                         };
 
-                                        // 连续性 & 断档（按自然日算）
+                                        // 连续性 & 断档（按自然日算；⚠️ 标了「休息」的日子不算断档、也不打断连续）
+                                        const restSet = careerRestSet();
                                         const dayMs = 86400000;
                                         const toTs = (d) => Date.parse(d + 'T00:00:00Z');
+                                        const gapWorkDays = (fromTs, diff) => {
+                                            let missing = 0;
+                                            for (let k = 1; k < diff; k++) {
+                                                const d2 = new Date(fromTs + k * dayMs).toISOString().slice(0, 10);
+                                                if (!restSet.has(d2)) missing++;
+                                            }
+                                            return missing;
+                                        };
                                         let best = 0, streak = 0, prevTs = null, gapDays = 0;
                                         for (const r of good) {
                                             const ts = toTs(r.date);
@@ -10811,7 +10895,11 @@
                                             else {
                                                 const diff = Math.round((ts - prevTs) / dayMs);
                                                 if (diff === 1) streak++;
-                                                else { gapDays += diff - 1; if (streak > best) best = streak; streak = 1; }
+                                                else {
+                                                    const missing = gapWorkDays(prevTs, diff);
+                                                    if (!missing) streak++;          // 中间全是休息日 → 连续不断
+                                                    else { gapDays += missing; if (streak > best) best = streak; streak = 1; }
+                                                }
                                             }
                                             prevTs = ts;
                                         }
@@ -10820,11 +10908,20 @@
                                         for (let i = good.length - 1; i >= 0; i--) {
                                             if (i === good.length - 1) { curStreak = 1; continue; }
                                             const diff = Math.round((toTs(good[i + 1].date) - toTs(good[i].date)) / dayMs);
-                                            if (diff === 1) curStreak++; else break;
+                                            if (diff === 1) { curStreak++; continue; }
+                                            if (!gapWorkDays(toTs(good[i].date), diff)) { curStreak++; continue; }
+                                            break;
                                         }
                                         const spanDays = good.length > 1
                                             ? Math.round((toTs(good[good.length - 1].date) - toTs(good[0].date)) / dayMs) + 1
                                             : good.length;
+                                        // 记录区间里标了「休息」的天数 → 在岗天数 = 区间 − 休息
+                                        let restDays = 0;
+                                        if (good.length > 1) {
+                                            const a = toTs(good[0].date), b = toTs(good[good.length - 1].date);
+                                            restSet.forEach(d => { const t = toTs(d); if (t >= a && t <= b) restDays++; });
+                                        }
+                                        const dutyDays = Math.max(0, spanDays - restDays);
 
                                         // 异常日（超过 μ+2σ）与活动峰值（备注里写了活动/版本/开服…的那几天）
                                         const anomalyLine = days > 1 && sd > 0 ? avg + 2 * sd : null;
@@ -10845,7 +10942,7 @@
                                             activeKinds: activeItems.size, dayMaxKinds,
                                             months, mom, recent7: recent(7), recent30: recent(30),
                                             weeks, anomalies, peaks, peakDates, anomalyDates, anomalyLine,
-                                            best, curStreak, gapDays, spanDays,
+                                            best, curStreak, gapDays, spanDays, restDays, dutyDays,
                                             pending: all.filter(r => r.status === CAREER_STATUS_PENDING),
                                             notes: all.filter(r => r.note).sort((a, b) => b.date.localeCompare(a.date))
                                         };
@@ -10920,7 +11017,7 @@
                                                 careerKpiCard('最低单日', careerNum(s.min), (s.good.filter(r => r.total === s.min)[0] || {}).date || '—', false, true),
                                                 careerKpiCard('波动（标准差）', careerNum(s.sd, 1), s.avg ? '变异系数 ' + careerPct(s.cv) : '—', false, true),
                                                 careerKpiCard('最长连续记录', s.best + ' 天', '当前连续 ' + s.curStreak + ' 天', false, true),
-                                                careerKpiCard('记录区间', s.days ? (s.good[0].date + ' → ' + s.good[s.good.length - 1].date) : '—', '区间 ' + s.spanDays + ' 天 · 断档 ' + s.gapDays + ' 天', false, true),
+                                                careerKpiCard('记录区间', s.days ? (s.good[0].date + ' → ' + s.good[s.good.length - 1].date) : '—', '区间 ' + s.spanDays + ' 天 · 在岗 ' + s.dutyDays + ' 天 · 断档 ' + s.gapDays + ' 天', false, true),
                                                 careerKpiCard('近 30 记录日日均', careerNum(s.recent30.avg, 1), '近 7 日 ' + careerNum(s.recent7.avg, 1) + (s.mom ? ' · 环比 ' + (s.mom.delta >= 0 ? '+' : '') + careerPct(s.mom.delta) : ''), false, true)
                                             ].join('');
                                         }
@@ -11175,6 +11272,8 @@
                                                 statChip('完整记录 ' + s.days + ' 天', 'k-accent'),
                                                 statChip('待确认 ' + s.pending.length + ' 天', s.pending.length ? 'k-warn' : 'k-plain'),
                                                 statChip('记录区间 ' + s.spanDays + ' 天'),
+                                                statChip('在岗 ' + s.dutyDays + ' 天'),
+                                                statChip('休息 ' + s.restDays + ' 天', s.restDays ? 'k-plain' : 'k-plain'),
                                                 statChip('断档 ' + s.gapDays + ' 天', s.gapDays ? 'k-warn' : 'k-plain'),
                                                 statChip('最低单日 ' + careerNum(s.min))
                                             ]);
@@ -11213,8 +11312,10 @@
                                         const box = document.getElementById('careerAuditBox');
                                         if (!box) return;
                                         const recs = (careerData && careerData.records) || {};
+                                        const rest = careerRestSet();     // 休息日不催登记
                                         const days = careerRecentDays(7);
-                                        const missing = days.filter(d => !recs[d]);
+                                        const missing = days.filter(d => !recs[d] && !rest.has(d));
+                                        const rests = days.filter(d => !recs[d] && rest.has(d));
                                         const have = days.filter(d => !!recs[d]);
                                         const chips = [];
                                         if (!missing.length) {
@@ -11225,6 +11326,7 @@
                                             missing.forEach(d => chips.push(statChip(d, 'k-warn')));
                                             chips.push(statChip('去「每日日报」生成后点「🗂️ 归档今日日报」，或在下面「✍️ 补录」补上', 'k-plain'));
                                         }
+                                        if (rests.length) chips.push(statChip('休息 ' + rests.length + ' 天（不算漏登记）', 'k-plain'));
                                         box.innerHTML = statChips(chips);
                                     }
 
@@ -13992,6 +14094,51 @@
                                             renderCareer();
                                         })();
                                         setClick('careerArchiveBtn', careerArchiveToday);
+
+                                        // 🗓️ 排班休息：展开面板 / 切月份 / 周末全休 / 清空本月 / 点日期切换
+                                        (function bindCareerRest() {
+                                            const card = document.getElementById('careerRestCard');
+                                            const grid = document.getElementById('careerRestGrid');
+                                            const mo = document.getElementById('careerRestMonth');
+                                            setClick('careerRestBtn', () => {
+                                                if (!card) return;
+                                                const open = card.style.display === 'none';
+                                                card.style.display = open ? '' : 'none';
+                                                if (open) {
+                                                    careerRestMonthState = careerToday().slice(0, 7);
+                                                    careerRenderRestGrid();
+                                                    if (card.scrollIntoView) card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                                                }
+                                            });
+                                            if (mo) mo.addEventListener('change', () => { careerRestMonthState = mo.value; careerRenderRestGrid(); });
+                                            setClick('careerRestWeekendBtn', () => {
+                                                const ym = careerRestMonthState || careerToday().slice(0, 7);
+                                                const list = careerRestLoad();
+                                                const n = careerDaysInMonth(ym);
+                                                for (let d = 1; d <= n; d++) {
+                                                    const date = ym + '-' + String(d).padStart(2, '0');
+                                                    const dow = new Date(date + 'T00:00:00Z').getUTCDay();
+                                                    if ((dow === 0 || dow === 6) && list.indexOf(date) === -1) list.push(date);
+                                                }
+                                                careerRestSave(list);
+                                                careerRenderRestGrid();
+                                                renderCareer();
+                                            });
+                                            setClick('careerRestClearMonthBtn', () => {
+                                                const ym = careerRestMonthState || careerToday().slice(0, 7);
+                                                const list = careerRestLoad().filter(d => d.slice(0, 7) !== ym);
+                                                careerRestSave(list);
+                                                careerRenderRestGrid();
+                                                renderCareer();
+                                            });
+                                            if (grid) grid.addEventListener('click', (e) => {
+                                                const b = e.target.closest('[data-rest]');
+                                                if (!b) return;
+                                                careerRestToggle(b.dataset.rest);
+                                                careerRenderRestGrid();
+                                                renderCareer();
+                                            });
+                                        })();
                                         setClick('careerExportCsvBtn', () => {
                                             if (!careerDownload('客服生涯_' + careerToday() + '.csv', careerCsvText(), 'text/csv')) alert('当前环境不支持导出');
                                         });

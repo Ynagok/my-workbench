@@ -1619,6 +1619,65 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
       '状态行显示「最新数据到 YYYY-MM-DD」', $('ovbizSyncHint').textContent.slice(0, 80));
   }
 
+  console.log('--- 8m. 排班休息（标了休息的日子不进统计） ---');
+  {
+    // 先造两条 6 月记录：6/3、6/5 —— 中间 6/4 本来算 1 天断档
+    $('careerImportArea').value = [
+      '日期\t人员\t班次\t商店回复\t海外SSO工单量（全产品）\t总计\t数据状态',
+      '2026-06-03\t姚宏杰\tF\t14\t12\t26\t已完成记录',
+      '2026-06-05\t姚宏杰\tH\t10\t8\t18\t已完成记录'
+    ].join('\n');
+    $('careerImportBtn').click();
+    await sleep(80);
+    const gapOf = () => {
+      const m = /断档 (\d+) 天/.exec($('careerQuality').textContent || '');
+      return m ? +m[1] : -1;
+    };
+    const restOf = (ym) => {
+      const arr = JSON.parse(window.localStorage.getItem('careerRestDays') || '[]');
+      return arr.filter(d => d.slice(0, 7) === ym);
+    };
+    check(gapOf() === 1, '6/3 与 6/5 之间先有 1 天断档', gapOf());
+
+    check($('careerRestCard').style.display === 'none', '排班休息面板默认收起');
+    $('careerRestBtn').click();
+    await sleep(30);
+    check($('careerRestCard').style.display !== 'none', '点「🗓️ 排班休息」展开面板');
+    check($('careerRestMonth').value === bjToday.slice(0, 7), '月份默认当月', $('careerRestMonth').value);
+    check(doc.querySelectorAll('#careerRestGrid .career-rest-day').length >= 28,
+      '整月日期都列出来（点日期 = 切换休息）', doc.querySelectorAll('#careerRestGrid .career-rest-day').length);
+
+    $('careerRestMonth').value = '2026-06';
+    $('careerRestMonth').dispatchEvent(new window.Event('change'));
+    await sleep(30);
+    const pick = (d) => doc.querySelector('#careerRestGrid .career-rest-day[data-rest="' + d + '"]');
+    check(!!pick('2026-06-04'), '切月份后能拿到 6/4 那一格');
+    pick('2026-06-04').click();
+    await sleep(30);
+    check(restOf('2026-06').length === 1 && restOf('2026-06')[0] === '2026-06-04',
+      '点一下就把 6/4 记成休息（只存本机 localStorage careerRestDays）', restOf('2026-06'));
+    check(!!doc.querySelector('#careerRestGrid .career-rest-day.rest[data-rest="2026-06-04"]'),
+      '休息的那一格带 .rest 高亮');
+    check(/休息 1 天/.test($('careerQuality').textContent), '数据质量里出现「休息 1 天」', $('careerQuality').textContent.slice(0, 90));
+    check(gapOf() === 0, '断档天数从 1 变 0（休息日不算断档）', gapOf());
+    check(/在岗 2 天/.test($('careerQuality').textContent), '在岗天数 = 区间 3 − 休息 1 = 2', $('careerQuality').textContent.slice(0, 90));
+
+    // 再点一次取消（⚠️ 重画后要重新取节点）
+    pick('2026-06-04').click();
+    await sleep(30);
+    check(restOf('2026-06').length === 0 && gapOf() === 1,
+      '再点一次取消休息，断档回到 1 天', { rest: restOf('2026-06').length, gap: gapOf() });
+
+    $('careerRestWeekendBtn').click();
+    await sleep(30);
+    check(restOf('2026-06').length === 8, '「周末全休」把 2026-06 的 8 个周末都标成休息', restOf('2026-06').length);
+    $('careerRestClearMonthBtn').click();
+    await sleep(30);
+    check(restOf('2026-06').length === 0, '「清空本月」只清这个月');
+    check(doc.querySelectorAll('#careerRestGrid .career-rest-day.rest').length === 0,
+      '清空后没有任何格子还是休息态');
+  }
+
   console.log('--- 9. 无未捕获异常 ---');
   check(!warns.some(w => w.startsWith('ERROR')), 'console.error 未被调用：' + warns.filter(w => w.startsWith('ERROR')).join(' | '));
   check(jsdomErrors.length === 0, '页面无未捕获异常（jsdomError）', jsdomErrors.slice(0, 3));
