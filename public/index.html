@@ -3273,21 +3273,68 @@
         }
         .career-scroll table.career-table > tbody > tr:nth-child(even) > td:first-child { background: var(--surface-2); }
         .career-scroll table.career-table > tfoot > tr.total-row > td:first-child { background: var(--accent-dim); }
-        /* 统计页页内跳转：长页面不用一路滚，点一下到那一块 */
-        .jump-bar {
-            display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+        /* 报告式「一句话摘要」：总览最上面一行大字，扫一眼就知道干了多少 */
+        .stat-headline {
+            margin: 12px 0 0; font-size: 14px; line-height: 1.7; color: var(--ink-1);
+            letter-spacing: 0.01em;
+        }
+        .stat-headline b {
+            font-family: var(--font-display); font-size: 17px; font-weight: 700;
+            color: var(--ink-0); font-variant-numeric: tabular-nums; padding: 0 2px;
+        }
+        .stat-headline b.accent { color: var(--accent-ink); }
+        /* KPI 卡左侧一根细强调条（主指标黄、次指标灰），比纯色块更像报表 */
+        .career-kpi { position: relative; }
+        .career-kpi::before {
+            content: ''; position: absolute; left: 0; top: 10px; bottom: 10px; width: 2px;
+            background: var(--line-2);
+        }
+        .career-kpi.accent::before { background: var(--accent); }
+        /* 表格更好扫：首列加粗、行高略收 */
+        .career-table td:first-child { font-weight: 600; color: var(--ink-1); }
+        .career-table td { line-height: 1.6; }
+        /* 统计页「分段导航」：一屏只看一段，切段而不是长滚动（参考鹰角 / 影视飓风的报告式分段） */
+        .seg-bar {
+            display: flex; flex-wrap: wrap; align-items: stretch; gap: 2px;
+            margin: 0 0 16px; padding: 0;
+            border-bottom: 1px solid var(--line-1);
             position: sticky; top: 0; z-index: 6;
-            margin: 0 0 12px; padding: 8px 0;
             background: var(--bg-0);
-            border-bottom: 1px solid var(--line-0);
         }
-        .jump-chip {
-            font-size: 12px !important; padding: 2px 10px !important;
-            border: 1px solid var(--line-0); background: var(--surface);
-            color: var(--ink-2); border-radius: var(--r-pill); line-height: 18px;
+        .seg-btn {
+            position: relative;
+            border: none !important; background: transparent !important;
+            clip-path: none !important; box-shadow: none !important;
+            color: var(--ink-2); font-size: 13px; font-weight: 600;
+            padding: 9px 16px 11px !important; border-radius: 0 !important;
+            letter-spacing: 0.02em;
         }
-        .jump-chip:hover { border-color: var(--accent-line); background: var(--accent-dim); color: var(--accent-ink); }
-        .jump-chip.active { border-color: var(--accent-line); background: var(--accent-dim); color: var(--accent-ink); }
+        .seg-btn::before {
+            content: attr(data-n);
+            font-family: var(--font-display); font-size: 10px; letter-spacing: 0.12em;
+            color: var(--ink-3); margin-right: 7px;
+        }
+        .seg-btn:hover { color: var(--accent-ink) !important; background: transparent !important; }
+        .seg-btn:hover::before { color: var(--accent-ink); }
+        .seg-btn.active { color: var(--ink-0); }
+        .seg-btn.active::before { color: var(--accent-ink); }
+        .seg-btn.active::after {
+            content: ''; position: absolute; left: 10px; right: 10px; bottom: -1px; height: 2px;
+            background: var(--accent);
+        }
+        /* 分段开关：没挂 seg-on 的卡片不显示（内联 display:none 仍然优先，排班面板靠它收起） */
+        [data-seg-card] { display: none; }
+        [data-seg-card].seg-on { display: block; }
+        /* 工具条上的「⋯ 更多」：把导出/导入/清空收起来，主按钮只留两个 */
+        details.card-more { position: relative; }
+        details.card-more > summary {
+            cursor: pointer; list-style: none; display: inline-flex; align-items: center;
+            font-size: 12px; padding: 4px 10px; border: 1px solid var(--line-1);
+            border-radius: var(--r-sm); color: var(--ink-2); background: var(--surface);
+        }
+        details.card-more > summary::-webkit-details-marker { display: none; }
+        details.card-more[open] > summary { border-color: var(--accent-line); color: var(--accent-ink); background: var(--accent-dim); }
+        details.card-more > div { margin-top: 8px; }
         /* ⭐ 高频回复：一行一条，标题行放计数芯片，正文折两行 */
         .reply-top-item {
             border: 1px solid var(--line-0); border-left: 3px solid var(--accent-line);
@@ -3678,18 +3725,13 @@
                 </div>
                 <div class="crh-meta" id="careerReportMeta"></div>
             </div>
-            <div class="jump-bar" id="careerJumpBar">
-                <button type="button" class="jump-chip active" data-jump="careerCardOverview">总览</button>
-                <button type="button" class="jump-chip" data-jump="careerCardTicket">工单</button>
-                <button type="button" class="jump-chip" data-jump="careerCardOverseas">海外</button>
-                <button type="button" class="jump-chip" data-jump="careerCardDetail">指标详情</button>
-                <button type="button" class="jump-chip" data-jump="careerCardTrend">趋势 · 月度</button>
-                <button type="button" class="jump-chip" data-jump="careerCardWeekly">周维度</button>
-                <button type="button" class="jump-chip" data-jump="careerCardQuality">数据质量</button>
-                <button type="button" class="jump-chip" data-jump="careerCardEdit">补录</button>
-                <button type="button" class="jump-chip" data-jump="careerCardImport">导入</button>
+            <div class="seg-bar" data-for="tab-career">
+                <button type="button" class="seg-btn active" data-seg="overview" data-n="01">总览</button>
+                <button type="button" class="seg-btn" data-seg="detail" data-n="02">逐项明细</button>
+                <button type="button" class="seg-btn" data-seg="trend" data-n="03">趋势与分析</button>
+                <button type="button" class="seg-btn" data-seg="data" data-n="04">数据与补录</button>
             </div>
-            <div class="card" id="careerCardOverview">
+            <div class="card" id="careerCardOverview" data-seg-card="overview">
                 <div class="flex-row" style="justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
                     <label style="margin:0;">🎖️ 客服生涯 · 工作量总览
                         <span class="card-sub">日报两栏自动入账</span>
@@ -3697,11 +3739,16 @@
                     <div class="flex-row">
                         <button id="careerArchiveBtn" class="secondary">🗂️ 归档今日日报</button>
                         <button id="careerRestBtn" class="secondary">🗓️ 排班休息</button>
-                        <button id="careerExportCsvBtn" class="secondary">📊 导出CSV</button>
-                        <button id="careerExportJsonBtn" class="secondary">💾 导出JSON</button>
-                        <button id="careerImportJsonBtn" class="secondary">📤 导入JSON</button>
-                        <button id="careerClearLocalBtn" class="reset-btn">🧹 清空本机数据</button>
-                        <input type="file" id="careerImportJsonInput" accept=".json,application/json" style="display:none;" />
+                        <details class="card-more">
+                            <summary>⋯ 更多</summary>
+                            <div class="flex-row">
+                                <button id="careerExportCsvBtn" class="secondary">📊 导出CSV</button>
+                                <button id="careerExportJsonBtn" class="secondary">💾 导出JSON</button>
+                                <button id="careerImportJsonBtn" class="secondary">📤 导入JSON</button>
+                                <button id="careerClearLocalBtn" class="reset-btn">🧹 清空本机数据</button>
+                            </div>
+                            <input type="file" id="careerImportJsonInput" accept=".json,application/json" style="display:none;" />
+                        </details>
                     </div>
                 </div>
                 <div class="flex-row" style="margin-top: 12px; gap: 10px; flex-wrap: wrap; align-items: center;">
@@ -3717,6 +3764,7 @@
                         <span class="stat-chip k-plain">同比 = 4 周前</span>
                     </span>
                 </div>
+                <div class="stat-headline" id="careerHeadline"></div>
                 <div id="careerKpi" class="career-kpi-grid" style="margin-top: 14px;"></div>
                 <div id="careerSplitWrap" style="margin-top: 14px;">
                     <div class="career-split-bar" id="careerSplitBar"></div>
@@ -3727,17 +3775,17 @@
                 <div id="careerAuditBox" class="stat-chips" style="margin-top: 8px;"></div>
             </div>
 
-            <div class="card" id="careerCardTicket">
+            <div class="card" id="careerCardTicket" data-seg-card="detail">
                 <label>📋 工单统计 <span class="card-sub">取自工单日报</span></label>
                 <div id="careerSideTicket" style="margin-top: 12px;"></div>
             </div>
 
-            <div class="card" id="careerCardOverseas">
+            <div class="card" id="careerCardOverseas" data-seg-card="detail">
                 <label>🌐 海外统计 <span class="card-sub">取自海外日报</span></label>
                 <div id="careerSideOverseas" style="margin-top: 12px;"></div>
             </div>
 
-            <div class="card" id="careerCardDetail">
+            <div class="card" id="careerCardDetail" data-seg-card="trend">
                 <label>🔎 指标详情 <span class="card-sub">按日 / 按月</span></label>
                 <div class="career-detail-controls">
                     <select id="careerDetailItem" style="min-width: 240px;"></select>
@@ -3752,7 +3800,7 @@
                 <div class="career-scroll" style="margin-top: 12px; max-height: 300px;"><table class="career-table" id="careerDetailTable"></table></div>
             </div>
 
-            <div class="card" id="careerCardTrend">
+            <div class="card" id="careerCardTrend" data-seg-card="trend">
                 <label>📈 趋势 · 月度汇总 <span class="card-sub">近 30 记录日 + 按月</span></label>
                 <div class="career-trend" id="careerTrend" style="margin-top: 12px;"></div>
                 <div class="career-legend" style="margin-top: 6px;">
@@ -3771,7 +3819,7 @@
                 </div>
             </div>
 
-            <div class="card" id="careerCardWeekly">
+            <div class="card" id="careerCardWeekly" data-seg-card="trend">
                 <label>🗓️ 周维度 <span class="card-sub">周一～周日 · 环比 + 同比</span></label>
                 <div class="career-scroll" style="margin-top: 10px; max-height: 340px;"><table class="career-table" id="careerWeeklyTable"></table></div>
                 <details class="stat-fold">
@@ -3780,12 +3828,12 @@
                 </details>
             </div>
 
-            <div class="card" id="careerCardQuality">
+            <div class="card" id="careerCardQuality" data-seg-card="data">
                 <label>🧪 数据质量与备注 <span class="card-sub">待确认 / 断档 / 备注</span></label>
                 <div id="careerQuality" style="margin-top: 10px;"></div>
             </div>
 
-            <div class="card" id="careerRestCard" style="display: none;">
+            <div class="card" id="careerRestCard" data-seg-card="overview" style="display: none;">
                 <label>🗓️ 排班休息 <span class="card-sub">点日期标休息 · 休息日不算断档 / 连续 / 在岗天数</span></label>
                 <div class="flex-row" style="margin: 10px 0; gap: 8px; align-items: center; flex-wrap: wrap;">
                     <input type="month" id="careerRestMonth" style="width: 168px;">
@@ -3796,7 +3844,7 @@
                 <div id="careerRestGrid" style="display: flex; flex-wrap: wrap; gap: 6px;"></div>
             </div>
 
-            <div class="card" id="careerCardEdit">
+            <div class="card" id="careerCardEdit" data-seg-card="data">
                 <button type="button" class="career-collapse-btn" id="careerEditToggleBtn" aria-expanded="false">
                     <span>✍️ 补录 / 修正某一天 <span class="card-sub">补历史 · 改误归档</span></span>
                     <span class="career-arrow">▾</span>
@@ -3829,7 +3877,7 @@
                 </div>
             </div>
 
-            <div class="card" id="careerCardImport">
+            <div class="card" id="careerCardImport" data-seg-card="data">
                 <button type="button" class="career-collapse-btn" id="careerImportToggleBtn" aria-expanded="false">
                     <span>📋 粘贴导入 <span class="card-sub">登记表 TSV · 日报文本</span></span>
                     <span class="career-arrow">▾</span>
@@ -3863,18 +3911,13 @@
                 </div>
                 <div class="crh-meta" id="ovbizReportMeta"></div>
             </div>
-            <div class="jump-bar" id="ovbizJumpBar">
-                <button type="button" class="jump-chip active" data-jump="ovbizCardPaste">粘贴导入</button>
-                <button type="button" class="jump-chip" data-jump="ovbizCardOverview">岗位总览</button>
-                <button type="button" class="jump-chip" data-jump="ovbizCardDetail">详情图表</button>
-                <button type="button" class="jump-chip" data-jump="ovbizCardItems">逐项</button>
-                <button type="button" class="jump-chip" data-jump="ovbizCardMonthly">月度</button>
-                <button type="button" class="jump-chip" data-jump="ovbizCardWeekly">周维度</button>
-                <button type="button" class="jump-chip" data-jump="ovbizCardPeople">按人员</button>
-                <button type="button" class="jump-chip" data-jump="ovbizCardDaily">每日明细</button>
+            <div class="seg-bar" data-for="tab-overseas">
+                <button type="button" class="seg-btn active" data-seg="overview" data-n="01">总览</button>
+                <button type="button" class="seg-btn" data-seg="detail" data-n="02">逐项明细</button>
+                <button type="button" class="seg-btn" data-seg="data" data-n="03">导入与导出</button>
             </div>
 
-            <div class="card" id="ovbizCardPaste">
+            <div class="card" id="ovbizCardPaste" data-seg-card="data">
                 <label>📋 粘贴周报数据 <span class="card-sub">CSV / TSV · 表头随意</span></label>
                 <details class="stat-fold">
                     <summary>一行是什么 / 怎么合并 / 数据存哪</summary>
@@ -3895,8 +3938,9 @@
                 <div class="stat-chips" id="ovbizSyncHint" style="margin-top: 8px;"></div>
             </div>
 
-            <div class="card" id="ovbizCardOverview">
+            <div class="card" id="ovbizCardOverview" data-seg-card="overview">
                 <label>📊 岗位总览 <span class="card-sub">按天合计 · 近 30 记录日</span></label>
+                <div class="stat-headline" id="ovbizHeadline"></div>
                 <div id="ovbizKpi" class="career-kpi-grid" style="margin-top: 12px;"></div>
                 <div id="ovbizSheetHint" class="hint-text" style="margin-top: 8px;"></div>
                 <div class="career-trend" id="ovbizTrend" style="margin-top: 12px;"></div>
@@ -3906,7 +3950,7 @@
                 </div>
             </div>
 
-            <div class="card" id="ovbizCardDetail">
+            <div class="card" id="ovbizCardDetail" data-seg-card="overview">
                 <label>🔎 详情图表 <span class="card-sub">按日 / 按月</span></label>
                 <div class="career-detail-controls">
                     <select id="ovbizDetailItem" style="min-width: 240px;"></select>
@@ -3921,28 +3965,28 @@
                 <div class="career-scroll" style="margin-top: 12px; max-height: 300px;"><table class="career-table" id="ovbizDetailTable"></table></div>
             </div>
 
-            <div class="card" id="ovbizCardItems">
+            <div class="card" id="ovbizCardItems" data-seg-card="detail">
                 <label>🧩 逐项统计 <span class="card-sub">10 项 · 累计 / 占比</span></label>
                 <div class="career-scroll" style="margin-top: 10px;"><table class="career-table" id="ovbizItemTable"></table></div>
                 <div id="ovbizStructureBox" style="margin-top: 12px;"></div>
             </div>
 
-            <div class="card" id="ovbizCardMonthly">
+            <div class="card" id="ovbizCardMonthly" data-seg-card="detail">
                 <label>🗓️ 月度汇总 <span class="card-sub">按月 · 横向可滚动</span></label>
                 <div class="career-scroll" style="margin-top: 10px; max-height: 340px;"><table class="career-table" id="ovbizMonthlyTable"></table></div>
             </div>
 
-            <div class="card" id="ovbizCardWeekly">
+            <div class="card" id="ovbizCardWeekly" data-seg-card="detail">
                 <label>📅 周维度 <span class="card-sub">周一～周日 · 环比 + 同比</span></label>
                 <div class="career-scroll" style="margin-top: 10px; max-height: 340px;"><table class="career-table" id="ovbizWeeklyTable"></table></div>
             </div>
 
-            <div class="card" id="ovbizCardPeople">
+            <div class="card" id="ovbizCardPeople" data-seg-card="detail">
                 <label>👥 按人员统计 <span class="card-sub">记录天数 / 日均 / 占比</span></label>
                 <div class="career-scroll" style="margin-top: 10px;"><table class="career-table" id="ovbizPeopleTable"></table></div>
             </div>
 
-            <div class="card" id="ovbizCardDaily">
+            <div class="card" id="ovbizCardDaily" data-seg-card="detail">
                 <label>📆 每日明细 <span class="card-sub">按天合计 · 最新在上</span></label>
                 <div class="career-scroll" style="margin-top: 10px; max-height: 400px;"><table class="career-table" id="ovbizDailyTable"></table></div>
                 <div id="ovbizAnomalyBox" style="margin-top: 10px;"></div>
@@ -10716,6 +10760,18 @@
                                     function statChips(list) {
                                         return '<div class="stat-chips">' + list.join('') + '</div>';
                                     }
+                                    // 统计页「分段」：只显示当前这一段挂着的卡片（其余由 CSS 隐藏）
+                                    function statsSetSeg(tabId, seg) {
+                                        const tab = document.getElementById(tabId);
+                                        if (!tab) return;
+                                        tab.dataset.seg = seg;
+                                        tab.querySelectorAll('[data-seg-card]').forEach(el => {
+                                            el.classList.toggle('seg-on', el.dataset.segCard === seg);
+                                        });
+                                        tab.querySelectorAll('.seg-btn').forEach(b => {
+                                            b.classList.toggle('active', b.dataset.seg === seg);
+                                        });
+                                    }
 
                                     // 某条记录在某个「身份」下的工作量：全部 = 39 项之和；某一侧 = 该侧项之和
                                     function careerSideTotal(rec, scope) {
@@ -10999,6 +11055,20 @@
                                             ];
                                             rhMeta.innerHTML = cells.map(c => '<div><span class="m-k">' + escapeHtml(String(c[0]))
                                                 + '</span><span class="m-v">' + escapeHtml(String(c[1])) + '</span></div>').join('');
+                                        }
+
+                                        // 一句话摘要（报表最上面那行，先看结论再看表）
+                                        const headline = document.getElementById('careerHeadline');
+                                        if (headline) {
+                                            headline.innerHTML = s.days
+                                                ? '累计 <b class="accent">' + careerNum(s.sum) + '</b>'
+                                                    + ' · 日均 <b>' + careerNum(s.avg, 1) + '</b>'
+                                                    + ' · 最高单日 <b>' + careerNum(s.max) + '</b>'
+                                                    + (s.maxDate ? '（' + escapeHtml(s.maxDate.slice(5)) + '）' : '')
+                                                    + ' · 在岗 <b>' + s.dutyDays + '</b> 天 / 区间 ' + s.spanDays + ' 天'
+                                                    + (s.restDays ? '（休 ' + s.restDays + '）' : '')
+                                                    + (s.gapDays ? ' · 断档 ' + s.gapDays + ' 天' : '')
+                                                : statChips([statChip('还没有记录 —— 先去「每日日报」生成并归档，或在「数据与补录」里粘一份', 'k-plain')]);
                                         }
 
                                         const kpi = document.getElementById('careerKpi');
@@ -12267,6 +12337,18 @@
                                             ];
                                             meta.innerHTML = cells.map(c => '<div><span class="m-k">' + escapeHtml(String(c[0]))
                                                 + '</span><span class="m-v">' + escapeHtml(String(c[1])) + '</span></div>').join('');
+                                        }
+                                        // ---- 一句话摘要 ----
+                                        const headline = document.getElementById('ovbizHeadline');
+                                        if (headline) {
+                                            headline.innerHTML = s.n
+                                                ? '累计 <b class="accent">' + careerNum(s.sum) + '</b>'
+                                                    + ' · 日均 <b>' + careerNum(s.avg, 1) + '</b>'
+                                                    + ' · 最高单日 <b>' + careerNum(s.max) + '</b>'
+                                                    + (s.maxDate ? '（' + escapeHtml(s.maxDate.slice(5)) + '）' : '')
+                                                    + ' · ' + s.peopleCount + ' 人 / ' + s.n + ' 个记录日'
+                                                    + ' · 最新 <b>' + escapeHtml(ovbizLastDate() || '—') + '</b>'
+                                                : statChips([statChip('还没有数据 —— 粘一张周报表到「导入与导出」，点「解析导入」', 'k-plain')]);
                                         }
                                         // ---- KPI ----
                                         const kpi = document.getElementById('ovbizKpi');
@@ -13950,29 +14032,25 @@
                                             const targetTab = document.getElementById(`tab-${this.dataset.tab}`);
                                             if (targetTab) targetTab.classList.add('active');
                                             const tabKey = this.dataset.tab;
-                                            // 统计页页内跳转条：切进来时把高亮放回第一个（避免上次的残留）
-                                            const jumpBar = document.querySelector('#tab-' + tabKey + ' .jump-bar');
-                                            if (jumpBar) {
-                                                jumpBar.querySelectorAll('.jump-chip').forEach((c, i) => c.classList.toggle('active', i === 0));
-                                            }
+                                            // 统计页：切进来时回到第一段（总览），免得停在上次的明细段
+                                            if (tabKey === 'career') statsSetSeg('tab-career', 'overview');
+                                            if (tabKey === 'overseas') statsSetSeg('tab-overseas', 'overview');
                                             if (this.dataset.tab === 'career') renderCareer();
                                             if (this.dataset.tab === 'overseas') { ovbizRender(); renderOvbizDetail(); }   // 切进来重画一遍（数据只在本机）
                                             if (this.dataset.tab === 'tea') teaInit();                                  // 下午茶：切进来拉一次服务端
                                             if (this.dataset.tab === 'feedback') fbRenderChips();
                                         });
-                                        // 统计页页内跳转：点一下滚到那一块（jsdom 里没有 scrollIntoView，所以先判一下）
-                                        (function bindJumpBar() {
-                                            document.querySelectorAll('.jump-bar').forEach(bar => {
+                                        // 统计页分段导航：点哪段看哪段（进标签页时回到第一段）
+                                        (function bindSegBar() {
+                                            document.querySelectorAll('.seg-bar').forEach(bar => {
                                                 bar.addEventListener('click', (e) => {
-                                                    const b = e.target.closest('.jump-chip');
+                                                    const b = e.target.closest('.seg-btn');
                                                     if (!b) return;
-                                                    const t = document.getElementById(b.dataset.jump || '');
-                                                    if (t && typeof t.scrollIntoView === 'function') {
-                                                        t.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                                                    }
-                                                    bar.querySelectorAll('.jump-chip').forEach(x => x.classList.toggle('active', x === b));
+                                                    statsSetSeg(bar.dataset.for, b.dataset.seg);
                                                 });
                                             });
+                                            statsSetSeg('tab-career', 'overview');
+                                            statsSetSeg('tab-overseas', 'overview');
                                         })();
 
                                         // 规则搜索

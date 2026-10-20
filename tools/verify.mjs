@@ -455,6 +455,18 @@ ok(/localStorage\.setItem\(CAREER_REST_KEY/.test(s) && !/saveData\('careerRestDa
   && /rest\.has\(d\)/.test(s),
   '排班休息只存本机 localStorage（不走 /api/data），归档体检也跳过休息日');
 
+// ---- 3k. 统计页分段导航 / 一句话摘要 / 工具条收拢 ----
+ok(/class="seg-bar" data-for="tab-career"/.test(s) && /class="seg-bar" data-for="tab-overseas"/.test(s)
+  && (s.match(/data-seg-card=/g) || []).length >= 17
+  && /function statsSetSeg\(tabId, seg\)/.test(s) && /statsSetSeg\('tab-career', 'overview'\)/.test(s)
+  && !/jump-bar/.test(s) && !/jump-chip/.test(s),
+  '统计页改「分段导航」（客服生涯 4 段 / 海外 3 段），旧的页内跳转条已整段移除');
+ok(/id="careerHeadline"/.test(s) && /id="ovbizHeadline"/.test(s) && /\.stat-headline\b/.test(s)
+  && /statsSetSeg\('tab-overseas', 'overview'\)/.test(s),
+  '两个统计页顶部都有一句话摘要（累计 / 日均 / 最高单日 / 在岗）');
+ok(/details class="card-more"/.test(s) && /details\.card-more > summary/.test(s),
+  '客服生涯工具条收拢：导出 / 导入 / 清空折进「⋯ 更多」，主按钮只留归档 + 排班休息');
+
 // ---- 4. 花括号/圆括号平衡（粗查，排除字符串内的干扰仅作参考） ----
 const count = (str, ch) => (str.split(ch).length - 1);
 const braces = count(js, '{') - count(js, '}');

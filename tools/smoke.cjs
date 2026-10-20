@@ -1678,6 +1678,47 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
       '清空后没有任何格子还是休息态');
   }
 
+  console.log('--- 8n. 统计页分段导航 / 一句话摘要 / 工具条收拢 ---');
+  {
+    doc.querySelector('.tab-btn[data-tab="career"]').click();
+    await sleep(60);
+    check(doc.querySelectorAll('#tab-career .seg-btn').length === 4,
+      '客服生涯分成 4 段（总览 / 逐项明细 / 趋势与分析 / 数据与补录）', doc.querySelectorAll('#tab-career .seg-btn').length);
+    const onSeg = (tab) => Array.from(doc.querySelectorAll('#' + tab + ' [data-seg-card]'))
+      .filter(el => el.classList.contains('seg-on')).map(el => el.id);
+    let ids = onSeg('tab-career');
+    check(ids.includes('careerCardOverview') && !ids.includes('careerCardTicket') && !ids.includes('careerCardImport'),
+      '默认停在「总览」段（明细 / 数据段都没挂上）', ids);
+    doc.querySelector('#tab-career .seg-btn[data-seg="detail"]').click();
+    await sleep(30);
+    ids = onSeg('tab-career');
+    check(ids.includes('careerCardTicket') && ids.includes('careerCardOverseas') && !ids.includes('careerCardOverview'),
+      '点「逐项明细」→ 只显示工单 / 海外两张明细卡', ids);
+    doc.querySelector('#tab-career .seg-btn[data-seg="data"]').click();
+    await sleep(30);
+    ids = onSeg('tab-career');
+    check(ids.includes('careerCardQuality') && ids.includes('careerCardImport') && ids.includes('careerCardEdit'),
+      '点「数据与补录」→ 质量 / 补录 / 导入都在这一段', ids);
+    doc.querySelector('#tab-career .seg-btn[data-seg="overview"]').click();
+    await sleep(30);
+    check(/累计/.test($('careerHeadline').textContent) && /日均/.test($('careerHeadline').textContent),
+      '总览最上面有一句话摘要（累计 / 日均 / 最高单日）', $('careerHeadline').textContent.slice(0, 70));
+    check(!!doc.querySelector('#careerCardOverview details.card-more')
+      && doc.querySelectorAll('#careerCardOverview details.card-more button').length === 4
+      && !!doc.querySelector('#careerCardOverview #careerArchiveBtn'),
+      '导出 / 导入 / 清空收进「⋯ 更多」，主按钮只留归档 + 排班休息');
+    doc.querySelector('.tab-btn[data-tab="overseas"]').click();
+    await sleep(60);
+    check(doc.querySelectorAll('#tab-overseas .seg-btn').length === 3,
+      '海外业务分成 3 段（总览 / 逐项明细 / 导入与导出）', doc.querySelectorAll('#tab-overseas .seg-btn').length);
+    ids = onSeg('tab-overseas');
+    check(ids.includes('ovbizCardOverview') && !ids.includes('ovbizCardItems'), '海外默认停在总览段', ids);
+    doc.querySelector('#tab-overseas .seg-btn[data-seg="data"]').click();
+    await sleep(30);
+    check(onSeg('tab-overseas').join(',') === 'ovbizCardPaste', '海外「导入与导出」段只有那张粘贴卡', onSeg('tab-overseas'));
+    check(/累计|还没有数据/.test($('ovbizHeadline').textContent), '海外总览也有一句话摘要', $('ovbizHeadline').textContent.slice(0, 70));
+  }
+
   console.log('--- 9. 无未捕获异常 ---');
   check(!warns.some(w => w.startsWith('ERROR')), 'console.error 未被调用：' + warns.filter(w => w.startsWith('ERROR')).join(' | '));
   check(jsdomErrors.length === 0, '页面无未捕获异常（jsdomError）', jsdomErrors.slice(0, 3));
