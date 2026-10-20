@@ -48,7 +48,7 @@ npm run verify     # 改完代码、push 前的完整自检
 
 | 命令 | 内容 |
 |---|---|
-| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 346 项 + 「接口挂起时界面仍可用」+ 服务端冒烟 42 项 |
+| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 360 项 + 「接口挂起时界面仍可用」+ 服务端冒烟 42 项 |
 | `npm run verify:static` | 只要静态校验 + 语法检查（最快） |
 | `npm run report` | 打印一份真实生成的日报，肉眼确认排版（含 ⑥伙伴弹途 / ⑦异世界勇者） |
 | `npm run build:data` | 从 GM 玩家页快照提取 4 张权威映射表 + 与硬编码常量的**差异报告**（见下「游戏数据管线」） |
@@ -56,7 +56,7 @@ npm run verify     # 改完代码、push 前的完整自检
 | `npm run smoke:pmc` | **生管物料订单工作台**（`public/pmc.html`）自检，123 项（含加工周期工作日推算 + 在途锁定/调整建议 + 真实 8.5MB xlsx 端到端导入）；**不在 verify 里**，见下「生管物料订单工作台」一节 |
 | `npm test` | = `npm run verify` |
 
-`npm run verify` 失败就不要提交。它一共 5 段：静态结构 → 语法 → jsdom 集成冒烟 **346 项** → 接口挂起时界面仍可用 → 服务端冒烟 **42 项**。
+`npm run verify` 失败就不要提交。它一共 5 段：静态结构 → 语法 → jsdom 集成冒烟 **360 项** → 接口挂起时界面仍可用 → 服务端冒烟 **42 项**。
 
 - jsdom 未安装时前端冒烟会自动回落到本机 DSH 自带的那份。
 - `tools/smoke-server.cjs` 用 `PORT` + `DATA_FILE` 环境变量把服务端指到随机端口和 `tools/out/` 里的临时文件，**不会碰真实 `data.json`**；子进程 stdio 必须用 `ignore`/`inherit`（沙箱禁管道，`pipe` 会 EPERM）。
@@ -135,6 +135,18 @@ npm run verify     # 改完代码、push 前的完整自检
   - **归档体检也跳过休息日**：休息日不报「漏登记」，另起一片「休息 N 天（不算漏登记）」。
 - **归档体检 / 漏登记提醒（2026-10）**：客服生涯总览卡里的 `#careerAuditBox` 由 `renderCareerAudit()` 填 —— 看**最近 7 天（不含今天）**有哪些日子 `careerData.records` 里没有，有就出 `k-warn` 芯片点名（「漏登记 N 天」+ 每个日期一片 + 指路「去每日日报归档或下面补录」），齐了就一片「最近 7 天都归档了」。日期用 `careerRecentDays(7)` 按 UTC 递减算，不依赖时区。
 - ⚠️ 想再换回暗色：把 `:root` 的 `--bg-0/--surface*/--ink*/--line*/--accent*` 换回深色值即可，但**要同时删掉/改掉「浅色收口层 · 柔和白」这一段 + `color-scheme: light` + select 箭头 SVG 的 `%23c89500`**，否则会有浅底白线。
+
+## 每日日报（`data-tab="daily"` · 表单分组）
+
+工单日报 32 个字段 / 海外日报 15 个字段原来是平铺的一个 auto-fit 网格，用户反馈「每次填的时候都要找一下对应项在哪」（2026-10），现在按业务**分组**渲染：
+
+- **分组定义**：`DAILY_TICKET_GROUPS`（10 组：基础信息 / 工单与后台 / ① 繁花 / ② 乐缤纷 / ③ 不差钱 / ④ 你的江湖 / ⑤ 梦幻消除战 / ⑥ 伙伴弹途 / ⑦ 异世界勇者 / 待跟进）与 `DAILY_OVERSEAS_GROUPS`（6 组：基础信息 / 评价与来访 / SDk 工单 / 工单 / 监控 / 群维系）。**数组顺序 = 表单里从上到下的顺序**；字段靠自身的 `group` 归组（`DAILY_TICKET_FIELDS` / `DAILY_OVERSEAS_FIELDS` 里每个字段都带 `group`，一部分还带 `short`）。
+- **渲染**：`renderDailyForm()` 按组出 `<section class="daily-group" data-group="…">` —— 组头 = 两位数编号 `.dg-n` + 标题 `.dg-title` + 副标 `.dg-sub` + 右上「已填 n/m」`.dg-fill`；组内 `.daily-group-grid` 自己一套 `repeat(auto-fit, minmax(150px,1fr))`。`.daily-form` 外层改成 flex 竖排，不再是全局网格。
+- **短标签**：组内只写「微信 / 抖音 / dy在线 / 手Q」「梦幻 / 爱江山 / 月光」这类短名（`short`），全称放 `title`（鼠标悬停可见），组标题已经带 ①~⑦ 不必重复。**`label` 一个字都没改** —— 它还被 `CAREER_TICKET_ITEMS` 的统计标签和 `CAREER_TICKET_LABEL_TO_KEY` 的日报正文解析用着。
+- **已填片**：`updateDailyGroupFill(container, tab)` 在渲染后 + 每次输入时刷新：`0/4`（灰）/ `1/4`（部分，`.is-part` 橙）/ `4/4`（齐，`.is-full` 黄底）。数值字段按「> 0」算、文本按「非空」算，所以带默认值的「班次」一开始就算已填。
+- **兜底**：以后新增字段忘了写 `group`，会落进 `data-group="misc"` 的「其他」片照旧渲染（`verify.mjs` 3b-2 同时断言「每个字段都归了组」和「misc 兜底存在」）。
+- **测试**：`tools/smoke.cjs` 第 **8o** 节 **14 条**（工单 10 组 / 组标题是业务名 / 01…10 编号 / 32 个字段一个不少 / ① 繁花只装 4 个平台 / 组内短标签 + title 全称 / 没有 misc / 待跟进 0/1 → 填了 1/1 并高亮 / ① 繁花 1/4 / 海外 6 组 / SDk 三项同一片 / 海外 15 字段 / 切回工单仍是 10 组 32 字段）；`tools/verify.mjs` 3b-2 有 9 条静态断言。
+- ⚠️ 字段数组新增键（`group` / `short`）不影响统计：`CAREER_TICKET_ITEMS` 仍按 `f.type === 'number'` 过滤；但 `verify.mjs` 里那个 `numKeys()` 的正则已放宽成 `type: 'number'[^{}]*}`，否则认不出带 `group` 的字段。
 
 ## 工单回复（`data-tab="reply"` · ⭐ 高频回复自动统计）
 
@@ -318,6 +330,7 @@ package.json               scripts: start / verify / verify:static / smoke:serve
 ```
 ## 已完成的关键改动
 
+- **日报表单分组**（2026-10，用户要求「填写日报的几个选项不好分辨」）：工单 / 海外日报按业务分组渲染（一组一片 + 编号 + 已填 n/m 片），组内用短标签、全称放 title；见上「每日日报」一节。
 - **`b459151`** 工作台优化：
   - 日报模板新增 **⑥伙伴弹途 / ⑦异世界勇者**。改动是**三处配套**，少一处会出现「有输入框但报告没这行」或反之：
     1. `DAILY_DEFAULT_DATA.ticket` 加 `g6_wx/g6_dy/g6_dyol/g7_wx/g7_dy/g7_dyol = 0`

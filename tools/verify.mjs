@@ -1,4 +1,4 @@
-// 校验：提取 <script> 内容做语法检查 + 关键结构自检
+﻿// 校验：提取 <script> 内容做语法检查 + 关键结构自检
 import fs from 'node:fs';
 
 const file = process.argv[2] || 'public/index.html';
@@ -56,7 +56,7 @@ ok(/data-tab="career"/.test(s) && /id="tab-career"/.test(s), '客服生涯标签
   const ovBlk = (s.match(/const CAREER_OVERSEAS_ITEMS = \[[\s\S]*?\r?\n\s*\];/) || [''])[0];
   const ticketBlk = (s.match(/const DAILY_TICKET_FIELDS = \[[\s\S]*?\r?\n\s*\];/) || [''])[0];
   const ovDailyBlk = (s.match(/const DAILY_OVERSEAS_FIELDS = \[[\s\S]*?\r?\n\s*\];/) || [''])[0];
-  const numKeys = (blk) => [...blk.matchAll(/\{ key: '([a-zA-Z0-9_]+)', label: '[^']*', type: 'number' \}/g)].map(m => m[1]);
+  const numKeys = (blk) => [...blk.matchAll(/\{ key: '([a-zA-Z0-9_]+)', label: '[^']*', type: 'number'[^{}]*\}/g)].map(m => m[1]);
   const ticketFields = numKeys(ticketBlk);
   const ovFields = numKeys(ovDailyBlk);
 
@@ -120,6 +120,43 @@ ok(/data-tab="career"/.test(s) && /id="tab-career"/.test(s), '客服生涯标签
   ok(!/careerExtraFields/.test(s) && /const careerAllItems = \(\) =>/.test(s), 'extra 已移除，改为「计入统计 / 只存档」两层');
   ok(/const CAREER_SHEET_ITEMS = \[[^\]]*'mhl_group'[^\]]*'t_sso'/.test(s) && (s.match(/CAREER_SHEET_ITEMS/g) || []).length >= 3,
     '登记表 14 列口径单列（导入/对账用）');
+}
+// ---- 3b-2. 日报表单分组（2026-10：一组一片，找项不用满屏扫）----
+{
+  const tGroupsBlk = (s.match(/const DAILY_TICKET_GROUPS = \[[\s\S]*?\n\s*\];/) || [''])[0];
+  const oGroupsBlk = (s.match(/const DAILY_OVERSEAS_GROUPS = \[[\s\S]*?\n\s*\];/) || [''])[0];
+  const tN = (tGroupsBlk.match(/\{ id: '/g) || []).length;
+  const oN = (oGroupsBlk.match(/\{ id: '/g) || []).length;
+  ok(tN === 10, `工单日报分 ${tN} 组（基础 / 工单后台 / ①~⑦ / 待跟进）`);
+  ok(oN === 6, `海外日报分 ${oN} 组（基础 / 评价来访 / SDk / 工单 / 监控 / 群维系）`);
+  const tFieldsBlk = (s.match(/const DAILY_TICKET_FIELDS = \[[\s\S]*?\n\s*\];/) || [''])[0];
+  const oFieldsBlk = (s.match(/const DAILY_OVERSEAS_FIELDS = \[[\s\S]*?\n\s*\];/) || [''])[0];
+  const idsOf = (blk) => new Set([...blk.matchAll(/id: '([^']+)'/g)].map(m => m[1]));
+  const fieldGroups = (blk) => [...blk.matchAll(/\{ key: '([a-zA-Z0-9_]+)',[^\n]*?group: '([^']+)'/g)].map(m => [m[1], m[2]]);
+  const tPair = fieldGroups(tFieldsBlk);
+  const oPair = fieldGroups(oFieldsBlk);
+  const tAll = (tFieldsBlk.match(/\{ key: '/g) || []).length;
+  const oAll = (oFieldsBlk.match(/\{ key: '/g) || []).length;
+  ok(tPair.length === tAll && oPair.length === oAll,
+    `每个日报字段都归了组（工单 ${tPair.length}/${tAll}，海外 ${oPair.length}/${oAll}）`);
+  const tIds = idsOf(tGroupsBlk);
+  const oIds = idsOf(oGroupsBlk);
+  const badT = tPair.filter(([k, g]) => !tIds.has(g)).map(([k]) => k);
+  const badO = oPair.filter(([k, g]) => !oIds.has(g)).map(([k]) => k);
+  ok(!badT.length && !badO.length, '字段引用的分组都存在' + (badT.length || badO.length ? '，越界：' + badT.concat(badO).join('/') : ''));
+  ok(/const groups = tab === 'ticket' \? DAILY_TICKET_GROUPS : DAILY_OVERSEAS_GROUPS;/.test(s)
+    && /<section class="daily-group" data-group=/.test(s) && /class="daily-group-grid"/.test(s),
+    'renderDailyForm 按分组渲染（组 = 一片 section + 组内网格）');
+  ok(/data-group="misc"[\s\S]{0,900}?looseFields\.map\(fieldHtml\)/.test(s),
+    '没归组的字段有兜底（misc 组照旧渲染，不会把新字段吞掉）');
+  ok(/function updateDailyGroupFill\(container, tab\)/.test(s)
+    && (s.match(/updateDailyGroupFill\(container, tab\);/g) || []).length >= 2,
+    '每组右上「已填 n/m」：渲染后算一次 + 输入时同步刷新');
+  ok(/const short = escapeHtml\(f\.short \|\| f\.label\)/.test(s) && /title="\$\{full\}"/.test(s),
+    '组内用短标签（full 放在 title 上，鼠标悬停仍是全称）');
+  ok(/\.daily-group \{/.test(s) && /\.daily-group-grid \{/.test(s) && /\.dg-fill\.is-full/.test(s)
+    && !/\.daily-form \{\s*display: grid;/.test(s),
+    '分组样式已注入（外层不再是 auto-fit 网格，改由每组自己排）');
 }
 ok(/careerArchiveToday\(\)/.test(s) && /const CAREER_KEY = 'careerData'/.test(s), '客服生涯自动归档已挂 + 存储 key');
 // 客服生涯只存本机：helper 在，且不再出现 loadData/saveData(CAREER_KEY…)（那两个会读写 /api/data）

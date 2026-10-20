@@ -1719,6 +1719,59 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     check(/累计|还没有数据/.test($('ovbizHeadline').textContent), '海外总览也有一句话摘要', $('ovbizHeadline').textContent.slice(0, 70));
   }
 
+  console.log('--- 8o. 日报表单分组（一组一片，找项不用满屏扫） ---');
+  {
+    doc.querySelector('.tab-btn[data-tab="daily"]').click();
+    await sleep(60);
+    const ticketForm = $('dailyFormTicket');
+    check(ticketForm.querySelectorAll('.daily-group').length === 10,
+      '工单日报表单分成 10 组（一片一组）', ticketForm.querySelectorAll('.daily-group').length);
+    const titles = Array.from(ticketForm.querySelectorAll('.dg-title')).map(el => el.textContent);
+    check(titles.indexOf('① 繁花') !== -1 && titles.indexOf('⑦ 异世界勇者') !== -1
+      && titles.some(t => t.indexOf('工单与后台') !== -1),
+      '组标题写的是业务名（① 繁花 / ⑦ 异世界勇者 / 工单与后台）', titles.join(' | '));
+    const nums = Array.from(ticketForm.querySelectorAll('.dg-n')).map(el => el.textContent);
+    check(nums[0] === '01' && nums[nums.length - 1] === '10',
+      '每组带两位数编号（01…10）', nums.join(','));
+    check(ticketForm.querySelectorAll('[data-key]').length === 32,
+      '32 个字段一个都没少（分组只是排版，不动字段）', ticketForm.querySelectorAll('[data-key]').length);
+    const g1 = ticketForm.querySelector('[data-group="g1"]');
+    const g1Keys = Array.from(g1.querySelectorAll('[data-key]')).map(el => el.dataset.key);
+    check(g1Keys.join(',') === 'g1_wx,g1_dy,g1_dyol,g1_qq',
+      '① 繁花那一片只装它自己的 4 个平台（微信/抖音/dy在线/手Q）', g1Keys.join(','));
+    const g1Label = g1.querySelector('label[title="①繁花·微信"]');
+    check(!!g1Label && g1Label.textContent === '微信',
+      '组内标签收短（「微信」），全称留在 title 上（悬停可见）', g1Label && g1Label.textContent);
+    check(!ticketForm.querySelector('[data-group="misc"]'),
+      '所有字段都归了组，没有落进「其他」兜底片');
+    const noteChip = ticketForm.querySelector('[data-group="note"] [data-fill]');
+    check(noteChip.textContent === '0/1', '「待跟进」那一片初始 0/1', noteChip.textContent);
+    setDailyField('dailyFormTicket', 'pending', '分组测试');
+    await sleep(20);
+    const noteChip2 = ticketForm.querySelector('[data-group="note"] [data-fill]');
+    check(noteChip2.textContent === '1/1' && noteChip2.classList.contains('is-full'),
+      '填一项就变 1/1 并高亮（一眼看出哪组还没填完）', noteChip2.textContent + ' · ' + noteChip2.className);
+    setDailyField('dailyFormTicket', 'g1_wx', 2);
+    await sleep(20);
+    check(ticketForm.querySelector('[data-group="g1"] [data-fill]').textContent === '1/4',
+      '① 繁花填了微信 → 1/4', ticketForm.querySelector('[data-group="g1"] [data-fill]').textContent);
+    $('dailyTabOverseas').click();
+    await sleep(40);
+    const ovForm = $('dailyFormOverseas');
+    check(ovForm.querySelectorAll('.daily-group').length === 6,
+      '海外日报分成 6 组（基础 / 评价来访 / SDk / 工单 / 监控 / 群维系）', ovForm.querySelectorAll('.daily-group').length);
+    const sdkKeys = Array.from(ovForm.querySelectorAll('[data-group="sdk"] [data-key]')).map(el => el.dataset.key);
+    check(sdkKeys.join(',') === 'sdk_mh,sdk_ajs,sdk_yl',
+      'SDk 工单三项在同一片里（梦幻 / 爱江山 / 月光）', sdkKeys.join(','));
+    check(ovForm.querySelectorAll('[data-key]').length === 15,
+      '海外 15 个字段都在（分组没吞字段）', ovForm.querySelectorAll('[data-key]').length);
+    $('dailyTabTicket').click();
+    await sleep(40);
+    check($('dailyFormTicket').querySelectorAll('.daily-group').length === 10
+      && $('dailyFormTicket').querySelectorAll('[data-key]').length === 32,
+      '切回工单栏重新渲染，分组与字段数都还原');
+  }
+
   console.log('--- 9. 无未捕获异常 ---');
   check(!warns.some(w => w.startsWith('ERROR')), 'console.error 未被调用：' + warns.filter(w => w.startsWith('ERROR')).join(' | '));
   check(jsdomErrors.length === 0, '页面无未捕获异常（jsdomError）', jsdomErrors.slice(0, 3));

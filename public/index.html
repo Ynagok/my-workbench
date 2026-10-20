@@ -1500,10 +1500,75 @@
             }
 
         .daily-form {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 10px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
             margin-top: 8px;
+        }
+
+        /* [优化] 日报表单分组：一组一片（编号 + 标题 + 副标 + 已填片），组内独立网格 */
+        .daily-group {
+            border: 1px solid var(--line-0);
+            border-left: 2px solid var(--accent-line);
+            background: var(--surface-2);
+            padding: 10px 12px 12px;
+        }
+
+        .daily-group-head {
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 10px;
+        }
+
+        .dg-n {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--accent-ink);
+            letter-spacing: 0.04em;
+        }
+
+        .dg-title {
+            font-family: var(--font-display);
+            font-size: 12.5px;
+            font-weight: 700;
+            color: var(--ink-0);
+            letter-spacing: 0.06em;
+        }
+
+        .dg-sub {
+            font-size: 10.5px;
+            color: var(--ink-3);
+            letter-spacing: 0.04em;
+        }
+
+        .dg-fill {
+            margin-left: auto;
+            font-family: var(--font-mono);
+            font-size: 10.5px;
+            line-height: 1;
+            color: var(--ink-3);
+            border: 1px solid var(--line-0);
+            padding: 3px 6px;
+        }
+
+            .dg-fill.is-part {
+                color: var(--warn);
+                border-color: var(--warn);
+            }
+
+            .dg-fill.is-full {
+                color: var(--accent-ink);
+                border-color: var(--accent-line);
+                background: var(--accent-dim);
+            }
+
+        .daily-group-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 8px 12px;
         }
 
         .daily-field {
@@ -1513,9 +1578,10 @@
         }
 
             .daily-field label {
-                font-size: 11px;
-                margin-bottom: 2px;
-                letter-spacing: 0.08em;
+                font-size: 12px;
+                margin-bottom: 3px;
+                letter-spacing: 0.04em;
+                color: var(--ink-2);
             }
 
             .daily-field input {
@@ -6493,58 +6559,80 @@
                                     };
 
                                     const DAILY_TICKET_FIELDS = [
-                                        { key: 'name', label: '姓名', type: 'text', placeholder: '如：客服' },
-                                        { key: 'shift', label: '班次', type: 'select', options: ['A', 'F', 'H'], default: 'A' },
-                                        { key: 'sso', label: 'SSO工单', type: 'number' },
-                                        { key: 'kf53', label: '53客服在线', type: 'number' },
-                                        { key: 'alipay', label: '支付宝在线', type: 'number' },
-                                        { key: 'ajs_cp', label: '爱江山CP后台', type: 'number' },
-                                        { key: 'fh_cp', label: '繁花CP后台', type: 'number' },
-                                        { key: 'lb_cp', label: '乐缤纷CP后台', type: 'number' },
-                                        { key: 'bcq_cp', label: '不差钱CP后台', type: 'number' },
-                                        { key: 'g1_wx', label: '①繁花·微信', type: 'number' },
-                                        { key: 'g1_dy', label: '①繁花·抖音', type: 'number' },
-                                        { key: 'g1_dyol', label: '①繁花·dy在线', type: 'number' },
-                                        { key: 'g1_qq', label: '①繁花·手Q', type: 'number' },
-                                        { key: 'g2_wx', label: '②乐缤纷·微信', type: 'number' },
-                                        { key: 'g2_dy', label: '②乐缤纷·抖音', type: 'number' },
-                                        { key: 'g2_dyol', label: '②乐缤纷·dy在线', type: 'number' },
-                                        { key: 'g3_wx', label: '③不差钱·微信', type: 'number' },
-                                        { key: 'g3_dy', label: '③不差钱·抖音', type: 'number' },
-                                        { key: 'g3_dyol', label: '③不差钱·dy在线', type: 'number' },
-                                        { key: 'g4_wx', label: '④你的江湖·微信', type: 'number' },
-                                        { key: 'g4_dy', label: '④你的江湖·抖音', type: 'number' },
-                                        { key: 'g4_dyol', label: '④你的江湖·dy在线', type: 'number' },
-                                        { key: 'g5_wx', label: '⑤梦幻消除战·微信', type: 'number' },
-                                        { key: 'g5_dy', label: '⑤梦幻消除战·抖音', type: 'number' },
-                                        { key: 'g5_alipay', label: '⑤梦幻消除战·支付宝后台', type: 'number' },
-                                        { key: 'g6_wx', label: '⑥伙伴弹途·微信', type: 'number' },
-                                        { key: 'g6_dy', label: '⑥伙伴弹途·抖音', type: 'number' },
-                                        { key: 'g6_dyol', label: '⑥伙伴弹途·dy在线', type: 'number' },
-                                        { key: 'g7_wx', label: '⑦异世界勇者·微信', type: 'number' },
-                                        { key: 'g7_dy', label: '⑦异世界勇者·抖音', type: 'number' },
-                                        { key: 'g7_dyol', label: '⑦异世界勇者·dy在线', type: 'number' },
-                                        { key: 'pending', label: '待跟进', type: 'textarea', fullWidth: true, placeholder: '例：xxx问题需要跟进' }
+                                        { key: 'name', label: '姓名', type: 'text', group: 'base', placeholder: '如：客服' },
+                                        { key: 'shift', label: '班次', type: 'select', group: 'base', options: ['A', 'F', 'H'], default: 'A' },
+                                        { key: 'sso', label: 'SSO工单', type: 'number', group: 'ticket' },
+                                        { key: 'kf53', label: '53客服在线', type: 'number', group: 'ticket' },
+                                        { key: 'alipay', label: '支付宝在线', type: 'number', group: 'ticket' },
+                                        { key: 'ajs_cp', label: '爱江山CP后台', type: 'number', group: 'ticket' },
+                                        { key: 'fh_cp', label: '繁花CP后台', type: 'number', group: 'ticket' },
+                                        { key: 'lb_cp', label: '乐缤纷CP后台', type: 'number', group: 'ticket' },
+                                        { key: 'bcq_cp', label: '不差钱CP后台', type: 'number', group: 'ticket' },
+                                        { key: 'g1_wx', label: '①繁花·微信', type: 'number', group: 'g1', short: '微信' },
+                                        { key: 'g1_dy', label: '①繁花·抖音', type: 'number', group: 'g1', short: '抖音' },
+                                        { key: 'g1_dyol', label: '①繁花·dy在线', type: 'number', group: 'g1', short: 'dy在线' },
+                                        { key: 'g1_qq', label: '①繁花·手Q', type: 'number', group: 'g1', short: '手Q' },
+                                        { key: 'g2_wx', label: '②乐缤纷·微信', type: 'number', group: 'g2', short: '微信' },
+                                        { key: 'g2_dy', label: '②乐缤纷·抖音', type: 'number', group: 'g2', short: '抖音' },
+                                        { key: 'g2_dyol', label: '②乐缤纷·dy在线', type: 'number', group: 'g2', short: 'dy在线' },
+                                        { key: 'g3_wx', label: '③不差钱·微信', type: 'number', group: 'g3', short: '微信' },
+                                        { key: 'g3_dy', label: '③不差钱·抖音', type: 'number', group: 'g3', short: '抖音' },
+                                        { key: 'g3_dyol', label: '③不差钱·dy在线', type: 'number', group: 'g3', short: 'dy在线' },
+                                        { key: 'g4_wx', label: '④你的江湖·微信', type: 'number', group: 'g4', short: '微信' },
+                                        { key: 'g4_dy', label: '④你的江湖·抖音', type: 'number', group: 'g4', short: '抖音' },
+                                        { key: 'g4_dyol', label: '④你的江湖·dy在线', type: 'number', group: 'g4', short: 'dy在线' },
+                                        { key: 'g5_wx', label: '⑤梦幻消除战·微信', type: 'number', group: 'g5', short: '微信' },
+                                        { key: 'g5_dy', label: '⑤梦幻消除战·抖音', type: 'number', group: 'g5', short: '抖音' },
+                                        { key: 'g5_alipay', label: '⑤梦幻消除战·支付宝后台', type: 'number', group: 'g5', short: '支付宝后台' },
+                                        { key: 'g6_wx', label: '⑥伙伴弹途·微信', type: 'number', group: 'g6', short: '微信' },
+                                        { key: 'g6_dy', label: '⑥伙伴弹途·抖音', type: 'number', group: 'g6', short: '抖音' },
+                                        { key: 'g6_dyol', label: '⑥伙伴弹途·dy在线', type: 'number', group: 'g6', short: 'dy在线' },
+                                        { key: 'g7_wx', label: '⑦异世界勇者·微信', type: 'number', group: 'g7', short: '微信' },
+                                        { key: 'g7_dy', label: '⑦异世界勇者·抖音', type: 'number', group: 'g7', short: '抖音' },
+                                        { key: 'g7_dyol', label: '⑦异世界勇者·dy在线', type: 'number', group: 'g7', short: 'dy在线' },
+                                        { key: 'pending', label: '待跟进', type: 'textarea', group: 'note', fullWidth: true, placeholder: '例：xxx问题需要跟进' }
+                                    ];
+                                    // 日报表单的分组（顺序 = 表单里从上到下的顺序；字段通过 group 归组）
+                                    const DAILY_TICKET_GROUPS = [
+                                        { id: 'base', title: '👤 基础信息', sub: '姓名 · 班次' },
+                                        { id: 'ticket', title: '🎫 工单与后台', sub: 'SSO / 53 在线 / 支付宝在线 / 四个 CP 后台' },
+                                        { id: 'g1', title: '① 繁花', sub: '微信 · 抖音 · dy在线 · 手Q' },
+                                        { id: 'g2', title: '② 乐缤纷', sub: '微信 · 抖音 · dy在线' },
+                                        { id: 'g3', title: '③ 不差钱', sub: '微信 · 抖音 · dy在线' },
+                                        { id: 'g4', title: '④ 你的江湖', sub: '微信 · 抖音 · dy在线' },
+                                        { id: 'g5', title: '⑤ 梦幻消除战', sub: '微信 · 抖音 · 支付宝后台' },
+                                        { id: 'g6', title: '⑥ 伙伴弹途', sub: '微信 · 抖音 · dy在线' },
+                                        { id: 'g7', title: '⑦ 异世界勇者', sub: '微信 · 抖音 · dy在线' },
+                                        { id: 'note', title: '📝 待跟进', sub: '写进日报正文，一行一条' }
                                     ];
 
                                     const DAILY_OVERSEAS_FIELDS = [
-                                        { key: 'name', label: '姓名', type: 'text', placeholder: '如：客服' },
-                                        { key: 'ios', label: 'ios商店（评价）', type: 'number' },
-                                        { key: 'google', label: 'Google Play（评价）', type: 'number' },
-                                        { key: 'fb', label: 'FB·梦幻（来访）', type: 'number' },
+                                        { key: 'name', label: '姓名', type: 'text', group: 'base', placeholder: '如：客服' },
+                                        { key: 'ios', label: 'ios商店（评价）', type: 'number', group: 'review', short: 'ios商店评价' },
+                                        { key: 'google', label: 'Google Play（评价）', type: 'number', group: 'review', short: 'Google Play' },
+                                        { key: 'fb', label: 'FB·梦幻（来访）', type: 'number', group: 'review', short: '梦幻' },
                                         // [需求] 「月光FB」单独一项，**不并进上面的梦幻FB**（日报正文 / 统计各算各的）
-                                        { key: 'fb_yl', label: 'FB·月光（来访）', type: 'number' },
-                                        { key: 'email', label: '邮箱（来访）', type: 'number' },
+                                        { key: 'fb_yl', label: 'FB·月光（来访）', type: 'number', group: 'review', short: '月光' },
+                                        { key: 'email', label: '邮箱（来访）', type: 'number', group: 'review', short: '邮箱' },
                                         // SDk工单（来访）按用户要求分三项填；日报正文与统计总量里合并成「SDk工单」一个数
-                                        { key: 'sdk_mh', label: 'SDk工单·梦幻', type: 'number' },
-                                        { key: 'sdk_ajs', label: 'SDk工单·爱江山', type: 'number' },
-                                        { key: 'sdk_yl', label: 'SDk工单·月光', type: 'number' },
-                                        { key: 'mute', label: '禁言', type: 'number' },
-                                        { key: 'ban', label: '封号', type: 'number' },
-                                        { key: 'cp_ticket', label: '海外CP后台工单', type: 'number' },
-                                        { key: 'cn_ticket', label: '国内工单', type: 'number' },
-                                        { key: 'mhl_group', label: '（梦幻/繁花/乐缤纷）群维系', type: 'number' },
-                                        { key: 'sj_group', label: '异世界群维系', type: 'number' }
+                                        { key: 'sdk_mh', label: 'SDk工单·梦幻', type: 'number', group: 'sdk', short: '梦幻' },
+                                        { key: 'sdk_ajs', label: 'SDk工单·爱江山', type: 'number', group: 'sdk', short: '爱江山' },
+                                        { key: 'sdk_yl', label: 'SDk工单·月光', type: 'number', group: 'sdk', short: '月光' },
+                                        { key: 'mute', label: '禁言', type: 'number', group: 'monitor' },
+                                        { key: 'ban', label: '封号', type: 'number', group: 'monitor' },
+                                        { key: 'cp_ticket', label: '海外CP后台工单', type: 'number', group: 'work', short: '海外CP后台' },
+                                        { key: 'cn_ticket', label: '国内工单', type: 'number', group: 'work', short: '国内' },
+                                        { key: 'mhl_group', label: '（梦幻/繁花/乐缤纷）群维系', type: 'number', group: 'group', short: '（梦幻/繁花/乐缤纷）' },
+                                        { key: 'sj_group', label: '异世界群维系', type: 'number', group: 'group', short: '异世界' }
+                                    ];
+                                    // 日报表单的分组（顺序 = 表单里从上到下的顺序；字段通过 group 归组）
+                                    const DAILY_OVERSEAS_GROUPS = [
+                                        { id: 'base', title: '👤 基础信息', sub: '姓名' },
+                                        { id: 'review', title: '⭐ 评价与来访', sub: '商店评价 / FB / 邮箱' },
+                                        { id: 'sdk', title: '🎫 SDk 工单', sub: '三项合计 = 海外SSO工单量' },
+                                        { id: 'work', title: '🎫 工单', sub: '海外 CP 后台 / 国内' },
+                                        { id: 'monitor', title: '🛡️ 监控', sub: '禁言 · 封号' },
+                                        { id: 'group', title: '👥 群维系', sub: '异世界 / 梦幻·繁花·乐缤纷' }
                                     ];
 
                                     // ==================== 客服生涯 · 数据模型 ====================
@@ -10510,6 +10598,32 @@
                                         return { year: bj.getFullYear(), month: bj.getMonth() + 1, day: bj.getDate() };
                                     }
 
+                                    // 「已填 n/m」小片：一眼看出哪一组还没填
+                                    function updateDailyGroupFill(container, tab) {
+                                        if (!container) return;
+                                        const all = tab === 'ticket' ? DAILY_TICKET_FIELDS : DAILY_OVERSEAS_FIELDS;
+                                        const data = dailyData[tab] || {};
+                                        container.querySelectorAll('.daily-group').forEach(sec => {
+                                            const gid = sec.dataset.group;
+                                            const chip = sec.querySelector('[data-fill]');
+                                            if (!chip) return;
+                                            const list = gid === 'misc'
+                                                ? Array.from(sec.querySelectorAll('[data-key]')).map(el => ({ key: el.dataset.key, type: el.tagName === 'TEXTAREA' ? 'textarea' : el.type }))
+                                                : all.filter(f => f.group === gid);
+                                            if (!list.length) return;
+                                            let filled = 0;
+                                            for (const f of list) {
+                                                const v = data[f.key];
+                                                const on = f.type === 'number'
+                                                    ? Number(v) > 0
+                                                    : String(v === undefined || v === null ? '' : v).trim() !== '';
+                                                if (on) filled++;
+                                            }
+                                            chip.textContent = filled + '/' + list.length;
+                                            chip.className = 'dg-fill' + (filled === list.length ? ' is-full' : filled ? ' is-part' : '');
+                                        });
+                                    }
+
                                     function renderDailyForm(tab) {
                                         const container = document.getElementById(tab === 'ticket' ? 'dailyFormTicket' : 'dailyFormOverseas');
                                         if (!container) return;
@@ -10531,7 +10645,12 @@
                                         const selEnd = activeEl && activeEl.selectionEnd !== undefined ? activeEl.selectionEnd : null;
 
                                         let html = '';
-                                        for (const f of fields) {
+                                        const groups = tab === 'ticket' ? DAILY_TICKET_GROUPS : DAILY_OVERSEAS_GROUPS;
+                                        const used = new Set();
+
+                                        // 单个字段 → 一段 HTML（口径与原来一致：select 缺省值会回填并落盘）
+                                        const fieldHtml = (f) => {
+                                            used.add(f.key);
                                             let val = data[f.key] !== undefined ? data[f.key] : '';
                                             if (f.type === 'select' && (val === '' || val === null || val === undefined)) {
                                                 val = f.default || (f.options && f.options[0]) || '';
@@ -10540,29 +10659,50 @@
                                             }
                                             const fullWidth = f.fullWidth ? ' full-width' : '';
                                             const ph = escapeHtml(f.placeholder || '');
-
+                                            const short = escapeHtml(f.short || f.label);
+                                            const full = escapeHtml(f.label);
                                             if (f.type === 'textarea') {
-                                                html += `<div class="daily-field${fullWidth}">
-                                                                                                                                <label>${escapeHtml(f.label)}</label>
-                                                                                                                                <textarea data-key="${f.key}" placeholder="${ph}">${escapeHtml(val)}</textarea>
-                                                                                                                            </div>`;
-                                            } else if (f.type === 'select') {
+                                                return `<div class="daily-field${fullWidth}"><label title="${full}">${short}</label><textarea data-key="${f.key}" placeholder="${ph}">${escapeHtml(val)}</textarea></div>`;
+                                            }
+                                            if (f.type === 'select') {
                                                 const opts = (f.options || []).map(o =>
                                                     `<option value="${escapeHtml(o)}"${String(o) === String(val) ? ' selected' : ''}>${escapeHtml(o)}</option>`
                                                 ).join('');
-                                                html += `<div class="daily-field${fullWidth}">
-                                                                                                                                <label>${escapeHtml(f.label)}</label>
-                                                                                                                                <select data-key="${f.key}">${opts}</select>
-                                                                                                                            </div>`;
-                                            } else {
-                                                const inputType = f.type === 'number' ? 'number' : 'text';
-                                                html += `<div class="daily-field${fullWidth}">
-                                                                                                                                <label>${escapeHtml(f.label)}</label>
-                                                                                                                                <input type="${inputType}" data-key="${f.key}" value="${escapeHtml(val)}" placeholder="${ph}">
-                                                                                                                            </div>`;
+                                                return `<div class="daily-field${fullWidth}"><label title="${full}">${short}</label><select data-key="${f.key}">${opts}</select></div>`;
                                             }
-                                        }
+                                            const inputType = f.type === 'number' ? 'number' : 'text';
+                                            return `<div class="daily-field${fullWidth}"><label title="${full}">${short}</label><input type="${inputType}" data-key="${f.key}" value="${escapeHtml(val)}" placeholder="${ph}"></div>`;
+                                        };
 
+                                        // 一组 → 一片（编号 + 标题 + 副标 + 已填片），组内独立网格，找项不用满屏扫
+                                        const groupHtml = (g, idx) => {
+                                            const list = fields.filter(f => f.group === g.id);
+                                            if (!list.length) return '';
+                                            return `<section class="daily-group" data-group="${g.id}">
+                                                        <div class="daily-group-head">
+                                                            <span class="dg-n">${String(idx + 1).padStart(2, '0')}</span>
+                                                            <span class="dg-title">${escapeHtml(g.title)}</span>
+                                                            <span class="dg-sub">${escapeHtml(g.sub || '')}</span>
+                                                            <span class="dg-fill" data-fill></span>
+                                                        </div>
+                                                        <div class="daily-group-grid">${list.map(fieldHtml).join('')}</div>
+                                                    </section>`;
+                                        };
+
+                                        for (let gi = 0; gi < groups.length; gi++) html += groupHtml(groups[gi], gi);
+                                        // 兜底：没归进任何分组的字段照旧渲染，别把新加的字段吞掉
+                                        const looseFields = fields.filter(f => !used.has(f.key));
+                                        if (looseFields.length) {
+                                            html += `<section class="daily-group" data-group="misc">
+                                                        <div class="daily-group-head">
+                                                            <span class="dg-n">--</span>
+                                                            <span class="dg-title">其他</span>
+                                                            <span class="dg-sub">还没归组的字段</span>
+                                                            <span class="dg-fill" data-fill></span>
+                                                        </div>
+                                                        <div class="daily-group-grid">${looseFields.map(fieldHtml).join('')}</div>
+                                                    </section>`;
+                                        }
                                         html += `<div class="daily-custom-section">
                                                                                                                         <h4>自定义附加项</h4>
                                                                                                                         <div id="${tab}CustomList">`;
@@ -10580,6 +10720,7 @@
                                                                                                                     </div>`;
 
                                         container.innerHTML = html;
+                                        updateDailyGroupFill(container, tab);
 
                                     container.querySelectorAll('input[data-key], textarea[data-key], select[data-key]').forEach(el => {
                                         const evt = el.tagName === 'SELECT' ? 'change' : 'input';
@@ -10594,7 +10735,8 @@
                                             }
                                             dailyTouched = true;
                                             debouncedSaveDaily();
-                                        });
+                                            updateDailyGroupFill(container, tab);
+});
                                     });
 
                                     container.querySelectorAll('.daily-custom-item input').forEach(el => {
