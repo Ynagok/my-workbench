@@ -152,8 +152,10 @@ ok(/data-tab="career"/.test(s) && /id="tab-career"/.test(s), '客服生涯标签
   ok(/function updateDailyGroupFill\(container, tab\)/.test(s)
     && (s.match(/updateDailyGroupFill\(container, tab\);/g) || []).length >= 2,
     '每组右上「已填 n/m」：渲染后算一次 + 输入时同步刷新');
-  ok(/const short = escapeHtml\(f\.short \|\| f\.label\)/.test(s) && /title="\$\{full\}"/.test(s),
-    '组内用短标签（full 放在 title 上，鼠标悬停仍是全称）');
+  ok(/const label = escapeHtml\(f\.label\);/.test(s)
+    && (s.match(/<label>\$\{label\}<\/label>/g) || []).length === 3
+    && !/f\.short/.test(s),
+    '字段名照旧用原 label（不合并、不改名、不加短名）');
   ok(/\.daily-group \{/.test(s) && /\.daily-group-grid \{/.test(s) && /\.dg-fill\.is-full/.test(s)
     && !/\.daily-form \{\s*display: grid;/.test(s),
     '分组样式已注入（外层不再是 auto-fit 网格，改由每组自己排）');

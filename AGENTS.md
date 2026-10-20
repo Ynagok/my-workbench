@@ -138,15 +138,15 @@ npm run verify     # 改完代码、push 前的完整自检
 
 ## 每日日报（`data-tab="daily"` · 表单分组）
 
-工单日报 32 个字段 / 海外日报 15 个字段原来是平铺的一个 auto-fit 网格，用户反馈「每次填的时候都要找一下对应项在哪」（2026-10），现在按业务**分组**渲染：
+工单日报 32 个字段 / 海外日报 15 个字段原来是平铺的一个 auto-fit 网格，用户反馈「每次填的时候都要找一下对应项在哪」（2026-10），现在按业务**分组**渲染 —— **只改排版，字段一个不合并、不删、不改名**（用户后来又强调过一遍「每个要填的项不合并删改，只是希望可以更方便查看填写」）：
 
-- **分组定义**：`DAILY_TICKET_GROUPS`（10 组：基础信息 / 工单与后台 / ① 繁花 / ② 乐缤纷 / ③ 不差钱 / ④ 你的江湖 / ⑤ 梦幻消除战 / ⑥ 伙伴弹途 / ⑦ 异世界勇者 / 待跟进）与 `DAILY_OVERSEAS_GROUPS`（6 组：基础信息 / 评价与来访 / SDk 工单 / 工单 / 监控 / 群维系）。**数组顺序 = 表单里从上到下的顺序**；字段靠自身的 `group` 归组（`DAILY_TICKET_FIELDS` / `DAILY_OVERSEAS_FIELDS` 里每个字段都带 `group`，一部分还带 `short`）。
+- **分组定义**：`DAILY_TICKET_GROUPS`（10 组：基础信息 / 工单与后台 / ① 繁花 / ② 乐缤纷 / ③ 不差钱 / ④ 你的江湖 / ⑤ 梦幻消除战 / ⑥ 伙伴弹途 / ⑦ 异世界勇者 / 待跟进）与 `DAILY_OVERSEAS_GROUPS`（6 组：基础信息 / 评价与来访 / SDk 工单 / 工单 / 监控 / 群维系）。**数组顺序 = 表单里从上到下的顺序**；字段靠自身的 `group` 归组（`DAILY_TICKET_FIELDS` / `DAILY_OVERSEAS_FIELDS` 里每个字段都带 `group`，**除此之外一个字都没动**）。
 - **渲染**：`renderDailyForm()` 按组出 `<section class="daily-group" data-group="…">` —— 组头 = 两位数编号 `.dg-n` + 标题 `.dg-title` + 副标 `.dg-sub` + 右上「已填 n/m」`.dg-fill`；组内 `.daily-group-grid` 自己一套 `repeat(auto-fit, minmax(150px,1fr))`。`.daily-form` 外层改成 flex 竖排，不再是全局网格。
-- **短标签**：组内只写「微信 / 抖音 / dy在线 / 手Q」「梦幻 / 爱江山 / 月光」这类短名（`short`），全称放 `title`（鼠标悬停可见），组标题已经带 ①~⑦ 不必重复。**`label` 一个字都没改** —— 它还被 `CAREER_TICKET_ITEMS` 的统计标签和 `CAREER_TICKET_LABEL_TO_KEY` 的日报正文解析用着。
+- **字段本身不动**（用户 2026-10 明确：不合并、不删、不改名，只是更方便查看填写）：组内照旧显示原来的完整 `label`（`①繁花·微信` / `SDk工单·梦幻`…），字段顺序、数量、key、日报正文、统计标签全都没变；`CAREER_TICKET_ITEMS` 与 `CAREER_TICKET_LABEL_TO_KEY` 读的还是同一份 `label`。
 - **已填片**：`updateDailyGroupFill(container, tab)` 在渲染后 + 每次输入时刷新：`0/4`（灰）/ `1/4`（部分，`.is-part` 橙）/ `4/4`（齐，`.is-full` 黄底）。数值字段按「> 0」算、文本按「非空」算，所以带默认值的「班次」一开始就算已填。
 - **兜底**：以后新增字段忘了写 `group`，会落进 `data-group="misc"` 的「其他」片照旧渲染（`verify.mjs` 3b-2 同时断言「每个字段都归了组」和「misc 兜底存在」）。
-- **测试**：`tools/smoke.cjs` 第 **8o** 节 **14 条**（工单 10 组 / 组标题是业务名 / 01…10 编号 / 32 个字段一个不少 / ① 繁花只装 4 个平台 / 组内短标签 + title 全称 / 没有 misc / 待跟进 0/1 → 填了 1/1 并高亮 / ① 繁花 1/4 / 海外 6 组 / SDk 三项同一片 / 海外 15 字段 / 切回工单仍是 10 组 32 字段）；`tools/verify.mjs` 3b-2 有 9 条静态断言。
-- ⚠️ 字段数组新增键（`group` / `short`）不影响统计：`CAREER_TICKET_ITEMS` 仍按 `f.type === 'number'` 过滤；但 `verify.mjs` 里那个 `numKeys()` 的正则已放宽成 `type: 'number'[^{}]*}`，否则认不出带 `group` 的字段。
+- **测试**：`tools/smoke.cjs` 第 **8o** 节 **14 条**（工单 10 组 / 组标题是业务名 / 01…10 编号 / 32 个字段一个不少 / ① 繁花只装 4 个平台 / 组内标签仍是全称 / 没有 misc / 待跟进 0/1 → 填了 1/1 并高亮 / ① 繁花 1/4 / 海外 6 组 / SDk 三项同一片 / 海外 15 字段 / 切回工单仍是 10 组 32 字段）；`tools/verify.mjs` 3b-2 有 9 条静态断言。
+- ⚠️ 字段数组只新增了一个键（`group`），不影响统计：`CAREER_TICKET_ITEMS` 仍按 `f.type === 'number'` 过滤；但 `verify.mjs` 里那个 `numKeys()` 的正则已放宽成 `type: 'number'[^{}]*}`，否则认不出带 `group` 的字段。
 
 ## 工单回复（`data-tab="reply"` · ⭐ 高频回复自动统计）
 

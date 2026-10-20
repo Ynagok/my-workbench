@@ -1739,9 +1739,9 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     const g1Keys = Array.from(g1.querySelectorAll('[data-key]')).map(el => el.dataset.key);
     check(g1Keys.join(',') === 'g1_wx,g1_dy,g1_dyol,g1_qq',
       '① 繁花那一片只装它自己的 4 个平台（微信/抖音/dy在线/手Q）', g1Keys.join(','));
-    const g1Label = g1.querySelector('label[title="①繁花·微信"]');
-    check(!!g1Label && g1Label.textContent === '微信',
-      '组内标签收短（「微信」），全称留在 title 上（悬停可见）', g1Label && g1Label.textContent);
+    const g1Label = Array.from(g1.querySelectorAll('label')).map(el => el.textContent).join(',');
+    check(g1Label === '①繁花·微信,①繁花·抖音,①繁花·dy在线,①繁花·手Q',
+      '字段名照旧（还是「①繁花·微信」这种全称，只是换了位置）', g1Label);
     check(!ticketForm.querySelector('[data-group="misc"]'),
       '所有字段都归了组，没有落进「其他」兜底片');
     const noteChip = ticketForm.querySelector('[data-group="note"] [data-fill]');
