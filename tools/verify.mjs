@@ -541,33 +541,37 @@ ok(/id="careerHeadline"/.test(s) && /id="ovbizHeadline"/.test(s) && /\.stat-head
 ok(/details class="card-more"/.test(s) && /details\.card-more > summary/.test(s),
   '客服生涯工具条收拢：导出 / 导入 / 清空折进「⋯ 更多」，主按钮只留归档 + 排班休息');
 
-// ---- 3l. 七日任务（任务表 / 进度日志 → 任务进度话术，只在本机处理）----
+// ---- 3l. 七日任务（进度日志 → 按固定任务表判定的进度话术，只在本机处理）----
 ok(/class="tab-btn" data-tab="sevenday"/.test(s) && /id="tab-sevenday"/.test(s)
-  && /id="sdTaskInput"/.test(s) && /id="sdLogInput"/.test(s) && /id="sdModeGroup"/.test(s)
-  && /id="sdOutput"/.test(s) && /id="sdGenerateBtn"/.test(s) && /id="sdCopyBtn"/.test(s)
-  && /id="sdClearBtn"/.test(s) && /id="sdReportSub"/.test(s),
-  '七日任务标签页：侧边栏 + 两张输入表 + 口径片 + 结果框 + 三个按钮');
+  && /id="sdLogInput"/.test(s) && /id="sdOutput"/.test(s) && /id="sdGenerateBtn"/.test(s)
+  && /id="sdCopyBtn"/.test(s) && /id="sdClearBtn"/.test(s) && /id="sdReportSub"/.test(s),
+  '七日任务标签页：主区只粘进度日志 + 生成 / 复制 / 清空 + 结果框');
+ok(/<details class="card tea-shop-card" id="sdTaskFold">/.test(s) && /id="sdTaskSub"/.test(s)
+  && /id="sdTaskResetBtn"/.test(s) && /if \(!t \|\| !String\(t\.value\)\.trim\(\)\) f\.open = true;/.test(s)
+  && s.indexOf('id="sdOutput"') < s.indexOf('id="sdTaskInput"'),
+  '任务表是固定的：收在默认折叠的「📋 任务表」里（还没粘过时自动展开），主区不再占地方');
 ok(/const SD_TASK_ALIASES = \{/.test(s) && /const SD_LOG_ALIASES = \{/.test(s)
   && /const SD_TASK_ORDER = \[/.test(s) && /const SD_LOG_ORDER = \[/.test(s)
   && /function sdParseRows\(text, aliases, order\)/.test(s) && /const useHeader = hit >= 3;/.test(s)
   && /function sdSplitRow\(line\)/.test(s) && /text\.indexOf\('\\t'\) !== -1/.test(s),
   '七日任务：表头按中文列名对齐（命中 ≥3 个就当带表头，否则按页面列序）+ 制表符/逗号/空白三种分隔');
-ok(/function sdBuildOverview\(tasks\)/.test(s) && /function sdBuildLog\(logs, tasks\)/.test(s)
-  && /byId\[String\(l\.id\)\]/.test(s) && /String\(l\.newS\) === '2' && String\(l\.oldS\) !== '2'/.test(s)
-  && /没粘任务表 → 已自动切到「进度变更」/.test(s),
-  '七日任务两种口径：按天分组的总览 + 按任务ID 关联任务表的进度变更（1→2 带积分/奖励），缺一张表时自动切口径');
+ok(/function sdBuildLog\(logs, tasks\)/.test(s) && /const byId = \{\};/.test(s)
+  && /rows = seq\[id\]\.slice\(\)\.sort/.test(s)
+  && /const done = it\.newS === '2' \|\| \(hasP && hasT && np >= tg\);/.test(s)
+  && /'还差 ' \+ \(tg - np\) \+ ' 完成'/.test(s) && /segs\.push\('可领取 ' \+ rw\.join\(' \+ '\)\)/.test(s)
+  && /const d = sdDayText\(it\.t\.day\) \|\| '未标天数';/.test(s),
+  '进度话术口径：按任务ID 查任务表 → 第几天分组 + 到了多少/目标 + 还差多少完成 + 达成时能领什么（同任务多条日志合成一条）');
 ok(/function sdItemLabel\(id, num\)/.test(s) && /const map = \(typeof itemNameMap !== 'undefined' && itemNameMap\) \? itemNameMap : \{\};/.test(s)
   && /map\[String\(id\)\]/.test(s) && /function sdRewardText\(reward\)/.test(s)
-  && /\\d\+\)\\s\*\[\+\*x×\/\]/.test(s)
-  && /function sdStatusText\(v\)/.test(s) && /function sdProgressText\(t\)/.test(s),
-  '七日任务：奖励写成「道具名×数量」（102+15 / 50101*1 都认）、状态与进度的口径统一');
+  && /\\d\+\)\\s\*\[\+\*x×\/\]/.test(s) && /function sdStatusText\(v\)/.test(s),
+  '七日任务：奖励写成「道具名×数量」（102+15 / 50101*1 都认）、状态按 1 未完成 / 2 可领取');
 ok(/const SD_STATE_KEY = 'sevendayTaskState';/.test(s)
   && /localStorage\.setItem\(SD_STATE_KEY/.test(s) && /localStorage\.getItem\(SD_STATE_KEY/.test(s)
-  && !/saveData\('sevenday/.test(s),
-  '七日任务只存本机 localStorage（sevendayTaskState），不走 /api/data');
+  && /已清空日志与结果（任务表留着）/.test(s) && !/saveData\('sevenday/.test(s),
+  '七日任务只存本机 localStorage（sevendayTaskState，任务表粘一次就记住），不走 /api/data；清空只清日志');
 ok(/setClick\('sdGenerateBtn', sdGenerate\)/.test(s) && /setClick\('sdCopyBtn', sdCopy\)/.test(s)
-  && /setClick\('sdClearBtn', sdClear\)/.test(s) && /function bindSdModeChips\(\)/.test(s),
-  '七日任务：生成 / 复制 / 清空 + 口径切换都已挂上');
+  && /setClick\('sdClearBtn', sdClear\)/.test(s) && /setClick\('sdTaskResetBtn', sdClearTask\)/.test(s),
+  '七日任务：生成 / 复制 / 清空 / 清掉任务表都已挂上');
 
 // ---- 4. 花括号/圆括号平衡（粗查，排除字符串内的干扰仅作参考） ----
 const count = (str, ch) => (str.split(ch).length - 1);
