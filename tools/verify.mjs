@@ -42,7 +42,7 @@ ok(!/function cleanText|resolveActivityType/.test(s), '死代码已删除');
 ok(/<option value="活动奖励">/.test(s) && /resourceType === '活动奖励'/.test(s), '资源类型「活动奖励（集合）」已注入');
 ok(/176: "幻狐2星锦囊"/.test(s) && /rawStar === 35\) starLabel = "幻狐5星"/.test(s), '集卡分析已识别幻狐（卡包 176-179 / 星级码 32-35）');
 ok(/"253": "联动分享活动-首次赠送"/.test(s) && /"257": "打怪棋盘-消耗步数"/.test(s), '来源/物品映射已补 253–257');
-ok((s.match(/"25[3-7]":\s*"/g) || []).length === 10, '253–257 在两张表里各一份（共 10 处）');
+ok((s.match(/"25[3-7]":\s*"/g) || []).length === 5, '253–257 只在来源映射里各一份（物品名表里 5 条非物品 id 已清掉）');
 {
   const actBlk = (s.match(/const DEFAULT_ACTIVITY_TYPE_MAP = \{[\s\S]*?\r?\n\s*\};/) || [''])[0];
   ok(/"75": "95打怪棋盘"/.test(actBlk), '活动类型映射已补 75（95打怪棋盘）');
@@ -54,7 +54,7 @@ ok((s.match(/"25[3-7]":\s*"/g) || []).length === 10, '253–257 在两张表里�
   // 物品名表补了页面有、代码缺的 96 条（新活动道具 / 桃花酿酒具 / 一周年·烟桃换装 / 枫染与永安家具尾部）。
   const itemBlk = (s.match(/const DEFAULT_ITEM_NAME_MAP = \{[\s\S]*?\r?\n\s*\};/) || [''])[0];
   const itemN = (itemBlk.match(/"\d+":\s*"/g) || []).length;
-  ok(itemN >= 1870, `物品名映射 ${itemN} 条（2026-10 补齐后应 ≥ 1870）`);
+  ok(itemN >= 1710, `物品名映射 ${itemN} 条（2026-10 整页对账后应 ≥ 1710）`);
   ok(/^\s*"34905": "中秋月饼·五",$/m.test(itemBlk)
     && /^\s*"40708": "桃花大酒坛",$/m.test(itemBlk)
     && /^\s*"60712": "活动棋盘五星霞光百戏锦囊",$/m.test(itemBlk)

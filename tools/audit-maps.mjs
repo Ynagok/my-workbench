@@ -92,13 +92,24 @@ for (const f of fs.readdirSync(DIR).filter(n => /^page-goods.*\.json$/.test(n)).
 
 // ---------- 差异 ----------
 const idSort = (a, b) => Number(a) - Number(b);
+// 已知例外：卡包 173–179 按「已定语义 3」保留手写风格（页面官方是「3星霞光锦囊 / 2星幻狐锦囊…」），
+// 这些不算「名称不一致」，单独列成「已知例外」，免得以后每次对账都被当成待修项。
+const KNOWN_EXCEPTIONS = {
+  '卡包名 PACK_NAME_MAP': ['173', '174', '175', '176', '177', '178', '179'],
+};
+
 function diff(label, page, hardMap) {
   const pk = Object.keys(page), hk = Object.keys(hardMap);
   const missing = pk.filter(k => hardMap[k] === undefined).sort(idSort);
-  const extra = hk.filter(k => page[k] === undefined).sort(idSort);
-  const renamed = pk.filter(k => hardMap[k] !== undefined && String(hardMap[k]) !== String(page[k])).sort(idSort);
-  console.log(`  ${label}：页面 ${pk.length} / 硬编码 ${hk.length} → 缺 ${missing.length}、多 ${extra.length}、名称不一致 ${renamed.length}`);
-  return { label, page, hardMap, missing, extra, renamed };
+  // `--xxx` 是「分类占位」条目（100=--货币、9000=--好感度道具 …），不是物品，单独算
+  const pseudo = hk.filter(k => page[k] === undefined && String(hardMap[k]).startsWith('--')).sort(idSort);
+  const extra = hk.filter(k => page[k] === undefined && !String(hardMap[k]).startsWith('--')).sort(idSort);
+  const skip = KNOWN_EXCEPTIONS[label] || [];
+  const renamedAll = pk.filter(k => hardMap[k] !== undefined && String(hardMap[k]) !== String(page[k])).sort(idSort);
+  const renamed = renamedAll.filter(k => !skip.includes(k));
+  const exceptions = renamedAll.filter(k => skip.includes(k));
+  console.log(`  ${label}：页面 ${pk.length} / 硬编码 ${hk.length} → 缺 ${missing.length}、多 ${extra.length}、名称不一致 ${renamed.length}` + (exceptions.length ? `（已知例外 ${exceptions.length}：${exceptions.join('/')}）` : '') + (pseudo.length ? `（${pseudo.length} 条 --分类占位忽略）` : ''));
+  return { label, page, hardMap, missing, extra, renamed, exceptions, pseudo };
 }
 
 const tables = [
@@ -128,6 +139,12 @@ for (const t of tables) {
     for (const id of t.renamed.slice(0, 300)) md.push(`| ${id} | ${t.hardMap[id]} | ${t.page[id]} |`);
     if (t.renamed.length > 300) md.push(`| … | 其余 ${t.renamed.length - 300} 条省略 |`);
     md.push('');
+  }
+  if (t.exceptions && t.exceptions.length) {
+    md.push(`**已知例外（` + t.exceptions.length + `，按「已定语义 3」保留手写风格，不算待修）**：` + t.exceptions.join('、'), '');
+  }
+  if (t.pseudo && t.pseudo.length) {
+    md.push(`**分类占位条目（${t.pseudo.length}，不是物品，忽略）**：${t.pseudo.join('、')}`, '');
   }
   if (t.extra.length) {
     md.push(`**硬编码有、页面没有（${t.extra.length}）**：${t.extra.slice(0, 120).join('、')}${t.extra.length > 120 ? ' …' : ''}`, '');
