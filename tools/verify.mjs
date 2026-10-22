@@ -48,6 +48,28 @@ ok((s.match(/"25[3-7]":\s*"/g) || []).length === 10, '253–257 在两张表里�
   ok(/"75": "95打怪棋盘"/.test(actBlk), '活动类型映射已补 75（95打怪棋盘）');
   ok((actBlk.match(/"\d+":/g) || []).length === 39, `活动类型映射键数 = ${(actBlk.match(/"\d+":/g) || []).length}（应为 39）`);
 }
+{
+  // 2026-10 按 GM 玩家页核对：活动类型 39 条逐条一致、来源 256 条（页面本就缺 52）一致、
+  // 卡包 151–179 名称一致（173–179 沿用「霞光/幻狐 N 星锦囊」手写风格，见已定语义 3），
+  // 物品名表补了页面有、代码缺的 96 条（新活动道具 / 桃花酿酒具 / 一周年·烟桃换装 / 枫染与永安家具尾部）。
+  const itemBlk = (s.match(/const DEFAULT_ITEM_NAME_MAP = \{[\s\S]*?\r?\n\s*\};/) || [''])[0];
+  const itemN = (itemBlk.match(/"\d+":\s*"/g) || []).length;
+  ok(itemN >= 1870, `物品名映射 ${itemN} 条（2026-10 补齐后应 ≥ 1870）`);
+  ok(/^\s*"34905": "中秋月饼·五",$/m.test(itemBlk)
+    && /^\s*"40708": "桃花大酒坛",$/m.test(itemBlk)
+    && /^\s*"60712": "活动棋盘五星霞光百戏锦囊",$/m.test(itemBlk)
+    && /^\s*"61009": "霞光百戏票券叁",$/m.test(itemBlk),
+    '新活动道具 / 桃花酿酒具 / 霞光票券 已补进物品名表');
+  ok(/^\s*"4100037": "烟桃·浅绯裙",$/m.test(itemBlk) && /^\s*"6101004": "清宁小楼",?$/m.test(itemBlk)
+    && /^\s*"6006136": "星月锦盒",$/m.test(itemBlk) && /^\s*"6013004": "枫染·雪顶",$/m.test(itemBlk),
+    '换装尾巴（一周年/烟桃）、房型、家具尾部（百味套 / 枫染·雪顶）已补进物品名表');
+  const pkg = fs.readFileSync('package.json', 'utf8');
+  ok(fs.existsSync('tools/extract-maps.mjs') && fs.existsSync('tools/audit-maps.mjs')
+    && /"extract:maps": "node tools\/extract-maps\.mjs"/.test(pkg)
+    && /"audit:maps": "node tools\/audit-maps\.mjs"/.test(pkg),
+    '映射对账工具：extract:maps（快照 → 精简表）+ audit:maps（精简表 vs 硬编码常量）');
+}
+
 
 // ---- 3b. 客服生涯 ----
 ok(/data-tab="career"/.test(s) && /id="tab-career"/.test(s), '客服生涯标签页已注入');

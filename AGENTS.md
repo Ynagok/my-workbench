@@ -52,6 +52,8 @@ npm run verify     # 改完代码、push 前的完整自检
 | `npm run verify:static` | 只要静态校验 + 语法检查（最快） |
 | `npm run report` | 打印一份真实生成的日报，肉眼确认排版（含 ⑥伙伴弹途 / ⑦异世界勇者） |
 | `npm run build:data` | 从 GM 玩家页快照提取 4 张权威映射表 + 与硬编码常量的**差异报告**（见下「游戏数据管线」） |
+| `npm run extract:maps` | 把玩家页快照抽成 `tools/out/page-*.json` **精简映射表**（只有 id→名称，不带玩家信息），见下「游戏数据管线」 |
+| `npm run audit:maps` | 用 `tools/out/page-*.json` 对账 4 张硬编码常量表，出 `tools/out/map-audit.md`（缺 / 多 / 名称不一致） |
 | `npm run smoke:server` | 单独跑服务端冒烟（真起进程 + 真发 HTTP，42 项，含 SOP 口令 7 项） |
 | `npm run smoke:pmc` | **生管物料订单工作台**（`public/pmc.html`）自检，123 项（含加工周期工作日推算 + 在途锁定/调整建议 + 真实 8.5MB xlsx 端到端导入）；**不在 verify 里**，见下「生管物料订单工作台」一节 |
 | `npm test` | = `npm run verify` |
@@ -73,8 +75,16 @@ npm run verify     # 改完代码、push 前的完整自检
 - **4 张表**：① 来源映射（`opFrom`/`from` → `DEFAULT_SOURCE_ID_MAP`）② 活动类型映射（→ `DEFAULT_ACTIVITY_TYPE_MAP`）③ 卡包表（→ `PACK_NAME_MAP`，含 `star`/`royal` 星级码）④ 物品名表（→ `DEFAULT_ITEM_NAME_MAP`，含分类）。
 - **尚未做**：C 装载方式（payload ≤150KB 时首选 C3 复用 `/api/data`）→ D 逐个消费点接入（**改话术的点先问用户**）→ E `verify.mjs` 断言 + `smoke.cjs` 第 10 节端到端 → F 拆 4 个提交。
 - **2026-10 手工核对（用户贴了一整页 GM 玩家查询页 HTML）**：**来源映射**（`opFrom`/`from` 1–257，页面本就缺 52）与 `DEFAULT_SOURCE_ID_MAP` **256 条逐条一致**；**活动类型映射**页面 39 个板块（2 PASS卡 … 81 体力排行榜）与 `DEFAULT_ACTIVITY_TYPE_MAP` **39 条一致**；**卡包表** `PACK_NAME_MAP` 的 152/154/156/158/160/161 已按页面官方词序改成「百戏大锦囊 / 百戏超大锦囊」（原来写成「大百戏」），并补了 170–172「卡牌必得卡包展示」；**物品名表**补 419 / 783 / 804 / 997 / 4105004 / 4105005 六条、修正 769（松鼠精地块积分）/ 782（装饰松鼠精）/ 784（装饰配套喜羊羊）/ 799·800（瑶池觅宝「奖励分数 / 竞速积分」原来对调了）。**霞光 / 幻狐 的手写风格保持不动**（见「已定语义 3」）。
-  - ⚠️ **物品名表没做全量对账**（1768 条）：要全量得把玩家页存成 `tools/fixtures/player-page.html` 再 `npm run build:data` 出 diff；本轮只按页面里看得见的 id 抽核（137 条）。
-  - ⚠️ 两处存疑未动：`774` 表里是「珍蚌」、页面原文像是「珍虾」（还愿锦鲤的珍珠蚌更合理，先留）；`997` 页面本身写作「茶楼经营**簿**茶壶」而来源表写「茶楼经营**薄**任务奖励」，按页面原样抄成「簿」。
+  - ⚠️ **物品名表仍未做「整页 vs 整表」的全量对账**：上一版只按页面里看得见的 id 抽核（137 条）。要全量就按下面「第二轮」的两条命令走（先 `extract:maps` 抽精简表，再 `audit:maps` 对账）。
+  - ✅ 两处存疑已按页面定案（2026-10 第二轮复核）：`774` 页面原文就是「珍蚌」（`\u73cd\u868c`，不是珍虾），`997` 页面就是「茶楼经营**簿**茶壶」—— 表里现在这两条都对，别再改。
+- **2026-10 第二轮核对（用户又贴了同一张 GM 玩家页）**：
+  - **来源映射 256 条**（1–257、无 52）与页面逐条一致（抽样 1/6/13/22/32/36/37/53/59/76/80/100/117/118/129/142/147/148/152/161/166/170/173/177/190/198/206/210/221/222/228/236/238/239/245/249/252–257 全部命中，含「茶楼经营薄任务奖励」「颠峰厨王争霸」「pk100活动最终奖励」这些易错项）。
+  - **活动类型 39 条**（2 PASS卡 … 75 95打怪棋盘）与 `DEFAULT_ACTIVITY_TYPE_MAP` **键名全等**（含 60 限时累充活动 / 66 好运对对碰 / 67 茶楼七日任务 / 70 还愿锦鲤 / 73 93走地图棋盘 / 74 猫咪叠罗汉 / 77 手偶活动 / 79 织布大赛 / 81 体力排行榜），无改动。
+  - **卡包 151–179**：页面官方名与 `PACK_NAME_MAP` 一致（152/154/156/158/160 是「N星百戏大锦囊」、161「5星百戏超大锦囊」、170–172「卡牌必得卡包展示」）；**173–179 仍沿用手写风格**（页面官方是「3星霞光锦囊 / 2星幻狐锦囊…」，见「已定语义 3」，没动）。
+  - **物品名表补齐 96 条**（1774 → **1870**）：`60708`–`60712`（活动棋盘聚财童子/棋子挑选箱/三叠香龛/体力炉/五星霞光百戏锦囊）、`60804`–`60806`（五星霞光百戏锦囊碎片 1/2/3 级）、`61004`–`61009`（绒珠碎片壹贰叁 + 霞光百戏票券壹贰叁）、`34901`–`34905`（中秋月饼·一~五）、`40702`–`40708`（桃花酿整组酒具，之前整族缺失）、`4100030`–`4100037`（一周年·蝶影 / 烟桃·浅绯 换装）、`6101004`（清宁小楼）、以及家具尾部 `6002006/6002007/6003007/6004009`、`6005019`–`6005026`、`6006014`–`6006020`、`6006112`–`6006136`（百味烤盘…星月锦盒）、`6007005`–`6007007`、`6008007`、`6008022`–`6008024`、`6009012`–`6009015`、`6009041`、`6010007/6010008`、`6011006`、`6012005`、`6013004`。姓名全部按页面 `\uXXXX` 解码后写入（不是手打）。
+  - ⚠️ **仍然是「按页面看得见的 id 补缺」，不是逐条全量对账**：这次用「族/区间探针」找出代码里整族缺失或尾部截断的 id（家具 600x、棋子 61xxx/407xx、82xxx/83xxx 等）再逐条补，理论上仍可能有零散漏项；**下一次要一次到底，就把玩家页存成 `tools/fixtures/player-page.html`，跑下面两条命令看 `tools/out/map-audit.md` 的三列（缺/多/名称不一致）**。
+  - **新增两个对账工具（已入库）**：`tools/extract-maps.mjs`（`npm run extract:maps`：整页快照 → `tools/out/page-source.json` / `page-activity-type.json` / `page-pack.json` / `page-goods-1|2|3.json`，只留 id→名称，**不带玩家隐私**）+ `tools/audit-maps.mjs`（`npm run audit:maps`：拿这些精简表对账 `public/index.html` 的 4 张常量表，写出 `tools/out/map-audit.md`）。两者都支持指定路径/目录，`tools/fixtures/player-page.sample.html` 可跑通。
+  - ⚠️ 聊天里直接粘贴的整页 HTML **没法变成文件**（子会话看不到父会话的粘贴，`tools/out/` 里也不会有），所以对账要么走上面的「存文件 → 两条命令」，要么只能像本轮这样按可见 id 抽核。
 
 ## 反馈提取助手（油猴脚本）—— **已删除**（2026-10，用户要求「油猴助手要删了」）
 
@@ -331,9 +341,9 @@ public/pmc.html            生管物料订单工作台（临时工具单页：�
 server.js                  express：静态托管 public/ + GET/POST /api/data/:key ↔ data.json（含 key 白名单）+ GET/POST /api/vote/:key（下午茶投票：原子合并 + 当天 23:00 过期清理）
 data.json                  服务端数据（随使用增长；前端字段缺失会被默认值自动补齐）
 tools/                     自检脚本（verify / smoke / smoke-nonblocking / smoke-server / smoke-pmc / print-report / build-game-data）＋ sop-seed.cjs（遗留：SOP 页面已删，只用来把旧 bundle 推给服务端）
-tools/fixtures/            build:data 的输入；player-page.html 含玩家隐私已 gitignore，样例已入库
-tools/out/                 build:data 的产出（4 张表 + 差异报告）＋ pmc 样例数据管线 ＋ sop/（附件抽出来的文本与 bundle，已 gitignore），已 gitignore
-package.json               scripts: start / verify / verify:static / smoke:server / smoke:pmc / sop:seed / report / build:data / test
+tools/fixtures/            build:data / extract:maps 的输入；player-page.html 含玩家隐私已 gitignore，样例已入库
+tools/out/                 build:data / extract:maps 的产出（4 张表 + 差异报告 + page-*.json / map-audit.md）＋ pmc 样例数据管线 ＋ sop/（附件抽出来的文本与 bundle，已 gitignore），已 gitignore
+package.json               scripts: start / verify / verify:static / smoke:server / smoke:pmc / sop:seed / report / build:data / extract:maps / audit:maps / test
 ```
 ## 已完成的关键改动
 

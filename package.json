@@ -12,6 +12,8 @@
     "smoke:pmc": "node tools/smoke-pmc.cjs public/pmc.html",
     "sop:seed": "node tools/sop-seed.cjs",
     "build:data": "node tools/build-game-data.mjs",
+    "extract:maps": "node tools/extract-maps.mjs",
+    "audit:maps": "node tools/audit-maps.mjs",
     "test": "npm run verify"
   },
   "keywords": [],
