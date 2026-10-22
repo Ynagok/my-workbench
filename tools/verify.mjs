@@ -567,9 +567,15 @@ ok(/const SD_TASK_ALIASES = \{/.test(s) && /const SD_LOG_ALIASES = \{/.test(s)
 ok(/function sdBuildLog\(logs, tasks\)/.test(s) && /const byId = \{\};/.test(s)
   && /rows = seq\[id\]\.slice\(\)\.sort/.test(s)
   && /const done = it\.newS === '2' \|\| \(hasP && hasT && np >= tg\);/.test(s)
-  && /'还差 ' \+ \(tg - np\) \+ ' 完成'/.test(s) && /segs\.push\('可领取 ' \+ rw\.join\(' \+ '\)\)/.test(s)
+  && /segs\.push\('还差 ' \+ \(tg - np\)\)/.test(s) && /segs\.push\('已完成'\)/.test(s)
+  && /segs\.push\('可领取 ' \+ rw\.join\(' \+ '\)\)/.test(s)
   && /const d = sdDayText\(it\.t\.day\) \|\| '未标天数';/.test(s),
-  '进度话术口径：按任务ID 查任务表 → 第几天分组 + 到了多少/目标 + 还差多少完成 + 达成时能领什么（同任务多条日志合成一条）');
+  '进度话术口径：按任务ID 查任务表 → 第几天分组 + 到了多少/目标 + 还差多少 / 已完成时能领什么（同任务多条日志合成一条）');
+ok(/function sdClock\(v\)/.test(s) && /function sdProgressVerb\(desc\)/.test(s)
+  && /const SD_VERBS = \['收集', '获取', '获得', '使用', '合成', '登录', '服务', '进行', '完成'\];/.test(s)
+  && /lines\.push\(\(i \+ 1\) \+ '\. ' \+ \(clock \? clock \+ ' ' : ''\) \+ name \+ '：' \+ segs\.join\('，'\)\);/.test(s)
+  && !/label = name === \('任务' \+ it\.id\)/.test(s),
+  '话术文字：时间点 + 任务描述（不带任务ID）+「已收集 11417/16000，还差 4583」/「…，已完成，可领取 …」');
 ok(/function sdItemLabel\(id, num\)/.test(s) && /const map = \(typeof itemNameMap !== 'undefined' && itemNameMap\) \? itemNameMap : \{\};/.test(s)
   && /map\[String\(id\)\]/.test(s) && /function sdRewardText\(reward\)/.test(s)
   && /\\d\+\)\\s\*\[\+\*x×\/\]/.test(s) && /function sdStatusText\(v\)/.test(s),

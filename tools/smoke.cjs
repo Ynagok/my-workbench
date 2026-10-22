@@ -1876,12 +1876,14 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     check(/^第4天$/m.test(out) && /^第5天$/m.test(out) && /^第6天$/m.test(out) && /^第7天$/m.test(out)
       && out.indexOf('第4天') < out.indexOf('第5天'),
       '按任务表的天数分组并排序（第4天 → 第7天）');
-    check(/使用100个道具（2504）：进度 91 → 100\/100 · 已达成 · 可领取 积分 50 \+ 竹丝匣×1/.test(out),
-      '达成的那条：进度 老 → 新/目标 · 已达成 · 能领什么（30701×1 → 竹丝匣×1）', out);
-    check(/收集16000个道具（2509）：进度 10797 → 11417\/16000 · 还差 4583 完成/.test(out),
-      '没达成的写「还差 N 完成」（16000 − 11417 = 4583）', out);
-    check(/收集20000个道具（2514）：进度 10797 → 11417\/20000 · 还差 8583 完成/.test(out)
-      && /收集24000个道具（2519）：进度 10797 → 11417\/24000 · 还差 12583 完成/.test(out),
+    check(/1\. 10-22 09:55 使用100个道具：已使用 100\/100，已完成，可领取 积分 50 \+ 竹丝匣×1/.test(out),
+      '完成的那条：时间点 + 已使用多少/目标 + 已完成 + 能领什么（30701×1 → 竹丝匣×1），不带任务ID', out);
+    check(!/\(2504\)|\(2509\)|\(2514\)|\(2519\)/.test(out),
+      '话术里不再出现任务ID（不写「（2504）」这种）', out.split('\n').slice(0, 4));
+    check(/10-22 09:56 收集16000个道具：已收集 11417\/16000，还差 4583/.test(out),
+      '没完成的写「已收集多少/目标，还差 N」（16000 − 11417 = 4583）', out);
+    check(/收集20000个道具：已收集 11417\/20000，还差 8583/.test(out)
+      && /收集24000个道具：已收集 11417\/24000，还差 12583/.test(out),
       '第6天 / 第7天两条也各算各的差多少');
 
     // 状态还是 1、但进度已经够目标 → 也算达成（后台状态常慢一拍）
@@ -1892,8 +1894,8 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     fire($('sdLogInput'), 'input');
     $('sdGenerateBtn').click();
     await sleep(40);
-    check(/服务20个顾客（2487）：进度 19 → 20\/20 · 已达成 · 可领取 积分 20 \+ 体力×35/.test($('sdOutput').value),
-      '新状态还是 1、但进度够目标 → 也判「已达成」并写奖励', $('sdOutput').value);
+    check(/10-22 10:00 服务20个顾客：已服务 20\/20，已完成，可领取 积分 20 \+ 体力×35/.test($('sdOutput').value),
+      '新状态还是 1、但进度够目标 → 也判「已完成」并写奖励', $('sdOutput').value);
 
     // 同一个任务粘多条日志 → 合成一句（老进度取最早、新进度取最新）
     $('sdLogInput').value = [
@@ -1905,7 +1907,7 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     $('sdGenerateBtn').click();
     await sleep(40);
     check(/共 1 个任务/.test($('sdOutput').value)
-      && /使用100个道具（2504）：进度 50 → 100\/100 · 已达成/.test($('sdOutput').value),
+      && /使用100个道具：已使用 100\/100，已完成/.test($('sdOutput').value),
       '同一任务的多条日志合成一条（50 → 100，不是 91 → 100 两条）', $('sdOutput').value);
 
     // 任务表里没有的 ID → 回落成「任务NNNN」，不编目标与奖励
@@ -1913,7 +1915,7 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     fire($('sdLogInput'), 'input');
     $('sdGenerateBtn').click();
     await sleep(40);
-    check(/^未标天数$/m.test($('sdOutput').value) && /任务9999：进度 1 → 2 · 未完成/.test($('sdOutput').value),
+    check(/^未标天数$/m.test($('sdOutput').value) && /10-22 10:01 任务9999：进度 2，未完成/.test($('sdOutput').value),
       '任务表里没有的 ID 落「未标天数」并回落成「任务9999」', $('sdOutput').value);
 
     // 清空只清日志与结果（任务表是内置的，动不了）

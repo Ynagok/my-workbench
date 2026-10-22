@@ -13375,6 +13375,23 @@
                                         const m = /第\s*(\d+)\s*天/.exec(String(dayText || ''));
                                         return m ? +m[1] : 99;
                                     }
+                                    // 日志的「创建时间」→ 话术里那个时间点（MM-DD HH:MM；认不出就原样留着）
+                                    function sdClock(v) {
+                                        const s = String(v == null ? '' : v).trim();
+                                        const m = /(\d{4})-(\d{1,2})-(\d{1,2})[ T](\d{1,2}):(\d{2})/.exec(s);
+                                        if (!m) return s;
+                                        const p2 = n => (String(n).length < 2 ? '0' + n : String(n));
+                                        return p2(m[2]) + '-' + p2(m[3]) + ' ' + p2(m[4]) + ':' + m[5];
+                                    }
+                                    // 任务描述开头的动词（收集 / 使用 / 获取…）→ 「已收集 11417」这种说法；认不出就用「进度」
+                                    const SD_VERBS = ['收集', '获取', '获得', '使用', '合成', '登录', '服务', '进行', '完成'];
+                                    function sdProgressVerb(desc) {
+                                        const d = String(desc || '');
+                                        for (let i = 0; i < SD_VERBS.length; i++) {
+                                            if (d.indexOf(SD_VERBS[i]) === 0) return SD_VERBS[i];
+                                        }
+                                        return '';
+                                    }
 
                                     // 主口径：进度日志 → 按任务表判「到了多少 / 还差多少 / 达成能领什么」
                                     function sdBuildLog(logs, tasks) {
@@ -13396,6 +13413,7 @@
                                                 oldP: String(first.oldP == null ? '' : first.oldP).trim(),
                                                 newP: String(last.newP == null ? '' : last.newP).trim(),
                                                 newS: String(last.newS == null ? '' : last.newS).trim(),
+                                                time: String(last.time == null ? '' : last.time).trim(),
                                                 t: byId[id] || {}
                                             };
                                         });
@@ -13412,21 +13430,20 @@
                                             lines.push('');
                                             lines.push(d);
                                             days[d].forEach((it, i) => {
+                                                // 话术里不写任务ID：用「时间点 + 任务描述 + 进度」说清楚
                                                 const name = it.t.desc || ('任务' + it.id);
-                                                // 任务表里没有这个ID 时名字已经是「任务2509」，别再重复一遍 ID
-                                                const label = name === ('任务' + it.id) ? name : name + '（' + it.id + '）';
+                                                const clock = sdClock(it.time);
                                                 const target = String(it.t.target == null ? '' : it.t.target).trim();
                                                 const np = Number(it.newP), tg = Number(target);
                                                 const hasP = it.newP !== '' && isFinite(np);
                                                 const hasT = target !== '' && isFinite(tg);
-                                                let prog = '进度 ' + (it.oldP && it.oldP !== it.newP ? it.oldP + ' → ' : '') + (it.newP || '—');
-                                                if (hasT) prog += '/' + target;
-                                                const segs = [prog];
+                                                const verb = sdProgressVerb(name);
+                                                const segs = [(verb ? '已' + verb + ' ' : '进度 ') + (it.newP || '—') + (hasT ? '/' + target : '')];
                                                 const done = it.newS === '2' || (hasP && hasT && np >= tg);
-                                                if (done) segs.push('已达成');
-                                                else if (hasP && hasT && tg > np) segs.push('还差 ' + (tg - np) + ' 完成');
+                                                if (done) segs.push('已完成');
+                                                else if (hasP && hasT && tg > np) segs.push('还差 ' + (tg - np));
                                                 else segs.push(it.newS === '1' ? '未完成' : '进行中');
-                                                // 达成 → 这单能领什么（客服最常被问）
+                                                // 已完成 → 能领什么（客服最常被问）
                                                 if (done) {
                                                     const rw = [];
                                                     if (it.t.score) rw.push('积分 ' + it.t.score);
@@ -13434,7 +13451,7 @@
                                                     if (r) rw.push(r);
                                                     if (rw.length) segs.push('可领取 ' + rw.join(' + '));
                                                 }
-                                                lines.push((i + 1) + '. ' + label + '：' + segs.join(' · '));
+                                                lines.push((i + 1) + '. ' + (clock ? clock + ' ' : '') + name + '：' + segs.join('，'));
                                             });
                                         });
                                         return lines.join('\n');
