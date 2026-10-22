@@ -3534,6 +3534,7 @@
             <button class="tab-btn" data-tab="reply"> 工单回复</button>
             <button class="tab-btn" data-tab="feedback"> 反馈模板</button>
             <button class="tab-btn" data-tab="daily"> 每日日报</button>
+            <button class="tab-btn" data-tab="sevenday"> 七日任务</button>
             <button class="tab-btn" data-tab="career"> 客服生涯</button>
             <button class="tab-btn" data-tab="overseas"> 海外业务统计</button>
             <button class="tab-btn" data-tab="tea"> 下午茶</button>
@@ -3767,6 +3768,63 @@
             <div class="card">
                 <label>④ 生成结果 <span class="card-sub">「编号：」自己补</span></label>
                 <textarea id="fbOutput" rows="11" readonly></textarea>
+            </div>
+        </div>
+
+        <!-- ==================== 七日任务（任务进度话术） ==================== -->
+        <div id="tab-sevenday" class="tab-content">
+            <div class="career-report-head">
+                <div>
+                    <div class="crh-kicker">SEVEN-DAY QUEST / 七日任务进度</div>
+                    <div class="crh-title">七日任务</div>
+                    <div class="crh-sub" id="sdReportSub">—</div>
+                </div>
+                <div class="crh-meta" id="sdReportMeta"></div>
+            </div>
+
+            <div class="card">
+                <label>① 任务表 <span class="card-sub">七日任务列表整表复制（任务ID / 天数 / 描述 / 目标 / 状态 / 积分 / 奖励）</span></label>
+                <details class="stat-fold">
+                    <summary>粘法 / 列名说明</summary>
+                    <div>
+                        整页复制（带表头）最好；不带表头也行，按页面列序认：<b>任务ID · 天数 · 任务描述 · 目标 · 进度 · 客户进度 · 客户状态 · 状态 · 积分 · 奖励</b>。<br>
+                        制表符 / 逗号 / 「两个以上空格」分隔都吃；表头写「任务ID」「天数」这类词就按名字对齐，顺序随便。<br>
+                        奖励列支持 <b>102+15</b>（道具ID+数量）、<b>50101*1</b>（ID×数量）；道具有名字就换成名字（金币×15、棋子挑选盒×1）。
+                    </div>
+                </details>
+                <textarea id="sdTaskInput" rows="7" placeholder="任务ID&#9;天数&#9;任务描述&#9;目标&#9;进度&#9;客户进度&#9;客户状态&#9;状态&#9;积分&#9;奖励&#10;2486&#9;第1天&#9;登录1天&#9;1&#9;1&#9;1&#9;2&#9;可领取&#9;10&#9;102+15&#10;2489&#9;第1天&#9;获取40个猫猫头&#9;40&#9;0&#9;40&#9;2&#9;未完成&#9;20&#9;34001*1"></textarea>
+            </div>
+
+            <div class="card">
+                <label>② 进度日志 <span class="card-sub">可选 · 粘了就按「进度变更」出话术</span></label>
+                <details class="stat-fold">
+                    <summary>粘法 / 列名说明</summary>
+                    <div>
+                        七日任务进度日志整表复制（带表头）最好：<b>创建时间 · 活动排期ID · 事件UUID · 任务ID · 老进度 · 新进度 · 老状态 · 新状态</b>。<br>
+                        状态按后台的数字口径：<b>1 = 未完成、2 = 可领取（完成）</b>；老状态 1 → 新状态 2 会顺手把该任务的积分 / 奖励带出来。<br>
+                        进度日志里的任务ID 会用任务表补上「第几天 / 描述 / 目标 / 奖励」，任务表没粘也能生成（只显示任务ID）。
+                    </div>
+                </details>
+                <textarea id="sdLogInput" rows="7" placeholder="创建时间&#9;活动排期ID&#9;事件UUID&#9;任务ID&#9;老进度&#9;新进度&#9;老状态&#9;新状态&#10;2026-10-22 09:56:20&#9;34&#9;640eddc780ec6f7f432516746715fa04&#9;2509&#9;10797&#9;11417&#9;1&#9;1&#10;2026-10-22 09:55:55&#9;34&#9;a520c425ce76a1c7c728149f8e25cff9&#9;2504&#9;91&#9;100&#9;1&#9;2"></textarea>
+            </div>
+
+            <div class="card">
+                <label>③ 口径与生成 <span class="card-sub">两种都只在本机处理</span></label>
+                <div class="fb-chip-row" id="sdModeGroup">
+                    <button class="fb-chip" data-sd-mode="overview">任务总览（用任务表）</button>
+                    <button class="fb-chip" data-sd-mode="log">进度变更（用进度日志）</button>
+                </div>
+                <div class="flex-row" style="margin-top:10px;">
+                    <button id="sdGenerateBtn">⚡ 生成话术</button>
+                    <button id="sdCopyBtn" class="secondary">📋 复制结果</button>
+                    <button id="sdClearBtn" class="reset-btn">🧹 清空</button>
+                    <span class="hint-text" id="sdHint"></span>
+                </div>
+            </div>
+
+            <div class="card">
+                <label>④ 话术结果 <span class="card-sub">按天分组 · 一行一条</span></label>
+                <textarea id="sdOutput" rows="13" readonly></textarea>
             </div>
         </div>
 
@@ -13095,6 +13153,323 @@
                                         fbSetHint('已清空输入与结果');
                                     }
 
+                                    // ==================== 🗓️ 七日任务（任务进度话术） ====================
+                                    // 用 GM 后台两张表生成话术：① 七日任务列表（任务ID/天数/描述/目标/进度/状态/积分/奖励）
+                                    // ② 七日任务进度日志（创建时间/排期ID/事件UUID/任务ID/老进度/新进度/老状态/新状态）。
+                                    // 只在本机 localStorage 记「上次粘的表 + 选的口径」，不碰 /api/data（跟 careerData 一个规矩）。
+                                    const SD_STATE_KEY = 'sevendayTaskState';
+                                    const SD_MODES = [
+                                        { key: 'overview', label: '任务总览（用任务表）' },
+                                        { key: 'log', label: '进度变更（用进度日志）' }
+                                    ];
+                                    // 表头中文名 → 字段（键统一小写去空格；任务ID/任务id 都认）
+                                    const SD_TASK_ALIASES = {
+                                        '任务id': 'id', 'id': 'id', '任务编号': 'id',
+                                        '天数': 'day', '第几天': 'day',
+                                        '任务描述': 'desc', '描述': 'desc', '任务名': 'desc',
+                                        '目标': 'target', '目标值': 'target',
+                                        '进度': 'progress',
+                                        '客户进度': 'custProgress',
+                                        '客户状态': 'custStatus',
+                                        '状态': 'status', '任务状态': 'status',
+                                        '积分': 'score', '积分奖励': 'score',
+                                        '奖励': 'reward', '奖励道具': 'reward'
+                                    };
+                                    const SD_LOG_ALIASES = {
+                                        '创建时间': 'time', '时间': 'time',
+                                        '活动排期id': 'schedule', '排期id': 'schedule', '活动排期': 'schedule', '排期': 'schedule',
+                                        '事件uuid': 'event', '事件': 'event', 'uuid': 'event',
+                                        '任务id': 'id', 'id': 'id',
+                                        '老进度': 'oldP', '原进度': 'oldP', '旧进度': 'oldP',
+                                        '新进度': 'newP', '当前进度': 'newP',
+                                        '老状态': 'oldS', '原状态': 'oldS', '旧状态': 'oldS',
+                                        '新状态': 'newS', '当前状态': 'newS'
+                                    };
+                                    const SD_TASK_ORDER = ['id', 'day', 'desc', 'target', 'progress', 'custProgress', 'custStatus', 'status', 'score', 'reward'];
+                                    const SD_LOG_ORDER = ['time', 'schedule', 'event', 'id', 'oldP', 'newP', 'oldS', 'newS'];
+                                    let sdMode = 'overview';
+                                    let sdSaveTimer = null;
+
+                                    function sdNorm(s) {
+                                        return String(s == null ? '' : s).replace(/\s+/g, '').toLowerCase();
+                                    }
+
+                                    // 一行 → 单元格：制表符优先，其次逗号（吃掉中英文逗号、支持引号），最后按空白拆
+                                    function sdSplitRow(line) {
+                                        const text = String(line == null ? '' : line);
+                                        if (text.indexOf('\t') !== -1) return text.split('\t').map(s => s.trim());
+                                        if (text.indexOf(',') !== -1 || text.indexOf('，') !== -1 || text.indexOf('"') !== -1) {
+                                            const src = text.replace(/，/g, ',');
+                                            const out = [];
+                                            let cur = '', q = false;
+                                            for (let i = 0; i < src.length; i++) {
+                                                const ch = src[i];
+                                                if (q) {
+                                                    if (ch === '"') {
+                                                        if (src[i + 1] === '"') { cur += '"'; i++; } else q = false;
+                                                    } else cur += ch;
+                                                } else if (ch === '"') q = true;
+                                                else if (ch === ',') { out.push(cur.trim()); cur = ''; }
+                                                else cur += ch;
+                                            }
+                                            out.push(cur.trim());
+                                            return out;
+                                        }
+                                        return text.split(/\s+/).filter(s => s !== '').map(s => s.trim());
+                                    }
+
+                                    // 粘进来的整表 → [{字段: 值}]；命中 ≥3 个表头词就当带表头（按名字对齐），否则按页面列序
+                                    function sdParseRows(text, aliases, order) {
+                                        const lines = String(text == null ? '' : text).split(/\r?\n/).filter(l => l.trim() !== '');
+                                        if (!lines.length) return { items: [], header: false };
+                                        const first = sdSplitRow(lines[0]);
+                                        const byName = {};
+                                        let hit = 0;
+                                        first.forEach((cell, i) => {
+                                            const key = aliases[sdNorm(cell)];
+                                            if (key && byName[key] === undefined) { byName[key] = i; hit++; }
+                                        });
+                                        const useHeader = hit >= 3;
+                                        const colOf = {};
+                                        if (useHeader) Object.keys(byName).forEach(k => { colOf[k] = byName[k]; });
+                                        else order.forEach((k, i) => { colOf[k] = i; });
+                                        const items = [];
+                                        for (const line of lines.slice(useHeader ? 1 : 0)) {
+                                            const cells = sdSplitRow(line);
+                                            if (!cells.length) continue;
+                                            const row = {};
+                                            Object.keys(colOf).forEach(k => {
+                                                const v = cells[colOf[k]];
+                                                row[k] = v === undefined ? '' : String(v).trim();
+                                            });
+                                            if (!row.id) continue;                 // 没有任务ID 的行不是数据行
+                                            items.push(row);
+                                        }
+                                        return { items, header: useHeader };
+                                    }
+
+                                    function sdLoadState() {
+                                        try {
+                                            const s = JSON.parse(localStorage.getItem(SD_STATE_KEY) || 'null');
+                                            if (s) {
+                                                if (SD_MODES.some(m => m.key === s.mode)) sdMode = s.mode;
+                                                const t = document.getElementById('sdTaskInput');
+                                                const l = document.getElementById('sdLogInput');
+                                                if (t && typeof s.task === 'string') t.value = s.task;
+                                                if (l && typeof s.log === 'string') l.value = s.log;
+                                            }
+                                        } catch (e) { /* 坏了就当没有 */ }
+                                    }
+                                    function sdSaveStateNow() {
+                                        const t = document.getElementById('sdTaskInput');
+                                        const l = document.getElementById('sdLogInput');
+                                        try {
+                                            localStorage.setItem(SD_STATE_KEY, JSON.stringify({
+                                                mode: sdMode,
+                                                task: t ? t.value : '',
+                                                log: l ? l.value : ''
+                                            }));
+                                        } catch (e) { }
+                                    }
+                                    function sdSaveStateLater() {
+                                        if (sdSaveTimer) clearTimeout(sdSaveTimer);
+                                        sdSaveTimer = setTimeout(() => { sdSaveTimer = null; sdSaveStateNow(); }, 300);
+                                    }
+                                    function sdSetHint(t) {
+                                        const h = document.getElementById('sdHint');
+                                        if (h) h.textContent = t || '';
+                                    }
+                                    function sdModeLabel() {
+                                        const m = SD_MODES.filter(x => x.key === sdMode)[0];
+                                        return m ? m.label : sdMode;
+                                    }
+                                    function sdInputs() {
+                                        const t = document.getElementById('sdTaskInput');
+                                        const l = document.getElementById('sdLogInput');
+                                        return {
+                                            task: sdParseRows(t ? t.value : '', SD_TASK_ALIASES, SD_TASK_ORDER),
+                                            log: sdParseRows(l ? l.value : '', SD_LOG_ALIASES, SD_LOG_ORDER)
+                                        };
+                                    }
+                                    function sdRenderHead() {
+                                        let taskN = 0, logN = 0;
+                                        try { const p = sdInputs(); taskN = p.task.items.length; logN = p.log.items.length; } catch (e) { }
+                                        const sub = document.getElementById('sdReportSub');
+                                        if (sub) sub.textContent = '口径：' + sdModeLabel() + '　·　任务表 ' + taskN + ' 条　·　进度日志 ' + logN + ' 条　·　只在本机处理';
+                                        const meta = document.getElementById('sdReportMeta');
+                                        if (meta) {
+                                            const cells = [['口径', sdMode === 'log' ? '进度变更' : '任务总览'], ['任务表', taskN + ' 条'], ['进度日志', logN + ' 条']];
+                                            meta.innerHTML = cells.map(c => '<div><span class="m-k">' + escapeHtml(String(c[0]))
+                                                + '</span><span class="m-v">' + escapeHtml(String(c[1])) + '</span></div>').join('');
+                                        }
+                                    }
+                                    function sdRenderMode() {
+                                        const g = document.getElementById('sdModeGroup');
+                                        if (g) g.querySelectorAll('.fb-chip').forEach(b => b.classList.toggle('active', b.dataset.sdMode === sdMode));
+                                        sdRenderHead();
+                                    }
+                                    function sdSetMode(k) {
+                                        if (!SD_MODES.some(m => m.key === k)) return;
+                                        sdMode = k;
+                                        sdRenderMode();
+                                        sdSaveStateLater();
+                                    }
+
+                                    // 道具ID → 名字（能用「映射管理」里改过的名字；查不到就写「道具ID」）
+                                    function sdItemLabel(id, num) {
+                                        const map = (typeof itemNameMap !== 'undefined' && itemNameMap) ? itemNameMap : {};
+                                        const nm = map[String(id)] || '';
+                                        const label = nm || ('道具' + id);
+                                        const n = String(num == null ? '' : num).trim();
+                                        return label + '×' + (n || '1');
+                                    }
+                                    // 奖励列 → 「金币×15 + 棋子挑选盒×1」；认不出的原样保留
+                                    function sdRewardText(reward) {
+                                        const t = String(reward == null ? '' : reward).trim();
+                                        if (!t) return '';
+                                        return t.split(/[,，;；\s]+/).filter(Boolean).map(tok => {
+                                            const m = tok.match(/^(\d+)\s*[+*x×/]\s*(\d+)$/);
+                                            if (m) return sdItemLabel(m[1], m[2]);
+                                            const one = tok.match(/^(\d+)$/);
+                                            if (one) return sdItemLabel(one[1], '1');
+                                            return tok;
+                                        }).join(' + ');
+                                    }
+                                    // 后台的状态口径：1 未完成 / 2 可领取（完成）；文字状态（可领取/未完成）原样用
+                                    function sdStatusText(v) {
+                                        const s = String(v == null ? '' : v).trim();
+                                        if (!s) return '';
+                                        if (s === '1') return '未完成';
+                                        if (s === '2') return '已完成';
+                                        return s;
+                                    }
+                                    function sdDayText(v) {
+                                        const s = String(v == null ? '' : v).trim();
+                                        if (!s) return '';
+                                        return /^\d+$/.test(s) ? ('第' + s + '天') : s;
+                                    }
+                                    // 进度：客户进度优先（后台那列才是玩家实际进度），没有就用「进度」
+                                    function sdProgressText(t) {
+                                        const num = String(t.custProgress || '').trim() || String(t.progress || '').trim();
+                                        const target = String(t.target || '').trim();
+                                        if (!num && !target) return '';
+                                        if (num && target) return num + '/' + target;
+                                        return num || ('目标 ' + target);
+                                    }
+                                    function sdDayOrder(dayText) {
+                                        const m = /第\s*(\d+)\s*天/.exec(String(dayText || ''));
+                                        return m ? +m[1] : 99;
+                                    }
+
+                                    // 口径 A：任务总览（按天分组，一行一条任务）
+                                    function sdBuildOverview(tasks) {
+                                        if (!tasks.length) return '';
+                                        const byDay = {};
+                                        const order = [];
+                                        tasks.forEach(t => {
+                                            const d = sdDayText(t.day) || '未标天数';
+                                            if (!byDay[d]) { byDay[d] = []; order.push(d); }
+                                            byDay[d].push(t);
+                                        });
+                                        order.sort((a, b) => sdDayOrder(a) - sdDayOrder(b));
+                                        const sched = (tasks.map(t => t.schedule).filter(Boolean)[0]) || '';
+                                        const lines = ['七日任务进度' + (sched ? '（活动排期 ' + sched + '）' : '') + ' · 共 ' + tasks.length + ' 条'];
+                                        order.forEach(d => {
+                                            lines.push('');
+                                            lines.push(d);
+                                            byDay[d].forEach((t, i) => {
+                                                const bits = [];
+                                                const prog = sdProgressText(t);
+                                                if (prog) bits.push(prog);
+                                                const st = sdStatusText(t.status);
+                                                if (st) bits.push(st);
+                                                if (t.score) bits.push('积分 ' + t.score);
+                                                const rw = sdRewardText(t.reward);
+                                                if (rw) bits.push(rw);
+                                                lines.push((i + 1) + '. ' + (t.desc || ('任务' + t.id)) + (bits.length ? '：' + bits.join(' · ') : ''));
+                                            });
+                                        });
+                                        return lines.join('\n');
+                                    }
+
+                                    // 口径 B：进度变更（日志一行一条，用任务表补「第几天 / 描述 / 目标 / 奖励」）
+                                    function sdBuildLog(logs, tasks) {
+                                        if (!logs.length) return '';
+                                        const byId = {};
+                                        tasks.forEach(t => { byId[String(t.id)] = t; });
+                                        const sched = (logs.map(l => l.schedule).filter(Boolean)[0]) || (tasks.map(t => t.schedule).filter(Boolean)[0]) || '';
+                                        const lines = ['七日任务进度变更' + (sched ? '（活动排期 ' + sched + '）' : '') + ' · 共 ' + logs.length + ' 条'];
+                                        logs.forEach(l => {
+                                            const t = byId[String(l.id)] || {};
+                                            const name = (t.desc || '') || ('任务' + l.id);
+                                            const day = sdDayText(t.day);
+                                            const target = String(t.target || '').trim();
+                                            const oldP = String(l.oldP == null ? '' : l.oldP).trim();
+                                            const newP = String(l.newP == null ? '' : l.newP).trim();
+                                            const segs = [];
+                                            const time = String(l.time || '').trim();
+                                            if (time) segs.push(time);
+                                            let head = (day ? day + '·' : '') + name;
+                                            let prog = '';
+                                            if (oldP && newP) prog = oldP + ' → ' + newP;
+                                            else if (newP) prog = newP;
+                                            else if (oldP) prog = oldP;
+                                            if (prog && target) prog += '/' + target;
+                                            const st = sdStatusText(l.newS);
+                                            let line = '· ' + segs.concat([head]).join('　') + '：' + (prog || '进度未变');
+                                            if (st) line += '（' + st + '）';
+                                            // 老状态 → 新状态 变成「已完成」：把这单的积分 / 奖励带上（客服最常被问这个）
+                                            if (String(l.newS) === '2' && String(l.oldS) !== '2') {
+                                                const rw = [];
+                                                if (t.score) rw.push('积分 ' + t.score);
+                                                const r = sdRewardText(t.reward);
+                                                if (r) rw.push(r);
+                                                if (rw.length) line += ' · 奖励：' + rw.join(' · ');
+                                            }
+                                            lines.push(line);
+                                        });
+                                        return lines.join('\n');
+                                    }
+
+                                    function sdGenerate() {
+                                        const out = document.getElementById('sdOutput');
+                                        if (out) out.value = '';
+                                        const p = sdInputs();
+                                        const taskN = p.task.items.length, logN = p.log.items.length;
+                                        if (!taskN && !logN) { sdSetHint('先粘任务表或进度日志再生成'); return; }
+                                        let note = '';
+                                        if (sdMode === 'log' && !logN && taskN) {
+                                            sdMode = 'overview'; sdRenderMode();
+                                            note = '没粘进度日志 → 已自动切到「任务总览」';
+                                        } else if (sdMode === 'overview' && !taskN && logN) {
+                                            sdMode = 'log'; sdRenderMode();
+                                            note = '没粘任务表 → 已自动切到「进度变更」';
+                                        }
+                                        const text = sdMode === 'log' ? sdBuildLog(p.log.items, p.task.items) : sdBuildOverview(p.task.items);
+                                        if (out) out.value = text;
+                                        if (!text) { sdSetHint(note || '这批内容没认出行（检查是不是粘了别的表）'); return; }
+                                        const n = text.split('\n').filter(l => /^(\d+\. |· )/.test(l)).length;
+                                        sdSetHint((note ? note + ' · ' : '') + '已生成 ' + n + ' 条 · 口径 ' + sdModeLabel().replace(/（.*$/, ''));
+                                    }
+                                    function sdCopy() {
+                                        const out = document.getElementById('sdOutput');
+                                        const v = out ? out.value : '';
+                                        if (!String(v).trim()) { sdSetHint('还没有生成结果'); return; }
+                                        safeCopy(v);
+                                        sdSetHint('已复制话术');
+                                    }
+                                    function sdClear() {
+                                        const t = document.getElementById('sdTaskInput');
+                                        const l = document.getElementById('sdLogInput');
+                                        const out = document.getElementById('sdOutput');
+                                        if (t) t.value = '';
+                                        if (l) l.value = '';
+                                        if (out) out.value = '';
+                                        sdRenderHead();
+                                        sdSaveStateNow();
+                                        sdSetHint('已清空（本机记录也清了）');
+                                    }
+
                                     // ==================== 下午茶投票（按天 · ⚠️ 走服务端） ====================
                                     // 这份数据跟 careerData / overseasBizData「只存本机」**相反**：要跨设备统计，所以走 /api/data：
                                     //   - 店家预设：`teaShops`（谁改大家都看得到）
@@ -14478,6 +14853,26 @@
                                         setClick('fbGenerateBtn', fbGenerate);
                                         setClick('fbCopyBtn', fbCopy);
                                         setClick('fbClearBtn', fbClear);
+                                        // 🗓️ 七日任务：本机记住上次粘的表 + 当前口径（跟 careerData / feedbackTplState 一个规矩，不碰服务端）
+                                        sdLoadState();
+                                        sdRenderMode();
+                                        ['sdTaskInput', 'sdLogInput'].forEach(id => {
+                                            const el = document.getElementById(id);
+                                            if (!el) return;
+                                            el.addEventListener('input', () => { sdSaveStateLater(); sdRenderHead(); });
+                                        });
+                                        setClick('sdGenerateBtn', sdGenerate);
+                                        setClick('sdCopyBtn', sdCopy);
+                                        setClick('sdClearBtn', sdClear);
+                                        (function bindSdModeChips() {
+                                            const g = document.getElementById('sdModeGroup');
+                                            if (!g) return;
+                                            g.addEventListener('click', e => {
+                                                const b = e.target.closest('.fb-chip');
+                                                if (!b || !b.dataset.sdMode) return;
+                                                sdSetMode(b.dataset.sdMode);
+                                            });
+                                        })();
                                         // 界面设置（齿轮面板：背景色 / 强调色 / 渐变）
                                         themeInit();
                                         setClick('themeGear', () => themeTogglePanel());

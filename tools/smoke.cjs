@@ -1832,6 +1832,121 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
       '再点一次取消，月历里没有休息格了');
   }
 
+  console.log('--- 8q. 七日任务（任务表 / 进度日志 → 任务进度话术） ---');
+  {
+    const postsBefore = posts.length;
+    doc.querySelector('.tab-btn[data-tab="sevenday"]').click();
+    await sleep(60);
+    check(!!$('tab-sevenday') && $('tab-sevenday').classList.contains('active'),
+      '侧边栏「七日任务」能切到自己的标签页');
+    check($('sdReportMeta').children.length === 3,
+      '抬头右上 3 格元数据（口径 / 任务表 / 进度日志）', $('sdReportMeta').children.length);
+    check(doc.querySelectorAll('#sdModeGroup .fb-chip').length === 2
+      && doc.querySelector('#sdModeGroup .fb-chip[data-sd-mode="overview"]').classList.contains('active'),
+      '两种口径片，默认选中「任务总览」');
+
+    // ① 任务表（带表头 · 制表符）→ 任务总览
+    const taskText = [
+      '任务ID\t天数\t任务描述\t目标\t进度\t客户进度\t客户状态\t状态\t积分\t奖励',
+      '2486\t第1天\t登录1天\t1\t1\t1\t2\t可领取\t10\t102+15',
+      '2489\t第1天\t获取40个猫猫头\t40\t0\t40\t2\t未完成\t20\t34001*1',
+      '2504\t第2天\t完成3次订单\t3\t3\t3\t2\t可领取\t30\t50101*1',
+    ].join('\n');
+    $('sdTaskInput').value = taskText;
+    fire($('sdTaskInput'), 'input');
+    check(/任务表 3 条/.test($('sdReportSub').textContent),
+      '抬头跟着写「任务表 3 条」', $('sdReportSub').textContent);
+    $('sdGenerateBtn').click();
+    await sleep(40);
+    const out1 = $('sdOutput').value;
+    check(/^七日任务进度 · 共 3 条/.test(out1),
+      '总览首行写「共 3 条」', out1.split('\n')[0]);
+    check(/^第1天$/m.test(out1) && /^第2天$/m.test(out1),
+      '按天分组：第1天 / 第2天 各起一段');
+    check(/1\. 登录1天：1\/1 · 可领取 · 积分 10 · 铜钱×15/.test(out1),
+      '进度取「客户进度/目标」、状态照后台文案、奖励 102+15 → 铜钱×15', out1);
+    check(/春谷锦袋×1/.test(out1) && /棋子挑选盒×1/.test(out1),
+      '另一种奖励写法也认（34001*1 → 春谷锦袋×1、50101*1 → 棋子挑选盒×1）');
+
+    // ② 进度日志（带表头）→ 进度变更，用任务表补天数 / 描述 / 奖励
+    const logText = [
+      '创建时间\t活动排期ID\t事件UUID\t任务ID\t老进度\t新进度\t老状态\t新状态',
+      '2026-10-22 09:55:55\t34\ta520c425ce76a1c7c728149f8e25cff9\t2504\t3\t3\t1\t2',
+      '2026-10-22 09:56:20\t34\t640eddc780ec6f7f432516746715fa04\t2506\t91\t100\t1\t1',
+    ].join('\n');
+    $('sdLogInput').value = logText;
+    fire($('sdLogInput'), 'input');
+    doc.querySelector('#sdModeGroup .fb-chip[data-sd-mode="log"]').click();
+    await sleep(30);
+    $('sdGenerateBtn').click();
+    await sleep(40);
+    const out2 = $('sdOutput').value;
+    check(/^七日任务进度变更（活动排期 34） · 共 2 条/.test(out2),
+      '进度变更首行带活动排期 + 条数', out2.split('\n')[0]);
+    check(/· 2026-10-22 09:55:55　第2天·完成3次订单：3 → 3\/3（已完成）/.test(out2),
+      '日志按任务ID 补出「第2天·描述」，进度写成「老 → 新/目标」+ 新状态', out2);
+    check(/奖励：积分 30 · 棋子挑选盒×1/.test(out2),
+      '老状态 1 → 新状态 2 时把积分 / 奖励带出来');
+    check(/任务2506：91 → 100（未完成）/.test(out2),
+      '任务表里没有的任务ID 也能出（回落到「任务ID」）');
+
+    // ③ 只粘日志、口径还在总览 → 自动切到进度变更
+    $('sdTaskInput').value = '';
+    fire($('sdTaskInput'), 'input');
+    doc.querySelector('#sdModeGroup .fb-chip[data-sd-mode="overview"]').click();
+    await sleep(30);
+    $('sdGenerateBtn').click();
+    await sleep(40);
+    check(/没粘任务表 → 已自动切到/.test($('sdHint').textContent)
+      && /进度变更/.test($('sdHint').textContent)
+      && doc.querySelector('#sdModeGroup .fb-chip[data-sd-mode="log"]').classList.contains('active'),
+      '没粘任务表时自动切到「进度变更」并提示', $('sdHint').textContent);
+
+    // ④ 不带表头也行：按页面列序认
+    $('sdTaskInput').value = '2486\t第1天\t登录1天\t1\t1\t1\t2\t可领取\t10\t102+15';
+    fire($('sdTaskInput'), 'input');
+    doc.querySelector('#sdModeGroup .fb-chip[data-sd-mode="overview"]').click();
+    await sleep(30);
+    $('sdGenerateBtn').click();
+    await sleep(40);
+    check(/^七日任务进度 · 共 1 条/.test($('sdOutput').value)
+      && /1\. 登录1天：1\/1 · 可领取 · 积分 10 · 铜钱×15/.test($('sdOutput').value),
+      '不带表头也能认（按 任务ID·天数·描述·目标·进度·客户进度·客户状态·状态·积分·奖励 的列序）',
+      $('sdOutput').value);
+
+    // ⑤ 只在本机记：粘的内容 + 口径写进 localStorage，一个请求都不发
+    await sleep(400);   // 等 300ms 防抖落盘
+    let sdState = null;
+    try { sdState = JSON.parse(window.localStorage.getItem('sevendayTaskState') || 'null'); } catch (_) { }
+    check(!!sdState && typeof sdState.task === 'string' && sdState.task.indexOf('2486') !== -1
+      && sdState.mode === 'overview',
+      '本机记住上次粘的表和口径（sevendayTaskState）', sdState && sdState.mode);
+    check(posts.length === postsBefore,
+      '全程没往服务端发过一个请求（只在本机处理）', posts.length - postsBefore);
+
+    // ⑥ 切走再切回来内容还在
+    doc.querySelector('.tab-btn[data-tab="daily"]').click();
+    await sleep(30);
+    doc.querySelector('.tab-btn[data-tab="sevenday"]').click();
+    await sleep(30);
+    check($('sdTaskInput').value.indexOf('2486') !== -1 && $('sdOutput').value.indexOf('登录1天') !== -1,
+      '切到别的标签页再回来，粘的表和结果都还在');
+
+    // ⑦ 复制空结果只提示不抛错 + 清空
+    $('sdOutput').value = '';
+    $('sdCopyBtn').click();
+    await sleep(20);
+    check(/还没有生成结果/.test($('sdHint').textContent), '没结果时点复制只提示', $('sdHint').textContent);
+    $('sdClearBtn').click();
+    await sleep(400);
+    let sdState2 = null;
+    try { sdState2 = JSON.parse(window.localStorage.getItem('sevendayTaskState') || 'null'); } catch (_) { }
+    check($('sdTaskInput').value === '' && $('sdLogInput').value === '' && $('sdOutput').value === '',
+      '清空按钮把两张输入表 + 结果一起清掉');
+    check(!!sdState2 && sdState2.task === '' && sdState2.log === '',
+      '清空后本机记录也清了', sdState2);
+  }
+
   console.log('--- 9. 无未捕获异常 ---');
   check(!warns.some(w => w.startsWith('ERROR')), 'console.error 未被调用：' + warns.filter(w => w.startsWith('ERROR')).join(' | '));
   check(jsdomErrors.length === 0, '页面无未捕获异常（jsdomError）', jsdomErrors.slice(0, 3));
