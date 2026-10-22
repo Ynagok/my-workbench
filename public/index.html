@@ -3534,7 +3534,6 @@
             <button class="tab-btn" data-tab="reply"> 工单回复</button>
             <button class="tab-btn" data-tab="feedback"> 反馈模板</button>
             <button class="tab-btn" data-tab="daily"> 每日日报</button>
-            <button class="tab-btn" data-tab="sevenday"> 七日任务</button>
             <button class="tab-btn" data-tab="career"> 客服生涯</button>
             <button class="tab-btn" data-tab="overseas"> 海外业务统计</button>
             <button class="tab-btn" data-tab="tea"> 下午茶</button>
@@ -3543,7 +3542,11 @@
 
         <!-- ==================== 话术生成 gen ==================== -->
         <div id="tab-gen" class="tab-content active">
-            <div class="inline-card" style="margin-bottom: 20px;">
+            <div class="seg-bar" data-for="tab-gen">
+                <button type="button" class="seg-btn active" data-seg="reply" data-n="01">话术生成</button>
+                <button type="button" class="seg-btn" data-seg="sevenday" data-n="02">七日任务进度</button>
+            </div>
+            <div class="inline-card" style="margin-bottom: 20px;" data-seg-card="reply">
                 <label style="font-size: 1.1rem; margin-bottom: 10px;">智能粘贴识别（支持资源/棋子/订单）</label>
                 <textarea id="smartPasteInput" rows="5" placeholder="粘贴流水/订单日志，例如：&#10;2026-04-20 16:04:00	51b2bb98971c8d2323c225edd44a5512	体力	-1	326	325	棋盘操作-临时母棋生产	0-货币"></textarea>
                 <div class="flex-row" style="margin-top:8px;">
@@ -3605,7 +3608,7 @@
                 </div>
             </div>
 
-            <div class="card" style="margin-top:20px;">
+            <div class="card" style="margin-top:20px;" data-seg-card="reply">
                 <div class="result-header">
                     <label> 生成话术 <span id="globalResultCount" class="badge">0 条/组</span></label>
                     <div class="flex-row">
@@ -3623,6 +3626,54 @@
                 <textarea id="globalResultArea" rows="20" readonly style="background:#e9ecef;"></textarea>
                 <small>结果来源：<span id="resultSourceHint">等待操作</span></small>
             </div>
+            <div id="genSevendayPane" data-seg-card="sevenday">
+                <div class="career-report-head">
+                    <div>
+                        <div class="crh-kicker">SEVEN-DAY QUEST / 七日任务进度</div>
+                        <div class="crh-title">七日任务</div>
+                        <div class="crh-sub" id="sdReportSub">—</div>
+                    </div>
+                    <div class="crh-meta" id="sdReportMeta"></div>
+                </div>
+
+                <div class="card">
+                    <label>① 粘贴进度日志 <span class="card-sub">只粘日志就够了 —— 天数 / 描述 / 目标 / 奖励都由任务表自动对上</span></label>
+                    <details class="stat-fold">
+                        <summary>粘法 / 列名说明</summary>
+                        <div>
+                            七日任务进度日志整表复制：<b>创建时间 · 活动排期ID · 事件UUID · 任务ID · 老进度 · 新进度 · 老状态 · 新状态</b>。<br>
+                            表头写对这些词就按名字对齐（顺序随便）；不带表头就按上面这个列序认。<br>
+                            状态是后台的数字口径：<b>1 = 未完成、2 = 可领取</b>。新状态 2 或新进度够目标 = 这个任务达成了，会把这单能领的积分 / 奖励一起写出来。<br>
+                            同一个任务粘了好几行也没关系：老进度取最早那条、新进度与状态取最新那条，合成一句。
+                        </div>
+                    </details>
+                    <textarea id="sdLogInput" rows="9" placeholder="创建时间&#9;活动排期ID&#9;事件UUID&#9;任务ID&#9;老进度&#9;新进度&#9;老状态&#9;新状态&#10;2026-10-22 09:55:55&#9;34&#9;a520c425ce76a1c7c728149f8e25cff9&#9;2504&#9;91&#9;100&#9;1&#9;2"></textarea>
+                </div>
+
+                <div class="card">
+                    <label>② 生成话术 <span class="card-sub">按任务表判定：到了多少 / 还差多少 / 能领什么</span></label>
+                    <div class="flex-row">
+                        <button id="sdGenerateBtn">⚡ 生成话术</button>
+                        <button id="sdCopyBtn" class="secondary">📋 复制结果</button>
+                        <button id="sdClearBtn" class="reset-btn">🧹 清空</button>
+                        <span class="hint-text" id="sdHint"></span>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <label>③ 话术结果 <span class="card-sub">按天分组 · 一行一条任务</span></label>
+                    <textarea id="sdOutput" rows="14" readonly></textarea>
+                </div>
+
+                <details class="card tea-shop-card" id="sdTaskFold">
+                    <summary>📋 任务表<span class="hint-text" id="sdTaskSub">（—）</span><span class="card-sub">内置的固定表，只读；平时不用管</span></summary>
+                    <div class="hint-text" style="margin-top:6px;">
+                        列序：<b>任务ID · 天数 · 任务描述 · 目标 · 进度 · 客户端进度 · 客户端状态 · 状态 · 积分 · 奖励</b>；判定用「客户端进度」对「目标」，奖励里的道具ID 会换成名字。要改任务就改代码里的 <b>SD_TASK_DEFAULT</b>。
+                    </div>
+                    <textarea id="sdTaskInput" rows="8" readonly></textarea>
+                </details>
+            </div>
+
             <div style="margin-top:12px;">
                 <div id="debugToggleHeader" class="debug-toggle"><span id="debugArrow">▶</span><span>🔍 调试日志</span></div>
                 <div id="flowDebugConsole" class="debug-console"></div>
@@ -3771,54 +3822,7 @@
             </div>
         </div>
 
-        <!-- ==================== 七日任务（任务进度话术） ==================== -->
-        <div id="tab-sevenday" class="tab-content">
-            <div class="career-report-head">
-                <div>
-                    <div class="crh-kicker">SEVEN-DAY QUEST / 七日任务进度</div>
-                    <div class="crh-title">七日任务</div>
-                    <div class="crh-sub" id="sdReportSub">—</div>
-                </div>
-                <div class="crh-meta" id="sdReportMeta"></div>
-            </div>
 
-            <div class="card">
-                <label>① 粘贴进度日志 <span class="card-sub">只粘日志就够了 —— 天数 / 描述 / 目标 / 奖励都由任务表自动对上</span></label>
-                <details class="stat-fold">
-                    <summary>粘法 / 列名说明</summary>
-                    <div>
-                        七日任务进度日志整表复制：<b>创建时间 · 活动排期ID · 事件UUID · 任务ID · 老进度 · 新进度 · 老状态 · 新状态</b>。<br>
-                        表头写对这些词就按名字对齐（顺序随便）；不带表头就按上面这个列序认。<br>
-                        状态是后台的数字口径：<b>1 = 未完成、2 = 可领取</b>。新状态 2 或新进度够目标 = 这个任务达成了，会把这单能领的积分 / 奖励一起写出来。<br>
-                        同一个任务粘了好几行也没关系：老进度取最早那条、新进度与状态取最新那条，合成一句。
-                    </div>
-                </details>
-                <textarea id="sdLogInput" rows="9" placeholder="创建时间&#9;活动排期ID&#9;事件UUID&#9;任务ID&#9;老进度&#9;新进度&#9;老状态&#9;新状态&#10;2026-10-22 09:55:55&#9;34&#9;a520c425ce76a1c7c728149f8e25cff9&#9;2504&#9;91&#9;100&#9;1&#9;2"></textarea>
-            </div>
-
-            <div class="card">
-                <label>② 生成话术 <span class="card-sub">按任务表判定：到了多少 / 还差多少 / 能领什么</span></label>
-                <div class="flex-row">
-                    <button id="sdGenerateBtn">⚡ 生成话术</button>
-                    <button id="sdCopyBtn" class="secondary">📋 复制结果</button>
-                    <button id="sdClearBtn" class="reset-btn">🧹 清空</button>
-                    <span class="hint-text" id="sdHint"></span>
-                </div>
-            </div>
-
-            <div class="card">
-                <label>③ 话术结果 <span class="card-sub">按天分组 · 一行一条任务</span></label>
-                <textarea id="sdOutput" rows="14" readonly></textarea>
-            </div>
-
-            <details class="card tea-shop-card" id="sdTaskFold">
-                <summary>📋 任务表<span class="hint-text" id="sdTaskSub">（—）</span><span class="card-sub">内置的固定表，只读；平时不用管</span></summary>
-                <div class="hint-text" style="margin-top:6px;">
-                    列序：<b>任务ID · 天数 · 任务描述 · 目标 · 进度 · 客户端进度 · 客户端状态 · 状态 · 积分 · 奖励</b>；判定用「客户端进度」对「目标」，奖励里的道具ID 会换成名字。要改任务就改代码里的 <b>SD_TASK_DEFAULT</b>。
-                </div>
-                <textarea id="sdTaskInput" rows="8" readonly></textarea>
-            </details>
-        </div>
         <!-- ==================== 集卡页 card ==================== -->
         <div id="tab-card" class="tab-content">
             <div class="form-group">
@@ -14624,6 +14628,7 @@
                                             });
                                             statsSetSeg('tab-career', 'overview');
                                             statsSetSeg('tab-overseas', 'overview');
+                                            statsSetSeg('tab-gen', 'reply');   // 话术生成页也分两段：话术生成 / 七日任务进度
                                         })();
 
                                         // 规则搜索

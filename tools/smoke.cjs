@@ -1844,10 +1844,16 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
       '2026-10-22 09:55:55\t34\ta520c425ce76a1c7c728149f8e25cff9\t2504\t91\t100\t1\t2',
     ].join('\n');
 
-    doc.querySelector('.tab-btn[data-tab="sevenday"]').click();
+    doc.querySelector('.tab-btn[data-tab="gen"]').click();
     await sleep(60);
-    check(!!$('tab-sevenday') && $('tab-sevenday').classList.contains('active'),
-      '侧边栏「七日任务」能切到自己的标签页');
+    doc.querySelector('#tab-gen .seg-btn[data-seg="sevenday"]').click();
+    await sleep(40);
+    check(!doc.querySelector('.tab-btn[data-tab="sevenday"]') && !!$('genSevendayPane'),
+      '七日任务已经并进「话术生成」页（侧边栏不再单独占一个标签）');
+    check($('tab-gen').dataset.seg === 'sevenday'
+      && $('genSevendayPane').classList.contains('seg-on')
+      && !doc.querySelector('#tab-gen .inline-card').classList.contains('seg-on'),
+      '话术生成页里切到「七日任务进度」这一段（话术生成那两块同时收起）');
     check($('sdReportMeta').children.length === 3,
       '抬头右上 3 格元数据（任务表 / 进度日志 / 活动排期）', $('sdReportMeta').children.length);
     check($('sdTaskInput').readOnly === true && $('sdTaskInput').value.split('\n').length === 36,
@@ -1931,10 +1937,11 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     fire($('sdLogInput'), 'input');
     doc.querySelector('.tab-btn[data-tab="daily"]').click();
     await sleep(30);
-    doc.querySelector('.tab-btn[data-tab="sevenday"]').click();
+    doc.querySelector('.tab-btn[data-tab="gen"]').click();
     await sleep(30);
-    check($('sdLogInput').value.indexOf('2504') !== -1 && $('sdTaskInput').value.indexOf('2486') !== -1,
-      '切到别的标签页再回来，日志还在、任务表照旧');
+    check($('sdLogInput').value.indexOf('2504') !== -1 && $('sdTaskInput').value.indexOf('2486') !== -1
+      && $('tab-gen').dataset.seg === 'sevenday',
+      '切到别的标签页再回来，日志还在、任务表照旧、还停在七日任务这一段');
     $('sdOutput').value = '';
     $('sdCopyBtn').click();
     await sleep(20);

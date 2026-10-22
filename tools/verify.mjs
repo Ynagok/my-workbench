@@ -541,11 +541,15 @@ ok(/id="careerHeadline"/.test(s) && /id="ovbizHeadline"/.test(s) && /\.stat-head
 ok(/details class="card-more"/.test(s) && /details\.card-more > summary/.test(s),
   '客服生涯工具条收拢：导出 / 导入 / 清空折进「⋯ 更多」，主按钮只留归档 + 排班休息');
 
-// ---- 3l. 七日任务（进度日志 → 按固定任务表判定的进度话术，只在本机处理）----
-ok(/class="tab-btn" data-tab="sevenday"/.test(s) && /id="tab-sevenday"/.test(s)
-  && /id="sdLogInput"/.test(s) && /id="sdOutput"/.test(s) && /id="sdGenerateBtn"/.test(s)
+// ---- 3l. 七日任务（并进「话术生成」页的一段：进度日志 → 按内置任务表判定的进度话术，只在本机处理）----
+ok(/class="seg-bar" data-for="tab-gen"/.test(s) && /data-seg="reply" data-n="01">话术生成</.test(s)
+  && /data-seg="sevenday" data-n="02">七日任务进度</.test(s) && /id="genSevendayPane"/.test(s)
+  && /data-seg-card="reply"/.test(s) && !/data-tab="sevenday"/.test(s) && !/id="tab-sevenday"/.test(s)
+  && /statsSetSeg\('tab-gen', 'reply'\)/.test(s),
+  '七日任务并进「话术生成」页：页内分段导航（话术生成 / 七日任务进度），侧边栏不再单独占一个标签');
+ok(/id="sdLogInput"/.test(s) && /id="sdOutput"/.test(s) && /id="sdGenerateBtn"/.test(s)
   && /id="sdCopyBtn"/.test(s) && /id="sdClearBtn"/.test(s) && /id="sdReportSub"/.test(s),
-  '七日任务标签页：主区只粘进度日志 + 生成 / 复制 / 清空 + 结果框');
+  '七日任务那一段：粘进度日志 + 生成 / 复制 / 清空 + 结果框');
 ok(/<details class="card tea-shop-card" id="sdTaskFold">/.test(s) && /id="sdTaskSub"/.test(s)
   && /<textarea id="sdTaskInput" rows="8" readonly><\/textarea>/.test(s)
   && s.indexOf('id="sdOutput"') < s.indexOf('id="sdTaskInput"'),
