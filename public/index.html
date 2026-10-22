@@ -3664,14 +3664,6 @@
                     <label>③ 话术结果 <span class="card-sub">按天分组 · 一行一条任务</span></label>
                     <textarea id="sdOutput" rows="14" readonly></textarea>
                 </div>
-
-                <details class="card tea-shop-card" id="sdTaskFold">
-                    <summary>📋 任务表<span class="hint-text" id="sdTaskSub">（—）</span><span class="card-sub">内置的固定表，只读；平时不用管</span></summary>
-                    <div class="hint-text" style="margin-top:6px;">
-                        列序：<b>任务ID · 天数 · 任务描述 · 目标 · 进度 · 客户端进度 · 客户端状态 · 状态 · 积分 · 奖励</b>；判定用「客户端进度」对「目标」，奖励里的道具ID 会换成名字。要改任务就改代码里的 <b>SD_TASK_DEFAULT</b>。
-                    </div>
-                    <textarea id="sdTaskInput" rows="8" readonly></textarea>
-                </details>
             </div>
 
             <div style="margin-top:12px;">
@@ -13297,11 +13289,6 @@
                                             }));
                                         } catch (e) { }
                                     }
-                                    // 把内置的固定任务表填进只读框（每次启动都填，本机改不了）
-                                    function sdInitTaskTable() {
-                                        const t = document.getElementById('sdTaskInput');
-                                        if (t) t.value = SD_TASK_DEFAULT;
-                                    }
                                     function sdSaveStateLater() {
                                         if (sdSaveTimer) clearTimeout(sdSaveTimer);
                                         sdSaveTimer = setTimeout(() => { sdSaveTimer = null; sdSaveStateNow(); }, 300);
@@ -13310,11 +13297,11 @@
                                         const h = document.getElementById('sdHint');
                                         if (h) h.textContent = t || '';
                                     }
+                                    // 任务表是代码里的 SD_TASK_DEFAULT，页面上不展示、也不可改
                                     function sdInputs() {
-                                        const t = document.getElementById('sdTaskInput');
                                         const l = document.getElementById('sdLogInput');
                                         return {
-                                            task: sdParseRows(t ? t.value : '', SD_TASK_ALIASES, SD_TASK_ORDER),
+                                            task: sdParseRows(SD_TASK_DEFAULT, SD_TASK_ALIASES, SD_TASK_ORDER),
                                             log: sdParseRows(l ? l.value : '', SD_LOG_ALIASES, SD_LOG_ORDER)
                                         };
                                     }
@@ -13327,15 +13314,13 @@
                                             sched = (p.log.items.map(l => l.schedule).filter(Boolean)[0]) || '';
                                         } catch (e) { }
                                         const sub = document.getElementById('sdReportSub');
-                                        if (sub) sub.textContent = '粘进度日志 → 按任务表判定（任务表 ' + (taskN ? taskN + ' 条' : '未粘') + ' · 进度日志 ' + logN + ' 条）· 只在本机处理';
+                                        if (sub) sub.textContent = '粘进度日志 → 按内置任务表判定（进度日志 ' + logN + ' 条）· 只在本机处理';
                                         const meta = document.getElementById('sdReportMeta');
                                         if (meta) {
-                                            const cells = [['任务表', taskN ? taskN + ' 条' : '未粘'], ['进度日志', logN + ' 条'], ['活动排期', sched || '—']];
+                                            const cells = [['任务表', taskN ? taskN + ' 条（内置）' : '—'], ['进度日志', logN + ' 条'], ['活动排期', sched || '—']];
                                             meta.innerHTML = cells.map(c => '<div><span class="m-k">' + escapeHtml(String(c[0]))
                                                 + '</span><span class="m-v">' + escapeHtml(String(c[1])) + '</span></div>').join('');
                                         }
-                                        const tsub = document.getElementById('sdTaskSub');
-                                        if (tsub) tsub.textContent = '（' + (taskN ? taskN + ' 条' : '还没粘') + '）';
                                     }
 
                                     // 道具ID → 名字（能用「映射管理」里改过的名字；查不到就写「道具ID」）
@@ -14907,14 +14892,12 @@
                                         setClick('fbCopyBtn', fbCopy);
                                         setClick('fbClearBtn', fbClear);
                                         // 🗓️ 七日任务：任务表是内置的固定表（只读），本机只记上次粘的进度日志
-                                        sdInitTaskTable();
                                         sdLoadState();
                                         sdRenderHead();
-                                        ['sdTaskInput', 'sdLogInput'].forEach(id => {
-                                            const el = document.getElementById(id);
-                                            if (!el) return;
-                                            el.addEventListener('input', () => { sdSaveStateLater(); sdRenderHead(); });
-                                        });
+                                        (function bindSdLogInput() {
+                                            const el = document.getElementById('sdLogInput');
+                                            if (el) el.addEventListener('input', () => { sdSaveStateLater(); sdRenderHead(); });
+                                        })();
                                         setClick('sdGenerateBtn', sdGenerate);
                                         setClick('sdCopyBtn', sdCopy);
                                         setClick('sdClearBtn', sdClear);

@@ -550,14 +550,13 @@ ok(/class="seg-bar" data-for="tab-gen"/.test(s) && /data-seg="reply" data-n="01"
 ok(/id="sdLogInput"/.test(s) && /id="sdOutput"/.test(s) && /id="sdGenerateBtn"/.test(s)
   && /id="sdCopyBtn"/.test(s) && /id="sdClearBtn"/.test(s) && /id="sdReportSub"/.test(s),
   '七日任务那一段：粘进度日志 + 生成 / 复制 / 清空 + 结果框');
-ok(/<details class="card tea-shop-card" id="sdTaskFold">/.test(s) && /id="sdTaskSub"/.test(s)
-  && /<textarea id="sdTaskInput" rows="8" readonly><\/textarea>/.test(s)
-  && s.indexOf('id="sdOutput"') < s.indexOf('id="sdTaskInput"'),
-  '任务表是固定的：内置 + 只读（收在默认折叠的「📋 任务表」里，主区不占地方）');
+ok(!/id="sdTaskFold"/.test(s) && !/id="sdTaskInput"/.test(s) && !/id="sdTaskSub"/.test(s)
+  && !/sdInitTaskTable/.test(s) && !/sdTaskResetBtn/.test(s) && !/sdClearTask/.test(s),
+  '任务表完全不上界面：页面上没有折叠区 / 只读框 / 条数副标（也没有「清掉任务表」按钮）');
 ok(/const SD_TASK_DEFAULT = \[/.test(s) && /'2486\\t第1天\\t登录1天/.test(s)
-  && /'2520\\t第7天\\t服务200个顾客/.test(s) && /function sdInitTaskTable\(\)/.test(s)
-  && /if \(t\) t\.value = SD_TASK_DEFAULT;/.test(s),
-  '内置固定任务表 SD_TASK_DEFAULT（36 个任务）+ 启动时填进只读框');
+  && /'2520\\t第7天\\t服务200个顾客/.test(s)
+  && /task: sdParseRows\(SD_TASK_DEFAULT, SD_TASK_ALIASES, SD_TASK_ORDER\)/.test(s),
+  '内置固定任务表 SD_TASK_DEFAULT（35 个任务）+ 解析时直接用这份常量');
 ok(/const SD_TASK_ALIASES = \{/.test(s) && /const SD_LOG_ALIASES = \{/.test(s)
   && /const SD_TASK_ORDER = \[/.test(s) && /const SD_LOG_ORDER = \[/.test(s)
   && /function sdParseRows\(text, aliases, order\)/.test(s) && /const useHeader = hit >= 3;/.test(s)
@@ -585,9 +584,9 @@ ok(/const SD_STATE_KEY = 'sevendayTaskState';/.test(s)
   && /已清空日志与结果'/.test(s) && !/saveData\('sevenday/.test(s),
   '七日任务只存本机 localStorage（sevendayTaskState，只记日志；任务表在代码里），不走 /api/data');
 ok(/setClick\('sdGenerateBtn', sdGenerate\)/.test(s) && /setClick\('sdCopyBtn', sdCopy\)/.test(s)
-  && /setClick\('sdClearBtn', sdClear\)/.test(s) && /sdInitTaskTable\(\);/.test(s)
-  && !/sdTaskResetBtn/.test(s) && !/sdClearTask/.test(s),
-  '七日任务：生成 / 复制 / 清空 都已挂上，启动时把内置任务表填进只读框');
+  && /setClick\('sdClearBtn', sdClear\)/.test(s) && /function bindSdLogInput\(\)/.test(s)
+  && /sdSaveStateLater\(\); sdRenderHead\(\);/.test(s),
+  '七日任务：生成 / 复制 / 清空 + 日志输入框的防抖存档都已挂上');
 
 // ---- 4. 花括号/圆括号平衡（粗查，排除字符串内的干扰仅作参考） ----
 const count = (str, ch) => (str.split(ch).length - 1);

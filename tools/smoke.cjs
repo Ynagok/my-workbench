@@ -1856,12 +1856,10 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
       '话术生成页里切到「七日任务进度」这一段（话术生成那两块同时收起）');
     check($('sdReportMeta').children.length === 3,
       '抬头右上 3 格元数据（任务表 / 进度日志 / 活动排期）', $('sdReportMeta').children.length);
-    check($('sdTaskInput').readOnly === true && $('sdTaskInput').value.split('\n').length === 36,
-      '任务表是内置的只读表（表头 + 35 个任务，改不了）',
-      $('sdTaskInput').value.split('\n').length);
-    check(/任务表 35 条/.test($('sdReportSub').textContent) && /35 条/.test($('sdTaskSub').textContent),
-      '抬头与折叠标题都写「任务表 35 条」', $('sdReportSub').textContent);
-    check($('sdTaskFold').open === false, '任务表折叠区默认收起（平时不用看）');
+    check(!$('sdTaskFold') && !$('sdTaskInput') && !$('sdTaskSub'),
+      '页面上不再展示任务表那一块（内置在代码里，界面上看不见也改不了）');
+    check(/任务表35 条（内置）/.test($('sdReportMeta').textContent),
+      '抬头右上写「任务表 35 条（内置）」', $('sdReportMeta').textContent);
 
     // 粘用户给的真实日志 → 按内置任务表判定
     $('sdLogInput').value = sdLog;
@@ -1927,8 +1925,8 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     await sleep(400);
     let sdState = null;
     try { sdState = JSON.parse(window.localStorage.getItem('sevendayTaskState') || 'null'); } catch (_) { }
-    check($('sdLogInput').value === '' && $('sdOutput').value === '' && $('sdTaskInput').value.indexOf('2520') !== -1,
-      '🧹 清空只清日志与结果，内置任务表照旧在');
+    check($('sdLogInput').value === '' && $('sdOutput').value === '',
+      '🧹 清空只清日志与结果');
     check(!!sdState && sdState.log === '' && sdState.task === undefined,
       '本机只记日志（sevendayTaskState.log），不再存任务表', sdState);
     check(posts.length === postsBefore,
@@ -1941,9 +1939,8 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     await sleep(30);
     doc.querySelector('.tab-btn[data-tab="gen"]').click();
     await sleep(30);
-    check($('sdLogInput').value.indexOf('2504') !== -1 && $('sdTaskInput').value.indexOf('2486') !== -1
-      && $('tab-gen').dataset.seg === 'sevenday',
-      '切到别的标签页再回来，日志还在、任务表照旧、还停在七日任务这一段');
+    check($('sdLogInput').value.indexOf('2504') !== -1 && $('tab-gen').dataset.seg === 'sevenday',
+      '切到别的标签页再回来，日志还在、还停在七日任务这一段');
     $('sdOutput').value = '';
     $('sdCopyBtn').click();
     await sleep(20);
