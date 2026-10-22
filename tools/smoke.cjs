@@ -1832,17 +1832,10 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
       '再点一次取消，月历里没有休息格了');
   }
 
-  console.log('--- 8q. 七日任务（进度日志 → 按固定任务表判定的话术） ---');
+  console.log('--- 8q. 七日任务（进度日志 → 用内置固定任务表判定） ---');
   {
     const postsBefore = posts.length;
-    const sdTask = [
-      '任务ID\t天数\t任务描述\t目标\t进度\t客户进度\t客户状态\t状态\t积分\t奖励',
-      '2486\t第1天\t登录1天\t1\t1\t1\t2\t可领取\t10\t102+15',
-      '2509\t第1天\t领取体力\t11417\t10797\t10797\t2\t可领取\t10\t102+15',
-      '2514\t第1天\t获取40个猫猫头\t12000\t10797\t10797\t2\t未完成\t20\t34001*1',
-      '2504\t第2天\t完成3次订单\t100\t91\t91\t2\t可领取\t30\t50101*1',
-    ].join('\n');
-    // 用户给的真实进度日志（2509/2514/2519 都是 1→1 没变状态，2504 是 1→2）
+    // 用户给的真实进度日志（2509/2514/2519 都是 1→1 没变状态，2504 是 1→2 达成）
     const sdLog = [
       '创建时间\t活动排期ID\t事件UUID\t任务ID\t老进度\t新进度\t老状态\t新状态',
       '2026-10-22 09:56:20\t34\t640eddc780ec6f7f432516746715fa04\t2509\t10797\t11417\t1\t1',
@@ -1857,39 +1850,46 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
       '侧边栏「七日任务」能切到自己的标签页');
     check($('sdReportMeta').children.length === 3,
       '抬头右上 3 格元数据（任务表 / 进度日志 / 活动排期）', $('sdReportMeta').children.length);
-    check($('sdTaskFold').open === true,
-      '本机还没有任务表时，任务表的折叠区默认展开（先粘一次）');
+    check($('sdTaskInput').readOnly === true && $('sdTaskInput').value.split('\n').length === 36,
+      '任务表是内置的只读表（表头 + 35 个任务，改不了）',
+      $('sdTaskInput').value.split('\n').length);
+    check(/任务表 35 条/.test($('sdReportSub').textContent) && /35 条/.test($('sdTaskSub').textContent),
+      '抬头与折叠标题都写「任务表 35 条」', $('sdReportSub').textContent);
+    check($('sdTaskFold').open === false, '任务表折叠区默认收起（平时不用看）');
 
-    // ① 任务表：粘一次就记住，收在折叠区（平时不用看）
-    $('sdTaskInput').value = sdTask;
-    fire($('sdTaskInput'), 'input');
-    check(/任务表 4 条/.test($('sdReportSub').textContent),
-      '抬头跟着写「任务表 4 条」', $('sdReportSub').textContent);
-    check(/4 条/.test($('sdTaskSub').textContent),
-      '折叠区标题写「（4 条）」', $('sdTaskSub').textContent);
-
-    // ② 主口径：粘日志 → 按任务表判定
+    // 粘用户给的真实日志 → 按内置任务表判定
     $('sdLogInput').value = sdLog;
     fire($('sdLogInput'), 'input');
-    check(/34/.test($('sdReportMeta').textContent) && /进度日志 4 条/.test($('sdReportSub').textContent),
-      '抬头认得出活动排期 34 + 4 条日志', $('sdReportSub').textContent);
+    check(/进度日志 4 条/.test($('sdReportSub').textContent) && /34/.test($('sdReportMeta').textContent),
+      '抬头认得出 4 条日志 + 活动排期 34', $('sdReportSub').textContent);
     $('sdGenerateBtn').click();
     await sleep(40);
     const out = $('sdOutput').value;
     check(/^七日任务进度（活动排期 34） · 共 4 个任务/.test(out),
       '首行写活动排期 + 一共几个任务', out.split('\n')[0]);
-    check(/^第1天$/m.test(out) && /^第2天$/m.test(out) && /^未标天数$/m.test(out),
-      '按任务表的天数分组（第1天 / 第2天 / 任务表里没有的单列「未标天数」）');
-    check(/1\. 领取体力（2509）：进度 10797 → 11417\/11417 · 已达成 · 可领取 积分 10 \+ 铜钱×15/.test(out),
-      '达成的那条：进度 老 → 新/目标 · 已达成 · 可领取什么（102+15 → 铜钱×15）', out);
-    check(/获取40个猫猫头（2514）：进度 10797 → 11417\/12000 · 还差 583 完成/.test(out),
-      '没达成的写「还差 N 完成」', out);
-    check(/完成3次订单（2504）：进度 91 → 100\/100 · 已达成 · 可领取 积分 30 \+ 棋子挑选盒×1/.test(out),
-      '状态 1→2 的那条也带奖励（50101*1 → 棋子挑选盒×1）');
-    check(/任务2519：进度 10797 → 11417 · 未完成/.test(out),
-      '任务表里没有的任务ID 回落成「任务ID」，按状态写「未完成」');
+    check(/^第4天$/m.test(out) && /^第5天$/m.test(out) && /^第6天$/m.test(out) && /^第7天$/m.test(out)
+      && out.indexOf('第4天') < out.indexOf('第5天'),
+      '按任务表的天数分组并排序（第4天 → 第7天）');
+    check(/使用100个道具（2504）：进度 91 → 100\/100 · 已达成 · 可领取 积分 50 \+ 竹丝匣×1/.test(out),
+      '达成的那条：进度 老 → 新/目标 · 已达成 · 能领什么（30701×1 → 竹丝匣×1）', out);
+    check(/收集16000个道具（2509）：进度 10797 → 11417\/16000 · 还差 4583 完成/.test(out),
+      '没达成的写「还差 N 完成」（16000 − 11417 = 4583）', out);
+    check(/收集20000个道具（2514）：进度 10797 → 11417\/20000 · 还差 8583 完成/.test(out)
+      && /收集24000个道具（2519）：进度 10797 → 11417\/24000 · 还差 12583 完成/.test(out),
+      '第6天 / 第7天两条也各算各的差多少');
 
-    // ③ 同一个任务粘多条日志 → 合成一句（老进度取最早、新进度取最新）
+    // 状态还是 1、但进度已经够目标 → 也算达成（后台状态常慢一拍）
+    $('sdLogInput').value = [
+      '创建时间\t活动排期ID\t事件UUID\t任务ID\t老进度\t新进度\t老状态\t新状态',
+      '2026-10-22 10:00:00\t34\tccc\t2487\t19\t20\t1\t1',
+    ].join('\n');
+    fire($('sdLogInput'), 'input');
+    $('sdGenerateBtn').click();
+    await sleep(40);
+    check(/服务20个顾客（2487）：进度 19 → 20\/20 · 已达成 · 可领取 积分 20 \+ 体力×35/.test($('sdOutput').value),
+      '新状态还是 1、但进度够目标 → 也判「已达成」并写奖励', $('sdOutput').value);
+
+    // 同一个任务粘多条日志 → 合成一句（老进度取最早、新进度取最新）
     $('sdLogInput').value = [
       '创建时间\t活动排期ID\t事件UUID\t任务ID\t老进度\t新进度\t老状态\t新状态',
       '2026-10-22 09:50:00\t34\taaa\t2504\t50\t91\t1\t1',
@@ -1899,29 +1899,18 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     $('sdGenerateBtn').click();
     await sleep(40);
     check(/共 1 个任务/.test($('sdOutput').value)
-      && /完成3次订单（2504）：进度 50 → 100\/100 · 已达成 · 可领取 积分 30/.test($('sdOutput').value),
+      && /使用100个道具（2504）：进度 50 → 100\/100 · 已达成/.test($('sdOutput').value),
       '同一任务的多条日志合成一条（50 → 100，不是 91 → 100 两条）', $('sdOutput').value);
 
-    // ④ 没任务表也能出（只是没有天数 / 目标 / 奖励）
-    $('sdTaskResetBtn').click();
-    await sleep(30);
-    $('sdGenerateBtn').click();
-    await sleep(40);
-    check($('sdTaskInput').value === '' && /还没粘任务表 → 只按任务ID/.test($('sdHint').textContent)
-      && /任务2504：进度 50 → 100 · 已达成/.test($('sdOutput').value),
-      '清掉任务表后照样出（提示「还没粘任务表」，不带目标与奖励）', $('sdHint').textContent);
-
-    // ⑤ 只粘任务表、没有日志 → 退化成「任务表清单」
-    $('sdTaskInput').value = sdTask;
-    fire($('sdTaskInput'), 'input');
-    $('sdLogInput').value = '';
+    // 任务表里没有的 ID → 回落成「任务NNNN」，不编目标与奖励
+    $('sdLogInput').value = '2026-10-22 10:01:00\t34\tddd\t9999\t1\t2\t1\t1';
     fire($('sdLogInput'), 'input');
     $('sdGenerateBtn').click();
     await sleep(40);
-    check(/^七日任务表 · 共 4 个任务/.test($('sdOutput').value),
-      '没粘日志就只列任务表（不瞎判定）', $('sdOutput').value.split('\n')[0]);
+    check(/^未标天数$/m.test($('sdOutput').value) && /任务9999：进度 1 → 2 · 未完成/.test($('sdOutput').value),
+      '任务表里没有的 ID 落「未标天数」并回落成「任务9999」', $('sdOutput').value);
 
-    // ⑥ 清空只清日志与结果，任务表留着
+    // 清空只清日志与结果（任务表是内置的，动不了）
     $('sdLogInput').value = sdLog;
     fire($('sdLogInput'), 'input');
     $('sdGenerateBtn').click();
@@ -1930,14 +1919,14 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     await sleep(400);
     let sdState = null;
     try { sdState = JSON.parse(window.localStorage.getItem('sevendayTaskState') || 'null'); } catch (_) { }
-    check($('sdLogInput').value === '' && $('sdOutput').value === '' && $('sdTaskInput').value.indexOf('2486') !== -1,
-      '🧹 清空只清掉日志与结果，任务表留着（固定的，不用反复粘）');
-    check(!!sdState && String(sdState.task).indexOf('2486') !== -1 && sdState.log === '',
-      '本机记住任务表 + 当前日志（sevendayTaskState）', sdState && sdState.task ? 'task 有' : sdState);
+    check($('sdLogInput').value === '' && $('sdOutput').value === '' && $('sdTaskInput').value.indexOf('2520') !== -1,
+      '🧹 清空只清日志与结果，内置任务表照旧在');
+    check(!!sdState && sdState.log === '' && sdState.task === undefined,
+      '本机只记日志（sevendayTaskState.log），不再存任务表', sdState);
     check(posts.length === postsBefore,
       '全程没往服务端发过一个请求（只在本机处理）', posts.length - postsBefore);
 
-    // ⑦ 切走再切回来内容还在 + 空结果复制只提示
+    // 切走再切回来内容还在 + 空结果复制只提示
     $('sdLogInput').value = '2026-10-22 09:55:55\t34\tbbb\t2504\t91\t100\t1\t2';
     fire($('sdLogInput'), 'input');
     doc.querySelector('.tab-btn[data-tab="daily"]').click();
@@ -1945,12 +1934,13 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     doc.querySelector('.tab-btn[data-tab="sevenday"]').click();
     await sleep(30);
     check($('sdLogInput').value.indexOf('2504') !== -1 && $('sdTaskInput').value.indexOf('2486') !== -1,
-      '切到别的标签页再回来，日志与任务表都还在');
+      '切到别的标签页再回来，日志还在、任务表照旧');
     $('sdOutput').value = '';
     $('sdCopyBtn').click();
     await sleep(20);
     check(/还没有生成结果/.test($('sdHint').textContent), '没结果时点复制只提示', $('sdHint').textContent);
   }
+
   console.log('--- 9. 无未捕获异常 ---');
   check(!warns.some(w => w.startsWith('ERROR')), 'console.error 未被调用：' + warns.filter(w => w.startsWith('ERROR')).join(' | '));
   check(jsdomErrors.length === 0, '页面无未捕获异常（jsdomError）', jsdomErrors.slice(0, 3));

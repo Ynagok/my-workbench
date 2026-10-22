@@ -3812,15 +3812,11 @@
             </div>
 
             <details class="card tea-shop-card" id="sdTaskFold">
-                <summary>📋 任务表<span class="hint-text" id="sdTaskSub">（—）</span><span class="card-sub">固定的，粘一次就一直记住；平时不用管</span></summary>
+                <summary>📋 任务表<span class="hint-text" id="sdTaskSub">（—）</span><span class="card-sub">内置的固定表，只读；平时不用管</span></summary>
                 <div class="hint-text" style="margin-top:6px;">
-                    列序：<b>任务ID · 天数 · 任务描述 · 目标 · 进度 · 客户进度 · 客户状态 · 状态 · 积分 · 奖励</b>；奖励写 <b>102+15</b> 或 <b>50101*1</b> 都认（会换成道具名）。
+                    列序：<b>任务ID · 天数 · 任务描述 · 目标 · 进度 · 客户端进度 · 客户端状态 · 状态 · 积分 · 奖励</b>；判定用「客户端进度」对「目标」，奖励里的道具ID 会换成名字。要改任务就改代码里的 <b>SD_TASK_DEFAULT</b>。
                 </div>
-                <textarea id="sdTaskInput" rows="8" placeholder="任务ID&#9;天数&#9;任务描述&#9;目标&#9;进度&#9;客户进度&#9;客户状态&#9;状态&#9;积分&#9;奖励&#10;2486&#9;第1天&#9;登录1天&#9;1&#9;1&#9;1&#9;2&#9;可领取&#9;10&#9;102+15"></textarea>
-                <div class="flex-row" style="margin-top:10px;">
-                    <button id="sdTaskResetBtn" class="reset-btn">🗑 清掉任务表</button>
-                    <span class="hint-text">清掉以后要重新粘一次；进度日志不受影响</span>
-                </div>
+                <textarea id="sdTaskInput" rows="8" readonly></textarea>
             </details>
         </div>
         <!-- ==================== 集卡页 card ==================== -->
@@ -13149,9 +13145,9 @@
                                     }
 
                                     // ==================== 🗓️ 七日任务（任务进度话术） ====================
-                                    // 任务表是**固定的**（粘一次就记住在本机，平时不用管，界面上收在折叠区），
+                                    // 任务表是**固定的**（2026-10 用户给的那张，写死在 SD_TASK_DEFAULT，界面只读展示），
                                     // 日常只需要粘「进度日志」→ 按任务ID 对出：第几天、干什么、现在到多少、还差多少完成、达成能领什么。
-                                    // 只在本机 localStorage 里记（跟 careerData / feedbackTplState 一个规矩，不碰 /api/data）。
+                                    // 只在本机 localStorage 里记「上次粘的日志」（跟 careerData / feedbackTplState 一个规矩，不碰 /api/data）。
                                     const SD_STATE_KEY = 'sevendayTaskState';
                                     // 表头中文名 → 字段（键统一小写去空格；任务ID/任务id 都认，列序随便）
                                     const SD_TASK_ALIASES = {
@@ -13160,8 +13156,8 @@
                                         '任务描述': 'desc', '描述': 'desc', '任务名': 'desc',
                                         '目标': 'target', '目标值': 'target',
                                         '进度': 'progress',
-                                        '客户进度': 'custProgress',
-                                        '客户状态': 'custStatus',
+                                        '客户进度': 'custProgress', '客户端进度': 'custProgress',
+                                        '客户状态': 'custStatus', '客户端状态': 'custStatus',
                                         '状态': 'status', '任务状态': 'status',
                                         '积分': 'score', '积分奖励': 'score',
                                         '奖励': 'reward', '奖励道具': 'reward'
@@ -13178,6 +13174,47 @@
                                     };
                                     const SD_TASK_ORDER = ['id', 'day', 'desc', 'target', 'progress', 'custProgress', 'custStatus', 'status', 'score', 'reward'];
                                     const SD_LOG_ORDER = ['time', 'schedule', 'event', 'id', 'oldP', 'newP', 'oldS', 'newS'];
+
+                                    // 内置的固定任务表（2026-10 用户给的整张表，36 个任务）—— 「任务表是固定的」所以直接写死在代码里，
+                                    // 界面上只做只读展示，平时只需要粘「进度日志」。改任务就改这张表（保持列序：任务ID 天数 描述 目标 进度 客户端进度 客户端状态 状态 积分 奖励）。
+                                    const SD_TASK_DEFAULT = [
+                                        '任务ID\t天数\t任务描述\t目标\t进度\t客户端进度\t客户端状态\t状态\t积分\t奖励',
+                                        '2486\t第1天\t登录1天\t1\t4\t1\t2\t可领取\t10\t102×15',
+                                        '2487\t第1天\t服务20个顾客\t20\t20\t20\t2\t可领取\t20\t101×35',
+                                        '2488\t第1天\t获取100张百戏牌\t100\t100\t100\t2\t可领取\t20\t50701×1',
+                                        '2489\t第1天\t获取40个猫猫头\t40\t0\t40\t2\t未完成\t20\t34101×1',
+                                        '2490\t第1天\t合成650次\t650\t0\t650\t2\t未完成\t10\t101×15',
+                                        '2491\t第2天\t登录2天\t2\t4\t2\t2\t可领取\t10\t102×15',
+                                        '2492\t第2天\t获得1张5星百戏牌\t1\t1\t1\t2\t可领取\t50\t151×1',
+                                        '2493\t第2天\t收集6000个道具\t6000\t0\t6000\t2\t未完成\t20\t101×35',
+                                        '2494\t第2天\t使用50个道具\t50\t0\t50\t2\t未完成\t30\t40303×1',
+                                        '2495\t第2天\t获得2400活动代币\t2400\t0\t2400\t2\t未完成\t15\t101×20',
+                                        '2496\t第3天\t登录3天\t3\t4\t3\t2\t可领取\t10\t102×15',
+                                        '2497\t第3天\t获得6张4星百戏牌\t6\t6\t6\t2\t可领取\t25\t101×35',
+                                        '2498\t第3天\t获取160个猫猫头\t160\t0\t144\t1\t未完成\t20\t30601×1',
+                                        '2499\t第3天\t收集9000个道具\t9000\t0\t9000\t2\t未完成\t20\t101×50',
+                                        '2500\t第3天\t进行1次游戏内充值付费\t1\t0\t0\t1\t未完成\t80\t40304×1',
+                                        '2501\t第4天\t登录4天\t4\t4\t4\t2\t可领取\t20\t102×30',
+                                        '2502\t第4天\t获得18张4星百戏牌\t18\t13\t13\t1\t未完成\t50\t153×1',
+                                        '2503\t第4天\t获得4800活动代币\t4800\t0\t4800\t2\t未完成\t40\t101×50',
+                                        '2504\t第4天\t使用100个道具\t100\t0\t100\t2\t未完成\t50\t30701×1',
+                                        '2505\t第4天\t合成2500次\t2500\t0\t2500\t2\t未完成\t20\t101×35',
+                                        '2506\t第5天\t登录5天\t5\t4\t4\t1\t未完成\t20\t102×30',
+                                        '2507\t第5天\t获取250张百戏牌\t250\t231\t231\t1\t未完成\t20\t30701×1',
+                                        '2508\t第5天\t获取240个猫猫头\t240\t0\t144\t1\t未完成\t40\t101×50',
+                                        '2509\t第5天\t收集16000个道具\t16000\t0\t11417\t1\t未完成\t40\t101×50',
+                                        '2510\t第5天\t获得3张5星百戏牌\t3\t2\t2\t1\t未完成\t50\t101×35',
+                                        '2511\t第6天\t登录6天\t6\t4\t4\t1\t未完成\t20\t102×30',
+                                        '2512\t第6天\t获取300张百戏牌\t300\t231\t231\t1\t未完成\t40\t173×1',
+                                        '2513\t第6天\t获得7200活动代币\t7200\t0\t7200\t2\t未完成\t40\t30702×1',
+                                        '2514\t第6天\t收集20000个道具\t20000\t0\t11417\t1\t未完成\t40\t101×50',
+                                        '2515\t第6天\t服务150个顾客\t150\t150\t150\t2\t可领取\t30\t101×35',
+                                        '2516\t第7天\t登录7天\t7\t4\t4\t1\t未完成\t30\t50101×1',
+                                        '2517\t第7天\t获得8500活动代币\t8500\t0\t8101\t1\t未完成\t60\t33001×1',
+                                        '2518\t第7天\t获取280个猫猫头\t280\t0\t144\t1\t未完成\t60\t101×50',
+                                        '2519\t第7天\t收集24000个道具\t24000\t0\t11417\t1\t未完成\t60\t157×1',
+                                        '2520\t第7天\t服务200个顾客\t200\t159\t159\t1\t未完成\t45\t101×30'
+                                    ].join('\n');
                                     let sdSaveTimer = null;
 
                                     function sdNorm(s) {
@@ -13242,22 +13279,24 @@
                                         try {
                                             const s = JSON.parse(localStorage.getItem(SD_STATE_KEY) || 'null');
                                             if (s) {
-                                                const t = document.getElementById('sdTaskInput');
                                                 const l = document.getElementById('sdLogInput');
-                                                if (t && typeof s.task === 'string') t.value = s.task;
+                                                // 任务表是内置的固定表，本机只记「上次粘的进度日志」（老记录里可能还有 task，忽略它）
                                                 if (l && typeof s.log === 'string') l.value = s.log;
                                             }
                                         } catch (e) { /* 坏了就当没有 */ }
                                     }
                                     function sdSaveStateNow() {
-                                        const t = document.getElementById('sdTaskInput');
                                         const l = document.getElementById('sdLogInput');
                                         try {
                                             localStorage.setItem(SD_STATE_KEY, JSON.stringify({
-                                                task: t ? t.value : '',
                                                 log: l ? l.value : ''
                                             }));
                                         } catch (e) { }
+                                    }
+                                    // 把内置的固定任务表填进只读框（每次启动都填，本机改不了）
+                                    function sdInitTaskTable() {
+                                        const t = document.getElementById('sdTaskInput');
+                                        if (t) t.value = SD_TASK_DEFAULT;
                                     }
                                     function sdSaveStateLater() {
                                         if (sdSaveTimer) clearTimeout(sdSaveTimer);
@@ -13460,14 +13499,7 @@
                                         if (out) out.value = '';
                                         sdRenderHead();
                                         sdSaveStateNow();
-                                        sdSetHint('已清空日志与结果（任务表留着）');
-                                    }
-                                    function sdClearTask() {
-                                        const t = document.getElementById('sdTaskInput');
-                                        if (t) t.value = '';
-                                        sdRenderHead();
-                                        sdSaveStateNow();
-                                        sdSetHint('任务表已清掉 —— 下次用之前再粘一次');
+                                        sdSetHint('已清空日志与结果');
                                     }
                                     // ==================== 下午茶投票（按天 · ⚠️ 走服务端） ====================
                                     // 这份数据跟 careerData / overseasBizData「只存本机」**相反**：要跨设备统计，所以走 /api/data：
@@ -14852,7 +14884,8 @@
                                         setClick('fbGenerateBtn', fbGenerate);
                                         setClick('fbCopyBtn', fbCopy);
                                         setClick('fbClearBtn', fbClear);
-                                        // 🗓️ 七日任务：任务表粘一次就记住（只在本机），平时只粘进度日志（跟 careerData 一个规矩，不碰服务端）
+                                        // 🗓️ 七日任务：任务表是内置的固定表（只读），本机只记上次粘的进度日志
+                                        sdInitTaskTable();
                                         sdLoadState();
                                         sdRenderHead();
                                         ['sdTaskInput', 'sdLogInput'].forEach(id => {
@@ -14863,13 +14896,6 @@
                                         setClick('sdGenerateBtn', sdGenerate);
                                         setClick('sdCopyBtn', sdCopy);
                                         setClick('sdClearBtn', sdClear);
-                                        setClick('sdTaskResetBtn', sdClearTask);
-                                        (function sdTaskFoldInit() {
-                                            const f = document.getElementById('sdTaskFold');
-                                            if (!f) return;
-                                            const t = document.getElementById('sdTaskInput');
-                                            if (!t || !String(t.value).trim()) f.open = true;   // 本机还没记住任务表 → 先展开让人粘一次
-                                        })();
                                         // 界面设置（齿轮面板：背景色 / 强调色 / 渐变）
                                         themeInit();
                                         setClick('themeGear', () => themeTogglePanel());

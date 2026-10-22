@@ -547,14 +547,19 @@ ok(/class="tab-btn" data-tab="sevenday"/.test(s) && /id="tab-sevenday"/.test(s)
   && /id="sdCopyBtn"/.test(s) && /id="sdClearBtn"/.test(s) && /id="sdReportSub"/.test(s),
   '七日任务标签页：主区只粘进度日志 + 生成 / 复制 / 清空 + 结果框');
 ok(/<details class="card tea-shop-card" id="sdTaskFold">/.test(s) && /id="sdTaskSub"/.test(s)
-  && /id="sdTaskResetBtn"/.test(s) && /if \(!t \|\| !String\(t\.value\)\.trim\(\)\) f\.open = true;/.test(s)
+  && /<textarea id="sdTaskInput" rows="8" readonly><\/textarea>/.test(s)
   && s.indexOf('id="sdOutput"') < s.indexOf('id="sdTaskInput"'),
-  '任务表是固定的：收在默认折叠的「📋 任务表」里（还没粘过时自动展开），主区不再占地方');
+  '任务表是固定的：内置 + 只读（收在默认折叠的「📋 任务表」里，主区不占地方）');
+ok(/const SD_TASK_DEFAULT = \[/.test(s) && /'2486\\t第1天\\t登录1天/.test(s)
+  && /'2520\\t第7天\\t服务200个顾客/.test(s) && /function sdInitTaskTable\(\)/.test(s)
+  && /if \(t\) t\.value = SD_TASK_DEFAULT;/.test(s),
+  '内置固定任务表 SD_TASK_DEFAULT（36 个任务）+ 启动时填进只读框');
 ok(/const SD_TASK_ALIASES = \{/.test(s) && /const SD_LOG_ALIASES = \{/.test(s)
   && /const SD_TASK_ORDER = \[/.test(s) && /const SD_LOG_ORDER = \[/.test(s)
   && /function sdParseRows\(text, aliases, order\)/.test(s) && /const useHeader = hit >= 3;/.test(s)
-  && /function sdSplitRow\(line\)/.test(s) && /text\.indexOf\('\\t'\) !== -1/.test(s),
-  '七日任务：表头按中文列名对齐（命中 ≥3 个就当带表头，否则按页面列序）+ 制表符/逗号/空白三种分隔');
+  && /function sdSplitRow\(line\)/.test(s) && /text\.indexOf\('\\t'\) !== -1/.test(s)
+  && /'客户端进度': 'custProgress'/.test(s) && /'客户端状态': 'custStatus'/.test(s),
+  '七日任务：表头按中文列名对齐（命中 ≥3 个就当带表头，否则按页面列序）+ 制表符/逗号/空白三种分隔；「客户端进度」也认');
 ok(/function sdBuildLog\(logs, tasks\)/.test(s) && /const byId = \{\};/.test(s)
   && /rows = seq\[id\]\.slice\(\)\.sort/.test(s)
   && /const done = it\.newS === '2' \|\| \(hasP && hasT && np >= tg\);/.test(s)
@@ -567,11 +572,12 @@ ok(/function sdItemLabel\(id, num\)/.test(s) && /const map = \(typeof itemNameMa
   '七日任务：奖励写成「道具名×数量」（102+15 / 50101*1 都认）、状态按 1 未完成 / 2 可领取');
 ok(/const SD_STATE_KEY = 'sevendayTaskState';/.test(s)
   && /localStorage\.setItem\(SD_STATE_KEY/.test(s) && /localStorage\.getItem\(SD_STATE_KEY/.test(s)
-  && /已清空日志与结果（任务表留着）/.test(s) && !/saveData\('sevenday/.test(s),
-  '七日任务只存本机 localStorage（sevendayTaskState，任务表粘一次就记住），不走 /api/data；清空只清日志');
+  && /已清空日志与结果'/.test(s) && !/saveData\('sevenday/.test(s),
+  '七日任务只存本机 localStorage（sevendayTaskState，只记日志；任务表在代码里），不走 /api/data');
 ok(/setClick\('sdGenerateBtn', sdGenerate\)/.test(s) && /setClick\('sdCopyBtn', sdCopy\)/.test(s)
-  && /setClick\('sdClearBtn', sdClear\)/.test(s) && /setClick\('sdTaskResetBtn', sdClearTask\)/.test(s),
-  '七日任务：生成 / 复制 / 清空 / 清掉任务表都已挂上');
+  && /setClick\('sdClearBtn', sdClear\)/.test(s) && /sdInitTaskTable\(\);/.test(s)
+  && !/sdTaskResetBtn/.test(s) && !/sdClearTask/.test(s),
+  '七日任务：生成 / 复制 / 清空 都已挂上，启动时把内置任务表填进只读框');
 
 // ---- 4. 花括号/圆括号平衡（粗查，排除字符串内的干扰仅作参考） ----
 const count = (str, ch) => (str.split(ch).length - 1);
