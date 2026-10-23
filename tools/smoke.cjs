@@ -1015,7 +1015,7 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     const fbChips = (id) => doc.querySelectorAll('#' + id + ' .fb-chip');
     const fbPick = (group, i) => fbChips(group)[i].click();
     check(!!doc.querySelector('.tab-btn[data-tab="feedback"]') && !!$('tab-feedback'), '反馈模板：侧边栏标签页与页面都在');
-    check(fbChips('fbTemplateGroup').length === 5, '反馈模板：五种模板（梦幻消除战 / 常规游戏 / 乐缤纷CP后台 / 内部工单 / 工单（反馈））', fbChips('fbTemplateGroup').length);
+    check(fbChips('fbTemplateGroup').length === 4, '反馈模板：四种模板（梦幻消除战 / 常规游戏 / 乐缤纷CP后台 / 内部工单）', fbChips('fbTemplateGroup').length);
     check(fbChips('fbSourceGroup').length === 11 && /企微/.test($('fbSourceGroup').textContent)
       && /乐缤纷CP后台/.test($('fbSourceGroup').textContent) && !/电话/.test($('fbSourceGroup').textContent),
       '反馈模板：来源片共 11 个（已无「电话」）', $('fbSourceGroup').textContent.trim().slice(-20));
@@ -2115,17 +2115,17 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     const posts8s = posts.length;
     doc.querySelector('.tab-btn[data-tab="feedback"]').click();
     await sleep(40);
-    // 工单模板：来源只有「工单」，切过去自动选中
-    doc.querySelector('#fbTemplateGroup .fb-chip[data-fb-template="ticket"]').click();
+    // 不再单开模板：选常规游戏模板 + 来源选「工单」就走喜扑工单那套
+    doc.querySelector('#fbTemplateGroup .fb-chip[data-fb-template="changwu"]').click();
+    await sleep(30);
+    doc.querySelector('#fbSourceGroup .fb-chip[data-fb-source="工单"]').click();
     await sleep(30);
     const tpls = Array.from(doc.querySelectorAll('#fbTemplateGroup .fb-chip'));
-    const tplIdx = tpls.findIndex(x => x.dataset.fbTemplate === 'ticket');
-    check(tplIdx === 4 && tpls[4].classList.contains('active'),
-      '模板里多了「工单（反馈）」，点一下就是当前模板', tplIdx);
-    const shownSrc = Array.from(doc.querySelectorAll('#fbSourceGroup .fb-chip')).filter(x => x.style.display !== 'none');
-    check(shownSrc.length === 1 && shownSrc[0].dataset.fbSource === '工单',
-      '工单模板的来源只留「工单」一个（其它来源片都藏起来）',
-      shownSrc.map(x => x.dataset.fbSource));
+    check(tpls.length === 4 && !tpls.some(x => x.dataset.fbTemplate === 'ticket'),
+      '模板还是原来那 4 个（工单反馈不再单独占一个模板）', tpls.length);
+    const srcNow = Array.from(doc.querySelectorAll('#fbSourceGroup .fb-chip')).filter(x => x.classList.contains('active'))[0];
+    check(!!srcNow && srcNow.dataset.fbSource === '工单',
+      '来源切到「工单」就是触发条件', srcNow && srcNow.dataset.fbSource);
 
     // 用户给的原文：后台「工单：工单号 …」那一整块（制表符分隔，问题描述是多行）
     const tk = [
@@ -2196,17 +2196,19 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     $('fbRawInput').value = '工单号\tXXX-123\n来源\t企微\n游戏\t异世界勇者';
     $('fbGenerateBtn').click();
     await sleep(40);
-    check(/没认出工单/.test($('fbHint').textContent) && $('fbOutput').value === '',
-      '内部工单那种内容不会被当成喜扑工单（提示没认出工单，不生成）', $('fbHint').textContent);
+    check(/内部工单/.test($('fbHint').textContent) && !/【喜扑UID】/.test($('fbOutput').value),
+      '内部工单那种内容不会被硬套成九行（按原模板提示换模板）', $('fbHint').textContent);
 
-    // 别的模板粘工单 → 提示切到「工单（反馈）」
+    // 粘的是喜扑工单、但来源不是「工单」→ 提示把来源切成工单
     doc.querySelector('#fbTemplateGroup .fb-chip[data-fb-template="menghuan"]').click();
+    await sleep(30);
+    doc.querySelector('#fbSourceGroup .fb-chip[data-fb-source="抖音小店"]').click();
     await sleep(30);
     $('fbRawInput').value = tk;
     $('fbGenerateBtn').click();
     await sleep(40);
-    check(/请把模板切成「工单（反馈）」/.test($('fbHint').textContent),
-      '模板选错（梦幻）粘工单 → 提示切到「工单（反馈）」', $('fbHint').textContent);
+    check(/请把来源切成「工单」/.test($('fbHint').textContent),
+      '粘的是喜扑工单但来源没选工单 → 提示把来源切成「工单」', $('fbHint').textContent);
     check(posts.length === posts8s, '工单模板全程不发请求（只在本机处理）', posts.length - posts8s);
   }
   console.log('--- 8t. 工单列表整段粘贴 → 快速开卡；缺的信息在卡片上再粘一次补 ---');
@@ -2214,7 +2216,9 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     const posts8t = posts.length;
     doc.querySelector('.tab-btn[data-tab="feedback"]').click();
     await sleep(40);
-    doc.querySelector('#fbTemplateGroup .fb-chip[data-fb-template="ticket"]').click();
+    doc.querySelector('#fbTemplateGroup .fb-chip[data-fb-template="changwu"]').click();
+    await sleep(30);
+    doc.querySelector('#fbSourceGroup .fb-chip[data-fb-source="工单"]').click();
     await sleep(30);
     if ($('fbBulkBtn').getAttribute('aria-pressed') !== 'true') { $('fbBulkBtn').click(); await sleep(30); }
     $('fbCardClearBtn').click();
@@ -2332,12 +2336,14 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     $('fbBulkBtn').click();
     await sleep(30);
 
-    // 只有「字段名⇥值」几行、开头不是工单号 → 仍然认不出（别把角色ID/手机号当列表行）
+    // 只有「字段名⇥值」几行、开头不是工单号 → 不按工单出（别把角色ID/手机号当列表行）
+    const cardsBeforeBad = doc.querySelectorAll('#fbCards .fb-card').length;
     $('fbRawInput').value = '角色ID\t138145608\n绑定的手机\t18932927094\n联系人电话\t18932927094';
     $('fbGenerateBtn').click();
     await sleep(40);
-    check(/没认出工单/.test($('fbHint').textContent) && $('fbOutput').value === '',
-      '只有字段名⇥值、没有工单号那种，不会误开卡（提示没认出工单）', $('fbHint').textContent);
+    check(doc.querySelectorAll('#fbCards .fb-card').length === cardsBeforeBad && !/【喜扑UID】/.test($('fbOutput').value),
+      '只有字段名⇥值、没有工单号那种，不会多开卡、也不出九行（退回原模板）',
+      doc.querySelectorAll('#fbCards .fb-card').length);
 
   }
   console.log('--- 9. 无未捕获异常 ---');

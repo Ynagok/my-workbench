@@ -311,12 +311,12 @@ ok(/data-tab="feedback"/.test(s) && /id="tab-feedback"/.test(s) && /反馈模板
     && /'乐缤纷CP后台'/.test(srcBlk) && /'抖音小店'/.test(srcBlk) && !/抖音在线/.test(srcBlk) && !/'电话'/.test(srcBlk),
     '反馈来源 11 个（抖音小店…繁花CP后台 / 乐缤纷CP后台 / 企微），无「电话」，旧的「抖音在线」已改名');
   const tplBlk = (s.match(/const FB_TEMPLATES = \[([\s\S]*?)\];/) || ['', ''])[1];
-  ok((tplBlk.match(/\{ key: '/g) || []).length === 5 && /'menghuan'/.test(tplBlk) && /'changwu'/.test(tplBlk)
-    && /'lebifen'/.test(tplBlk) && /'gongdan'/.test(tplBlk) && /'ticket'/.test(tplBlk),
-    '反馈模板 5 种（梦幻消除战 / 常规游戏 / 乐缤纷CP后台 / 内部工单 / 工单（反馈））');
+  ok((tplBlk.match(/\{ key: '/g) || []).length === 4 && /'menghuan'/.test(tplBlk) && /'changwu'/.test(tplBlk)
+    && /'lebifen'/.test(tplBlk) && /'gongdan'/.test(tplBlk) && !/'ticket'/.test(tplBlk),
+    '反馈模板 4 种（梦幻消除战 / 常规游戏 / 乐缤纷CP后台 / 内部工单）—— 工单反馈不再单独占模板，改由「来源＝工单」触发');
   const tsBlk = (s.match(/const FB_TEMPLATE_SOURCES = \{[\s\S]*?\n\s*\};/) || [''])[0];
   ok(/menghuan: \['抖音小店', '抖音后台', '53', '工单', '支付宝在线', '支付宝后台', '微信后台', '企微'\]/.test(tsBlk)
-    && /lebifen: \['乐缤纷CP后台'\]/.test(tsBlk) && /ticket: \['工单'\]/.test(tsBlk) && !/电话/.test(tsBlk)
+    && /lebifen: \['乐缤纷CP后台'\]/.test(tsBlk) && !/ticket/.test(tsBlk) && !/电话/.test(tsBlk)
     && /function fbAllowedSources\(\)/.test(s) && /b\.style\.display = fbAllowedSource\(b\.dataset\.fbSource\) \? '' : 'none';/.test(s),
     '每个模板的来源各不相同：梦幻消除战不要爱江山/繁花/乐缤纷CP后台，乐缤纷CP后台只留它自己，谁都不含电话');
 }
@@ -645,9 +645,9 @@ ok(/\.fb-cards\b/.test(s) && /\.fb-card-body\b/.test(s) && /white-space: pre-wra
   '卡片墙样式（卡片 / 正文保留换行 / 空状态）');
 
 // ---- 3n. 反馈模板「工单（反馈）」（喜扑工单整块粘 → 九行反馈格式，可再用玩家数据补 UID/渠道）----
-ok(/data-fb-template="ticket">工单（反馈）</.test(s) && /\{ key: 'ticket', label: '工单（反馈）' \}/.test(s)
-  && /ticket: \['工单'\]/.test(s),
-  '反馈模板多一个「工单（反馈）」模板，来源只留「工单」一个');
+ok(!/data-fb-template="ticket"/.test(s) && !s.includes('工单（反馈）')
+  && s.includes("if (fbSource === '工单') {") && s.includes('const tkBlocks = fbTicketBlocks(raw);'),
+  '工单反馈不再单开模板：模板还是原来那 4 个，**来源选「工单」就按喜扑工单那套生成**');
 ok(s.includes('function fbTicketBlocks(raw)')
   && s.includes('if (/^玩家数据[:：]/.test(t)) { cur = null; return; }')
   && s.includes('if (/^(工单[:：]\\s*)?工单号([\\t ]|[:：])/.test(t)) { cur = [line]; out.push(cur); return; }')
@@ -666,12 +666,13 @@ ok(/\/\/ 一段 = 用户要的九行格式/.test(s)
   && /【喜扑UID】：/.test(s) && /【角色ID】：/.test(s) && /【渠道】：/.test(s)
   && /【设备信息】：'/.test(s) && /【发生时间】：/.test(s) && /【具体描述】：' \+ body/.test(s),
   '输出就是用户给的九行格式（【设备信息】【发生时间】允许空着）');
-ok(/if \(fbTemplate === 'ticket'\) \{[\s\S]{0,400}fbTicketBlocks\(raw\)/.test(s)
-  && /（还没粘「玩家数据」→ 喜扑UID \/ 渠道 先空着，粘上再点一次就补上）/.test(s),
-  '生成时走工单分支：块数 / 来源写进提示，缺玩家数据会提醒再粘一次');
+ok(/来源＝工单 → 按喜扑工单反馈格式生成/.test(s)
+  && /（还没粘「玩家数据」→ 喜扑UID \/ 渠道 先空着，粘上再点一次就补上）/.test(s)
+  && /if \(tkBlocks\.length \|\| tkRows\.length\) \{/.test(s),
+  '生成时按来源分叉：来源＝工单且认得出工单 → 走喜扑那套，提示里写段数与补充方式');
 ok(/const looksTicket = \/主体\/\.test\(String\(raw \|\| ''\)\) && \/游戏名称\//.test(s)
-  && /请把模板切成「工单（反馈）」/.test(s),
-  '选错模板时能认出这段是喜扑工单并提示切到「工单（反馈）」');
+  && /请把来源切成「工单」/.test(s),
+  '粘的是喜扑工单但来源没选「工单」时，提示把来源切成工单');
 
 // ---- 3o. 工单列表整段 → 快速开卡；缺的信息在卡片上再粘一次补 ----
 ok(s.includes('function fbTicketTableRows(raw)') && s.includes('function fbTicketRowText(r)')
@@ -701,9 +702,9 @@ ok(s.includes('function fbLooksTicketPaste(t)') && s.includes("if (txt && fbLook
   && s.includes('el.textContent = merged;')
   && s.includes("if (!merged) { fbCardHintSet('这张卡里这些信息已经有了（没补新东西）'); return; }"),
   '在卡片上粘贴时先判断是不是工单/玩家数据 → 是就补进这张卡（否则才走原来的图片 / 普通粘贴）');
-ok(s.includes("const rows = blocks.length ? [] : fbTicketTableRows(raw);")
-  && s.includes('? blocks.map(b => fbTicketText(fbTicketFields(b), player))')
-  && s.includes(': rows.map(fbTicketRowText);'),
+ok(s.includes('const tkRows = tkBlocks.length ? [] : fbTicketTableRows(raw);')
+  && s.includes('? tkBlocks.map(b => fbTicketText(fbTicketFields(b), tkPlayer))')
+  && s.includes(': tkRows.map(fbTicketRowText);'),
   '「生成反馈格式」两条路：工单整块 / 工单列表行（后者直接开多张卡）');
 
 // ---- 4. 花括号/圆括号平衡（粗查，排除字符串内的干扰仅作参考） ----

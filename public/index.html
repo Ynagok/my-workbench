@@ -3812,7 +3812,6 @@
                     <button class="fb-chip" data-fb-template="changwu">常规游戏</button>
                     <button class="fb-chip" data-fb-template="lebifen">乐缤纷CP后台</button>
                     <button class="fb-chip" data-fb-template="gongdan">内部工单</button>
-                    <button class="fb-chip" data-fb-template="ticket">工单（反馈）</button>
                 </div>
 
                 <label style="margin-top:16px;">② 选择来源 <span class="card-sub">可选项跟模板走</span></label>
@@ -12967,8 +12966,7 @@
                                         { key: 'menghuan', label: '梦幻消除战' },
                                         { key: 'changwu', label: '常规游戏' },
                                         { key: 'lebifen', label: '乐缤纷CP后台' },
-                                        { key: 'gongdan', label: '内部工单' },
-                                        { key: 'ticket', label: '工单（反馈）' }
+                                        { key: 'gongdan', label: '内部工单' }
                                     ];
                                     const FB_SOURCES = ['抖音小店', '抖音后台', '53', '工单', '支付宝在线', '支付宝后台', '微信后台', '爱江山CP后台', '繁花CP后台', '乐缤纷CP后台', '企微'];
                                     // 每个模板能看到哪些来源（用户要求：电话全部不要；梦幻消除战不要爱江山/繁花/乐缤纷CP后台；乐缤纷CP后台只留它自己）
@@ -12976,8 +12974,7 @@
                                         menghuan: ['抖音小店', '抖音后台', '53', '工单', '支付宝在线', '支付宝后台', '微信后台', '企微'],
                                         changwu: FB_SOURCES,
                                         lebifen: ['乐缤纷CP后台'],
-                                        gongdan: FB_SOURCES,
-                                        ticket: ['工单']
+                                        gongdan: FB_SOURCES
                                     };
                                     // 内部工单的中文键名 → 字段名
                                     const FB_ORDER_FIELDS = {
@@ -13064,7 +13061,7 @@
                                         const first = (parts[0] || '').trim();
                                         // 喜扑工单自带「主体」「游戏名称」两列，跟内部工单（游戏/区服/UID）不是一回事
                                         const looksTicket = /主体/.test(String(raw || '')) && /游戏名称/.test(String(raw || ''));
-                                        if (looksTicket && fbTemplate !== 'ticket') return '这段内容是【工单】（有主体 / 游戏名称），请把模板切成「工单（反馈）」';
+                                        if (looksTicket && fbSource !== '工单') return '这段内容是【工单】（有主体 / 游戏名称），请把来源切成「工单」';
                                         if (fbTemplate === 'menghuan') {
                                             if (!gameNameRaw.includes('梦幻消除战')) {
                                                 return first === '工单号' ? '这段内容像是【内部工单】，请把模板切成「内部工单」' : '这段内容不是【梦幻消除战】，请把模板切成「常规游戏」';
@@ -13421,6 +13418,24 @@
                                         if (!raw) { fbSetHint('先粘贴原始字符串再生成'); return; }
                                         const parts = raw.split(/\s+/).filter(p => p.trim() !== '');
                                         const gameNameRaw = parts[1] || '';
+                                        // 来源选「工单」→ 走喜扑工单反馈那套（一段九行）；认不出工单就还是按原模板生成
+                                        if (fbSource === '工单') {
+                                            const tkBlocks = fbTicketBlocks(raw);
+                                            const tkRows = tkBlocks.length ? [] : fbTicketTableRows(raw);
+                                            if (tkBlocks.length || tkRows.length) {
+                                                const tkPlayer = fbTicketPlayer(raw);
+                                                const tkTexts = tkBlocks.length
+                                                    ? tkBlocks.map(b => fbTicketText(fbTicketFields(b), tkPlayer))
+                                                    : tkRows.map(fbTicketRowText);
+                                                const tkText = tkTexts.join('\n\n');
+                                                if (out) out.value = tkText;
+                                                if (fbBulkOn) fbPushCards(tkText);
+                                                fbSetHint('来源＝工单 → 按喜扑工单反馈格式生成 ' + tkTexts.length + ' 段（' + (tkBlocks.length ? '工单整块' : '工单列表行') + '）'
+                                                    + (tkRows.length ? ' · 点开对应的卡片，再粘「工单：工单号 …」或「玩家数据：…」就能把 角色ID / 发生时间 / 具体描述 / 喜扑UID / 渠道 补进去' : '')
+                                                    + (tkPlayer.uid || tkRows.length ? '' : '（还没粘「玩家数据」→ 喜扑UID / 渠道 先空着，粘上再点一次就补上）'));
+                                                return;
+                                            }
+                                        }
                                         const bad = fbMismatch(parts, gameNameRaw, raw);
                                         if (bad) { fbSetHint('⚠️ 模板选错了：' + bad + '（停在这里，不生成错格式）'); return; }
                                         if (fbTemplate === 'lebifen') {
@@ -13433,26 +13448,6 @@
                                             if (out) out.value = lebifenText;
                                             if (fbBulkOn) fbPushCards(lebifenText);
                                             fbSetHint('已按「乐缤纷CP后台」生成 ' + rows.length + ' 段 · 来源 ' + fbSource);
-                                            return;
-                                        }
-                                        if (fbTemplate === 'ticket') {
-                                            // 两种输入：①「工单：工单号 …」整块 ②工单列表里整段复制的行（一行一张单 → 快速开卡）
-                                            const blocks = fbTicketBlocks(raw);
-                                            const rows = blocks.length ? [] : fbTicketTableRows(raw);
-                                            if (!blocks.length && !rows.length) {
-                                                    fbSetHint('没认出工单：请把后台里「工单：工单号 …」那一整块粘进来（也可以把工单列表整段复制过来，一行开一张卡）');
-                                                    return;
-                                            }
-                                            const player = fbTicketPlayer(raw);
-                                            const texts = blocks.length
-                                                    ? blocks.map(b => fbTicketText(fbTicketFields(b), player))
-                                                    : rows.map(fbTicketRowText);
-                                            const ticketText = texts.join('\n\n');
-                                            if (out) out.value = ticketText;
-                                            if (fbBulkOn) fbPushCards(ticketText);
-                                            fbSetHint('已按「工单（反馈）」生成 ' + texts.length + ' 段（' + (blocks.length ? '工单整块' : '工单列表行') + '） · 来源 ' + fbSource
-                                                    + (rows.length ? ' · 点开对应的卡片，再粘「工单：工单号 …」或「玩家数据：…」就能把 角色ID / 发生时间 / 具体描述 / 喜扑UID / 渠道 补进去' : '')
-                                                    + (player.uid || rows.length ? '' : '（还没粘「玩家数据」→ 喜扑UID / 渠道 先空着，粘上再点一次就补上）'));
                                             return;
                                         }
                                         const text = (fbTemplate === 'gongdan') ? fbBuildOrderText(raw) : fbBuildGameText(parts, gameNameRaw);
