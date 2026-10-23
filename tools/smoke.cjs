@@ -1015,7 +1015,7 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     const fbChips = (id) => doc.querySelectorAll('#' + id + ' .fb-chip');
     const fbPick = (group, i) => fbChips(group)[i].click();
     check(!!doc.querySelector('.tab-btn[data-tab="feedback"]') && !!$('tab-feedback'), '反馈模板：侧边栏标签页与页面都在');
-    check(fbChips('fbTemplateGroup').length === 4, '反馈模板：四种模板（梦幻消除战 / 常规游戏 / 乐缤纷CP后台 / 内部工单）', fbChips('fbTemplateGroup').length);
+    check(fbChips('fbTemplateGroup').length === 5, '反馈模板：五种模板（梦幻消除战 / 常规游戏 / 乐缤纷CP后台 / 内部工单 / 工单（反馈））', fbChips('fbTemplateGroup').length);
     check(fbChips('fbSourceGroup').length === 11 && /企微/.test($('fbSourceGroup').textContent)
       && /乐缤纷CP后台/.test($('fbSourceGroup').textContent) && !/电话/.test($('fbSourceGroup').textContent),
       '反馈模板：来源片共 11 个（已无「电话」）', $('fbSourceGroup').textContent.trim().slice(-20));
@@ -2085,6 +2085,105 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     check(posts.length === posts8r, '卡片墙全程不发请求（只在本机处理）', posts.length - posts8r);
   }
 
+  console.log('--- 8s. 反馈模板 · 工单（喜扑工单整块 → 九行反馈，玩家数据补 UID / 渠道） ---');
+  {
+    const posts8s = posts.length;
+    doc.querySelector('.tab-btn[data-tab="feedback"]').click();
+    await sleep(40);
+    // 工单模板：来源只有「工单」，切过去自动选中
+    doc.querySelector('#fbTemplateGroup .fb-chip[data-fb-template="ticket"]').click();
+    await sleep(30);
+    const tpls = Array.from(doc.querySelectorAll('#fbTemplateGroup .fb-chip'));
+    const tplIdx = tpls.findIndex(x => x.dataset.fbTemplate === 'ticket');
+    check(tplIdx === 4 && tpls[4].classList.contains('active'),
+      '模板里多了「工单（反馈）」，点一下就是当前模板', tplIdx);
+    const shownSrc = Array.from(doc.querySelectorAll('#fbSourceGroup .fb-chip')).filter(x => x.style.display !== 'none');
+    check(shownSrc.length === 1 && shownSrc[0].dataset.fbSource === '工单',
+      '工单模板的来源只留「工单」一个（其它来源片都藏起来）',
+      shownSrc.map(x => x.dataset.fbSource));
+
+    // 用户给的原文：后台「工单：工单号 …」那一整块（制表符分隔，问题描述是多行）
+    const tk = [
+      '工单：工单号\t1536243 (近一个月来单：1)',
+      '主体\t喜扑',
+      '类型\t游戏问题',
+      '游戏名称\t微信-梦幻消除战',
+      '区服名称\t微信-梦幻消除战',
+      '角色ID\t76929541',
+      '绑定的手机\t18083197970',
+      '问题描述\t【问题类型】道具丢失',
+      '【问题描述】棋子丢失',
+      '【棋子名称+等级】13级糕点',
+      '【详细描述】10.20号晚上七点左右，不小心删除了顶级糕点，帮我找回一下',
+      '工单状态\t待接管',
+      '接管人\t未接管',
+      '创建时间\t2026-10-23 13:24:01',
+      '发生时间\t2026-10-20 18:55:00',
+      '联系人电话\t18083197970',
+    ].join('\n');
+    $('fbRawInput').value = tk;
+    $('fbGenerateBtn').click();
+    await sleep(40);
+    const got = $('fbOutput').value;
+    check(/^【梦幻消除战问题反馈】/.test(got), '标题按「游戏名称」生成（微信-梦幻消除战 → 【梦幻消除战问题反馈】）', got.split('\n')[0]);
+    check(/【角色ID】：76929541/.test(got) && /【具体描述】：10\.20号晚上七点左右，不小心删除了顶级糕点，帮我找回一下/.test(got),
+      '角色ID 与【具体描述】（取【详细描述】那句）都对上', got);
+    check(/【发生时间】：2026-10-20 18:55:00/.test(got), '【发生时间】用 工单 里的那行', got);
+    check(/【设备信息】：\n/.test(got), '【设备信息】留空（工单和玩家数据里都没有）');
+    check(/【喜扑UID】：\n/.test(got) && /【渠道】：\n/.test(got),
+      '没粘玩家数据时【喜扑UID】【渠道】先空着', got);
+    check(/\n来源：工单\n编号：1536243$/.test(got) && !/近一个月来单/.test(got),
+      '结尾是「来源：工单 / 编号：1536243」（工单号后面的「近一个月来单」不要）', got);
+
+    // 再把「玩家数据：…」那一坨粘在后面 → 补喜扑UID / 渠道
+    const player = [
+      '',
+      '玩家数据：176674940\t番糖-梦幻消除战-支付宝小程序\tandroid\t',
+      '0',
+      '',
+      '梦幻消除战',
+      '',
+      '53141283',
+      '',
+      'player53141283',
+      '',
+      '2026-02-09 09:33:22',
+    ].join('\n');
+    $('fbRawInput').value = tk + player;
+    $('fbGenerateBtn').click();
+    await sleep(40);
+    const got2 = $('fbOutput').value;
+    check(/【喜扑UID】：176674940/.test(got2) && /【渠道】：支付宝小程序/.test(got2),
+      '粘上「玩家数据」后，喜扑UID = 176674940、渠道 = 支付宝小程序 都补上了', got2);
+    check(/【角色ID】：76929541/.test(got2), '角色ID 仍用工单里的（玩家数据里那个数字不当真）', got2);
+
+    // 一次粘两块工单 → 两段（段间空一行），巨多模式下就是两张卡
+    const tk2 = tk.replace('1536243', '1536244').replace('76929541', '76929542');
+    $('fbRawInput').value = tk + '\n' + tk2;
+    $('fbGenerateBtn').click();
+    await sleep(40);
+    const got3 = $('fbOutput').value;
+    const segN = got3.split(/\n\n/).filter(x => x.trim()).length;
+    check(segN === 2 && /编号：1536243/.test(got3) && /编号：1536244/.test(got3),
+      '一次粘两块工单 → 两段（各自一个编号），段间空一行', segN);
+
+    // 认不出工单时不瞎生成
+    $('fbRawInput').value = '工单号\tXXX-123\n来源\t企微\n游戏\t异世界勇者';
+    $('fbGenerateBtn').click();
+    await sleep(40);
+    check(/没认出工单/.test($('fbHint').textContent) && $('fbOutput').value === '',
+      '内部工单那种内容不会被当成喜扑工单（提示没认出工单，不生成）', $('fbHint').textContent);
+
+    // 别的模板粘工单 → 提示切到「工单（反馈）」
+    doc.querySelector('#fbTemplateGroup .fb-chip[data-fb-template="menghuan"]').click();
+    await sleep(30);
+    $('fbRawInput').value = tk;
+    $('fbGenerateBtn').click();
+    await sleep(40);
+    check(/请把模板切成「工单（反馈）」/.test($('fbHint').textContent),
+      '模板选错（梦幻）粘工单 → 提示切到「工单（反馈）」', $('fbHint').textContent);
+    check(posts.length === posts8s, '工单模板全程不发请求（只在本机处理）', posts.length - posts8s);
+  }
   console.log('--- 9. 无未捕获异常 ---');
   check(!warns.some(w => w.startsWith('ERROR')), 'console.error 未被调用：' + warns.filter(w => w.startsWith('ERROR')).join(' | '));
   check(jsdomErrors.length === 0, '页面无未捕获异常（jsdomError）', jsdomErrors.slice(0, 3));
