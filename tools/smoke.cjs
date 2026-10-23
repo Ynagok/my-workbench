@@ -1872,8 +1872,8 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
       '抬头右上 3 格元数据（任务表 / 进度日志 / 活动排期）', $('sdReportMeta').children.length);
     check(!$('sdTaskFold') && !$('sdTaskInput') && !$('sdTaskSub'),
       '页面上不再展示任务表那一块（内置在代码里，界面上看不见也改不了）');
-    check(/任务表35 条（内置）/.test($('sdReportMeta').textContent),
-      '抬头右上写「任务表 35 条（内置）」', $('sdReportMeta').textContent);
+    check(/任务表70 条（内置）/.test($('sdReportMeta').textContent),
+      '抬头右上写「任务表 70 条（内置）」—— 两期任务表（2416–2450 + 2486–2520）', $('sdReportMeta').textContent);
 
     // 粘用户给的真实日志 → 按内置任务表判定
     $('sdLogInput').value = sdLog;
@@ -1897,6 +1897,30 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     check(/收集20000个道具：已收集 11417\/20000，还差 8583/.test(out)
       && /收集24000个道具：已收集 11417\/24000，还差 12583/.test(out),
       '第6天 / 第7天两条也各算各的差多少');
+
+    // 第二期任务表（2416–2450）：用户截图里那批 2423 / 2428 / 2429… 现在也能认出来
+    $('sdLogInput').value = [
+      '创建时间\t活动排期ID\t事件UUID\t任务ID\t老进度\t新进度\t老状态\t新状态',
+      '2026-10-23 08:24:05\t34\t5ff8c69cd2560490818cd32495bb54\t2423\t3079\t3101\t1\t1',
+      '2026-10-23 08:24:05\t34\t5ff8c69cd2560490818cd32495bb54\t2428\t34\t35\t1\t1',
+      '2026-10-23 08:24:05\t34\t5ff8c69cd2560490818cd32495bb54\t2433\t1740\t1760\t1\t1',
+      '2026-10-23 08:24:05\t34\t5ff8c69cd2560490818cd32495bb54\t2424\t0\t20\t1\t2',
+    ].join('\n');
+    fire($('sdLogInput'), 'input');
+    $('sdGenerateBtn').click();
+    await sleep(40);
+    const out2 = $('sdOutput').value;
+    check(/^第2天$/m.test(out2) && /^第3天$/m.test(out2) && /^第4天$/m.test(out2) && !/未标天数/.test(out2),
+      '第二期任务表（2416–2450）也认：2423 / 2428 / 2433 有了「第几天」，不再落「未标天数」', out2);
+    check(/10-23 08:24 收集3200个道具：已收集 3101\/3200，还差 99/.test(out2),
+      '2423 按新表写成「已收集 3101/3200，还差 99」（截图里原来只有「进度 3101」）', out2);
+    check(/获取65个猫猫头：已获取 35\/65，还差 30/.test(out2)
+      && /获得2650活动代币：已获得 1760\/2650，还差 890/.test(out2),
+      '2428 / 2433 的目标和「还差」也对上了');
+    check(/使用20个道具：已使用 20\/20，已完成，可领取 积分 30/.test(out2),
+      '2424 已完成 → 写「已完成，可领取 积分 30 + …」', out2);
+    check(/2423|2428|2433|2424/.test(out2) === false,
+      '新表的条目同样不带任务ID');
 
     // 状态还是 1、但进度已经够目标 → 也算达成（后台状态常慢一拍）
     $('sdLogInput').value = [

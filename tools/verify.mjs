@@ -556,10 +556,12 @@ ok(/id="sdLogInput"/.test(s) && /id="sdOutput"/.test(s) && /id="sdGenerateBtn"/.
 ok(!/id="sdTaskFold"/.test(s) && !/id="sdTaskInput"/.test(s) && !/id="sdTaskSub"/.test(s)
   && !/sdInitTaskTable/.test(s) && !/sdTaskResetBtn/.test(s) && !/sdClearTask/.test(s),
   '任务表完全不上界面：页面上没有折叠区 / 只读框 / 条数副标（也没有「清掉任务表」按钮）');
-ok(/const SD_TASK_DEFAULT = \[/.test(s) && /'2486\\t第1天\\t登录1天/.test(s)
-  && /'2520\\t第7天\\t服务200个顾客/.test(s)
+ok(/const SD_TASK_DEFAULT = \[/.test(s) && /'2416\\t第1天\\t登录1天/.test(s)
+  && /'2450\\t第7天\\t服务110个顾客/.test(s)
+  && /'2486\\t第1天\\t登录1天/.test(s) && /'2520\\t第7天\\t服务200个顾客/.test(s)
+  && (s.match(/'\d{4}\\t第[1-7]天\\t/g) || []).length === 70
   && /task: sdParseRows\(SD_TASK_DEFAULT, SD_TASK_ALIASES, SD_TASK_ORDER\)/.test(s),
-  '内置固定任务表 SD_TASK_DEFAULT（35 个任务）+ 解析时直接用这份常量');
+  '内置固定任务表 SD_TASK_DEFAULT（两期共 70 条：2416–2450 + 上一期 2486–2520）+ 解析时直接用这份常量');
 ok(/const SD_TASK_ALIASES = \{/.test(s) && /const SD_LOG_ALIASES = \{/.test(s)
   && /const SD_TASK_ORDER = \[/.test(s) && /const SD_LOG_ORDER = \[/.test(s)
   && /function sdParseRows\(text, aliases, order\)/.test(s) && /const useHeader = hit >= 3;/.test(s)
