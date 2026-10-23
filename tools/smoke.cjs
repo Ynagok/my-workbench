@@ -534,8 +534,8 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
   check(ovReport.includes('SDk工单：12例'), '日报正文里 SDk 三项已合并成一个「SDk工单」数', ovReport.slice(-160));
   check(ovReport.includes('FB·月光：2例') && ovReport.includes('FB·梦幻：0例'),
     '海外日报正文把 FB 拆成「梦幻 / 月光」两行', ovReport.slice(-200));
-  check(ovReport.includes('邮箱·梦幻：2例') && ovReport.includes('邮箱·爱江山：1例') && ovReport.includes('邮箱·月光：1例'),
-    '海外日报正文把邮箱拆成「梦幻 / 爱江山 / 月光」三行', ovReport.slice(-220));
+  check(ovReport.includes('邮箱：4例') && !ovReport.includes('邮箱·梦幻：'),
+    '日报正文里邮箱三项合并成一个「邮箱：4例」（表单仍是三项分开填）', ovReport.slice(-200));
   check(ovReport.includes('（梦幻/繁花/乐缤纷）群维系：6') && ovReport.includes('海外CP后台工单：2') && ovReport.includes('国内工单：3'),
     '海外日报正文已输出这 3 行', ovReport.slice(-110));
   check(rec0 && rec0.status === '已完成记录' && rec0.src === 'daily', '状态与来源标记正确', rec0 && [rec0.status, rec0.src]);

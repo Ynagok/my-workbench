@@ -10889,7 +10889,6 @@
                                             }
                                         } else {
                                             const ratingTotal = (parseFloat(d.ios) || 0) + (parseFloat(d.google) || 0);
-                                            const emailParts = careerEmailParts(d);
                                             const visitTotal = (parseFloat(d.fb) || 0) + (parseFloat(d.fb_yl) || 0) + careerEmailTotal(d) + careerSdkTotal(d);
                                             text += `${d.name || ''}  ${date.month}月${date.day}日\n\n`;
                                             text += `评价，\n`;
@@ -10899,9 +10898,8 @@
                                             text += `来访，\n`;
                                             text += `FB·梦幻：${d.fb || 0}例\n`;
                                             text += `FB·月光：${d.fb_yl || 0}例\n`;
-                                            text += `邮箱·梦幻：${emailParts.mh}例\n`;
-                                            text += `邮箱·爱江山：${emailParts.ajs}例\n`;
-                                            text += `邮箱·月光：${emailParts.yl}例\n`;
+                                            // 邮箱三项、SDk 三项在表单里分开填，但正文按用户要求各自合并成一个数
+                                            text += `邮箱：${careerEmailTotal(d)}例\n`;
                                             text += `SDk工单：${careerSdkTotal(d)}例\n`;
                                             text += `总计：${visitTotal}例\n\n`;
                                             text += `禁言：${d.mute || 0}，封号：${d.ban || 0}\n`;
