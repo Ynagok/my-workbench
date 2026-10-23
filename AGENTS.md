@@ -137,7 +137,7 @@ npm run verify     # 改完代码、push 前的完整自检
   - **客服生涯 4 段**：`overview` 总览（总览卡 + 排班休息面板）/ `detail` 逐项明细（工单统计 + 海外统计）/ `trend` 趋势与分析（指标详情 + 趋势·月度 + 周维度）/ `data` 数据与补录（数据质量 + 补录 + 粘贴导入）；**海外 3 段**：`overview`（岗位总览 + 详情图表）/ `detail`（逐项 + 月度 + 周 + 人员 + 每日）/ `data`（粘贴导入那张卡）。
   - **开关机制**：卡片上挂 `data-seg-card="overview|detail|trend|data"`，`statsSetSeg(tabId, seg)` 只给当前段的卡片加 `.seg-on`；CSS `[data-seg-card]{display:none}` / `[data-seg-card].seg-on{display:block}`。⚠️ **内联 `style.display` 仍然优先**（排班休息面板靠这个收起，`renderCareer` 按身份隐藏两侧卡片也靠它），所以别把显示逻辑全搬进 CSS。
   - **切标签页回第一段**：`.tab-btn` 的 onclick 里对 `career` / `overseas` 调 `statsSetSeg(…, 'overview')`，免得停在上次的明细段。
-  - **「话术生成」页也用了这套**（2026-10）：`.seg-bar[data-for="tab-gen"]` 两段 —— `01 话术生成`（原来的两块 `data-seg-card="reply"`）/ `02 七日任务进度`（`#genSevendayPane` + `data-seg-card="sevenday"`）；`bindSegBar` 末尾 `statsSetSeg('tab-gen', 'reply')` 初始化。⚠️ 这两段**不在**「回第一段」名单里（切回话术生成时停在用户上次看的那段）。
+  - **「话术生成」页也用了这套**（2026-10）：`.seg-bar[data-for="tab-gen"]` 两段 —— `01 话术生成`（原来的两块 `data-seg-card="reply"`）/ `02 七日任务进度`（`#genSevendayPane` + `data-seg-card="sevenday"`）；`bindSegBar` 末尾 `statsSetSeg('tab-gen', 'reply')` 初始化。⚠️ 这两段**不在**「回第一段」名单里（切回话术生成时停在用户上次看的那段）。⚠️ **这一页的分段条不吸顶**（`#tab-gen > .seg-bar { position: static; }`）：`.seg-bar` 默认 `position: sticky; top: 0`，而这条夹在卡片中间，吸顶时滚动会把下面的文本框 / 卡片切成两半（2026-10 用户截图「网页的这个条感觉有点奇怪」）；统计页那两条**仍然吸顶**（长页面用得上）。
   - ⚠️ **旧的 `.jump-bar` / `.jump-chip` / `bindJumpBar()` 已整段删除**（冒烟/静态断言锁着「不该再出现」），别再捡回来。
 
   - `.career-scroll table.career-table` 现在**表头吸顶 + 首列吸左**（宽表横向拖动时不跟丢）。

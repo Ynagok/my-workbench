@@ -3396,6 +3396,8 @@
             position: sticky; top: 0; z-index: 6;
             background: var(--bg-0);
         }
+        /* 「话术生成」页的分段条不吸顶：它夹在卡片中间，吸顶会在滚动时把下面的文本框 / 卡片切成两半（2026-10 用户：「这个条感觉有点奇怪」） */
+        #tab-gen > .seg-bar { position: static; }
         .seg-btn {
             position: relative;
             border: none !important; background: transparent !important;

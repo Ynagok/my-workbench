@@ -548,8 +548,9 @@ ok(/details class="card-more"/.test(s) && /details\.card-more > summary/.test(s)
 ok(/class="seg-bar" data-for="tab-gen"/.test(s) && /data-seg="reply" data-n="01">话术生成</.test(s)
   && /data-seg="sevenday" data-n="02">七日任务进度</.test(s) && /id="genSevendayPane"/.test(s)
   && /data-seg-card="reply"/.test(s) && !/data-tab="sevenday"/.test(s) && !/id="tab-sevenday"/.test(s)
-  && /statsSetSeg\('tab-gen', 'reply'\)/.test(s),
-  '七日任务并进「话术生成」页：页内分段导航（话术生成 / 七日任务进度），侧边栏不再单独占一个标签');
+  && /statsSetSeg\('tab-gen', 'reply'\)/.test(s)
+  && /#tab-gen > \.seg-bar \{ position: static; \}/.test(s),
+  '七日任务并进「话术生成」页：页内分段导航（话术生成 / 七日任务进度），侧边栏不再单独占一个标签；那一页的分段条不吸顶（避免滚动时把下面的文本框切成两半）');
 ok(/id="sdLogInput"/.test(s) && /id="sdOutput"/.test(s) && /id="sdGenerateBtn"/.test(s)
   && /id="sdCopyBtn"/.test(s) && /id="sdClearBtn"/.test(s) && /id="sdReportSub"/.test(s),
   '七日任务那一段：粘进度日志 + 生成 / 复制 / 清空 + 结果框');
