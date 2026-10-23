@@ -6582,7 +6582,9 @@
                                         overseas: {
                                             name: '客服',
                                             ios: 0, google: 0,
-                                            fb: 0, email: 0,
+                                            fb: 0, fb_yl: 0, email: 0,
+                                            // 邮箱在表单里分三项填（梦幻 / 爱江山 / 月光），生成日报与统计时合并成一个「海外邮件」
+                                            email_mh: 0, email_ajs: 0, email_yl: 0,
                                             // SDk工单在表单里分三项填（梦幻/爱江山/月光），生成日报与统计总量时合并成一个「SDk工单」
                                             sdk_mh: 0, sdk_ajs: 0, sdk_yl: 0,
                                             sdk: 0,   // [兼容] 旧数据/登记表里的「SDk工单（海外SSO工单量）」合并总量，表单不再直接填
@@ -6649,7 +6651,11 @@
                                         { key: 'fb', label: 'FB·梦幻（来访）', type: 'number', group: 'review' },
                                         // [需求] 「月光FB」单独一项，**不并进上面的梦幻FB**（日报正文 / 统计各算各的）
                                         { key: 'fb_yl', label: 'FB·月光（来访）', type: 'number', group: 'review' },
-                                        { key: 'email', label: '邮箱（来访）', type: 'number', group: 'review' },
+                                        // [需求] 邮箱按产品分三项填：「邮箱·梦幻 / 邮箱·爱江山 / 邮箱·月光」（日报正文各写一行）
+                                        // 旧的单个「邮箱（来访）」不再进表单，但 overseas.email 仍保留（历史数据 / 老日报导入按它兜底）
+                                        { key: 'email_mh', label: '邮箱·梦幻（来访）', type: 'number', group: 'review' },
+                                        { key: 'email_ajs', label: '邮箱·爱江山（来访）', type: 'number', group: 'review' },
+                                        { key: 'email_yl', label: '邮箱·月光（来访）', type: 'number', group: 'review' },
                                         // SDk工单（来访）按用户要求分三项填；日报正文与统计总量里合并成「SDk工单」一个数
                                         { key: 'sdk_mh', label: 'SDk工单·梦幻', type: 'number', group: 'sdk' },
                                         { key: 'sdk_ajs', label: 'SDk工单·爱江山', type: 'number', group: 'sdk' },
@@ -6721,10 +6727,20 @@
                                         { key: 'sdk_ajs', label: 'SDk工单·爱江山', side: 'overseas', kind: 'SDk 明细（其中项，不重复计入合计）', from: ['overseas.sdk_ajs'] },
                                         { key: 'sdk_yl', label: 'SDk工单·月光', side: 'overseas', kind: 'SDk 明细（其中项，不重复计入合计）', from: ['overseas.sdk_yl'] }
                                     ];
+                                    // 邮箱明细：日报表单里分「梦幻 / 爱江山 / 月光」三项填，**合计仍是 ov_email 那一个数**
+                                    // （ov_email 读 overseas.email = 三项之和），同样只作明细展示、不重复计入合计。
+                                    const CAREER_EMAIL_BREAKDOWN = [
+                                        { key: 'email_mh', label: '邮箱·梦幻', side: 'overseas', kind: '邮箱明细（其中项，不重复计入合计）', from: ['overseas.email_mh'] },
+                                        { key: 'email_ajs', label: '邮箱·爱江山', side: 'overseas', kind: '邮箱明细（其中项，不重复计入合计）', from: ['overseas.email_ajs'] },
+                                        { key: 'email_yl', label: '邮箱·月光', side: 'overseas', kind: '邮箱明细（其中项，不重复计入合计）', from: ['overseas.email_yl'] }
+                                    ];
+                                    // 所有「其中项」明细（不计入合计，只在表里以子行展示）
+                                    const CAREER_BREAKDOWN = CAREER_SDK_BREAKDOWN.concat(CAREER_EMAIL_BREAKDOWN);
+                                    const CAREER_SUB_KINDS = [CAREER_SDK_BREAKDOWN[0].kind, CAREER_EMAIL_BREAKDOWN[0].kind];
                                     // 侧内分组的显示顺序（表里同组的项保证挨在一起，组小计只出现一次）
                                     const CAREER_KIND_ORDER = {
                                         ticket: ['工单/后台', '在线客服', '其他'],
-                                        overseas: ['工单/后台', '群维系', '评价回复', '来访', '监控', CAREER_SDK_BREAKDOWN[0].kind]
+                                        overseas: ['工单/后台', '群维系', '评价回复', '来访', '监控'].concat(CAREER_SUB_KINDS)
                                     };
                                     // 「来源结构」条每段一种颜色（按分组顺序取）
                                     const CAREER_KIND_COLORS = ['#3d7bd6', '#d97706', '#16a34a', '#9333ea', '#dc2626', '#0891b2', '#65a30d', '#db2777'];
@@ -6748,9 +6764,9 @@
                                         '月光FB': 'ov_fb_yl'
                                     };
                                     const CAREER_SHEET_HIDDEN = CAREER_HIDDEN_ITEMS.map(it => it.key);
-                                    const careerAllItems = () => CAREER_ITEMS.concat(CAREER_SDK_BREAKDOWN).concat(CAREER_HIDDEN_ITEMS);
+                                    const careerAllItems = () => CAREER_ITEMS.concat(CAREER_BREAKDOWN).concat(CAREER_HIDDEN_ITEMS);
                                     // 补录表单能编辑的项：计入统计的 + SDk 明细
-                                    const careerEditableItems = () => CAREER_ITEMS.concat(CAREER_SDK_BREAKDOWN);
+                                    const careerEditableItems = () => CAREER_ITEMS.concat(CAREER_BREAKDOWN);
                                     const careerItemByKey = (k) => careerAllItems().filter(it => it.key === k)[0] || null;
                                     // 对外《工作量登记表》的 14 列口径（粘贴导入按这些列名对齐；也用于跟外部表格对账）
                                     const CAREER_SHEET_ITEMS = ['sj_group', 'catcity', 'dwlz_vip', 'mhl_group', 'catinn_sdk', 'ov_sso', 'ov_cp', 'td_fb', 'ov_email', 'ov_fb', 'store_reply', 't_sso', 'mute', 'ban'];
@@ -6766,6 +6782,20 @@
                                             + (parseFloat(o && o.sdk_ajs) || 0)
                                             + (parseFloat(o && o.sdk_yl) || 0);
                                         return parts || (parseFloat(o && o.sdk) || 0);
+                                    }
+                                    // 邮箱：表单分「梦幻 / 爱江山 / 月光」三项，合计仍是「海外邮件（全产品）」一个数。
+                                    // 三项都空时退回旧字段 email（历史日报里只有一个总数，不能丢），那点量算在梦幻那项。
+                                    function careerEmailParts(o) {
+                                        const src = o || {};
+                                        const mh = parseFloat(src.email_mh) || 0;
+                                        const ajs = parseFloat(src.email_ajs) || 0;
+                                        const yl = parseFloat(src.email_yl) || 0;
+                                        if (mh || ajs || yl) return { mh: mh, ajs: ajs, yl: yl };
+                                        return { mh: parseFloat(src.email) || 0, ajs: 0, yl: 0 };
+                                    }
+                                    function careerEmailTotal(o) {
+                                        const p = careerEmailParts(o);
+                                        return p.mh + p.ajs + p.yl;
                                     }
                                     // 登记表 14 列口径（含只存档的那 5 列），用于跟外部表格对账
                                     const careerSheetSum = (items) => CAREER_SHEET_ITEMS.reduce((s, k) => s + (parseFloat(items && items[k]) || 0), 0);
@@ -6846,9 +6876,9 @@
 
                                     // 把「日报字段值」折算成生涯项（自动归档与「粘贴日报文本」共用，保证两条路口径一致）
                                     function careerItemsFromDaily(t, o) {
-                                        // SDk 三项先合并成一个总量再折算（ov_sso 的 from 是 overseas.sdk）
+                                        // SDk / 邮箱 都是「分三项填、合并成一个总量」，折算前先合成 ov_sso / ov_email 读的那个字段
                                         const tt = t || {};
-                                        const oo = Object.assign({}, o || {}, { sdk: careerSdkTotal(o) });
+                                        const oo = Object.assign({}, o || {}, { sdk: careerSdkTotal(o), email: careerEmailTotal(o) });
                                         const pick = (path) => {
                                             const i = path.indexOf('.');
                                             const tab = path.slice(0, i);
@@ -10859,7 +10889,8 @@
                                             }
                                         } else {
                                             const ratingTotal = (parseFloat(d.ios) || 0) + (parseFloat(d.google) || 0);
-                                            const visitTotal = (parseFloat(d.fb) || 0) + (parseFloat(d.fb_yl) || 0) + (parseFloat(d.email) || 0) + careerSdkTotal(d);
+                                            const emailParts = careerEmailParts(d);
+                                            const visitTotal = (parseFloat(d.fb) || 0) + (parseFloat(d.fb_yl) || 0) + careerEmailTotal(d) + careerSdkTotal(d);
                                             text += `${d.name || ''}  ${date.month}月${date.day}日\n\n`;
                                             text += `评价，\n`;
                                             text += `ios商店：${d.ios || 0}\n`;
@@ -10868,7 +10899,9 @@
                                             text += `来访，\n`;
                                             text += `FB·梦幻：${d.fb || 0}例\n`;
                                             text += `FB·月光：${d.fb_yl || 0}例\n`;
-                                            text += `邮箱：${d.email || 0}例\n`;
+                                            text += `邮箱·梦幻：${emailParts.mh}例\n`;
+                                            text += `邮箱·爱江山：${emailParts.ajs}例\n`;
+                                            text += `邮箱·月光：${emailParts.yl}例\n`;
                                             text += `SDk工单：${careerSdkTotal(d)}例\n`;
                                             text += `总计：${visitTotal}例\n\n`;
                                             text += `禁言：${d.mute || 0}，封号：${d.ban || 0}\n`;
@@ -11475,11 +11508,11 @@
                                             const kMaxDate = isScopedSide ? s.maxDate : st.maxDate;
                                             const kPct = isScopedSide ? (allSum ? kSum / allSum : 0) : (s.sum ? st.sum / s.sum : 0);
                                             // 计入统计的项 + （海外侧）SDk 三项明细
-                                            const list = careerItemsOfSide(side.key).concat(side.key === 'overseas' ? CAREER_SDK_BREAKDOWN : []);
+                                            const list = careerItemsOfSide(side.key).concat(side.key === 'overseas' ? CAREER_BREAKDOWN : []);
                                             const order = CAREER_KIND_ORDER[side.key] || [];
                                             const kindIdx = (k) => { const i = order.indexOf(k); return i === -1 ? order.length : i; };
                                             const rows = list.slice().sort((a, b) => (kindIdx(a.kind) - kindIdx(b.kind)) || ((s.itemTotals[b.key] || 0) - (s.itemTotals[a.key] || 0)));
-                                            const subKind = CAREER_SDK_BREAKDOWN[0].kind;
+                                            const subKind = CAREER_SUB_KINDS;
                                             const sideMax = rows.reduce((m, r) => Math.max(m, s.itemTotals[r.key] || 0), 0) || 1;
                                             let h = '<div class="career-kpi-grid" style="margin-bottom:12px;">'
                                                 + careerKpiCard(side.label + '侧累计', careerNum(kSum), s.days ? (isScopedSide ? '占全部 ' : '占累计 ') + careerPct(kPct) : '—', true)
@@ -11495,7 +11528,7 @@
                                             if (!s.days) h += '<tr><td colspan="4" style="color:var(--ink-3);">暂无数据</td></tr>';
                                             for (const item of rows) {
                                                 const v = s.itemTotals[item.key] || 0;
-                                                const isSub = item.kind === subKind;
+                                                const isSub = subKind.indexOf(item.kind) !== -1;
                                                 const pct = st.sum ? v / st.sum : 0;
                                                 if (item.kind !== lastKind) {
                                                     lastKind = item.kind;
@@ -11629,7 +11662,7 @@
                                             + '<option value="ticket">工单侧合计</option>'
                                             + '<option value="overseas">海外侧合计</option></optgroup>';
                                         for (const side of CAREER_SIDES) {
-                                            const list = careerItemsOfSide(side.key).concat(side.key === 'overseas' ? CAREER_SDK_BREAKDOWN : []);
+                                            const list = careerItemsOfSide(side.key).concat(side.key === 'overseas' ? CAREER_BREAKDOWN : []);
                                             html += '<optgroup label="' + escapeHtml(side.label) + '侧 · 逐项">'
                                                 + list.map(it => '<option value="' + it.key + '">' + escapeHtml(it.label) + '</option>').join('')
                                                 + '</optgroup>';
@@ -11728,7 +11761,7 @@
                                         if (!box || box.dataset.built === '1') return;
                                         let html = '';
                                         for (const side of CAREER_SIDES) {
-                                            const list = careerItemsOfSide(side.key).concat(side.key === 'overseas' ? CAREER_SDK_BREAKDOWN : []);
+                                            const list = careerItemsOfSide(side.key).concat(side.key === 'overseas' ? CAREER_BREAKDOWN : []);
                                             html += '<div class="daily-field full-width" style="margin-top:6px;"><label style="color:var(--accent-ink);">'
                                                 + side.icon + ' ' + escapeHtml(side.label) + '侧（' + careerItemsOfSide(side.key).length + ' 项'
                                                 + (side.key === 'overseas' ? ' + SDk 三项明细' : '') + '）</label></div>';
@@ -11902,6 +11935,11 @@
                                         m['FB·梦幻'] = 'fb';
                                         m['FB·月光'] = 'fb_yl';
                                         m['月光FB'] = 'fb_yl';
+                                        // 邮箱拆成「梦幻 / 爱江山 / 月光」后：旧日报只写「邮箱：」，仍按合计（梦幻那项兜底）
+                                        m['邮箱'] = 'email';
+                                        m['邮箱·梦幻'] = 'email_mh';
+                                        m['邮箱·爱江山'] = 'email_ajs';
+                                        m['邮箱·月光'] = 'email_yl';
                                         return m;
                                     })();
                                     function careerReportDate(month, day) {
@@ -11992,7 +12030,7 @@
                                                 const items = Object.assign({}, prev.items || {});
                                                 // 这次粘贴覆盖了哪一侧，就把那一侧的旧值清掉（避免残留旧数）
                                                 if (r.hasTicket) for (const it of CAREER_TICKET_ITEMS) delete items[it.key];
-                                                if (r.hasOverseas) for (const it of CAREER_OVERSEAS_ITEMS.concat(CAREER_SDK_BREAKDOWN)) delete items[it.key];
+                                                if (r.hasOverseas) for (const it of CAREER_OVERSEAS_ITEMS.concat(CAREER_BREAKDOWN)) delete items[it.key];
                                                 Object.assign(items, r.items);
                                                 const total = careerSum(items);
                                                 careerCommit({

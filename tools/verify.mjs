@@ -98,13 +98,14 @@ ok(/data-tab="career"/.test(s) && /id="tab-career"/.test(s), '客服生涯标签
   ok(/key: 'sj_group', label: '异世界群维系', type: 'number'/.test(ovDailyBlk),
     '海外日报表单新增「异世界群维系」字段');
   ok(/异世界群维系：\$\{d\.sj_group/.test(s), '海外日报正文已加「异世界群维系」行');
-  // 海外日报的数值字段必须被海外侧项一一覆盖（SDk 三项明细也算覆盖）
+  // 海外日报的数值字段必须被海外侧项一一覆盖（SDk / 邮箱 三项明细也算覆盖）
   const sdkBlk = (s.match(/const CAREER_SDK_BREAKDOWN = \[[\s\S]*?\r?\n\s*\];/) || [''])[0];
+  const emailBlk = (s.match(/const CAREER_EMAIL_BREAKDOWN = \[[\s\S]*?\r?\n\s*\];/) || [''])[0];
   const ovCovered = new Set();
-  for (const m of (ovBlk + sdkBlk).matchAll(/'overseas\.([a-zA-Z0-9_]+)'/g)) ovCovered.add(m[1]);
+  for (const m of (ovBlk + sdkBlk + emailBlk).matchAll(/'overseas\.([a-zA-Z0-9_]+)'/g)) ovCovered.add(m[1]);
   const ovMissed = ovFields.filter(k => !ovCovered.has(k));
-  ok(ovFields.length === 14 && !ovMissed.length,
-    `海外侧覆盖海外日报全部 ${ovFields.length} 个数值字段（含 SDk 三项 + 梦幻/月光两个 FB）` + (ovMissed.length ? '，漏：' + ovMissed.join('/') : ''));
+  ok(ovFields.length === 16 && !ovMissed.length,
+    `海外侧覆盖海外日报全部 ${ovFields.length} 个数值字段（含 SDk 三项 + 梦幻/月光两个 FB + 梦幻/爱江山/月光三个邮箱）` + (ovMissed.length ? '，漏：' + ovMissed.join('/') : ''));
   const ovN = (ovBlk.match(/side: 'overseas'/g) || []).length;
   ok(ovN === 11, `海外侧 = ${ovN} 项（含异世界群维系 + （梦幻/繁花/乐缤纷）群维系 + 梦幻/月光两个 FB）`);
   ok(/const CAREER_ITEMS = CAREER_TICKET_ITEMS\.concat\(CAREER_OVERSEAS_ITEMS\)/.test(s),
@@ -202,14 +203,16 @@ ok(/key: 'sdk_mh', label: 'SDk工单·梦幻'/.test(s) && /key: 'sdk_ajs', label
   && /key: 'sdk_yl', label: 'SDk工单·月光'/.test(s),
   '海外日报表单：SDk工单拆成三项（梦幻 / 爱江山 / 月光）');
 ok(/function careerSdkTotal\(o\)/.test(s) && /SDk工单：\$\{careerSdkTotal\(d\)\}例/.test(s)
-  && /\+ \(parseFloat\(d\.email\) \|\| 0\) \+ careerSdkTotal\(d\)/.test(s),
-  '生成日报时三项合并成一个「SDk工单」（来访总计也跟着合并）');
-ok(/const CAREER_SDK_BREAKDOWN = \[/.test(s) && ((s.match(/const CAREER_SDK_BREAKDOWN = \[[\s\S]*?\r?\n\s*\];/) || [''])[0].match(/side: 'overseas'/g) || []).length === 3,
-  '生涯里 SDk 三项明细可单独查看（CAREER_SDK_BREAKDOWN 3 项）');
-ok(/const careerAllItems = \(\) => CAREER_ITEMS\.concat\(CAREER_SDK_BREAKDOWN\)\.concat\(CAREER_HIDDEN_ITEMS\)/.test(s)
+  && /function careerEmailTotal\(o\)/.test(s) && /careerEmailTotal\(d\) \+ careerSdkTotal\(d\)/.test(s),
+  '生成日报时 SDk / 邮箱 三项各自合并成一个总量（来访总计也跟着合并）');
+ok(/const CAREER_SDK_BREAKDOWN = \[/.test(s) && ((s.match(/const CAREER_SDK_BREAKDOWN = \[[\s\S]*?\r?\n\s*\];/) || [''])[0].match(/side: 'overseas'/g) || []).length === 3
+  && /const CAREER_EMAIL_BREAKDOWN = \[/.test(s) && ((s.match(/const CAREER_EMAIL_BREAKDOWN = \[[\s\S]*?\r?\n\s*\];/) || [''])[0].match(/side: 'overseas'/g) || []).length === 3
+  && /const CAREER_BREAKDOWN = CAREER_SDK_BREAKDOWN\.concat\(CAREER_EMAIL_BREAKDOWN\);/.test(s),
+  '生涯里 SDk 三项 / 邮箱三项明细都可单独查看（CAREER_SDK_BREAKDOWN + CAREER_EMAIL_BREAKDOWN 各 3 项）');
+ok(/const careerAllItems = \(\) => CAREER_ITEMS\.concat\(CAREER_BREAKDOWN\)\.concat\(CAREER_HIDDEN_ITEMS\)/.test(s)
   && /const careerSum = \(items\) => CAREER_ITEMS\.reduce/.test(s)
-  && /const careerEditableItems = \(\) => CAREER_ITEMS\.concat\(CAREER_SDK_BREAKDOWN\)/.test(s),
-  'SDk 三项明细只做展示（careerAllItems 里，但不进 CAREER_ITEMS → 合计不重复计）');
+  && /const careerEditableItems = \(\) => CAREER_ITEMS\.concat\(CAREER_BREAKDOWN\)/.test(s),
+  'SDk / 邮箱 明细只做展示（careerAllItems 里，但不进 CAREER_ITEMS → 合计不重复计）');
 // 身份筛选：全部 / 工单 / 海外（整页统计只算选中那一侧）
 ok(/id="careerScopeBar"/.test(s) && /data-scope="overseas"/.test(s) && /function careerSetScope\(scope\)/.test(s)
   && /function careerSideTotal\(rec, scope\)/.test(s) && /careerStats\(scope\)/.test(s),

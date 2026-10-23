@@ -491,9 +491,13 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
 
   $('dailyTabOverseas').click();          // 海外表单要先切过去才渲染
   await sleep(40);
-  check($('dailyFormOverseas').querySelectorAll('[data-key]').length === 15
-    && !!$('dailyFormOverseas').querySelector('[data-key="fb_yl"]'),
-    '海外日报表单 15 个字段（SDk 三项 + FB 梦幻/月光分开）',
+  check($('dailyFormOverseas').querySelectorAll('[data-key]').length === 17
+    && !!$('dailyFormOverseas').querySelector('[data-key="fb_yl"]')
+    && !!$('dailyFormOverseas').querySelector('[data-key="email_mh"]')
+    && !!$('dailyFormOverseas').querySelector('[data-key="email_ajs"]')
+    && !!$('dailyFormOverseas').querySelector('[data-key="email_yl"]')
+    && !$('dailyFormOverseas').querySelector('[data-key="email"]'),
+    '海外日报表单 17 个字段（SDk 三项 + FB 梦幻/月光分开 + 邮箱梦幻/爱江山/月光分开）',
     $('dailyFormOverseas').querySelectorAll('[data-key]').length);
 
   // 工单栏：g7=异世界群维系(3+1)、①②⑤群维系(只为只存档层)、sso=SSO国内(5)
@@ -503,7 +507,8 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     ['dailyFormTicket', 'g7_wx', 3], ['dailyFormTicket', 'g7_dy', 1],
     ['dailyFormTicket', 'g1_wx', 2], ['dailyFormTicket', 'g2_dy', 1], ['dailyFormTicket', 'sso', 5],
     ['dailyFormOverseas', 'sdk_mh', 5], ['dailyFormOverseas', 'sdk_ajs', 4], ['dailyFormOverseas', 'sdk_yl', 3],
-    ['dailyFormOverseas', 'email', 4], ['dailyFormOverseas', 'fb_yl', 2],
+    ['dailyFormOverseas', 'email_mh', 2], ['dailyFormOverseas', 'email_ajs', 1], ['dailyFormOverseas', 'email_yl', 1],
+    ['dailyFormOverseas', 'fb_yl', 2],
     ['dailyFormOverseas', 'ios', 9], ['dailyFormOverseas', 'google', 5],
     ['dailyFormOverseas', 'mute', 7], ['dailyFormOverseas', 'ban', 3],
     ['dailyFormOverseas', 'mhl_group', 6], ['dailyFormOverseas', 'cp_ticket', 2], ['dailyFormOverseas', 'cn_ticket', 3]];
@@ -529,6 +534,8 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
   check(ovReport.includes('SDk工单：12例'), '日报正文里 SDk 三项已合并成一个「SDk工单」数', ovReport.slice(-160));
   check(ovReport.includes('FB·月光：2例') && ovReport.includes('FB·梦幻：0例'),
     '海外日报正文把 FB 拆成「梦幻 / 月光」两行', ovReport.slice(-200));
+  check(ovReport.includes('邮箱·梦幻：2例') && ovReport.includes('邮箱·爱江山：1例') && ovReport.includes('邮箱·月光：1例'),
+    '海外日报正文把邮箱拆成「梦幻 / 爱江山 / 月光」三行', ovReport.slice(-220));
   check(ovReport.includes('（梦幻/繁花/乐缤纷）群维系：6') && ovReport.includes('海外CP后台工单：2') && ovReport.includes('国内工单：3'),
     '海外日报正文已输出这 3 行', ovReport.slice(-110));
   check(rec0 && rec0.status === '已完成记录' && rec0.src === 'daily', '状态与来源标记正确', rec0 && [rec0.status, rec0.src]);
@@ -576,8 +583,12 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
   check(/SDk 明细/.test(sideOverseas) && /SDk工单·梦幻/.test(sideOverseas) && /SDk工单·爱江山/.test(sideOverseas)
     && /SDk工单·月光/.test(sideOverseas),
     '海外侧多出一组 SDk 三项明细（可分别查看）', sideOverseas.slice(-90));
-  check(doc.querySelectorAll('#careerSideOverseas tr.career-sub-row').length === 3,
-    'SDk 三项明细各占一行', doc.querySelectorAll('#careerSideOverseas tr.career-sub-row').length);
+  check(doc.querySelectorAll('#careerSideOverseas tr.career-sub-row').length === 6,
+    'SDk 三项 + 邮箱三项明细各占一行（都是「其中项」，不重复计入合计）',
+    doc.querySelectorAll('#careerSideOverseas tr.career-sub-row').length);
+  check(/邮箱明细/.test(sideOverseas) && /邮箱·梦幻/.test(sideOverseas) && /邮箱·爱江山/.test(sideOverseas)
+    && /邮箱·月光/.test(sideOverseas),
+    '海外侧多出一组邮箱三项明细（梦幻 / 爱江山 / 月光 可分别查看）', sideOverseas.slice(-90));
   // 周维度 / 来源结构 / 异常日 / 峰值标注
   {
     const weekRows = $('careerWeeklyTable').querySelectorAll('tbody tr');
@@ -1763,8 +1774,11 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     const sdkKeys = Array.from(ovForm.querySelectorAll('[data-group="sdk"] [data-key]')).map(el => el.dataset.key);
     check(sdkKeys.join(',') === 'sdk_mh,sdk_ajs,sdk_yl',
       'SDk 工单三项在同一片里（梦幻 / 爱江山 / 月光）', sdkKeys.join(','));
-    check(ovForm.querySelectorAll('[data-key]').length === 15,
-      '海外 15 个字段都在（分组没吞字段）', ovForm.querySelectorAll('[data-key]').length);
+    check(ovForm.querySelectorAll('[data-key]').length === 17,
+      '海外 17 个字段都在（分组没吞字段，邮箱三项在「评价与来访」片里）', ovForm.querySelectorAll('[data-key]').length);
+    const emailKeys = Array.from(ovForm.querySelectorAll('[data-group="review"] [data-key]')).map(el => el.dataset.key);
+    check(emailKeys.join(',') === 'ios,google,fb,fb_yl,email_mh,email_ajs,email_yl',
+      '邮箱三项（梦幻 / 爱江山 / 月光）在「评价与来访」片里各占一个输入框', emailKeys.join(','));
     $('dailyTabTicket').click();
     await sleep(40);
     check($('dailyFormTicket').querySelectorAll('.daily-group').length === 10
