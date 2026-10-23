@@ -2962,6 +2962,35 @@
             line-height: 1.7;
         }
 
+                /* ---------- 反馈模板 · 巨多（卡片墙：一张卡 = 一条消息） ---------- */
+                .fb-cards { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
+                .fb-card {
+                    border: 1px solid var(--line-1);
+                    background: var(--surface);
+                    clip-path: none;
+                }
+                .fb-card.is-sel { border-color: var(--accent); box-shadow: inset 3px 0 0 var(--accent); }
+                .fb-card-head {
+                    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+                    padding: 6px 10px; font-size: 12px;
+                    background: var(--surface-2); border-bottom: 1px solid var(--line-0);
+                    color: var(--ink-2);
+                }
+                .fb-card-no { color: var(--accent-ink); font-weight: 700; letter-spacing: 0.04em; }
+                .fb-card-gap { flex: 1 1 auto; }
+                .fb-card-head button { padding: 3px 9px; font-size: 11.5px; letter-spacing: 0.04em; clip-path: none; }
+                .fb-card-body {
+                    padding: 10px 12px; min-height: 56px; outline: none;
+                    font-size: 13px; line-height: 1.75; color: var(--ink-1);
+                    white-space: pre-wrap; word-break: break-word;
+                }
+                .fb-card-body:focus { background: var(--bg-1); box-shadow: inset 0 0 0 1px var(--accent-line); }
+                .fb-card-body img { max-width: 100%; display: block; margin: 8px 0; border: 1px solid var(--line-0); }
+                .fb-cards-empty {
+                    padding: 14px; border: 1px dashed var(--line-1); color: var(--ink-3);
+                    font-size: 12.5px; text-align: center; background: var(--surface-2);
+                }
+
         #fbOutput {
             background: var(--surface-2);
         }
@@ -3812,6 +3841,25 @@
                 <label>④ 生成结果 <span class="card-sub">「编号：」自己补</span></label>
                 <textarea id="fbOutput" rows="11" readonly></textarea>
             </div>
+                            <div class="card" id="fbBulkCard">
+                                <div class="flex-row" style="justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
+                                    <label style="margin:0;">⑤ 巨多 · 卡片模式 <span class="card-sub">一张卡 = 一条消息</span></label>
+                                    <button id="fbBulkBtn" class="fb-chip" aria-pressed="false">📚 巨多：关</button>
+                                </div>
+                                <div class="hint-text" id="fbBulkHint" style="margin-top:8px;">关着就是上面那个文本框；打开后「⚡ 生成反馈格式」的结果会一张一张出现在下面 —— 可以改正文、可以粘截图，勾选后「复制选中」是一条一条复制 —— 粘到钉钉/飞书发出去就是一条消息，不会把多张并成一条。</div>
+                                <div id="fbBulkPane" style="display:none; margin-top:12px;">
+                                    <div class="flex-row" style="flex-wrap:wrap;">
+                                        <button id="fbCardAllBtn" class="secondary">☑️ 全选</button>
+                                        <button id="fbCardNoneBtn" class="secondary">⬜ 取消全选</button>
+                                        <button id="fbCardCopyBtn">📋 复制选中（一条一条来）</button>
+                                        <button id="fbCardCopyAllBtn" class="secondary">📋 合并复制成一条</button>
+                                        <button id="fbCardAddBtn" class="secondary">＋ 空白卡片</button>
+                                        <button id="fbCardClearBtn" class="reset-btn">🧹 清空卡片</button>
+                                        <span class="hint-text" id="fbCardHint"></span>
+                                    </div>
+                                    <div class="fb-cards" id="fbCards"></div>
+                                </div>
+                            </div>
         </div>
 
 
@@ -13154,12 +13202,15 @@
                                                 fbSetHint('没认出乐缤纷后台的行：请把后台表格里复制出来的整行（账号/渠道/…/问题/…）粘进来');
                                                 return;
                                             }
-                                            if (out) out.value = rows.map(fbLebifenText).join('\n\n');
+                                            const lebifenText = rows.map(fbLebifenText).join('\n\n');
+                                            if (out) out.value = lebifenText;
+                                            if (fbBulkOn) fbPushCards(lebifenText);
                                             fbSetHint('已按「乐缤纷CP后台」生成 ' + rows.length + ' 段 · 来源 ' + fbSource);
                                             return;
                                         }
                                         const text = (fbTemplate === 'gongdan') ? fbBuildOrderText(raw) : fbBuildGameText(parts, gameNameRaw);
                                         if (out) out.value = text;
+                                        if (fbBulkOn) fbPushCards(text);
                                         fbSetHint('已按「' + fbTemplateLabel() + '」生成 · 来源 ' + fbSource);
                                     }
                                     function fbCopy() {
@@ -13175,6 +13226,314 @@
                                         if (out) out.value = '';
                                         fbSetHint('已清空输入与结果');
                                     }
+
+                                        // ==================== 📚 反馈模板 · 巨多（卡片墙） ====================
+                                        // 需求（2026-10 用户）：「有时候来访很多会来不及反馈」→ 打开「巨多」后，生成结果不再是文本框里的一坨长文，
+                                        // 而是**一张一张卡片**（一张卡 = 一条消息）；卡片正文可直接编辑、可以 Ctrl+V 粘截图；
+                                        // 勾选多张后「复制选中」是**一条一条复制**（复制第 1 条 → 粘到钉钉/飞书发出去 → 点「复制下一条」），
+                                        // 另有「合并复制成一条」给不介意合并的场合。只在本机 localStorage['feedbackBulk'] 里存（跟 feedbackTplState 一个规矩）。
+                                        const FB_BULK_KEY = 'feedbackBulk';
+                                        const FB_CARD_MAX = 40;                  // 最多留 40 张（防止本机 localStorage 存不下）
+                                        const FB_CARD_IMG_MAX = 1600 * 1024;     // 单张截图上限（转 dataURL 后更大，落盘失败会提示）
+                                        let fbBulkOn = false;
+                                        let fbCards = [];                        // [{ html, sel }]
+                                        let fbCardQueue = [];                    // 逐条复制队列（卡片下标）
+                                        let fbCardQueuePos = 0;
+                                        let fbBulkSaveTimer = null;
+
+                                        function fbBulkHintSet(t) {
+                                            const h = document.getElementById('fbBulkHint');
+                                            if (h) h.textContent = t || '';
+                                        }
+                                        function fbCardHintSet(t) {
+                                            const h = document.getElementById('fbCardHint');
+                                            if (h) h.textContent = t || '';
+                                        }
+                                        // 生成结果 → 卡片：**空行分隔的一段 = 一张卡**（乐缤纷那种「一行一段」正好一卡一条）
+                                        function fbSplitCards(text) {
+                                            return String(text == null ? '' : text)
+                                                .split(/\r?\n[ \t]*\r?\n/)
+                                                .map(s => s.replace(/\s+$/, ''))
+                                                .filter(s => s.trim() !== '');
+                                        }
+                                        // 卡片 HTML → 纯文本（复制时的 text/plain 兜底；图片用「[图片]」占位）
+                                        function fbCardText(html) {
+                                            const box = document.createElement('div');
+                                            box.innerHTML = String(html == null ? '' : html);
+                                            box.querySelectorAll('img').forEach(img => { img.replaceWith(document.createTextNode('[图片]')); });
+                                            box.querySelectorAll('br').forEach(br => { br.replaceWith(document.createTextNode('\n')); });
+                                            box.querySelectorAll('div,p,li').forEach(el => { el.appendChild(document.createTextNode('\n')); });
+                                            return String(box.textContent || '').replace(/\n{3,}/g, '\n\n').replace(/[ \t]+\n/g, '\n').trim();
+                                        }
+                                        function fbBulkLoad() {
+                                            try {
+                                                const s = JSON.parse(localStorage.getItem(FB_BULK_KEY) || 'null');
+                                                if (s && typeof s === 'object') {
+                                                    fbBulkOn = !!s.on;
+                                                    fbCards = (Array.isArray(s.items) ? s.items : [])
+                                                        .filter(x => typeof x === 'string')
+                                                        .slice(0, FB_CARD_MAX)
+                                                        .map(html => ({ html: html, sel: false }));
+                                                }
+                                            } catch (e) { /* 坏了就当没有 */ }
+                                        }
+                                        function fbBulkSaveNow() {
+                                            try {
+                                                localStorage.setItem(FB_BULK_KEY, JSON.stringify({ on: fbBulkOn, items: fbCards.map(c => c.html) }));
+                                                return true;
+                                            } catch (e) {
+                                                fbCardHintSet('本机存不下了（卡片或截图太多）→ 发完点「🧹 清空卡片」再继续');
+                                                return false;
+                                            }
+                                        }
+                                        function fbBulkSave() {
+                                            if (fbBulkSaveTimer) { clearTimeout(fbBulkSaveTimer); fbBulkSaveTimer = null; }
+                                            return fbBulkSaveNow();
+                                        }
+                                        function fbBulkSaveLater() {
+                                            if (fbBulkSaveTimer) clearTimeout(fbBulkSaveTimer);
+                                            fbBulkSaveTimer = setTimeout(() => { fbBulkSaveTimer = null; fbBulkSaveNow(); }, 400);
+                                        }
+                                        // DOM 是编辑现场 → 回写到 fbCards（输入、粘图之后都要回写）
+                                        function fbCardsSyncFromDom() {
+                                            const box = document.getElementById('fbCards');
+                                            if (!box) return;
+                                            box.querySelectorAll('.fb-card').forEach(el => {
+                                                const i = +el.dataset.fbCard;
+                                                const body = el.querySelector('.fb-card-body');
+                                                if (fbCards[i] && body) fbCards[i].html = body.innerHTML;
+                                            });
+                                        }
+                                        function fbCardRender() {
+                                            const box = document.getElementById('fbCards');
+                                            if (!box) return;
+                                            if (!fbCards.length) {
+                                                box.innerHTML = '<div class="fb-cards-empty">还没有卡片 —— 点「⚡ 生成反馈格式」就会一张一张出现在这里（也可以「＋ 空白卡片」手写）。</div>';
+                                                fbBulkPaneTail();
+                                                return;
+                                            }
+                                            box.innerHTML = fbCards.map((c, i) =>
+                                                '<div class="fb-card' + (c.sel ? ' is-sel' : '') + '" data-fb-card="' + i + '">'
+                                                + '<div class="fb-card-head">'
+                                                + '<input type="checkbox" class="fb-card-check" data-fb-check="' + i + '"' + (c.sel ? ' checked' : '')
+                                                + ' aria-label="选中第 ' + (i + 1) + ' 张">'
+                                                + '<span class="fb-card-no">#' + (i + 1) + '</span>'
+                                                + '<span class="fb-card-gap"></span>'
+                                                + '<button type="button" class="secondary" data-fb-copy="' + i + '">📋 复制这张</button>'
+                                                + '<button type="button" class="reset-btn" data-fb-del="' + i + '">🗑 删</button>'
+                                                + '</div>'
+                                                + '<div class="fb-card-body" contenteditable="true" spellcheck="false" data-fb-body="' + i + '">'
+                                                + (c.html || '') + '</div>'
+                                                + '</div>').join('');
+                                            box.querySelectorAll('.fb-card-body').forEach(el => fbCardBindBody(el));
+                                            fbBulkPaneTail();
+                                        }
+                                        // 尾部状态：卡片数 / 勾选数写进按钮和提示，免得用户猜
+                                        function fbBulkPaneTail() {
+                                            const btn = document.getElementById('fbCardCopyBtn');
+                                            if (btn && fbCardQueuePos >= fbCardQueue.length) btn.textContent = '📋 复制选中（一条一条来）';
+                                            const all = document.getElementById('fbCardAllBtn');
+                                            if (all) all.textContent = '☑️ 全选' + (fbCards.length ? '（' + fbCards.length + '）' : '');
+                                        }
+                                        function fbBulkRender() {
+                                            const btn = document.getElementById('fbBulkBtn');
+                                            const pane = document.getElementById('fbBulkPane');
+                                            if (btn) {
+                                                btn.classList.toggle('active', fbBulkOn);
+                                                btn.setAttribute('aria-pressed', fbBulkOn ? 'true' : 'false');
+                                                btn.textContent = fbBulkOn ? '📚 巨多：开' : '📚 巨多：关';
+                                            }
+                                            if (pane) pane.style.display = fbBulkOn ? '' : 'none';
+                                            fbCardRender();
+                                        }
+                                        function fbCardBindBody(el) {
+                                            el.addEventListener('input', () => { fbCardsSyncFromDom(); fbBulkSaveLater(); });
+                                            el.addEventListener('blur', () => { fbCardsSyncFromDom(); fbBulkSaveNow(); });
+                                            el.addEventListener('paste', (e) => { fbCardPaste(el, e); });
+                                        }
+                                        function fbFileToDataURL(file) {
+                                            return new Promise(resolve => {
+                                                try {
+                                                    const r = new FileReader();
+                                                    r.onload = () => resolve(String(r.result || ''));
+                                                    r.onerror = () => resolve('');
+                                                    r.readAsDataURL(file);
+                                                } catch (e) { resolve(''); }
+                                            });
+                                        }
+                                        function fbInsertAtCursor(el, node) {
+                                            try {
+                                                const sel = window.getSelection ? window.getSelection() : null;
+                                                if (!sel || !sel.rangeCount) { el.appendChild(node); return; }
+                                                const range = sel.getRangeAt(0);
+                                                if (!el.contains(range.commonAncestorContainer)) { el.appendChild(node); return; }
+                                                range.deleteContents();
+                                                range.insertNode(node);
+                                                range.setStartAfter(node);
+                                                range.collapse(true);
+                                                sel.removeAllRanges();
+                                                sel.addRange(range);
+                                            } catch (e) { el.appendChild(node); }
+                                        }
+                                        // 粘图：剪贴板里有图片时自己插 <img>（转 dataURL 存本机），纯文字/HTML 交给浏览器默认粘贴
+                                        async function fbCardPaste(el, e) {
+                                            const dt = e.clipboardData;
+                                            if (!dt) return;
+                                            const files = [];
+                                            if (dt.files && dt.files.length) {
+                                                for (const f of Array.from(dt.files)) files.push(f);
+                                            } else if (dt.items && dt.items.length) {
+                                                for (const it of Array.from(dt.items)) {
+                                                    if (it && it.kind === 'file' && it.getAsFile) {
+                                                        const f = it.getAsFile();
+                                                        if (f) files.push(f);
+                                                    }
+                                                }
+                                            }
+                                            const imgs = files.filter(f => /^image\//i.test(f.type || ''));
+                                            if (!imgs.length) return;
+                                            if (e.preventDefault) e.preventDefault();
+                                            let okN = 0;
+                                            for (const f of imgs) {
+                                                if (f.size > FB_CARD_IMG_MAX) { fbCardHintSet('有一张截图太大了（>1.6MB），没贴进去'); continue; }
+                                                const url = await fbFileToDataURL(f);
+                                                if (!url) { fbCardHintSet('这张图读不出来，换一张试试'); continue; }
+                                                const img = document.createElement('img');
+                                                img.src = url;
+                                                img.alt = '截图';
+                                                fbInsertAtCursor(el, img);
+                                                okN++;
+                                            }
+                                            fbCardsSyncFromDom();
+                                            fbBulkSaveNow();
+                                            if (okN) fbCardHintSet('已贴入 ' + okN + ' 张图（复制这张卡片时会一起带上）');
+                                        }
+                                        // 复制一张卡片：优先富文本（text/html + text/plain，图能一起过去），不支持就退回纯文本
+                                        function fbCopyRich(html) {
+                                            const text = fbCardText(html);
+                                            const canRich = (typeof window.ClipboardItem === 'function'
+                                                && navigator.clipboard && typeof navigator.clipboard.write === 'function');
+                                            if (canRich) {
+                                                try {
+                                                    const item = new window.ClipboardItem({
+                                                        'text/html': new Blob([String(html == null ? '' : html)], { type: 'text/html' }),
+                                                        'text/plain': new Blob([text], { type: 'text/plain' })
+                                                    });
+                                                    navigator.clipboard.write([item]).catch(() => safeCopy(text));
+                                                    return 'rich';
+                                                } catch (e) { /* 退回纯文本 */ }
+                                            }
+                                            safeCopy(text);
+                                            return 'text';
+                                        }
+                                        // 生成结果 → 追加成卡片（巨多模式下「⚡ 生成反馈格式」调这里）
+                                        function fbPushCards(text) {
+                                            const segs = fbSplitCards(text);
+                                            if (!segs.length) return 0;
+                                            fbCardsSyncFromDom();
+                                            let n = 0;
+                                            for (const seg of segs) {
+                                                if (fbCards.length >= FB_CARD_MAX) {
+                                                    fbCardHintSet('卡片最多留 ' + FB_CARD_MAX + ' 张 —— 先复制出去发完再清空');
+                                                    break;
+                                                }
+                                                fbCards.push({ html: escapeHtml(seg), sel: false });
+                                                n++;
+                                            }
+                                            fbCardQueue = [];
+                                            fbCardQueuePos = 0;
+                                            fbCardRender();
+                                            fbBulkSaveNow();
+                                            if (n) fbCardHintSet('新增 ' + n + ' 张卡片（共 ' + fbCards.length + ' 张）· 勾选后点「复制选中」是一条一条复制的');
+                                            return n;
+                                        }
+                                        function fbCardSetAll(on) {
+                                            fbCardsSyncFromDom();
+                                            fbCards.forEach(c => { c.sel = !!on; });
+                                            fbCardRender();
+                                            fbCardHintSet(on ? ('已全选 ' + fbCards.length + ' 张') : '已取消全选');
+                                        }
+                                        function fbCardSelected() {
+                                            return fbCards.map((c, i) => i).filter(i => fbCards[i].sel);
+                                        }
+                                        function fbCardCopyAt(i) {
+                                            fbCardsSyncFromDom();
+                                            const c = fbCards[i];
+                                            if (!c) return;
+                                            const kind = fbCopyRich(c.html);
+                                            fbCardHintSet('已复制第 ' + (i + 1) + ' 张（' + (kind === 'rich' ? '带图文的富文本' : '纯文本') + '）—— 粘到钉钉/飞书发出去就是一条消息');
+                                        }
+                                        // 「复制选中」= 一条一条复制：第一次点复制第 1 张并排队，之后每点一次复制下一张
+                                        function fbCardCopySelected() {
+                                            fbCardsSyncFromDom();
+                                            if (!fbCards.length) { fbCardHintSet('还没有卡片'); return; }
+                                            if (fbCardQueuePos >= fbCardQueue.length) {
+                                                fbCardQueue = fbCardSelected();
+                                                if (!fbCardQueue.length) fbCardQueue = fbCards.map((c, i) => i);   // 没勾就默认按顺序全发
+                                                fbCardQueuePos = 0;
+                                            }
+                                            const i = fbCardQueue[fbCardQueuePos];
+                                            fbCardQueuePos++;
+                                            const c = fbCards[i];
+                                            const title = document.getElementById('fbCardCopyBtn');
+                                            const left = fbCardQueue.length - fbCardQueuePos;
+                                            if (title) title.textContent = left > 0 ? ('📋 复制下一条（还剩 ' + left + ' 条）') : '📋 复制选中（一条一条来）';
+                                            if (!c) { fbCardHintSet(left > 0 ? ('这张没了，还剩 ' + left + ' 条') : '队列里没有可复制的卡片了'); return; }
+                                            const kind = fbCopyRich(c.html);
+                                            fbCardHintSet('已复制第 ' + (fbCards.indexOf(c) + 1) + ' 张（' + (kind === 'rich' ? '富文本' : '纯文本') + '）'
+                                                + (left > 0 ? ' · 粘出去发完，再点「复制下一条」（还剩 ' + left + ' 条）' : ' · 全部复制完了')
+                                                + ' —— 一张卡就是一条消息');
+                                        }
+                                        function fbCardCopyAll() {
+                                            fbCardsSyncFromDom();
+                                            if (!fbCards.length) { fbCardHintSet('还没有卡片'); return; }
+                                            const html = fbCards.map(c => c.html).join('<br><br>');
+                                            const kind = fbCopyRich(html);
+                                            fbCardHintSet('已把 ' + fbCards.length + ' 张合并复制成一条（' + (kind === 'rich' ? '富文本' : '纯文本') + '）');
+                                        }
+                                        function fbCardAddBlank() {
+                                            fbCardsSyncFromDom();
+                                            if (fbCards.length >= FB_CARD_MAX) { fbCardHintSet('最多 ' + FB_CARD_MAX + ' 张'); return; }
+                                            fbCards.push({ html: '', sel: false });
+                                            fbCardRender();
+                                            fbBulkSaveNow();
+                                            fbCardHintSet('加了一张空白卡片 —— 点正文就能改字 / Ctrl+V 粘截图');
+                                            const bodies = document.querySelectorAll('#fbCards .fb-card-body');
+                                            const last = bodies[bodies.length - 1];
+                                            if (last && last.focus) last.focus();
+                                        }
+                                        function fbCardDel(i) {
+                                            fbCardsSyncFromDom();
+                                            if (!fbCards[i]) return;
+                                            fbCards.splice(i, 1);
+                                            fbCardQueue = [];
+                                            fbCardQueuePos = 0;
+                                            fbCardRender();
+                                            fbBulkSaveNow();
+                                            fbCardHintSet('删掉了第 ' + (i + 1) + ' 张');
+                                        }
+                                        function fbCardClearAll() {
+                                            fbCardsSyncFromDom();
+                                            if (!fbCards.length) { fbCardHintSet('本来就没有卡片'); return; }
+                                            if (!window.confirm('清空全部 ' + fbCards.length + ' 张卡片？（记得先发出去）')) return;
+                                            fbCards = [];
+                                            fbCardQueue = [];
+                                            fbCardQueuePos = 0;
+                                            fbCardRender();
+                                            fbBulkSaveNow();
+                                            fbCardHintSet('卡片已清空');
+                                        }
+                                        function fbBulkToggle() {
+                                            fbBulkOn = !fbBulkOn;
+                                            fbBulkRender();
+                                            if (fbBulkOn) {
+                                                fbBulkHintSet('巨多已打开：生成结果会一张一张排到下面（一张卡 = 一条消息）。');
+                                                fbCardHintSet('勾选卡片 →「复制选中」，一条一条粘到钉钉/飞书发；正文可以直接改、Ctrl+V 粘截图。');
+                                            } else {
+                                                fbBulkHintSet('巨多已关闭：结果回到上面那个文本框（卡片还留着，再打开就在）。');
+                                            }
+                                            fbBulkSaveNow();
+                                        }
 
                                     // ==================== 🗓️ 七日任务（任务进度话术） ====================
                                     // 任务表是**固定的**（2026-10 用户给的那张，写死在 SD_TASK_DEFAULT，界面只读展示），
@@ -14927,6 +15286,38 @@
                                         setClick('fbGenerateBtn', fbGenerate);
                                         setClick('fbCopyBtn', fbCopy);
                                         setClick('fbClearBtn', fbClear);
+                                                                                // 📚 反馈模板 · 巨多（卡片墙）：开关 / 勾选 / 逐条复制 / 合并复制
+                                                                                fbBulkLoad();
+                                                                                fbBulkRender();
+                                                                                setClick('fbBulkBtn', fbBulkToggle);
+                                                                                setClick('fbCardAllBtn', () => fbCardSetAll(true));
+                                                                                setClick('fbCardNoneBtn', () => fbCardSetAll(false));
+                                                                                setClick('fbCardCopyBtn', fbCardCopySelected);
+                                                                                setClick('fbCardCopyAllBtn', fbCardCopyAll);
+                                                                                setClick('fbCardAddBtn', fbCardAddBlank);
+                                                                                setClick('fbCardClearBtn', fbCardClearAll);
+                                                                                (function bindFbBulkCards() {
+                                                                                    const box = document.getElementById('fbCards');
+                                                                                    if (!box) return;
+                                                                                    box.addEventListener('click', (e) => {
+                                                                                        const del = e.target.closest('[data-fb-del]');
+                                                                                        if (del) { fbCardDel(+del.dataset.fbDel); return; }
+                                                                                        const cp = e.target.closest('[data-fb-copy]');
+                                                                                        if (cp) { fbCardCopyAt(+cp.dataset.fbCopy); return; }
+                                                                                    });
+                                                                                    box.addEventListener('change', (e) => {
+                                                                                        const cb = e.target.closest('[data-fb-check]');
+                                                                                        if (!cb) return;
+                                                                                        const i = +cb.dataset.fbCheck;
+                                                                                        if (fbCards[i]) fbCards[i].sel = !!cb.checked;
+                                                                                        const card = cb.closest('.fb-card');
+                                                                                        if (card) card.classList.toggle('is-sel', !!cb.checked);
+                                                                                        fbCardQueue = [];
+                                                                                        fbCardQueuePos = 0;
+                                                                                        fbBulkSaveLater();
+                                                                                        fbCardHintSet('已勾选 ' + fbCardSelected().length + ' 张（「复制选中」是一条一条复制的）');
+                                                                                    });
+                                                                                })();
                                         // 🗓️ 七日任务：任务表是内置的固定表（只读），本机只记上次粘的进度日志
                                         sdLoadState();
                                         sdRenderHead();

@@ -48,7 +48,7 @@ npm run verify     # 改完代码、push 前的完整自检
 
 | 命令 | 内容 |
 |---|---|
-| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 396 项 + 「接口挂起时界面仍可用」+ 服务端冒烟 42 项 |
+| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 413 项 + 「接口挂起时界面仍可用」+ 服务端冒烟 42 项 |
 | `npm run verify:static` | 只要静态校验 + 语法检查（最快） |
 | `npm run report` | 打印一份真实生成的日报，肉眼确认排版（含 ⑥伙伴弹途 / ⑦异世界勇者） |
 | `npm run build:data` | 从 GM 玩家页快照提取 4 张权威映射表 + 与硬编码常量的**差异报告**（见下「游戏数据管线」） |
@@ -58,7 +58,7 @@ npm run verify     # 改完代码、push 前的完整自检
 | `npm run smoke:pmc` | **生管物料订单工作台**（`public/pmc.html`）自检，123 项（含加工周期工作日推算 + 在途锁定/调整建议 + 真实 8.5MB xlsx 端到端导入）；**不在 verify 里**，见下「生管物料订单工作台」一节 |
 | `npm test` | = `npm run verify` |
 
-`npm run verify` 失败就不要提交。它一共 5 段：静态结构 → 语法 → jsdom 集成冒烟 **396 项** → 接口挂起时界面仍可用 → 服务端冒烟 **42 项**。
+`npm run verify` 失败就不要提交。它一共 5 段：静态结构 → 语法 → jsdom 集成冒烟 **413 项** → 接口挂起时界面仍可用 → 服务端冒烟 **42 项**。
 
 - jsdom 未安装时前端冒烟会自动回落到本机 DSH 自带的那份。
 - `tools/smoke-server.cjs` 用 `PORT` + `DATA_FILE` 环境变量把服务端指到随机端口和 `tools/out/` 里的临时文件，**不会碰真实 `data.json`**；子进程 stdio 必须用 `ignore`/`inherit`（沙箱禁管道，`pipe` 会 EPERM）。
@@ -222,6 +222,17 @@ npm run verify     # 改完代码、push 前的完整自检
 - **抬头**：复用 `.career-report-head`，`#fbReportSub` = 当前模板/来源/可选来源数，`#fbReportMeta` 三格 = 模板 / 来源 / 来源总数。
 - **按钮**：`⚡ 生成反馈格式`（`fbGenerate`）/ `📋 复制结果`（`fbCopy`，走 `safeCopy`，空结果只提示不抛错）/ `🧹 清空`（`fbClear`）。
 - **测试**：`tools/smoke.cjs` 第 **8h** 节 **29 条**（标签页 + 4 模板 + **来源片 11 个且不含「电话」** + **梦幻消除战默认藏掉爱江山/繁花/乐缤纷CP后台** + 默认选中 + 抬头 3 格 / 常规游戏各区服特例（001 / 000 / 唱舞数字 / 普通取服务器名）/ 切来源后结果跟着变 + 记住 `feedbackTplState` + **换回梦幻消除战时来源没变（企微在它的列表里）且「来源总数」= 8** / 梦幻正文与渠道去括号 / **乐缤纷CP后台：用户原文那行逐字比对 + 来源只剩它自己且自动切过去 + 一次多行出两段（段间空一行）+ 带表头跳过 + 只复制三列也能认 + 认不出来不生成 + 内部工单会被拦** / 模板选错不生成并提示 / 内部工单字段提取（手机号优先、没手机号用联系人）/ 清空 / 空输入提示 / 复制按钮不抛错 / 整场不往服务端存）；`tools/verify.mjs` 另有 14 条静态断言（标签页、来源 11 个含乐缤纷CP后台且**已无「电话」**、旧名「抖音在线」已不存在、模板 4 种、**每个模板的来源表（梦幻 8 个 / 乐缤纷只有它自己）+ 按模板隐藏来源片**、两套正文、**乐缤纷五行格式 + 后台表格行解析（制表符分列/第 5 列是问题/跳表头/多行拼多段）+ 少数几列按内容认**、切模板时来源落到列表第一项、区服特例、字段表、只存本机、容器、按钮与标签页刷新）。
+
+- **📚 「巨多」卡片模式（2026-10，用户要求：「来访很多会来不及反馈 → 增加一个「巨多」开关，打开后生成的反馈会变成卡片在下面显示，卡片内容支持编辑粘贴图片，可以勾选多选一键复制在钉钉飞书等应用内一键发送，发送时按一个卡片是一条信息」）**：反馈模板页多一块 `#fbBulkCard`（`⑤ 巨多 · 卡片模式`，`#fbBulkBtn` 是 `.fb-chip` + `aria-pressed`，**默认关**）。
+  - **开关**：`fbBulkOn` + `#fbBulkPane`（`style.display` 收放）。关着就是原来的 `#fbOutput` 文本框；打开后 `fbGenerate` 除了照旧写文本框，还调 `fbPushCards(text)` **追加**成卡片（不覆盖，已有卡片留着）。
+  - **一段一张卡**：`fbSplitCards()` 按**空行**拆（乐缤纷模板本来就「一行一段、段间空行」→ 一卡一条正好）。
+  - **卡片**：`#fbCards` 里每张 `.fb-card` = 勾选框 + 编号 `#N` + 「📋 复制这张」+「🗑 删」+ `.fb-card-body`（`contenteditable`、`white-space: pre-wrap`）。正文直接改，input / blur 回写 `fbCards` 快照（`fbCardsSyncFromDom`）并防抖存本机。
+  - **粘图**：`fbCardPaste` 只拦剪贴板里的图片（`clipboardData.files` 或 `items[].getAsFile()`），转 dataURL 用 `fbInsertAtCursor` 插到光标处；超过 `FB_CARD_IMG_MAX`（1.6MB）拒绝并提示；纯文字 / HTML 仍交给浏览器默认粘贴。
+  - **复制口径（⚠️ 关键，别改成「一次全复制」）**：浏览器**没法**替用户往钉钉 / 飞书发 N 条消息，只能控制剪贴板。所以「复制选中」= **一条一条**：`fbCardCopySelected` 用 `fbCardQueue` / `fbCardQueuePos`，**点一次只复制一张**，按钮变成「📋 复制下一条（还剩 N 条）」，粘出去发完再点下一次 → **一张卡 = 一条消息**；「📋 合并复制成一条」是另一颗按钮（真要合并时才用）。没勾选时默认按顺序全发。
+  - **复制内容**：`fbCopyRich` 优先 `ClipboardItem` 富文本（`text/html` + `text/plain`，截图能跟着过去），环境不支持或没有 `navigator.clipboard` 时退回 `safeCopy(纯文本)`（`fbCardText` 把 `<img>` 变 `[图片]`、`<br>` 变换行）。
+  - **增删清**：`＋ 空白卡片`（手写一条，最多 `FB_CARD_MAX = 40` 张）/ 每张单独删 / `🧹 清空卡片`（带 confirm）/ `☑️ 全选` / `⬜ 取消全选`。
+  - **只存本机**：`localStorage['feedbackBulk'] = { on, items: [html…] }`（`fbBulkLoad` / `fbBulkSaveNow` / `fbBulkSaveLater`，超配额 try/catch 提示「存不下了」），**不进 `/api/data`**。
+  - **测试**：`tools/smoke.cjs` 第 **8r** 节 **17 条**（默认关 → 点开 `aria-pressed` + 卡片区 / 乐缤纷粘两行 → 2 张卡且内容各是各的 / 正文可编辑 / Ctrl+V 贴图变 dataURL `<img>` / 勾选 → 「复制选中」**第一次只复制第 1 张**、按钮变「复制下一条（还剩 1 条）」→ 再点复制第 2 张「全部复制完了」/ 「合并复制成一条」/ ＋空白卡 3 张 → 删第 1 张回 2 张 / `feedbackBulk` 只在本机（on + 2 张）/ 关掉收起、再打开还在 / 清空 → 空状态 / 全程 0 个请求）；`tools/verify.mjs` 3m 另有 **10 条**静态断言（容器与按钮 id + 默认收起 / 空行拆卡 / `contenteditable` / `ClipboardItem` 富文本 + `safeCopy` 兜底 / 粘图 `getAsFile` + 1.6MB 上限 + `readAsDataURL` / 逐条复制队列与「复制下一条（还剩 N 条）」/ 增删清 + `FB_CARD_MAX` / 只存本机 / 生成流程两处 `fbPushCards` / 卡片墙样式）。
 
 ## 🗓️ 七日任务（并进「话术生成」页 · 任务进度话术）
 

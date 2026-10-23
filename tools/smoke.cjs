@@ -1961,6 +1961,100 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     check(/还没有生成结果/.test($('sdHint').textContent), '没结果时点复制只提示', $('sdHint').textContent);
   }
 
+  console.log('--- 8r. 反馈模板 · 巨多（卡片墙：一张卡 = 一条消息） ---');
+  {
+    const posts8r = posts.length;
+    doc.querySelector('.tab-btn[data-tab="feedback"]').click();
+    await sleep(40);
+    check(!!$('fbBulkBtn') && $('fbBulkPane').style.display === 'none',
+      '「巨多」开关默认关着（卡片区不显示）');
+    $('fbBulkBtn').click();
+    await sleep(30);
+    check($('fbBulkBtn').getAttribute('aria-pressed') === 'true' && $('fbBulkPane').style.display !== 'none',
+      '点开关 → aria-pressed=true，卡片区露出来', $('fbBulkBtn').textContent);
+
+    // 乐缤纷：一次粘两行 → 两张卡（一段一张）
+    doc.querySelector('#fbTemplateGroup .fb-chip[data-fb-template="lebifen"]').click();
+    await sleep(20);
+    $('fbRawInput').value = '92930999\tweChat (wechat)\t2.1.7.62\t问题反馈\t没有显示也没有发掘币\t2026-10-02 10:05:53\t未查看\t\t\t2026-10-02 10:05:53\t回复 删除\n'
+      + '92930001\tweChat (wechat)\t2.1.7.62\t问题反馈\t充值没到账\t2026-10-02 11:05:53\t未查看\t\t\t2026-10-02 11:05:53\t回复 删除';
+    $('fbGenerateBtn').click();
+    await sleep(40);
+    const cardN = doc.querySelectorAll('#fbCards .fb-card').length;
+    check(cardN === 2, '「巨多」打开时生成结果变成两张卡片（一段一张，不再是一坨长文）', cardN);
+    check(/没有显示也没有发掘币/.test($('fbCards').textContent) && /充值没到账/.test($('fbCards').textContent),
+      '两张卡片内容各自独立（一条反馈一张卡）');
+
+    // 卡片正文可编辑
+    const body0 = doc.querySelector('#fbCards .fb-card-body');
+    body0.innerHTML = body0.innerHTML + '<br>已核实，补偿已发';
+    fire(body0, 'input');
+    await sleep(30);
+    check(/已核实，补偿已发/.test(doc.querySelector('#fbCards .fb-card-body').textContent),
+      '卡片正文可以直接编辑（contenteditable）');
+
+    // 粘图：剪贴板里是图片 → 自己插 <img>（dataURL 存本机）
+    const pv = new window.Event('paste', { bubbles: true });
+    Object.defineProperty(pv, 'clipboardData', {
+      value: { files: [new window.File([new Uint8Array([1, 2, 3])], 'shot.png', { type: 'image/png' })], items: [] }
+    });
+    body0.dispatchEvent(pv);
+    await sleep(80);
+    const img = doc.querySelector('#fbCards .fb-card-body img');
+    check(!!img && /^data:image\/png;base64,/.test(img.getAttribute('src') || ''),
+      '卡片里 Ctrl+V 贴截图 → 转成 dataURL 的 <img> 塞进卡片', img && (img.getAttribute('src') || '').slice(0, 22));
+
+    // 多选 + 一条一条复制
+    doc.querySelectorAll('#fbCards .fb-card-check').forEach(cb => { cb.checked = true; fire(cb, 'change'); });
+    await sleep(20);
+    check(/已勾选 2 张/.test($('fbCardHint').textContent), '卡片可以多选（勾选）', $('fbCardHint').textContent);
+    $('fbCardCopyBtn').click();
+    await sleep(20);
+    check(/已复制第 1 张/.test($('fbCardHint').textContent) && /还剩 1 条/.test($('fbCardCopyBtn').textContent),
+      '「复制选中」第一次**只复制第 1 张**（一张卡 = 一条消息），按钮变成「复制下一条」',
+      $('fbCardHint').textContent + ' / ' + $('fbCardCopyBtn').textContent);
+    $('fbCardCopyBtn').click();
+    await sleep(20);
+    check(/已复制第 2 张/.test($('fbCardHint').textContent) && /全部复制完了/.test($('fbCardHint').textContent),
+      '再点一次复制第 2 张 → 全部复制完（不会把两张并成一条）', $('fbCardHint').textContent);
+
+    // 合并复制兜底
+    $('fbCardCopyAllBtn').click();
+    await sleep(20);
+    check(/合并复制成一条/.test($('fbCardHint').textContent), '另有「合并复制成一条」（要合并时才用）', $('fbCardHint').textContent);
+
+    // 加空白卡 / 删单卡
+    $('fbCardAddBtn').click();
+    await sleep(30);
+    check(doc.querySelectorAll('#fbCards .fb-card').length === 3, '「＋ 空白卡片」能加一张手写的卡',
+      doc.querySelectorAll('#fbCards .fb-card').length);
+    doc.querySelector('#fbCards .fb-card [data-fb-del]').click();
+    await sleep(30);
+    check(doc.querySelectorAll('#fbCards .fb-card').length === 2 && /删掉了第 1 张/.test($('fbCardHint').textContent),
+      '每张卡可以单独删', $('fbCardHint').textContent);
+
+    // 只存本机 + 关掉后收起但卡片还在
+    await sleep(480);
+    let bulkState = null;
+    try { bulkState = JSON.parse(window.localStorage.getItem('feedbackBulk') || 'null'); } catch (_) { }
+    const bulkN = (bulkState && Array.isArray(bulkState.items)) ? bulkState.items.length : -1;
+    check(!!bulkState && bulkState.on === true && bulkN === 2,
+      '开关状态 + 卡片内容只存本机 localStorage（feedbackBulk）', bulkState && bulkN);
+    $('fbBulkBtn').click();
+    await sleep(30);
+    check($('fbBulkPane').style.display === 'none' && $('fbBulkBtn').getAttribute('aria-pressed') === 'false',
+      '关掉「巨多」→ 卡片区收起（卡片没删，再打开还在）');
+    $('fbBulkBtn').click();
+    await sleep(30);
+    check(doc.querySelectorAll('#fbCards .fb-card').length === 2, '再打开还是那两张卡');
+    $('fbCardClearBtn').click();
+    await sleep(40);
+    check(doc.querySelectorAll('#fbCards .fb-card').length === 0
+      && !!doc.querySelector('#fbCards .fb-cards-empty'),
+      '「🧹 清空卡片」清空（并显示空状态说明）');
+    check(posts.length === posts8r, '卡片墙全程不发请求（只在本机处理）', posts.length - posts8r);
+  }
+
   console.log('--- 9. 无未捕获异常 ---');
   check(!warns.some(w => w.startsWith('ERROR')), 'console.error 未被调用：' + warns.filter(w => w.startsWith('ERROR')).join(' | '));
   check(jsdomErrors.length === 0, '页面无未捕获异常（jsdomError）', jsdomErrors.slice(0, 3));

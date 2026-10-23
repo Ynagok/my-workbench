@@ -591,6 +591,50 @@ ok(/setClick\('sdGenerateBtn', sdGenerate\)/.test(s) && /setClick\('sdCopyBtn', 
   && /sdSaveStateLater\(\); sdRenderHead\(\);/.test(s),
   '七日任务：生成 / 复制 / 清空 + 日志输入框的防抖存档都已挂上');
 
+// ---- 3m. 反馈模板「巨多」卡片墙（一张卡 = 一条消息）----
+ok(/id="fbBulkCard"/.test(s) && /id="fbBulkBtn"/.test(s) && /id="fbBulkPane"/.test(s)
+  && /id="fbCards"/.test(s) && /id="fbCardAllBtn"/.test(s) && /id="fbCardNoneBtn"/.test(s)
+  && /id="fbCardCopyBtn"/.test(s) && /id="fbCardCopyAllBtn"/.test(s)
+  && /id="fbCardAddBtn"/.test(s) && /id="fbCardClearBtn"/.test(s)
+  && /id="fbBulkPane" style="display:none/.test(s),
+  '反馈模板多一块「⑤ 巨多 · 卡片模式」：开关 + 卡片墙 + 全选/复制选中/合并复制/空白卡/清空（默认收起）');
+ok(/function fbSplitCards\(text\)/.test(s) && /\.split\(\/\\r\?\\n\[ \\t\]\*\\r\?\\n\/\)/.test(s)
+  && /function fbBulkRender\(\)/.test(s) && /pane\.style\.display = fbBulkOn \? '' : 'none';/.test(s),
+  '巨多：生成结果按「空行」拆成一段一张卡（乐缤纷那种一行一段正好一卡一条），开关只切显示');
+ok(/function fbCardRender\(\)/.test(s) && /contenteditable="true"/.test(s)
+  && /class="fb-card-body" contenteditable="true" spellcheck="false"/.test(s),
+  '每张卡正文是 contenteditable（可直接改字），还带编号 / 单独的「复制这张」「删」');
+ok(/function fbCardText\(html\)/.test(s) && /img\.replaceWith\(document\.createTextNode\('\[图片\]'\)\)/.test(s)
+  && /function fbCopyRich\(html\)/.test(s) && /typeof window\.ClipboardItem === 'function'/.test(s)
+  && /'text\/html': new Blob\(\[String\(html == null \? '' : html\)\], \{ type: 'text\/html' \}\)/.test(s)
+  && /'text\/plain': new Blob\(\[text\], \{ type: 'text\/plain' \}\)/.test(s)
+  && /navigator\.clipboard\.write\(\[item\]\)\.catch\(\(\) => safeCopy\(text\)\)/.test(s),
+  '复制卡片：优先富文本（ClipboardItem 的 text/html + text/plain，截图一起过去），不支持就退回 safeCopy 纯文本');
+ok(/async function fbCardPaste\(el, e\)/.test(s) && /it\.kind === 'file' && it\.getAsFile/.test(s)
+  && /const f = it\.getAsFile\(\);/.test(s) && /f\.size > FB_CARD_IMG_MAX/.test(s)
+  && /function fbFileToDataURL\(file\)/.test(s) && /r\.readAsDataURL\(file\);/.test(s)
+  && /function fbInsertAtCursor\(el, node\)/.test(s),
+  '卡片里粘截图：只拦图片、转 dataURL 塞到光标处（>1.6MB 不贴），纯文字仍走浏览器默认粘贴');
+ok(/function fbCardCopySelected\(\)/.test(s) && /let fbCardQueue = \[\];/.test(s)
+  && /if \(fbCardQueuePos >= fbCardQueue\.length\) \{/.test(s)
+  && /left > 0 \? \('📋 复制下一条（还剩 ' \+ left \+ ' 条）'\)/.test(s)
+  && /—— 一张卡就是一条消息/.test(s) && /function fbCardCopyAll\(\)/.test(s),
+  '勾选后「复制选中」是**一条一条**复制：点一次复制一张、按钮变「复制下一条（还剩 N 条）」，另有「合并复制成一条」');
+ok(/function fbCardDel\(i\)/.test(s) && /function fbCardAddBlank\(\)/.test(s)
+  && /function fbCardClearAll\(\)/.test(s) && /const FB_CARD_MAX = \d+;/.test(s)
+  && /function fbCardsSyncFromDom\(\)/.test(s) && /el\.addEventListener\('input', \(\) => \{ fbCardsSyncFromDom\(\); fbBulkSaveLater\(\); \}\)/.test(s),
+  '卡片可增（空白卡）/ 删 / 清空（带 confirm），上限 FB_CARD_MAX，编辑后回写 DOM 快照');
+ok(/const FB_BULK_KEY = 'feedbackBulk';/.test(s) && /localStorage\.setItem\(FB_BULK_KEY/.test(s)
+  && /localStorage\.getItem\(FB_BULK_KEY/.test(s) && !/saveData\('feedbackBulk/.test(s),
+  '巨多只存本机 localStorage（feedbackBulk：开关 + 卡片 HTML），不进 /api/data');
+ok((s.match(/if \(fbBulkOn\) fbPushCards\(/g) || []).length === 2
+  && /function fbPushCards\(text\)/.test(s) && /setClick\('fbBulkBtn', fbBulkToggle\)/.test(s)
+  && /setClick\('fbCardCopyBtn', fbCardCopySelected\)/.test(s) && /fbBulkLoad\(\);/.test(s),
+  '巨多接到生成流程上：常规模板与乐缤纷两处生成都调 fbPushCards（追加，不覆盖已有卡片）');
+ok(/\.fb-cards\b/.test(s) && /\.fb-card-body\b/.test(s) && /white-space: pre-wrap/.test(s)
+  && /\.fb-cards-empty\b/.test(s),
+  '卡片墙样式（卡片 / 正文保留换行 / 空状态）');
+
 // ---- 4. 花括号/圆括号平衡（粗查，排除字符串内的干扰仅作参考） ----
 const count = (str, ch) => (str.split(ch).length - 1);
 const braces = count(js, '{') - count(js, '}');
