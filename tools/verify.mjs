@@ -151,7 +151,8 @@ ok(/data-tab="career"/.test(s) && /id="tab-career"/.test(s), '客服生涯标签
   const tN = (tGroupsBlk.match(/\{ id: '/g) || []).length;
   const oN = (oGroupsBlk.match(/\{ id: '/g) || []).length;
   ok(tN === 10, `工单日报分 ${tN} 组（基础 / 工单后台 / ①~⑦ / 待跟进）`);
-  ok(oN === 6, `海外日报分 ${oN} 组（基础 / 评价来访 / SDk / 工单 / 监控 / 群维系）`);
+  ok(oN === 7 && /id: 'email', title: '📮 邮箱（来访）'/.test(oGroupsBlk),
+  `海外日报分 ${oN} 组（基础 / 评价来访 / 邮箱 / SDk / 工单 / 监控 / 群维系）—— 邮箱三项自己一片`);
   const tFieldsBlk = (s.match(/const DAILY_TICKET_FIELDS = \[[\s\S]*?\n\s*\];/) || [''])[0];
   const oFieldsBlk = (s.match(/const DAILY_OVERSEAS_FIELDS = \[[\s\S]*?\n\s*\];/) || [''])[0];
   const idsOf = (blk) => new Set([...blk.matchAll(/id: '([^']+)'/g)].map(m => m[1]));
@@ -647,7 +648,7 @@ ok(/data-fb-template="ticket">工单（反馈）</.test(s) && /\{ key: 'ticket',
   '反馈模板多一个「工单（反馈）」模板，来源只留「工单」一个');
 ok(s.includes('function fbTicketBlocks(raw)')
   && s.includes('if (/^玩家数据[:：]/.test(t)) { cur = null; return; }')
-  && s.includes('if (/^工单[:：]?\\s*工单号/.test(t)) { cur = [line]; out.push(cur); return; }')
+  && s.includes('if (/^(工单[:：]\\s*)?工单号([\\t ]|[:：])/.test(t)) { cur = [line]; out.push(cur); return; }')
   && s.includes('return out.filter(lines => lines.some(l => /^(主体|游戏名称)[\\t ]/.test(l.trim())));'),
   '工单块按「工单：工单号 …」起头切（多块 = 多段），并且只认带 主体 / 游戏名称 的喜扑工单（内部工单不会被误吃）');
 ok(s.includes('const FB_TK_LABELS = [') && s.includes('function fbTicketFields(lines)')
@@ -673,8 +674,10 @@ ok(/const looksTicket = \/主体\/\.test\(String\(raw \|\| ''\)\) && \/游戏名
 // ---- 3o. 工单列表整段 → 快速开卡；缺的信息在卡片上再粘一次补 ----
 ok(s.includes('function fbTicketTableRows(raw)') && s.includes('function fbTicketRowText(r)')
   && s.includes("if (line.indexOf('\\t') === -1) return;")
-  && s.includes('const i = cells.findIndex(c => /^\\d{4,}$/.test(c));'),
-  '工单列表整段（制表符分隔、第一格可能是空勾选框）→ 一行一张单，找工单号那一格起算 12 列');
+  && s.includes('const i = cells.findIndex(c => /^\\d{4,}$/.test(c));')
+  && s.includes('if (cells.length < 6) return;')
+  && s.includes('if (cells.some(c => FB_TK_LABELS.indexOf(c.replace(/[:：]\\s*$/, \'\')) !== -1)) return;'),
+  '工单列表整段（制表符分隔、第一格可能是空勾选框）→ 一行一张单，找工单号那一格起算 12 列；「字段名⇥值」那种两列的行不会被当成列表行');
 ok(s.includes('function fbTicketRowText(r)')
   && s.includes("+ '\\n【喜扑UID】：'")
   && s.includes("+ '\\n【设备信息】：'")

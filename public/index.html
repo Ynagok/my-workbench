@@ -6705,9 +6705,10 @@
                                         { key: 'fb_yl', label: 'FB·月光（来访）', type: 'number', group: 'review' },
                                         // [需求] 邮箱按产品分三项填：「邮箱·梦幻 / 邮箱·爱江山 / 邮箱·月光」（日报正文各写一行）
                                         // 旧的单个「邮箱（来访）」不再进表单，但 overseas.email 仍保留（历史数据 / 老日报导入按它兜底）
-                                        { key: 'email_mh', label: '邮箱·梦幻（来访）', type: 'number', group: 'review' },
-                                        { key: 'email_ajs', label: '邮箱·爱江山（来访）', type: 'number', group: 'review' },
-                                        { key: 'email_yl', label: '邮箱·月光（来访）', type: 'number', group: 'review' },
+                                        // [需求] 2026-10 用户：「海外日报的邮箱三个单独列一列」→ 三项自己占一片（group: 'email'）
+                                        { key: 'email_mh', label: '邮箱·梦幻（来访）', type: 'number', group: 'email' },
+                                        { key: 'email_ajs', label: '邮箱·爱江山（来访）', type: 'number', group: 'email' },
+                                        { key: 'email_yl', label: '邮箱·月光（来访）', type: 'number', group: 'email' },
                                         // SDk工单（来访）按用户要求分三项填；日报正文与统计总量里合并成「SDk工单」一个数
                                         { key: 'sdk_mh', label: 'SDk工单·梦幻', type: 'number', group: 'sdk' },
                                         { key: 'sdk_ajs', label: 'SDk工单·爱江山', type: 'number', group: 'sdk' },
@@ -6722,7 +6723,8 @@
                                     // 日报表单的分组（顺序 = 表单里从上到下的顺序；字段通过 group 归组）
                                     const DAILY_OVERSEAS_GROUPS = [
                                         { id: 'base', title: '👤 基础信息', sub: '姓名' },
-                                        { id: 'review', title: '⭐ 评价与来访', sub: '商店评价 / FB / 邮箱' },
+                                        { id: 'review', title: '⭐ 评价与来访', sub: '商店评价 / FB' },
+                                        { id: 'email', title: '📮 邮箱（来访）', sub: '梦幻 / 爱江山 / 月光 三项单独填' },
                                         { id: 'sdk', title: '🎫 SDk 工单', sub: '三项合计 = 海外SSO工单量' },
                                         { id: 'work', title: '🎫 工单', sub: '海外 CP 后台 / 国内' },
                                         { id: 'monitor', title: '🛡️ 监控', sub: '禁言 · 封号' },
@@ -13207,7 +13209,8 @@
                                         String(raw == null ? '' : raw).split(/\r?\n/).forEach(line => {
                                             const t = line.trim();
                                             if (/^玩家数据[:：]/.test(t)) { cur = null; return; }
-                                            if (/^工单[:：]?\s*工单号/.test(t)) { cur = [line]; out.push(cur); return; }
+                                            // 两种开头都认：「工单：工单号⇥123」/ 直接「工单号⇥123」
+                                            if (/^(工单[:：]\s*)?工单号([\t ]|[:：])/.test(t)) { cur = [line]; out.push(cur); return; }
                                             if (cur) cur.push(line);
                                         });
                                         // 只认「喜扑工单」：得有 主体 / 游戏名称（内部工单没有这两个字段）
@@ -13291,6 +13294,9 @@
                                         String(raw == null ? '' : raw).split(/\r?\n/).forEach(line => {
                                             if (line.indexOf('\t') === -1) return;
                                             const cells = line.split('\t').map(c => c.trim());
+                                            // 列表行是 12 列左右；「字段名⇥值」只有两列，那是工单整块，不能当列表行
+                                            if (cells.length < 6) return;
+                                            if (cells.some(c => FB_TK_LABELS.indexOf(c.replace(/[:：]\s*$/, '')) !== -1)) return;
                                             const i = cells.findIndex(c => /^\d{4,}$/.test(c));   // 第一格可能是勾选框（空），所以先找工单号
                                             if (i === -1) return;
                                             const tail = cells.slice(i);

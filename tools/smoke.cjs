@@ -1769,16 +1769,19 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     $('dailyTabOverseas').click();
     await sleep(40);
     const ovForm = $('dailyFormOverseas');
-    check(ovForm.querySelectorAll('.daily-group').length === 6,
-      '海外日报分成 6 组（基础 / 评价来访 / SDk / 工单 / 监控 / 群维系）', ovForm.querySelectorAll('.daily-group').length);
+    check(ovForm.querySelectorAll('.daily-group').length === 7,
+      '海外日报分成 7 组（基础 / 评价来访 / 邮箱 / SDk / 工单 / 监控 / 群维系）', ovForm.querySelectorAll('.daily-group').length);
     const sdkKeys = Array.from(ovForm.querySelectorAll('[data-group="sdk"] [data-key]')).map(el => el.dataset.key);
     check(sdkKeys.join(',') === 'sdk_mh,sdk_ajs,sdk_yl',
       'SDk 工单三项在同一片里（梦幻 / 爱江山 / 月光）', sdkKeys.join(','));
     check(ovForm.querySelectorAll('[data-key]').length === 17,
-      '海外 17 个字段都在（分组没吞字段，邮箱三项在「评价与来访」片里）', ovForm.querySelectorAll('[data-key]').length);
-    const emailKeys = Array.from(ovForm.querySelectorAll('[data-group="review"] [data-key]')).map(el => el.dataset.key);
-    check(emailKeys.join(',') === 'ios,google,fb,fb_yl,email_mh,email_ajs,email_yl',
-      '邮箱三项（梦幻 / 爱江山 / 月光）在「评价与来访」片里各占一个输入框', emailKeys.join(','));
+      '海外 17 个字段都在（分组没吞字段）', ovForm.querySelectorAll('[data-key]').length);
+    const reviewKeys = Array.from(ovForm.querySelectorAll('[data-group="review"] [data-key]')).map(el => el.dataset.key);
+    check(reviewKeys.join(',') === 'ios,google,fb,fb_yl',
+      '「评价与来访」只留 商店评价 + 两个 FB', reviewKeys.join(','));
+    const emailKeys = Array.from(ovForm.querySelectorAll('[data-group="email"] [data-key]')).map(el => el.dataset.key);
+    check(emailKeys.join(',') === 'email_mh,email_ajs,email_yl',
+      '邮箱三项（梦幻 / 爱江山 / 月光）单独占一片、各一个输入框', emailKeys.join(','));
     $('dailyTabTicket').click();
     await sleep(40);
     check($('dailyFormTicket').querySelectorAll('.daily-group').length === 10
@@ -2256,6 +2259,64 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     await sleep(60);
     check(/已经有了/.test($('fbCardHint').textContent), '同一份信息再粘一次 → 提示已经有了（不会把原文糊进卡片）', $('fbCardHint').textContent);
     check(posts.length === posts8t, '列表开卡 / 补信息全程不发请求', posts.length - posts8t);
+
+    // 用户截图那种：第一行直接是「工单号⇥1536284 (近一个月来单：4)」（没有「工单：」前缀）
+    const tkPlain = [
+      '工单号\t1536284 (近一个月来单：4)',
+      '主体\t喜扑',
+      '类型\t游戏问题',
+      '游戏名称\t微信-梦幻消除战',
+      '区服名称\t微信-梦幻消除战',
+      '角色ID\t138145608',
+      '绑定的手机\t18932927094',
+      '问题描述\t【问题类型】道具丢失',
+      '【问题描述】棋子丢失',
+      '【棋子名称+等级】茶+13级',
+      '【详细描述】多次删除也是我的东西啊，而且我看权益增加是有找回一次丢失物品的机会的',
+      '工单状态\t待接管',
+      '接管人\t未接管',
+      '创建时间\t2026-10-23 14:21:58',
+      '发生时间\t2026-10-19 11:00:00',
+      '联系人电话\t18932927094',
+    ].join('\n');
+    if ($('fbBulkBtn').getAttribute('aria-pressed') === 'true') { $('fbBulkBtn').click(); await sleep(30); }
+    $('fbCardClearBtn').click();
+    await sleep(30);
+    $('fbRawInput').value = tkPlain;
+    $('fbGenerateBtn').click();
+    await sleep(50);
+    const plain = $('fbOutput').value;
+    check(plain.split(/\n\n/).filter(x => x.trim()).length === 1,
+      '「工单号⇥…」开头的整块按一整块解析（不再被当成 3 行列表开出空卡）', plain.split(/\n\n/).length);
+    check(/【角色ID】：138145608/.test(plain) && /【发生时间】：2026-10-19 11:00:00/.test(plain)
+      && /【具体描述】：多次删除也是我的东西啊/.test(plain),
+      '字段都填上了：角色ID / 发生时间 / 具体描述（不是一堆空行）', plain);
+    check(/编号：1536284$/.test(plain.trim()) && !/编号：18932927094/.test(plain),
+      '编号 = 工单号 1536284（不是手机号）', plain.trim().split('\n').slice(-2).join(' / '));
+    check(doc.querySelectorAll('#fbCards .fb-card').length === 0,
+      '巨多关着时不往卡片墙里塞东西（就走文本框）', doc.querySelectorAll('#fbCards .fb-card').length);
+    // 巨多开着也是同一份格式：一整块 = 一张卡（字段是满的，不是空模板）
+    $('fbBulkBtn').click();
+    await sleep(30);
+    $('fbCardClearBtn').click();
+    await sleep(30);
+    $('fbRawInput').value = tkPlain;
+    $('fbGenerateBtn').click();
+    await sleep(50);
+    check(doc.querySelectorAll('#fbCards .fb-card').length === 1,
+      '巨多开着：一整块只开 1 张卡（不是 3 张空模板）', doc.querySelectorAll('#fbCards .fb-card').length);
+    check(/【角色ID】：138145608/.test($('fbCards').textContent) && /编号：1536284/.test($('fbCards').textContent),
+      '这张卡里的字段也是填满的', $('fbCards').textContent.slice(0, 80));
+    $('fbBulkBtn').click();
+    await sleep(30);
+
+    // 只有「字段名⇥值」几行、开头不是工单号 → 仍然认不出（别把角色ID/手机号当列表行）
+    $('fbRawInput').value = '角色ID\t138145608\n绑定的手机\t18932927094\n联系人电话\t18932927094';
+    $('fbGenerateBtn').click();
+    await sleep(40);
+    check(/没认出工单/.test($('fbHint').textContent) && $('fbOutput').value === '',
+      '只有字段名⇥值、没有工单号那种，不会误开卡（提示没认出工单）', $('fbHint').textContent);
+
   }
   console.log('--- 9. 无未捕获异常 ---');
   check(!warns.some(w => w.startsWith('ERROR')), 'console.error 未被调用：' + warns.filter(w => w.startsWith('ERROR')).join(' | '));
