@@ -14011,7 +14011,10 @@
                                     const SD_LOG_ORDER = ['time', 'schedule', 'event', 'id', 'oldP', 'newP', 'oldS', 'newS'];
 
                                     // 内置的固定任务表 —— 「任务表是固定的」所以直接写死在代码里，界面上不展示、也改不了。
-                                    // 现在放了两期七日任务（ID 不重复，两期的日志都认）：本期 2416–2450（35 条）+ 上一期 2486–2520（35 条）。
+                                    // 现在放了两期七日任务（ID 不重复，两期的日志都认）：本期 2416–2450（35 条）+ 更早那期 2486–2520（35 条，ID 跟本期相差 70）。
+                                    // ⚠️ 期次换算规则（2026-10 用户：「每个任务代码加140就是下一期，减140就是上一期」）
+                                    // 已经在 sdTaskById() 里实现了：日志里的 ID 不在这张表里时，自动按 ±140（再 ±280、±420…）去找**同一个任务**，
+                                    // 第几天 / 描述 / 目标 / 奖励照抄那一行 —— 所以**不必**每开一期就往这里加 35 行，这张表留的是「±140 换不到的历史期」。
                                     // 改任务就改这张表（列序：任务ID 天数 任务描述 目标 进度 客户端进度 客户端状态 状态 积分 奖励）。
                                     const SD_TASK_DEFAULT = [
                                         '任务ID\t天数\t任务描述\t目标\t进度\t客户端进度\t客户端状态\t状态\t积分\t奖励',
@@ -14254,6 +14257,28 @@
                                         return '';
                                     }
 
+                                    // 期次换算（2026-10 用户给的规则）：
+                                    // 「每个任务代码加 140 就是下一期的对应任务，减 140 就是上一期」。
+                                    // 所以日志里出现内置表没有的 ID 时，先按 ±140（再 ±280、±420…）去表里找**同一个任务**，
+                                    // 第几天 / 描述 / 目标 / 奖励都照抄，只有进度和状态用日志里的 ——
+                                    // 这样每开一期都不用把整张表再抄一遍（少抄漏抄就会回落成「任务NNNN」）。
+                                    const SD_PERIOD_STEP = 140;
+                                    const SD_PERIOD_MAX = 4;   // 最多往前 / 往后找 4 期（±140 … ±560）
+                                    function sdTaskById(id, byId) {
+                                        const key = String(id == null ? '' : id).trim();
+                                        if (!key || !/^\d+$/.test(key)) return null;
+                                        if (byId[key]) return byId[key];
+                                        const n = Number(key);
+                                        for (let k = 1; k <= SD_PERIOD_MAX; k++) {
+                                            const off = SD_PERIOD_STEP * k;
+                                            const prev = byId[String(n - off)];
+                                            if (prev) return prev;
+                                            const next = byId[String(n + off)];
+                                            if (next) return next;
+                                        }
+                                        return null;
+                                    }
+
                                     // 主口径：进度日志 → 按任务表判「到了多少 / 还差多少 / 达成能领什么」
                                     function sdBuildLog(logs, tasks) {
                                         if (!logs.length) return '';
@@ -14275,7 +14300,7 @@
                                                 newP: String(last.newP == null ? '' : last.newP).trim(),
                                                 newS: String(last.newS == null ? '' : last.newS).trim(),
                                                 time: String(last.time == null ? '' : last.time).trim(),
-                                                t: byId[id] || {}
+                                                t: sdTaskById(id, byId) || {}
                                             };
                                         });
                                         const sched = (logs.map(l => l.schedule).filter(Boolean)[0]) || '';

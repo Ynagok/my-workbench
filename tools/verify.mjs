@@ -599,6 +599,13 @@ ok(/function sdBuildLog\(logs, tasks\)/.test(s) && /const byId = \{\};/.test(s)
   && /segs\.push\('可领取 ' \+ rw\.join\(' \+ '\)\)/.test(s)
   && /const d = sdDayText\(it\.t\.day\) \|\| '未标天数';/.test(s),
   '进度话术口径：按任务ID 查任务表 → 第几天分组 + 到了多少/目标 + 还差多少 / 已完成时能领什么（同任务多条日志合成一条）');
+ok(/const SD_PERIOD_STEP = 140;/.test(s) && /const SD_PERIOD_MAX = [1-9]\d*;/.test(s)
+  && /function sdTaskById\(id, byId\)/.test(s)
+  && /if \(byId\[key\]\) return byId\[key\];/.test(s)
+  && /const prev = byId\[String\(n - off\)\];/.test(s)
+  && /const next = byId\[String\(n \+ off\)\];/.test(s)
+  && /t: sdTaskById\(id, byId\) \|\| \{\}/.test(s),
+  '期次换算：任务代码 ±140（再 ±280、±420…）= 上一期 / 下一期的同一个任务，别的期的日志 ID 也能对上第几天 / 目标 / 奖励（不用每期再抄一遍任务表）');
 ok(/function sdClock\(v\)/.test(s) && /function sdProgressVerb\(desc\)/.test(s)
   && /const SD_VERBS = \['收集', '获取', '获得', '使用', '合成', '登录', '服务', '进行', '完成'\];/.test(s)
   && /const verb = sdProgressVerb\(name\) \|\| '进行';/.test(s)

@@ -1925,6 +1925,26 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     check(/2423|2428|2433|2424/.test(out2) === false,
       '新表的条目同样不带任务ID');
 
+    // 期次换算：任务代码 +140 = 下一期的同一个任务、−140 = 上一期（用户 2026-10 给的规则）
+    $('sdLogInput').value = [
+      '创建时间\t活动排期ID\t事件UUID\t任务ID\t老进度\t新进度\t老状态\t新状态',
+      '2026-10-24 09:00:00\t35\teee\t2556\t0\t1\t1\t2',
+      '2026-10-24 09:00:00\t35\teee\t2276\t0\t1\t1\t2',
+      '2026-10-24 09:00:00\t35\teee\t2703\t0\t3101\t1\t1',
+    ].join('\n');
+    fire($('sdLogInput'), 'input');
+    $('sdGenerateBtn').click();
+    await sleep(40);
+    const out3 = $('sdOutput').value;
+    check(/^第1天$/m.test(out3) && /^第2天$/m.test(out3) && !/未标天数/.test(out3),
+      '表里没有的期次也认：ID ±140 换到对应任务后，第几天跟着对上（不再落「未标天数」）', out3);
+    check(!/任务2556|任务2276|任务2703/.test(out3),
+      '换得到的期次不再回落成「任务NNNN」（话术里本来就不带 ID）', out3);
+    check(/登录1天：已登录 1\/1，已完成，可领取 积分 10/.test(out3),
+      '2556（2416+140）与 2276（2416−140）都按「登录1天」出话术：目标 / 奖励照抄那一行', out3);
+    check(/收集3200个道具：已收集 3101\/3200，还差 99/.test(out3),
+      '隔两期也认（2703 = 2423 + 280）：按「收集3200个道具」算还差 99', out3);
+
     // 状态还是 1、但进度已经够目标 → 也算达成（后台状态常慢一拍）
     $('sdLogInput').value = [
       '创建时间\t活动排期ID\t事件UUID\t任务ID\t老进度\t新进度\t老状态\t新状态',
