@@ -2964,6 +2964,16 @@
 
                 /* ---------- 反馈模板 · 巨多（卡片墙：一张卡 = 一条消息） ---------- */
                 .fb-cards { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
+        /* 卡片区那个「全选」：一个可勾选的切换项（半勾表示只选了几张），不再用两颗按钮 */
+        .fb-all {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 5px 12px; cursor: pointer;
+            border: 1px solid var(--line-1); background: var(--surface);
+            color: var(--ink-1); font-size: 13px; font-weight: 600; letter-spacing: 0.02em;
+        }
+        .fb-all input { margin: 0; cursor: pointer; }
+        .fb-all:hover { border-color: var(--accent-line); color: var(--accent-ink); }
+        .fb-all.is-on { border-color: var(--accent-line); background: var(--accent-dim); color: var(--accent-ink); }
                 .fb-card {
                     border: 1px solid var(--line-1);
                     background: var(--surface);
@@ -3853,8 +3863,7 @@
                                 <div class="hint-text" id="fbBulkHint" style="margin-top:8px;">关着就是上面那个文本框；打开后「⚡ 生成反馈格式」的结果会一张一张出现在下面 —— 可以改正文、可以粘截图，勾选后「复制选中」是一条一条复制 —— 粘到钉钉/飞书发出去就是一条消息，不会把多张并成一条。</div>
                                 <div id="fbBulkPane" style="display:none; margin-top:12px;">
                                     <div class="flex-row" style="flex-wrap:wrap;">
-                                        <button id="fbCardAllBtn" class="secondary">☑️ 全选</button>
-                                        <button id="fbCardNoneBtn" class="secondary">⬜ 取消全选</button>
+                                        <label class="fb-all" title="全选 / 取消全选（半勾 = 只选了其中几张）"><input type="checkbox" id="fbCardAllBox"> 全选</label>
                                         <button id="fbCardCopyBtn">📋 复制选中（一条一条来）</button>
                                         <button id="fbCardCopyAllBtn" class="secondary">📋 合并复制成一条</button>
                                         <button id="fbCardAddBtn" class="secondary">＋ 空白卡片</button>
@@ -13570,8 +13579,13 @@
                                         function fbBulkPaneTail() {
                                             const btn = document.getElementById('fbCardCopyBtn');
                                             if (btn && fbCardQueuePos >= fbCardQueue.length) btn.textContent = '📋 复制选中（一条一条来）';
-                                            const all = document.getElementById('fbCardAllBtn');
-                                            if (all) all.textContent = '☑️ 全选' + (fbCards.length ? '（' + fbCards.length + '）' : '');
+                                            const all = document.getElementById('fbCardAllBox');
+                                            if (all) {
+                                                const picked = fbCards.filter(c => c.sel).length;
+                                                all.checked = fbCards.length > 0 && picked === fbCards.length;
+                                                all.indeterminate = picked > 0 && picked < fbCards.length;   // 半勾：只选了几张
+                                                if (all.parentNode) all.parentNode.classList.toggle('is-on', !!all.checked);
+                                            }
                                         }
                                         function fbBulkRender() {
                                             const btn = document.getElementById('fbBulkBtn');
@@ -13696,6 +13710,12 @@
                                             fbBulkSaveNow();
                                             if (n) fbCardHintSet('新增 ' + n + ' 张卡片（共 ' + fbCards.length + ' 张）· 勾选后点「复制选中」是一条一条复制的');
                                             return n;
+                                        }
+                                        // 「全选」是一个可勾选的切换项（不再拆成 全选 / 取消全选 两颗按钮）
+                                        function fbBindCardAllBox() {
+                                            const box = document.getElementById('fbCardAllBox');
+                                            if (!box) return;
+                                            box.addEventListener('change', () => fbCardSetAll(!!box.checked));
                                         }
                                         function fbCardSetAll(on) {
                                             fbCardsSyncFromDom();
@@ -15581,8 +15601,7 @@
                                                                                 fbBulkLoad();
                                                                                 fbBulkRender();
                                                                                 setClick('fbBulkBtn', fbBulkToggle);
-                                                                                setClick('fbCardAllBtn', () => fbCardSetAll(true));
-                                                                                setClick('fbCardNoneBtn', () => fbCardSetAll(false));
+                                                                                fbBindCardAllBox();
                                                                                 setClick('fbCardCopyBtn', fbCardCopySelected);
                                                                                 setClick('fbCardCopyAllBtn', fbCardCopyAll);
                                                                                 setClick('fbCardAddBtn', fbCardAddBlank);
@@ -15603,6 +15622,7 @@
                                                                                         if (fbCards[i]) fbCards[i].sel = !!cb.checked;
                                                                                         const card = cb.closest('.fb-card');
                                                                                         if (card) card.classList.toggle('is-sel', !!cb.checked);
+                                                                                        fbBulkPaneTail();
                                                                                         fbCardQueue = [];
                                                                                         fbCardQueuePos = 0;
                                                                                         fbBulkSaveLater();

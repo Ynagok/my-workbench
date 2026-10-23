@@ -600,11 +600,13 @@ ok(/setClick\('sdGenerateBtn', sdGenerate\)/.test(s) && /setClick\('sdCopyBtn', 
 
 // ---- 3m. 反馈模板「巨多」卡片墙（一张卡 = 一条消息）----
 ok(/id="fbBulkCard"/.test(s) && /id="fbBulkBtn"/.test(s) && /id="fbBulkPane"/.test(s)
-  && /id="fbCards"/.test(s) && /id="fbCardAllBtn"/.test(s) && /id="fbCardNoneBtn"/.test(s)
+  && /id="fbCards"/.test(s) && /id="fbCardAllBox"/.test(s)
+  && /function fbBindCardAllBox\(\)/.test(s) && /all\.indeterminate = picked > 0 && picked < fbCards\.length;/.test(s)
+  && !/fbCardAllBtn|fbCardNoneBtn/.test(s)
   && /id="fbCardCopyBtn"/.test(s) && /id="fbCardCopyAllBtn"/.test(s)
   && /id="fbCardAddBtn"/.test(s) && /id="fbCardClearBtn"/.test(s)
   && /id="fbBulkPane" style="display:none/.test(s),
-  '反馈模板多一块「⑤ 巨多 · 卡片模式」：开关 + 卡片墙 + 全选/复制选中/合并复制/空白卡/清空（默认收起）');
+  '反馈模板多一块「⑤ 巨多 · 卡片模式」：开关 + 卡片墙 + 「全选」勾选项（半勾状态）+ 复制选中/合并复制/空白卡/清空（默认收起）');
 ok(/function fbSplitCards\(text\)/.test(s) && /\.split\(\/\\r\?\\n\[ \\t\]\*\\r\?\\n\/\)/.test(s)
   && /function fbBulkRender\(\)/.test(s) && /pane\.style\.display = fbBulkOn \? '' : 'none';/.test(s),
   '巨多：生成结果按「空行」拆成一段一张卡（乐缤纷那种一行一段正好一卡一条），开关只切显示');

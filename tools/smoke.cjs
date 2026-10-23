@@ -2037,6 +2037,28 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     check(!!img && /^data:image\/png;base64,/.test(img.getAttribute('src') || ''),
       '卡片里 Ctrl+V 贴截图 → 转成 dataURL 的 <img> 塞进卡片', img && (img.getAttribute('src') || '').slice(0, 22));
 
+    // 「全选」是一个可勾选的切换项（不再拆成 全选 / 取消全选 两颗按钮）
+    const allBox = $('fbCardAllBox');
+    check(!!allBox && !$('fbCardAllBtn') && !$('fbCardNoneBtn'),
+      '卡片区只有一个「全选」勾选项（两颗按钮已合并）', !!allBox);
+    allBox.checked = true;
+    fire(allBox, 'change');
+    await sleep(30);
+    check(Array.from(doc.querySelectorAll('#fbCards .fb-card-check')).every(c => c.checked)
+      && /已全选 2 张/.test($('fbCardHint').textContent),
+      '勾上「全选」→ 两张都选中', $('fbCardHint').textContent);
+    allBox.checked = false;
+    fire(allBox, 'change');
+    await sleep(30);
+    check(Array.from(doc.querySelectorAll('#fbCards .fb-card-check')).every(c => !c.checked),
+      '取消勾选 → 全部取消（同一项来回切）');
+    const firstCb = doc.querySelector('#fbCards .fb-card-check');
+    firstCb.checked = true;
+    fire(firstCb, 'change');
+    await sleep(30);
+    check(allBox.indeterminate === true && allBox.checked === false,
+      '只选了一张时「全选」变半勾（不全勾也不全不勾）', allBox.indeterminate);
+
     // 多选 + 一条一条复制
     doc.querySelectorAll('#fbCards .fb-card-check').forEach(cb => { cb.checked = true; fire(cb, 'change'); });
     await sleep(20);

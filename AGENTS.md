@@ -48,7 +48,7 @@ npm run verify     # 改完代码、push 前的完整自检
 
 | 命令 | 内容 |
 |---|---|
-| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 455 项 + 「接口挂起时界面仍可用」+ 服务端冒烟 42 项 |
+| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 459 项 + 「接口挂起时界面仍可用」+ 服务端冒烟 42 项 |
 | `npm run verify:static` | 只要静态校验 + 语法检查（最快） |
 | `npm run report` | 打印一份真实生成的日报，肉眼确认排版（含 ⑥伙伴弹途 / ⑦异世界勇者） |
 | `npm run build:data` | 从 GM 玩家页快照提取 4 张权威映射表 + 与硬编码常量的**差异报告**（见下「游戏数据管线」） |
@@ -58,7 +58,7 @@ npm run verify     # 改完代码、push 前的完整自检
 | `npm run smoke:pmc` | **生管物料订单工作台**（`public/pmc.html`）自检，123 项（含加工周期工作日推算 + 在途锁定/调整建议 + 真实 8.5MB xlsx 端到端导入）；**不在 verify 里**，见下「生管物料订单工作台」一节 |
 | `npm test` | = `npm run verify` |
 
-`npm run verify` 失败就不要提交。它一共 5 段：静态结构 → 语法 → jsdom 集成冒烟 **455 项** → 接口挂起时界面仍可用 → 服务端冒烟 **42 项**。
+`npm run verify` 失败就不要提交。它一共 5 段：静态结构 → 语法 → jsdom 集成冒烟 **459 项** → 接口挂起时界面仍可用 → 服务端冒烟 **42 项**。
 
 - jsdom 未安装时前端冒烟会自动回落到本机 DSH 自带的那份。
 - `tools/smoke-server.cjs` 用 `PORT` + `DATA_FILE` 环境变量把服务端指到随机端口和 `tools/out/` 里的临时文件，**不会碰真实 `data.json`**；子进程 stdio 必须用 `ignore`/`inherit`（沙箱禁管道，`pipe` 会 EPERM）。
@@ -246,9 +246,10 @@ npm run verify     # 改完代码、push 前的完整自检
   - **粘图**：`fbCardPaste` 只拦剪贴板里的图片（`clipboardData.files` 或 `items[].getAsFile()`），转 dataURL 用 `fbInsertAtCursor` 插到光标处；超过 `FB_CARD_IMG_MAX`（1.6MB）拒绝并提示；纯文字 / HTML 仍交给浏览器默认粘贴。
   - **复制口径（⚠️ 关键，别改成「一次全复制」）**：浏览器**没法**替用户往钉钉 / 飞书发 N 条消息，只能控制剪贴板。所以「复制选中」= **一条一条**：`fbCardCopySelected` 用 `fbCardQueue` / `fbCardQueuePos`，**点一次只复制一张**，按钮变成「📋 复制下一条（还剩 N 条）」，粘出去发完再点下一次 → **一张卡 = 一条消息**；「📋 合并复制成一条」是另一颗按钮（真要合并时才用）。没勾选时默认按顺序全发。
   - **复制内容**：`fbCopyRich` 优先 `ClipboardItem` 富文本（`text/html` + `text/plain`，截图能跟着过去），环境不支持或没有 `navigator.clipboard` 时退回 `safeCopy(纯文本)`（`fbCardText` 把 `<img>` 变 `[图片]`、`<br>` 变换行）。
-  - **增删清**：`＋ 空白卡片`（手写一条，最多 `FB_CARD_MAX = 40` 张）/ 每张单独删 / `🧹 清空卡片`（带 confirm）/ `☑️ 全选` / `⬜ 取消全选`。
+  - **增删清**：`＋ 空白卡片`（手写一条，最多 `FB_CARD_MAX = 40` 张）/ 每张单独删 / `🧹 清空卡片`（带 confirm）。
+  - **「全选」是一个可勾选的切换项**（2026-10 用户：「这里合并成一个可勾选切换的项」）：`<label class="fb-all"><input type="checkbox" id="fbCardAllBox"> 全选</label>`，勾上 = 全部选中、取消 = 全部取消；**只选了几张时是半勾状态**（`all.indeterminate`），单张勾选后由 `fbBulkPaneTail()` 回写。⚠️ 原来的 `#fbCardAllBtn` / `#fbCardNoneBtn` 两颗按钮已删，别加回来（`verify` 断言 `!/fbCardAllBtn|fbCardNoneBtn/`）。
   - **只存本机**：`localStorage['feedbackBulk'] = { on, items: [html…] }`（`fbBulkLoad` / `fbBulkSaveNow` / `fbBulkSaveLater`，超配额 try/catch 提示「存不下了」），**不进 `/api/data`**。
-  - **测试**：`tools/smoke.cjs` 第 **8r** 节 **17 条**（默认关 → 点开 `aria-pressed` + 卡片区 / 乐缤纷粘两行 → 2 张卡且内容各是各的 / 正文可编辑 / Ctrl+V 贴图变 dataURL `<img>` / 勾选 → 「复制选中」**第一次只复制第 1 张**、按钮变「复制下一条（还剩 1 条）」→ 再点复制第 2 张「全部复制完了」/ 「合并复制成一条」/ ＋空白卡 3 张 → 删第 1 张回 2 张 / `feedbackBulk` 只在本机（on + 2 张）/ 关掉收起、再打开还在 / 清空 → 空状态 / 全程 0 个请求）；`tools/verify.mjs` 3m 另有 **10 条**静态断言（容器与按钮 id + 默认收起 / 空行拆卡 / `contenteditable` / `ClipboardItem` 富文本 + `safeCopy` 兜底 / 粘图 `getAsFile` + 1.6MB 上限 + `readAsDataURL` / 逐条复制队列与「复制下一条（还剩 N 条）」/ 增删清 + `FB_CARD_MAX` / 只存本机 / 生成流程两处 `fbPushCards` / 卡片墙样式）。
+  - **测试**：`tools/smoke.cjs` 第 **8r** 节 **21 条**（默认关 → 点开 `aria-pressed` + 卡片区 / 乐缤纷粘两行 → 2 张卡且内容各是各的 / 正文可编辑 / Ctrl+V 贴图变 dataURL `<img>` / **「全选」一个勾选项就能全选 / 取消（只选一张时半勾）** / 勾选 → 「复制选中」**第一次只复制第 1 张**、按钮变「复制下一条（还剩 1 条）」→ 再点复制第 2 张「全部复制完了」/ 「合并复制成一条」/ ＋空白卡 3 张 → 删第 1 张回 2 张 / `feedbackBulk` 只在本机（on + 2 张）/ 关掉收起、再打开还在 / 清空 → 空状态 / 全程 0 个请求）；`tools/verify.mjs` 3m 另有 **10 条**静态断言（容器与按钮 id + 默认收起 / 空行拆卡 / `contenteditable` / `ClipboardItem` 富文本 + `safeCopy` 兜底 / 粘图 `getAsFile` + 1.6MB 上限 + `readAsDataURL` / 逐条复制队列与「复制下一条（还剩 N 条）」/ 增删清 + `FB_CARD_MAX` / 只存本机 / 生成流程两处 `fbPushCards` / 卡片墙样式）。
 
 ## 🗓️ 七日任务（并进「话术生成」页 · 任务进度话术）
 
