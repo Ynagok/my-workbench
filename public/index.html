@@ -13817,8 +13817,10 @@
                                                 const np = Number(it.newP), tg = Number(target);
                                                 const hasP = it.newP !== '' && isFinite(np);
                                                 const hasT = target !== '' && isFinite(tg);
-                                                const verb = sdProgressVerb(name);
-                                                const segs = [(verb ? '已' + verb + ' ' : '进度 ') + (it.newP || '—') + (hasT ? '/' + target : '')];
+                                                // 句式统一（跟紫色那版一样）：一律「已{动词} 进度[／目标]」，
+                                                // 认不出动词（任务表里没这套ID / 描述不是动词开头）就用「已进行」，不再混写「进度 123」
+                                                const verb = sdProgressVerb(name) || '进行';
+                                                const segs = ['已' + verb + ' ' + (it.newP || '—') + (hasT ? '/' + target : '')];
                                                 const done = it.newS === '2' || (hasP && hasT && np >= tg);
                                                 if (done) segs.push('已完成');
                                                 else if (hasP && hasT && tg > np) segs.push('还差 ' + (tg - np));
@@ -13830,6 +13832,8 @@
                                                     const r = sdRewardText(it.t.reward);
                                                     if (r) rw.push(r);
                                                     if (rw.length) segs.push('可领取 ' + rw.join(' + '));
+                                                    // 任务ID 不在内置表里 → 具体奖励不知道，但这半句也要有，句式才和别的行一致
+                                                    else if (!it.t.desc) segs.push('可领取活动奖励');
                                                 }
                                                 lines.push((i + 1) + '. ' + (clock ? clock + ' ' : '') + name + '：' + segs.join('，'));
                                             });

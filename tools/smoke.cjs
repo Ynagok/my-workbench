@@ -1922,13 +1922,19 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
       && /使用100个道具：已使用 100\/100，已完成/.test($('sdOutput').value),
       '同一任务的多条日志合成一条（50 → 100，不是 91 → 100 两条）', $('sdOutput').value);
 
-    // 任务表里没有的 ID → 回落成「任务NNNN」，不编目标与奖励
+    // 任务表里没有的 ID → 回落成「任务NNNN」，但句式跟别的行一致（已进行 N，未完成）
     $('sdLogInput').value = '2026-10-22 10:01:00\t34\tddd\t9999\t1\t2\t1\t1';
     fire($('sdLogInput'), 'input');
     $('sdGenerateBtn').click();
     await sleep(40);
-    check(/^未标天数$/m.test($('sdOutput').value) && /10-22 10:01 任务9999：进度 2，未完成/.test($('sdOutput').value),
-      '任务表里没有的 ID 落「未标天数」并回落成「任务9999」', $('sdOutput').value);
+    check(/^未标天数$/m.test($('sdOutput').value) && /10-22 10:01 任务9999：已进行 2，未完成/.test($('sdOutput').value),
+      '任务表里没有的 ID 落「未标天数」、回落成「任务9999」，但句式仍是「已… N，未完成」', $('sdOutput').value);
+    $('sdLogInput').value = '2026-10-22 10:02:00\t34\tddd\t9998\t1\t2\t1\t2';
+    fire($('sdLogInput'), 'input');
+    $('sdGenerateBtn').click();
+    await sleep(40);
+    check(/10-22 10:02 任务9998：已进行 2，已完成，可领取活动奖励/.test($('sdOutput').value),
+      '认不出的 ID 就算完成了也补「可领取活动奖励」，句子不会缺一截', $('sdOutput').value);
 
     // 清空只清日志与结果（任务表是内置的，动不了）
     $('sdLogInput').value = sdLog;
