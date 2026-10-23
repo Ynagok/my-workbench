@@ -266,7 +266,8 @@ ok(s.includes('--r-sm: 6px;') && s.includes('--r-md: 10px;')
   && s.includes('--r-lg: 14px;') && s.includes('--r-pill: 999px;')
   && s.includes('圆润层（2026-10 用户：整体圆润一点 / 上下间距别太大 / 开关参考 iOS）'),
   '圆角令牌换成大圆角（6 / 10 / 14 / 999），并单独一层「圆润层」把各层写死的直角盖回来');
-ok(s.includes('.tab-content { padding: 18px 22px 22px; max-height: 94vh; }')
+ok(s.includes('.tab-content { padding: 16px 22px 10px; max-height: 94vh; }')
+  && s.includes('body { padding: 10px 14px 8px; }')
   && s.includes('.card { margin-top: 12px; }')
   && s.includes('.career-report-head { padding-bottom: 10px; margin-bottom: 10px; gap: 12px; }')
   && s.includes('.seg-bar { margin: 0 0 10px; }'),
@@ -276,7 +277,11 @@ ok(s.includes('.sw .sw-track') && s.includes('.sw[aria-pressed="true"] .sw-track
   && /id="fbBulkBtn" class="sw" role="switch" aria-pressed="false"/.test(s)
   && s.includes('id="fbBulkLabel"')
   && s.includes('.fb-all input:checked + .sw-track'),
-  '开关改成 iOS 那种滑钮：巨多是 .sw + aria-pressed 的 switch，「全选」是 checkbox + .sw-track（含半勾）');
+  '开关改成 iOS 那种滑钮：顶不住鸟是 .sw + aria-pressed 的 switch，「全选」是 checkbox + .sw-track（含半勾）');
+ok(s.includes('⑤ 顶不住鸟 · 卡片模式') && s.includes('顶不住鸟：关')
+  && /label\.textContent = fbBulkOn \? '顶不住鸟：开' : '顶不住鸟：关';/.test(s)
+  && !/巨多：开|巨多：关/.test(s),
+  '卡片模式那一块在界面上叫「顶不住鸟」（内部仍是 fbBulk / fbBulkOn，题头与开关文案都是新名字）');
 
 // ---- 3d. 海外业务统计（岗位周报整表粘贴）----
 ok(/data-tab="overseas"/.test(s) && /id="tab-overseas"/.test(s) && /海外业务统计/.test(s),

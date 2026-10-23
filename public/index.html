@@ -3534,8 +3534,8 @@
         .fb-chip, .seg-btn, .tab-btn, .fb-all { border-radius: var(--r-sm) !important; }
         input, select, textarea { border-radius: var(--r-sm) !important; }
         /* 上下间距瘦身：功能页不要留一大片空白 */
-        body { padding: 12px 14px; }
-        .tab-content { padding: 18px 22px 22px; max-height: 94vh; }
+        body { padding: 10px 14px 8px; }
+        .tab-content { padding: 16px 22px 10px; max-height: 94vh; }
         .card { margin-top: 12px; }
         .card > label { margin-bottom: 6px; }
         .career-report-head { padding-bottom: 10px; margin-bottom: 10px; gap: 12px; }
@@ -3913,8 +3913,8 @@
             </div>
                             <div class="card" id="fbBulkCard">
                                 <div class="flex-row" style="justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
-                                    <label style="margin:0;">⑤ 巨多 · 卡片模式 <span class="card-sub">一张卡 = 一条消息</span></label>
-                                    <button id="fbBulkBtn" class="sw" role="switch" aria-pressed="false"><span class="sw-track"></span><span class="sw-label" id="fbBulkLabel">巨多：关</span></button>
+                                    <label style="margin:0;">⑤ 顶不住鸟 · 卡片模式 <span class="card-sub">一张卡 = 一条消息</span></label>
+                                    <button id="fbBulkBtn" class="sw" role="switch" aria-pressed="false"><span class="sw-track"></span><span class="sw-label" id="fbBulkLabel">顶不住鸟：关</span></button>
                                 </div>
                                 <div class="hint-text" id="fbBulkHint" style="margin-top:8px;">关着就是上面那个文本框；打开后「⚡ 生成反馈格式」的结果会一张一张出现在下面 —— 可以改正文、可以粘截图，勾选后「复制选中」是一条一条复制 —— 粘到钉钉/飞书发出去就是一条消息，不会把多张并成一条。</div>
                                 <div id="fbBulkPane" style="display:none; margin-top:12px;">
@@ -13767,7 +13767,7 @@
                                                 btn.classList.toggle('active', fbBulkOn);
                                                 btn.setAttribute('aria-pressed', fbBulkOn ? 'true' : 'false');
                                                 const label = document.getElementById('fbBulkLabel');
-                                                if (label) label.textContent = fbBulkOn ? '巨多：开' : '巨多：关';
+                                                if (label) label.textContent = fbBulkOn ? '顶不住鸟：开' : '顶不住鸟：关';
                                             }
                                             if (pane) pane.style.display = fbBulkOn ? '' : 'none';
                                             fbCardRender();
@@ -13971,10 +13971,10 @@
                                             fbBulkOn = !fbBulkOn;
                                             fbBulkRender();
                                             if (fbBulkOn) {
-                                                fbBulkHintSet('巨多已打开：生成结果会一张一张排到下面（一张卡 = 一条消息）。');
+                                                fbBulkHintSet('顶不住鸟已打开：生成结果会一张一张排到下面（一张卡 = 一条消息）。');
                                                 fbCardHintSet('勾选卡片 →「复制选中」，一条一条粘到钉钉/飞书发；正文可以直接改、Ctrl+V 粘截图。');
                                             } else {
-                                                fbBulkHintSet('巨多已关闭：结果回到上面那个文本框（卡片还留着，再打开就在）。');
+                                                fbBulkHintSet('顶不住鸟已关闭：结果回到上面那个文本框（卡片还留着，再打开就在）。');
                                             }
                                             fbBulkSaveNow();
                                         }
