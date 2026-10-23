@@ -661,12 +661,13 @@ ok(s.includes('const FB_TK_LABELS = [') && s.includes('function fbTicketFields(l
 ok(/function fbTicketPlayer\(raw\)/.test(s) && /replace\(\/\^玩家数据\[:：\]\/, ''\)/.test(s)
   && /const r = \{ uid: '', channel: '', roleId: '' \};/.test(s),
   '「玩家数据：…」那一坨能补出 喜扑UID / 渠道（角色ID 也留了兜底）');
-ok(/\/\/ 一段 = 用户要的九行格式/.test(s)
-  && /return '【' \+ game \+ '问题反馈】'/.test(s)
-  && /【喜扑UID】：/.test(s) && /【角色ID】：/.test(s) && /【渠道】：/.test(s)
-  && /【设备信息】：'/.test(s) && /【发生时间】：/.test(s) && /【具体描述】：' \+ body/.test(s),
-  '输出就是用户给的九行格式（【设备信息】【发生时间】允许空着）');
-ok(/来源＝工单 → 按喜扑工单反馈格式生成/.test(s)
+ok(s.includes('function fbTicketText(r)') && s.includes('function fbTicketRec(w, player)')
+  && s.includes("'【' + (r.game || '梦幻消除战') + '问题反馈】'")
+  && s.includes("'\\n【喜扑UID】：' + r.uid") && s.includes("'\\n【角色ID】：' + r.roleId")
+  && s.includes("'\\n【渠道】：' + r.channel") && s.includes("'\\n【设备信息】：'")
+  && s.includes("'\\n【发生时间】：' + r.occur") && s.includes("'\\n【具体描述】：' + r.desc"),
+  '梦幻模板＝用户给的九行格式（【设备信息】留空；字段来自工单记录）');
+ok(/来源＝工单 → 按「' \+ fbTemplateLabel\(\) \+ '」原来的格式生成/.test(s)
   && /（还没粘「玩家数据」→ 喜扑UID \/ 渠道 先空着，粘上再点一次就补上）/.test(s)
   && /if \(tkBlocks\.length \|\| tkRows\.length\) \{/.test(s),
   '生成时按来源分叉：来源＝工单且认得出工单 → 走喜扑那套，提示里写段数与补充方式');
@@ -675,27 +676,28 @@ ok(/const looksTicket = \/主体\/\.test\(String\(raw \|\| ''\)\) && \/游戏名
   '粘的是喜扑工单但来源没选「工单」时，提示把来源切成工单');
 
 // ---- 3o. 工单列表整段 → 快速开卡；缺的信息在卡片上再粘一次补 ----
-ok(s.includes('function fbTicketTableRows(raw)') && s.includes('function fbTicketRowText(r)')
+ok(s.includes('function fbTicketTableRows(raw)') && s.includes('function fbTicketRowRec(r, player)')
   && s.includes("if (line.indexOf('\\t') === -1) return;")
-  && s.includes('const i = cells.findIndex(c => /^\\d{4,}$/.test(c));')
   && s.includes('if (cells.length < 6) return;')
-  && s.includes('if (cells.some(c => FB_TK_LABELS.indexOf(c.replace(/[:：]\\s*$/, \'\')) !== -1)) return;'),
+  && s.includes('if (cells.some(c => FB_TK_LABELS.indexOf(c.replace(/[:：]\\s*$/, \'\')) !== -1)) return;')
+  && s.includes('const i = cells.findIndex(c => /^\\d{4,}$/.test(c));'),
   '工单列表整段（制表符分隔、第一格可能是空勾选框）→ 一行一张单，找工单号那一格起算 12 列；「字段名⇥值」那种两列的行不会被当成列表行');
-ok(s.includes('function fbTicketRowText(r)')
-  && s.includes("+ '\\n【喜扑UID】：'")
-  && s.includes("+ '\\n【设备信息】：'")
-  && s.includes("+ '\\n编号：' + r.orderId;"),
-  '每行直接出九行格式（标题按游戏名称；角色ID/喜扑UID/渠道/具体描述 先留空等补）');
+ok(s.includes('function fbTicketRowRec(r, player)')
+  && s.includes('function fbTicketPasteRec(raw)')
+  && s.includes('return fbTicketRec({}, fbTicketPlayer(raw));')
+  && s.includes('function fbCardKind(text)'),
+  '每行 → 一条工单记录（fbTicketRowRec）+ 补卡片时取第一段（fbTicketPasteRec）；卡片格式靠 fbCardKind 区分（九行 / 常规）');
 ok(s.includes('function fbFeedbackParse(text)') && s.includes('function fbFeedbackText(f)')
   && s.includes("if (/问题反馈$/.test(k)) { f.title = k; return; }")
   && s.includes("if (k === '具体描述') { f.body = v; return; }"),
   '卡片正文（九行格式）能被读回字段表、再写回九行（补信息前后格式不跑偏）');
 ok(s.includes('function fbTicketMerge(cardText, pasteText)') && s.includes("if (!n) return '';")
-  && s.includes('if (!f.uid && player.uid) { f.uid = player.uid; n++; }')
-  && s.includes('if (!f.channel && player.channel) { f.channel = player.channel; n++; }')
-  && s.includes('if (!f.roleId && wRole) { f.roleId = wRole; n++; }')
-  && s.includes('if (!f.occur && occur) { f.occur = occur; n++; }')
-  && s.includes('if (!f.id && oid) { f.id = oid; n++; }'),
+  && s.includes('if (!kind) return \'\';')
+  && s.includes('if (!f.uid && r.uid) { f.uid = r.uid; n++; }')
+  && s.includes('if (!f.channel && r.channel) { f.channel = r.channel; n++; }')
+  && s.includes('if (!f.roleId && r.roleId) { f.roleId = r.roleId; n++; }')
+  && s.includes('if (!f.occur && r.occur) { f.occur = r.occur; n++; }')
+  && s.includes('if (!g.uid && r.uid) { g.uid = r.uid; n++; }'),
   '补信息只填空着的格子：粘玩家数据补 喜扑UID/渠道，粘工单整块补 角色ID/发生时间/具体描述/编号（已有的不覆盖）');
 ok(s.includes('function fbLooksTicketPaste(t)') && s.includes("if (txt && fbLooksTicketPaste(txt)) {")
   && s.includes("if (/^\\s*工单号[\\t ]/.test(v) && !/主体|游戏名称/.test(v)) return false;")
@@ -706,8 +708,8 @@ ok(s.includes('function fbLooksTicketPaste(t)') && s.includes("if (txt && fbLook
   && s.includes("if (!merged) { fbCardHintSet('这张卡里这些信息已经有了（没补新东西）'); return; }"),
   '在卡片上粘贴时先判断是不是喜扑工单/玩家数据 → 是就补进这张卡（内部工单文本不拦，免得吞掉；否则走原来的图片 / 普通粘贴）');
 ok(s.includes('const tkRows = tkBlocks.length ? [] : fbTicketTableRows(raw);')
-  && s.includes('? tkBlocks.map(b => fbTicketText(fbTicketFields(b), tkPlayer))')
-  && s.includes(': tkRows.map(fbTicketRowText);'),
+  && s.includes('? tkBlocks.map(b => fbTicketRec(fbTicketFields(b), tkPlayer))')
+  && s.includes(': tkRows.map(r => fbTicketRowRec(r, tkPlayer));'),
   '「生成反馈格式」两条路：工单整块 / 工单列表行（后者直接开多张卡）');
 
 // ---- 4. 花括号/圆括号平衡（粗查，排除字符串内的干扰仅作参考） ----

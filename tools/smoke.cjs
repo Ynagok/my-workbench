@@ -2115,8 +2115,8 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     const posts8s = posts.length;
     doc.querySelector('.tab-btn[data-tab="feedback"]').click();
     await sleep(40);
-    // 不再单开模板：选常规游戏模板 + 来源选「工单」就走喜扑工单那套
-    doc.querySelector('#fbTemplateGroup .fb-chip[data-fb-template="changwu"]').click();
+    // 不再单开模板：选「梦幻消除战」模板 + 来源选「工单」→ 出梦幻那套九行（字段来自工单）
+    doc.querySelector('#fbTemplateGroup .fb-chip[data-fb-template="menghuan"]').click();
     await sleep(30);
     doc.querySelector('#fbSourceGroup .fb-chip[data-fb-source="工单"]').click();
     await sleep(30);
@@ -2225,6 +2225,22 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     await sleep(40);
     check(/工单号：G-123/.test($('fbOutput').value) && !/【喜扑UID】/.test($('fbOutput').value),
       '内部工单模板 + 来源工单 → 还是内部工单格式（没被喜扑那套抢走）', $('fbOutput').value.split('\n')[0]);
+
+    // 同一份工单 + 常规游戏模板 → 输出还是「常规游戏」原来那套（游戏/UID/角色名/角色ID/区服/问题/来源/编号）
+    doc.querySelector('#fbTemplateGroup .fb-chip[data-fb-template="changwu"]').click();
+    await sleep(30);
+    await (async () => {
+      doc.querySelector('#fbSourceGroup .fb-chip[data-fb-source="工单"]').click();
+      await sleep(30);
+      $('fbRawInput').value = tk;
+      $('fbGenerateBtn').click();
+      await sleep(40);
+      const gameOut = $('fbOutput').value;
+      check(/^游戏：微信-梦幻消除战/.test(gameOut) && /UID：/.test(gameOut) && /角色ID：76929541/.test(gameOut)
+        && /区服：微信-梦幻消除战/.test(gameOut) && /编号：1536243$/.test(gameOut.trim())
+        && !/【喜扑UID】/.test(gameOut),
+        '常规模板 + 来源工单 → 还是「常规游戏」格式（不是九行），字段来自工单', gameOut.split('\n')[0] + ' / ' + gameOut.split('\n').slice(-2).join(' / '));
+    })();
     check(posts.length === posts8s, '工单模板全程不发请求（只在本机处理）', posts.length - posts8s);
   }
   console.log('--- 8t. 工单列表整段粘贴 → 快速开卡；缺的信息在卡片上再粘一次补 ---');
@@ -2232,7 +2248,7 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     const posts8t = posts.length;
     doc.querySelector('.tab-btn[data-tab="feedback"]').click();
     await sleep(40);
-    doc.querySelector('#fbTemplateGroup .fb-chip[data-fb-template="changwu"]').click();
+    doc.querySelector('#fbTemplateGroup .fb-chip[data-fb-template="menghuan"]').click();
     await sleep(30);
     doc.querySelector('#fbSourceGroup .fb-chip[data-fb-source="工单"]').click();
     await sleep(30);
@@ -2368,7 +2384,28 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
       '只有字段名⇥值、没有工单号那种，不会多开卡、也不出九行（退回原模板）',
       doc.querySelectorAll('#fbCards .fb-card').length);
 
+    // 常规模板 + 巨多：卡片是按「常规游戏」格式出的，粘工单整块也能补（格式不跑偏）
+    doc.querySelector('#fbTemplateGroup .fb-chip[data-fb-template="changwu"]').click();
+    await sleep(30);
+    doc.querySelector('#fbSourceGroup .fb-chip[data-fb-source="工单"]').click();
+    await sleep(30);
+    if ($('fbBulkBtn').getAttribute('aria-pressed') !== 'true') { $('fbBulkBtn').click(); await sleep(30); }
+    $('fbCardClearBtn').click();
+    await sleep(30);
+    $('fbRawInput').value = rowsText;
+    $('fbGenerateBtn').click();
+    await sleep(50);
+    const gcard = doc.querySelectorAll('#fbCards .fb-card-body')[0];
+    check(!!gcard && /^游戏：/.test(gcard.textContent.trim()),
+      '常规模板 + 工单列表行 → 卡片也是「常规游戏」格式', gcard && gcard.textContent.split('\n')[0]);
+    pasteInto(gcard, tkBlock);
+    await sleep(60);
+    check(/角色ID：76929541/.test(gcard.textContent) && /问题：10\.20号晚上七点左右/.test(gcard.textContent)
+      && /区服：V1/.test(gcard.textContent) && /编号：1536284/.test(gcard.textContent),
+      '常规格式的卡片粘工单整块：空着的补上、区服与编号保持卡片自己的', gcard.textContent);
+    if ($('fbBulkBtn').getAttribute('aria-pressed') === 'true') { $('fbBulkBtn').click(); await sleep(30); }
   }
+
   console.log('--- 9. 无未捕获异常 ---');
   check(!warns.some(w => w.startsWith('ERROR')), 'console.error 未被调用：' + warns.filter(w => w.startsWith('ERROR')).join(' | '));
   check(jsdomErrors.length === 0, '页面无未捕获异常（jsdomError）', jsdomErrors.slice(0, 3));

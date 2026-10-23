@@ -13204,11 +13204,12 @@
                                             + '\n来源：' + fbSource;
                                     }
 
-                                    // ---- 工单（喜扑反馈）：粘后台「工单：工单号 …」那一整块（可多块，一块一段）----
-                                    // 用户 2026-10：反馈模板加一个「工单」模板，来源只有「工单」；工单里没有的（喜扑UID / 渠道）
-                                    // 可以再把「玩家数据：…」那一坨也粘进来补齐；【设备信息】没有来源，留空。
-                                    const FB_TK_LABELS = ['工单号', '主体', '类型', '游戏名称', '区服名称', '角色ID', '绑定的手机', '问题描述', '工单状态', '接管人', '创建时间', '发生时间', '联系人电话'];
-                                    // 输入切成「工单块」：从「工单：工单号」那行开始，到下一个工单块 / 「玩家数据：」之前
+                                    // ---- 喜扑「工单」：粘工单（整块 / 列表整段）→ **按当前模板**出反馈 ----
+                                    // 用户 2026-10：先要「工单模板」→ 纠正「不是单独开模板，来源选工单就按这个逻辑生成」→
+                                    // 再纠正「按照原来的反馈模板」：**输出格式仍然看选中的模板**（梦幻＝九行、常规＝游戏/UID/…、
+                                    // 内部工单＝它自己那套），工单只是这份数据的来源，不再另造格式。
+                                    const FB_TK_LABELS = ['工单号', '主体', '类型', '游戏名称', '区服名称', '角色ID', '角色名称', '账号', '绑定的手机', '问题描述', '工单状态', '接管人', '创建时间', '发生时间', '联系人电话'];
+                                    // 输入切成「工单块」：从「工单：工单号 …」或「工单号⇥…」那行开始，到下一个工单块 / 「玩家数据：」之前
                                     function fbTicketBlocks(raw) {
                                         const out = [];
                                         let cur = null;
@@ -13257,7 +13258,7 @@
                                         });
                                         return out;
                                     }
-                                    // 「玩家数据：176674940⇥番糖-梦幻消除战-支付宝小程序⇥android …」→ 喜扑UID / 渠道（角色ID 兜底）
+                                    // 「玩家数据：176674940⇥番糖-梦幻消除战-支付宝小程序⇥android …」→ 喜扑UID / 渠道
                                     function fbTicketPlayer(raw) {
                                         const r = { uid: '', channel: '', roleId: '' };
                                         const text = String(raw == null ? '' : raw);
@@ -13274,27 +13275,7 @@
                                         });
                                         return r;
                                     }
-                                    // 一段 = 用户要的九行格式（【设备信息】和【发生时间】允许空）
-                                    function fbTicketText(w, player) {
-                                        const gameRaw = String(w['游戏名称'] || '').trim();
-                                        const dash = gameRaw.lastIndexOf('-');
-                                        const game = (dash !== -1 ? gameRaw.slice(dash + 1) : gameRaw).trim() || '梦幻消除战';
-                                        const orderId = (String(w['工单号'] || '').match(/\d{4,}/) || [''])[0];
-                                        const roleId = String(w['角色ID'] || '').trim() || player.roleId;
-                                        const dp = fbTicketDescParts(w['问题描述'] || '');
-                                        const body = dp['详细描述'] || dp['问题描述'] || String(w['问题描述'] || '').split('\n')[0].trim();
-                                        return '【' + game + '问题反馈】'
-                                            + '\n【喜扑UID】：' + player.uid
-                                            + '\n【角色ID】：' + roleId
-                                            + '\n【渠道】：' + player.channel
-                                            + '\n【设备信息】：'
-                                            + '\n【发生时间】：' + String(w['发生时间'] || '').trim()
-                                            + '\n【具体描述】：' + body
-                                            + '\n来源：' + fbSource
-                                            + '\n编号：' + orderId;
-                                    }
-                                    // ---- 工单列表页「整段复制」：一行一张单 → 快速开卡（信息不全的，之后往那张卡上再粘一次就补）----
-                                    // 列序（实测）：工单号 ⇥ 工单类型 ⇥ 渠道 ⇥ 问题类型 ⇥ 主体 ⇥ 问题描述(截断) ⇥ 游戏名称 ⇥ 区服 ⇥ 工单状态 ⇥ 接管人 ⇥ 联系人电话 ⇥ 创建时间
+                                    // 工单列表页整段复制：一行一张单（第一格可能是空勾选框）
                                     function fbTicketTableRows(raw) {
                                         const out = [];
                                         String(raw == null ? '' : raw).split(/\r?\n/).forEach(line => {
@@ -13303,7 +13284,7 @@
                                             // 列表行是 12 列左右；「字段名⇥值」只有两列，那是工单整块，不能当列表行
                                             if (cells.length < 6) return;
                                             if (cells.some(c => FB_TK_LABELS.indexOf(c.replace(/[:：]\s*$/, '')) !== -1)) return;
-                                            const i = cells.findIndex(c => /^\d{4,}$/.test(c));   // 第一格可能是勾选框（空），所以先找工单号
+                                            const i = cells.findIndex(c => /^\d{4,}$/.test(c));
                                             if (i === -1) return;
                                             const tail = cells.slice(i);
                                             out.push({
@@ -13315,22 +13296,100 @@
                                         });
                                         return out;
                                     }
-                                    // 一行 → 九行格式（角色ID / 喜扑UID / 渠道 / 具体描述 先留空，等粘详情补）
-                                    function fbTicketRowText(r) {
-                                        const gameRaw = String(r.game || '');
+                                    // 一条工单记录（字段归一）：整块 → fbTicketRec；列表行 → fbTicketRowRec
+                                    function fbTicketRec(w, player) {
+                                        const g = s => String(s == null ? '' : s).trim();
+                                        const desc0 = g(w['问题描述']);
+                                        const dp = fbTicketDescParts(desc0);
+                                        const desc = dp['详细描述'] || dp['问题描述'] || (desc0 ? desc0.split('\n')[0].trim() : '');
+                                        const gameRaw = g(w['游戏名称']);
                                         const dash = gameRaw.lastIndexOf('-');
-                                        const game = (dash !== -1 ? gameRaw.slice(dash + 1) : gameRaw).trim() || '梦幻消除战';
-                                        return '【' + game + '问题反馈】'
-                                            + '\n【喜扑UID】：'
-                                            + '\n【角色ID】：'
-                                            + '\n【渠道】：'
-                                            + '\n【设备信息】：'
-                                            + '\n【发生时间】：'
-                                            + '\n【具体描述】：'
+                                        const game = (dash !== -1 ? gameRaw.slice(dash + 1) : gameRaw).trim();
+                                        const account = g(w['账号']);
+                                        return {
+                                            orderId: (g(w['工单号']).match(/\d{4,}/) || [''])[0],
+                                            game: game, gameRaw: gameRaw,
+                                            server: g(w['区服名称']),
+                                            account: account,
+                                            roleId: g(w['角色ID']) || account,
+                                            roleName: g(w['角色名称']),
+                                            uid: player.uid || account,
+                                            channel: player.channel,
+                                            occur: g(w['发生时间']),
+                                            desc: desc,
+                                            phone: g(w['联系人电话']) || g(w['绑定的手机'])
+                                        };
+                                    }
+                                    function fbTicketRowRec(r, player) {
+                                        const g = s => String(s == null ? '' : s).trim();
+                                        const gameRaw = g(r.game);
+                                        const dash = gameRaw.lastIndexOf('-');
+                                        return {
+                                            orderId: g(r.orderId),
+                                            game: (dash !== -1 ? gameRaw.slice(dash + 1) : gameRaw).trim(), gameRaw: gameRaw,
+                                            server: g(r.server),
+                                            account: '',
+                                            roleId: '',
+                                            roleName: '',
+                                            uid: player.uid,
+                                            channel: player.channel,   // 列表里那列是「微信/普通」，不是反馈要的渠道，只认玩家数据
+                                            occur: '',
+                                            desc: '',
+                                            phone: g(r.phone)
+                                        };
+                                    }
+                                    // 第一段（整块优先，其次列表行，最后只认玩家数据）—— 补卡片时也用它
+                                    function fbTicketPasteRec(raw) {
+                                        const blocks = fbTicketBlocks(raw);
+                                        if (blocks.length) return fbTicketRec(fbTicketFields(blocks[0]), fbTicketPlayer(raw));
+                                        const rows = fbTicketTableRows(raw);
+                                        if (rows.length) return fbTicketRowRec(rows[0], fbTicketPlayer(raw));
+                                        return fbTicketRec({}, fbTicketPlayer(raw));
+                                    }
+                                    // 按**当前模板**原来那套格式渲染（字段来自工单）
+                                    function fbTicketText(r) {
+                                        if (fbTemplate === 'menghuan') {
+                                            return '【' + (r.game || '梦幻消除战') + '问题反馈】'
+                                                + '\n【喜扑UID】：' + r.uid
+                                                + '\n【角色ID】：' + r.roleId
+                                                + '\n【渠道】：' + r.channel
+                                                + '\n【设备信息】：'
+                                                + '\n【发生时间】：' + r.occur
+                                                + '\n【具体描述】：' + r.desc
+                                                + '\n来源：' + fbSource
+                                                + '\n编号：' + r.orderId;
+                                        }
+                                        if (fbTemplate === 'gongdan') {
+                                            return '工单号：' + r.orderId
+                                                + '\n提交者：'
+                                                + '\n游戏：' + (r.gameRaw || r.game)
+                                                + '\n账号：' + r.account
+                                                + '\nuid：' + r.uid
+                                                + '\n角色名：' + r.roleName
+                                                + '\n角色id：' + r.roleId
+                                                + '\n区服：' + r.server
+                                                + '\n问题：' + r.desc
+                                                + '\n来源：' + fbSource
+                                                + '\n编号：' + r.orderId
+                                                + '\n联系方式：' + r.phone;
+                                        }
+                                        return '游戏：' + (r.gameRaw || r.game)
+                                            + '\nUID：' + r.uid
+                                            + '\n角色名：' + r.roleName
+                                            + '\n角色ID：' + r.roleId
+                                            + '\n区服：' + r.server
+                                            + '\n问题：' + r.desc
                                             + '\n来源：' + fbSource
                                             + '\n编号：' + r.orderId;
                                     }
-                                    // 卡片正文（九行格式）→ 字段表（补信息时用）
+                                    // 卡片正文是哪种格式（补信息时按原格式写回）：九行 / 常规游戏
+                                    function fbCardKind(text) {
+                                        const v = String(text == null ? '' : text);
+                                        if (/^\s*【.+问题反馈】/.test(v)) return 'feedback';
+                                        if (/^\s*游戏[：:]/.test(v)) return 'game';
+                                        return '';
+                                    }
+                                    // 九行格式（梦幻）
                                     function fbFeedbackParse(text) {
                                         const f = { title: '', uid: '', roleId: '', channel: '', device: '', occur: '', body: '', source: '', id: '' };
                                         String(text == null ? '' : text).split(/\r?\n/).forEach(line => {
@@ -13366,50 +13425,73 @@
                                             + '\n来源：' + (f.source || fbSource)
                                             + '\n编号：' + (f.id || '');
                                     }
-                                    // 往一张卡里补信息：粘「玩家数据」补 喜扑UID / 渠道，粘「工单整块」再补 角色ID / 发生时间 / 具体描述 / 编号
-                                    // 只填空着的格子（卡片里已有的不动），一个都没补上就返回空串
+                                    // 常规游戏格式
+                                    function fbGameParse(text) {
+                                        const f = { game: '', uid: '', roleName: '', roleId: '', server: '', body: '', source: '', id: '' };
+                                        String(text == null ? '' : text).split(/\r?\n/).forEach(line => {
+                                            const m = /^(游戏|UID|角色名|角色ID|区服|问题|来源|编号)[：:]\s*(.*)$/.exec(line.trim());
+                                            if (!m) return;
+                                            const k = m[1], v = m[2].trim();
+                                            if (k === '游戏') f.game = v;
+                                            else if (k === 'UID') f.uid = v;
+                                            else if (k === '角色名') f.roleName = v;
+                                            else if (k === '角色ID') f.roleId = v;
+                                            else if (k === '区服') f.server = v;
+                                            else if (k === '问题') f.body = v;
+                                            else if (k === '来源') f.source = v;
+                                            else if (k === '编号') f.id = v;
+                                        });
+                                        return f;
+                                    }
+                                    function fbGameText(f) {
+                                        return '游戏：' + (f.game || '')
+                                            + '\nUID：' + (f.uid || '')
+                                            + '\n角色名：' + (f.roleName || '')
+                                            + '\n角色ID：' + (f.roleId || '')
+                                            + '\n区服：' + (f.server || '')
+                                            + '\n问题：' + (f.body || '')
+                                            + '\n来源：' + (f.source || fbSource)
+                                            + '\n编号：' + (f.id || '');
+                                    }
+                                    // 往一张卡里补信息：只填空着的格子（卡片里已有的不动），一个都没补上就返回空串
+                                    // 卡片是九行就按九行写回，是常规格式就按常规写回（用户 2026-10：「按照原来的反馈模板」）
                                     function fbTicketMerge(cardText, pasteText) {
-                                        const f = fbFeedbackParse(cardText);
-                                        const raw = String(pasteText == null ? '' : pasteText);
-                                        const blocks = fbTicketBlocks(raw);
-                                        const w = blocks.length ? fbTicketFields(blocks[0]) : null;
-                                        const player = fbTicketPlayer(raw);
+                                        const kind = fbCardKind(cardText);
+                                        if (!kind) return '';
+                                        const r = fbTicketPasteRec(pasteText);
                                         let n = 0;
-                                        if (!f.uid && player.uid) { f.uid = player.uid; n++; }
-                                        if (!f.channel && player.channel) { f.channel = player.channel; n++; }
-                                        const wRole = w ? String(w['角色ID'] || '').trim() : '';
-                                        if (!f.roleId && !wRole && player.roleId) { f.roleId = player.roleId; n++; }
-                                        if (w) {
-                                            if (!f.roleId && wRole) { f.roleId = wRole; n++; }
-                                            const occur = String(w['发生时间'] || '').trim();
-                                            if (!f.occur && occur) { f.occur = occur; n++; }
-                                            const dp = fbTicketDescParts(w['问题描述'] || '');
-                                            const body = dp['详细描述'] || dp['问题描述'] || '';
-                                            if (!f.body && body) { f.body = body; n++; }
-                                            const oid = (String(w['工单号'] || '').match(/\d{4,}/) || [''])[0];
-                                            if (!f.id && oid) { f.id = oid; n++; }
-                                            const gm = String(w['游戏名称'] || '').trim();
-                                            if (gm) {
-                                                const dash = gm.lastIndexOf('-');
-                                                const g = (dash !== -1 ? gm.slice(dash + 1) : gm).trim();
-                                                const newTitle = g ? (g + '问题反馈') : '';
-                                                // 只在标题还空着 / 还是默认那个（且真的会变）时才改，免得重复粘同一份信息被算成「补到了」
-                                                if (newTitle && newTitle !== f.title && (!f.title || f.title === '梦幻消除战问题反馈')) {
-                                                    f.title = newTitle;
-                                                    n++;
-                                                }
-                                            }
+                                        if (kind === 'feedback') {
+                                            const f = fbFeedbackParse(cardText);
+                                            if (!f.uid && r.uid) { f.uid = r.uid; n++; }
+                                            if (!f.roleId && r.roleId) { f.roleId = r.roleId; n++; }
+                                            if (!f.channel && r.channel) { f.channel = r.channel; n++; }
+                                            if (!f.occur && r.occur) { f.occur = r.occur; n++; }
+                                            if (!f.body && r.desc) { f.body = r.desc; n++; }
+                                            if (!f.id && r.orderId) { f.id = r.orderId; n++; }
+                                            const t = r.game ? (r.game + '问题反馈') : '';
+                                            if (t && t !== f.title && (!f.title || f.title === '梦幻消除战问题反馈')) { f.title = t; n++; }
+                                            if (!n) return '';
+                                            return fbFeedbackText(f);
+                                        }
+                                        const g = fbGameParse(cardText);
+                                        if (!g.uid && r.uid) { g.uid = r.uid; n++; }
+                                        if (!g.roleId && r.roleId) { g.roleId = r.roleId; n++; }
+                                        if (!g.roleName && r.roleName) { g.roleName = r.roleName; n++; }
+                                        if (!g.server && r.server) { g.server = r.server; n++; }
+                                        if (!g.body && r.desc) { g.body = r.desc; n++; }
+                                        if (!g.id && r.orderId) { g.id = r.orderId; n++; }
+                                        if (r.game && r.game !== g.game && (!g.game || g.game === '梦幻消除战' || g.game === '猫冷')) {
+                                            // 只有空着 / 明显是占位值时才改游戏名
+                                            if (!g.game) { g.game = r.gameRaw || r.game; n++; }
                                         }
                                         if (!n) return '';
-                                        return fbFeedbackText(f);
+                                        return fbGameText(g);
                                     }
-                                    // 这段粘贴是不是「喜扑工单 / 玩家数据」（是就补进卡片，别当普通文字贴进去）
-                                    // ⚠️ 只认「真能解析出东西」的：内部工单（工单号 + 来源/游戏/UID 那套）不拦，
-                                    //    免得把内部工单的文本吞掉、跟原有流程打架
+                                    // 这段粘贴是不是「喜扑工单 / 玩家数据」：只认**真能解析出东西**的，
+                                    // 并且内部工单（首行「工单号⇥…」但没有 主体/游戏名称）不拦，免得跟原有流程打架
                                     function fbLooksTicketPaste(t) {
                                         const v = String(t == null ? '' : t);
                                         if (!v.trim()) return false;
-                                        // 内部工单：首行「工单号⇥…」且没有 主体 / 游戏名称 这两列 → 不归这里管
                                         if (/^\s*工单号[\t ]/.test(v) && !/主体|游戏名称/.test(v)) return false;
                                         if (fbTicketBlocks(v).length) return true;
                                         if (fbTicketTableRows(v).length) return true;
@@ -13425,19 +13507,20 @@
                                         const parts = raw.split(/\s+/).filter(p => p.trim() !== '');
                                         const gameNameRaw = parts[1] || '';
                                         // 来源选「工单」→ 走喜扑工单反馈那套（一段九行）；认不出工单就还是按原模板生成
+                                        // 来源选「工单」→ 数据来自工单，**格式还是看选中的模板**（认不出工单就照旧走原逻辑）
                                         if (fbSource === '工单') {
                                             const tkBlocks = fbTicketBlocks(raw);
                                             const tkRows = tkBlocks.length ? [] : fbTicketTableRows(raw);
                                             if (tkBlocks.length || tkRows.length) {
                                                 const tkPlayer = fbTicketPlayer(raw);
-                                                const tkTexts = tkBlocks.length
-                                                    ? tkBlocks.map(b => fbTicketText(fbTicketFields(b), tkPlayer))
-                                                    : tkRows.map(fbTicketRowText);
-                                                const tkText = tkTexts.join('\n\n');
+                                                const tkRecs = tkBlocks.length
+                                                    ? tkBlocks.map(b => fbTicketRec(fbTicketFields(b), tkPlayer))
+                                                    : tkRows.map(r => fbTicketRowRec(r, tkPlayer));
+                                                const tkText = tkRecs.map(fbTicketText).join('\n\n');
                                                 if (out) out.value = tkText;
                                                 if (fbBulkOn) fbPushCards(tkText);
-                                                fbSetHint('来源＝工单 → 按喜扑工单反馈格式生成 ' + tkTexts.length + ' 段（' + (tkBlocks.length ? '工单整块' : '工单列表行') + '）'
-                                                    + (tkRows.length ? ' · 点开对应的卡片，再粘「工单：工单号 …」或「玩家数据：…」就能把 角色ID / 发生时间 / 具体描述 / 喜扑UID / 渠道 补进去' : '')
+                                                fbSetHint('来源＝工单 → 按「' + fbTemplateLabel() + '」原来的格式生成 ' + tkRecs.length + ' 段（' + (tkBlocks.length ? '工单整块' : '工单列表行') + '）'
+                                                    + (tkRows.length ? ' · 点开对应的卡片，再粘「工单：工单号 …」或「玩家数据：…」就能把空着的字段补进去' : '')
                                                     + (tkPlayer.uid || tkRows.length ? '' : '（还没粘「玩家数据」→ 喜扑UID / 渠道 先空着，粘上再点一次就补上）'));
                                                 return;
                                             }
