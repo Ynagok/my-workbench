@@ -251,9 +251,9 @@ ok(/:root \{[\s\S]{0,1400}?--bg-0: #eef1f4;/.test(s) && !/:root \{[\s\S]{0,1400}
   && !/:root \{[\s\S]{0,1400}?--accent: #ffd60a;/.test(s),
   ':root 里只有浅色令牌（暗色那套已经不在 :root，只在用户选深色背景时由 JS 挂上）');
 ok(/color-scheme: light;/.test(s) && /html\[data-theme="dark"\] \{[\s\S]{0,40}color-scheme: dark;/.test(s)
-  && /--clip-card: polygon\(/.test(s) && /--hazard: repeating-linear-gradient/.test(s)
+  && /--clip-card: none;/.test(s) && /--clip-btn: none;/.test(s) && /--hazard: repeating-linear-gradient/.test(s)
   && /\.career-kpi::after/.test(s) && /浅色收口层 · 柔和白/.test(s),
-  '浅色基底：原生控件浅色（深色底时切暗色）+ 卡片切角 + 警示条纹 + KPI 角落刻度 + 浅色收口层');
+  '浅色基底：原生控件浅色（深色底时切暗色）+ 卡片不再切角（改成大圆角）+ 警示条纹 + KPI 角落刻度 + 浅色收口层');
 ok(!/rgba\(255,255,255,0\.0[0-9]\)/.test(s.slice(s.indexOf('浅色收口层'), s.indexOf('自定义背景色的「暗色收口」'))),
   '浅色收口层里不再残留「白底上的白色 hover / 白线」（白线只允许出现在 data-theme=dark 的暗色收口里）');
 ok(/counter\(career-card, decimal-leading-zero\)/.test(s) && /counter\(nav-item, decimal-leading-zero\)/.test(s),
@@ -261,6 +261,23 @@ ok(/counter\(career-card, decimal-leading-zero\)/.test(s) && /counter\(nav-item,
 ok(/id="careerReportSub"/.test(s) && /id="careerReportMeta"/.test(s) && /getElementById\('careerReportMeta'\)/.test(s)
   && /WORKLOAD REPORT \/ 工作量统计报表/.test(s),
   '客服生涯报表抬头（英文 kicker + 标题 + 数据范围 + 右上元数据格）已注入并在渲染时填充');
+// ---- 3c-2. 圆润层（大圆角 / 间距收紧 / iOS 开关）----
+ok(s.includes('--r-sm: 6px;') && s.includes('--r-md: 10px;')
+  && s.includes('--r-lg: 14px;') && s.includes('--r-pill: 999px;')
+  && s.includes('圆润层（2026-10 用户：整体圆润一点 / 上下间距别太大 / 开关参考 iOS）'),
+  '圆角令牌换成大圆角（6 / 10 / 14 / 999），并单独一层「圆润层」把各层写死的直角盖回来');
+ok(s.includes('.tab-content { padding: 18px 22px 22px; max-height: 94vh; }')
+  && s.includes('.card { margin-top: 12px; }')
+  && s.includes('.career-report-head { padding-bottom: 10px; margin-bottom: 10px; gap: 12px; }')
+  && s.includes('.seg-bar { margin: 0 0 10px; }'),
+  '上下间距瘦身：功能页 padding、卡片间距、报表抬头、分段条都收了一层');
+ok(s.includes('.sw .sw-track') && s.includes('.sw[aria-pressed="true"] .sw-track { background: var(--accent); }')
+  && s.includes('translateX(18px)')
+  && /id="fbBulkBtn" class="sw" role="switch" aria-pressed="false"/.test(s)
+  && s.includes('id="fbBulkLabel"')
+  && s.includes('.fb-all input:checked + .sw-track'),
+  '开关改成 iOS 那种滑钮：巨多是 .sw + aria-pressed 的 switch，「全选」是 checkbox + .sw-track（含半勾）');
+
 // ---- 3d. 海外业务统计（岗位周报整表粘贴）----
 ok(/data-tab="overseas"/.test(s) && /id="tab-overseas"/.test(s) && /海外业务统计/.test(s),
   '「海外业务统计」标签页已注入（侧边栏 + 页面）');

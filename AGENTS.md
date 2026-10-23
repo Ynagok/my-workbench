@@ -103,13 +103,14 @@ npm run verify     # 改完代码、push 前的完整自检
 - **令牌**（`public/index.html` 顶部 `<style>` 里的 `:root`）：`--bg-0 #eef1f4`（页面底，冷灰白）/ `--bg-1 #f7f9fb` / `--surface #fbfcfd`（卡片）/ `--surface-2 #f1f4f7` / `--surface-3 #e6eaee`（次级面、斑马、分组标题）/ `--sidebar #f4f6f9`；文字 `--ink-0 #1b2228`（主）/ `--ink-1 #2c353d` / `--ink-2 #5b6672`（次要）/ `--ink-3 #8b959f`（三级、placeholder）；线 `--line-0 #e3e8ed` / `--line-1 #d3dae1` / `--line-2 #b7c0c9`。
   - **强调色仍是「方舟黄」，但浅底上压深了一档：`--accent #c89500`**（当文字/描边看得清，当填充配黑字也够）；配套 `--accent-hi #a97c00` / `--accent-ink #8a6200`（浅底上的强调文字）/ `--accent-dim`(12%) / `--accent-line`(42%) / `--accent-glow`(20%)。`--dark #0a0c0e` 仍是**黄底/亮底上的文字色**，也是「小游戏那几个故意做黑的按钮」的底色 —— **别改它**。
   - `--warn #bd7300` / `--danger #cf3b30`（浅底上压深一档）；阴影改成柔和黑低透明（`--shadow-1/2/3`）。
-  - 圆角令牌全部≈直角：`--r-sm 2px` / `--r-md 3px` / `--r-lg 4px` / `--r-pill 3px`。
+  - 圆角令牌：**2026-10 用户要求「整体圆润一点」后改成大圆角** —— `--r-sm 6px` / `--r-md 10px` / `--r-lg 14px` / `--r-pill 999px`；切角令牌 `--clip-card` / `--clip-btn` **都改成 `none`**，圆角靠 `border-radius`（别再改回 polygon：那会把圆角切掉）。
   - `--ak-primary` / `--primary` / `--bg` / `--border` / `--text` / `--shadow` 这些旧别名**已改成引用上面那套令牌**，别再写死颜色。
-  - 新增：`--grid-line`（页面网格线，浅底上是 `rgba(28,40,52,0.035)`）/ `--hazard`（45° 警示条纹）/ `--clip-card`、`--clip-btn`（切角 polygon）。
+  - 新增：`--grid-line`（页面网格线，浅底上是 `rgba(28,40,52,0.035)`）/ `--hazard`（45° 警示条纹）/ `--clip-card` / `--clip-btn`（**现在都是 `none`**，圆角由 `border-radius` 负责）。
 - **两层收口层**（都在 `<style>` 末尾，**后置覆盖前面的规则**，同特异性后者胜）：
   1. **「暗色主题收口层 · 明日方舟 / 终末地 视觉语言」**（含「客服生涯 · 报表版式」）—— 形状/版式层：切角、编号、表头、按钮形状、报表抬头等。⚠️ **它是上一版暗色主题留下的，名字也没改；里面的 `rgba(255,255,255,…)`、`rgba(4,6,8,…)` 这类颜色全是暗色专用值，靠下面第 2 层覆盖**。改版式（不是颜色）就动这一层。
   2. **「浅色收口层 · 柔和白」**（最后一段）—— 颜色收口：把上面那层的暗色硬编码改回浅色（`.tab-btn:hover` 的淡黑、`button` 的浅底、表单白底、`.card::after` 斜纹、`tbody` 斑马、`.modal` 遮罩、`.career-kpi.accent` / `.career-trend` 的底纹），外加 `.fb-chip`（反馈模板的选择片）。**再加浅色样式就写这一段**，并且**不要用 `rgba(255,255,255,…)`**（verify 有断言锁死这一段里不出现白底白线）。
-  - 直角/切角：`.container` 边框+警示条纹顶条（浅底上 opacity 0.22）；`.card` / `.modal-content` 用 `--clip-card` 切右上右下角；`button` 用 `--clip-btn`。
+  3. **「圆润层（2026-10 用户：整体圆润一点 / 上下间距别太大 / 开关参考 iOS）」**（`<style>` 最后一段，**后置覆盖前两层**）—— 几何收口：把 `.container` / `.card` / `.inline-card` / `.modal-content` / `.theme-panel` / `.daily-group` / `.fb-card` / `.career-report-head` / `.seg-bar` / `.debug-console` 里写死的 `border-radius: 0` 盖成 `var(--r-md)`，`button` / `.stat-chip` / `.career-scope-bar > button` / `.daily-tab` 拍成 `--r-pill`，`.fb-chip` / `.seg-btn` / `.tab-btn` / `input` / `select` / `textarea` 用 `--r-sm`；`.card::after` 给 `border-radius: inherit`（斜纹不溢出圆角）。**间距**：`body { padding: 12px 14px }`、`.tab-content { padding: 18px 22px 22px; max-height: 94vh }`、`.card { margin-top: 12px }`、`.career-report-head { padding-bottom: 10px; margin-bottom: 10px }`、`.seg-bar { margin: 0 0 10px }`、`.crh-title 20px`、`.flex-row gap 8px`、`.daily-group { margin-bottom: 10px; padding: 10px 12px }`。⚠️ 改这三处（圆角 / 间距 / 开关）都写在这一层，别回头去改第 1、2 层的写死值。
+  - ~~直角/切角~~（2026-10 起圆润层把切角关掉了，`--clip-card/btn` 都是 `none`，只保留 `.container` 的警示条纹顶条与圆角）：`.card` / `.modal-content` / `button` 现在是 `border-radius`，不再用 `--clip-card` / `--clip-btn` 切角。
   - 侧边栏：编号 `01…`（`.tab-btn::before` + `counter(nav-item, decimal-leading-zero)`）；hover 淡黑、active 黄字+左侧黄条+菱形点（旋转 45°）。
   - 按钮：默认浅底面板+细边+深字；hover 变**黄底黑字**。`.secondary` 更弱、`.reset-btn` 红字、`.paste-btn` 黄淡底。⚠️ **`.career-collapse-btn` 单独豁免**（`:hover` 也是透明底），否则折叠卡标题一 hover 就变黄块。
   - 表单：输入框白底细边、focus 才出现黄边+黄淡光圈；`color-scheme: light` 让原生日期/下拉/滚动条也是浅色。
@@ -248,7 +249,11 @@ npm run verify     # 改完代码、push 前的完整自检
 - **按钮**：`⚡ 生成反馈格式`（`fbGenerate`）/ `📋 复制结果`（`fbCopy`，走 `safeCopy`，空结果只提示不抛错）/ `🧹 清空`（`fbClear`）。
 - **测试**：`tools/smoke.cjs` 第 **8h** 节 **29 条**（标签页 + 4 模板 + **来源片 11 个且不含「电话」** + **梦幻消除战默认藏掉爱江山/繁花/乐缤纷CP后台** + 默认选中 + 抬头 3 格 / 常规游戏各区服特例（001 / 000 / 唱舞数字 / 普通取服务器名）/ 切来源后结果跟着变 + 记住 `feedbackTplState` + **换回梦幻消除战时来源没变（企微在它的列表里）且「来源总数」= 8** / 梦幻正文与渠道去括号 / **乐缤纷CP后台：用户原文那行逐字比对 + 来源只剩它自己且自动切过去 + 一次多行出两段（段间空一行）+ 带表头跳过 + 只复制三列也能认 + 认不出来不生成 + 内部工单会被拦** / 模板选错不生成并提示 / 内部工单字段提取（手机号优先、没手机号用联系人）/ 清空 / 空输入提示 / 复制按钮不抛错 / 整场不往服务端存）；`tools/verify.mjs` 另有静态断言（标签页、来源 11 个含乐缤纷CP后台且**已无「电话」**、**工单（反馈）模板：来源只有「工单」+ 块切分 + 字段/小字段解析 + 玩家数据补 UID 渠道 + 九行格式 + 缺玩家数据提示 + 选错模板提示**、旧名「抖音在线」已不存在、模板 4 种、**每个模板的来源表（梦幻 8 个 / 乐缤纷只有它自己）+ 按模板隐藏来源片**、两套正文、**乐缤纷五行格式 + 后台表格行解析（制表符分列/第 5 列是问题/跳表头/多行拼多段）+ 少数几列按内容认**、切模板时来源落到列表第一项、区服特例、字段表、只存本机、容器、按钮与标签页刷新）。
 
-- **📚 「巨多」卡片模式（2026-10，用户要求：「来访很多会来不及反馈 → 增加一个「巨多」开关，打开后生成的反馈会变成卡片在下面显示，卡片内容支持编辑粘贴图片，可以勾选多选一键复制在钉钉飞书等应用内一键发送，发送时按一个卡片是一条信息」）**：反馈模板页多一块 `#fbBulkCard`（`⑤ 巨多 · 卡片模式`，`#fbBulkBtn` 是 `.fb-chip` + `aria-pressed`，**默认关**）。
+- **开关是 iOS 那种滑钮**（2026-10 用户：「切换类的选项可以参考 iOS 系统的开关样式」）：`.sw` + `.sw-track`（44×26 轨道、22px 白色圆钮、`aria-pressed="true"` 时轨道变 `--accent` 且钮 `translateX(18px)`）。
+  - 「巨多」：`<button id="fbBulkBtn" class="sw" role="switch" aria-pressed>` 里放 `.sw-track` + `#fbBulkLabel`，**JS 只改 `#fbBulkLabel` 的文字**（别再用 `btn.textContent = …`，那会把滑钮 span 冲掉）。
+  - 「全选」：`<label class="fb-all"><input type="checkbox" id="fbCardAllBox"><span class="sw-track"></span><span class="sw-label">全选</span></label>`，靠 `input:checked + .sw-track` 换色 / 挪钮；**半勾**由 `fbBulkPaneTail` 给 label 加 `.is-half`（钮挪到中间）。原生 input 被 `.fb-all input[type="checkbox"] { position:absolute; opacity:0 }` 藏掉，但**仍是真的 checkbox**（测试照旧读写 `.checked`）。
+
+- **📚 「巨多」卡片模式（2026-10，用户要求：「来访很多会来不及反馈 → 增加一个「巨多」开关，打开后生成的反馈会变成卡片在下面显示，卡片内容支持编辑粘贴图片，可以勾选多选一键复制在钉钉飞书等应用内一键发送，发送时按一个卡片是一条信息」）**：反馈模板页多一块 `#fbBulkCard`（`⑤ 巨多 · 卡片模式`，`#fbBulkBtn` 是 iOS 滑钮（`.sw` + `aria-pressed`，`#fbBulkLabel` 写「巨多：开/关」），**默认关**）。
   - **开关**：`fbBulkOn` + `#fbBulkPane`（`style.display` 收放）。关着就是原来的 `#fbOutput` 文本框；打开后 `fbGenerate` 除了照旧写文本框，还调 `fbPushCards(text)` **追加**成卡片（不覆盖，已有卡片留着）。
   - **一段一张卡**：`fbSplitCards()` 按**空行**拆（乐缤纷模板本来就「一行一段、段间空行」→ 一卡一条正好）。
   - **卡片**：`#fbCards` 里每张 `.fb-card` = 勾选框 + 编号 `#N` + 「📋 复制这张」+「🗑 删」+ `.fb-card-body`（`contenteditable`、`white-space: pre-wrap`）。正文直接改，input / blur 回写 `fbCards` 快照（`fbCardsSyncFromDom`）并防抖存本机。
@@ -256,7 +261,7 @@ npm run verify     # 改完代码、push 前的完整自检
   - **复制口径（⚠️ 关键，别改成「一次全复制」）**：浏览器**没法**替用户往钉钉 / 飞书发 N 条消息，只能控制剪贴板。所以「复制选中」= **一条一条**：`fbCardCopySelected` 用 `fbCardQueue` / `fbCardQueuePos`，**点一次只复制一张**，按钮变成「📋 复制下一条（还剩 N 条）」，粘出去发完再点下一次 → **一张卡 = 一条消息**；「📋 合并复制成一条」是另一颗按钮（真要合并时才用）。没勾选时默认按顺序全发。
   - **复制内容**：`fbCopyRich` 优先 `ClipboardItem` 富文本（`text/html` + `text/plain`，截图能跟着过去），环境不支持或没有 `navigator.clipboard` 时退回 `safeCopy(纯文本)`（`fbCardText` 把 `<img>` 变 `[图片]`、`<br>` 变换行）。
   - **增删清**：`＋ 空白卡片`（手写一条，最多 `FB_CARD_MAX = 40` 张）/ 每张单独删 / `🧹 清空卡片`（带 confirm）。
-  - **「全选」是一个可勾选的切换项**（2026-10 用户：「这里合并成一个可勾选切换的项」）：`<label class="fb-all"><input type="checkbox" id="fbCardAllBox"> 全选</label>`，勾上 = 全部选中、取消 = 全部取消；**只选了几张时是半勾状态**（`all.indeterminate`），单张勾选后由 `fbBulkPaneTail()` 回写。⚠️ 原来的 `#fbCardAllBtn` / `#fbCardNoneBtn` 两颗按钮已删，别加回来（`verify` 断言 `!/fbCardAllBtn|fbCardNoneBtn/`）。
+  - **「全选」是一个可勾选的切换项**（2026-10 用户：「这里合并成一个可勾选切换的项」）：`<label class="fb-all"><input type="checkbox" id="fbCardAllBox"><span class="sw-track"></span>… 全选</label>`（iOS 滑钮），勾上 = 全部选中、取消 = 全部取消；**只选了几张时是半勾状态**（`all.indeterminate` → label 的 `.is-half`），单张勾选后由 `fbBulkPaneTail()` 回写。⚠️ 原来的 `#fbCardAllBtn` / `#fbCardNoneBtn` 两颗按钮已删，别加回来（`verify` 断言 `!/fbCardAllBtn|fbCardNoneBtn/`）。
   - **只存本机**：`localStorage['feedbackBulk'] = { on, items: [html…] }`（`fbBulkLoad` / `fbBulkSaveNow` / `fbBulkSaveLater`，超配额 try/catch 提示「存不下了」），**不进 `/api/data`**。
   - **测试**：`tools/smoke.cjs` 第 **8r** 节 **21 条**（默认关 → 点开 `aria-pressed` + 卡片区 / 乐缤纷粘两行 → 2 张卡且内容各是各的 / 正文可编辑 / Ctrl+V 贴图变 dataURL `<img>` / **「全选」一个勾选项就能全选 / 取消（只选一张时半勾）** / 勾选 → 「复制选中」**第一次只复制第 1 张**、按钮变「复制下一条（还剩 1 条）」→ 再点复制第 2 张「全部复制完了」/ 「合并复制成一条」/ ＋空白卡 3 张 → 删第 1 张回 2 张 / `feedbackBulk` 只在本机（on + 2 张）/ 关掉收起、再打开还在 / 清空 → 空状态 / 全程 0 个请求）；`tools/verify.mjs` 3m 另有 **10 条**静态断言（容器与按钮 id + 默认收起 / 空行拆卡 / `contenteditable` / `ClipboardItem` 富文本 + `safeCopy` 兜底 / 粘图 `getAsFile` + 1.6MB 上限 + `readAsDataURL` / 逐条复制队列与「复制下一条（还剩 N 条）」/ 增删清 + `FB_CARD_MAX` / 只存本机 / 生成流程两处 `fbPushCards` / 卡片墙样式）。
 

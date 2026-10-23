@@ -44,10 +44,10 @@
             --dark-2: #1a2026;
             --warn: #bd7300;
             --danger: #cf3b30;
-            --r-sm: 2px;
-            --r-md: 3px;
-            --r-lg: 4px;
-            --r-pill: 3px;
+            --r-sm: 6px;
+            --r-md: 10px;
+            --r-lg: 14px;
+            --r-pill: 999px;
             --shadow-1: 0 1px 2px rgba(24,32,40,0.07);
             --shadow-2: 0 6px 20px rgba(24,32,40,0.10);
             --shadow-3: 0 20px 48px rgba(24,32,40,0.16);
@@ -69,8 +69,8 @@
             /* 主题专用（浅底要用深色淡淡的线，不然网格看不见） */
             --grid-line: rgba(28,40,52,0.035);
             --hazard: repeating-linear-gradient(135deg, var(--accent) 0 10px, transparent 10px 20px);
-            --clip-card: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
-            --clip-btn: polygon(0 0, calc(100% - 7px) 0, 100% 7px, 100% 100%, 7px 100%, 0 calc(100% - 7px));
+            --clip-card: none;
+            --clip-btn: none;
         }
 
         * {
@@ -3521,7 +3521,64 @@
         .career-rest-day.is-today { border-color: var(--accent); }
         .career-rest-day.is-today b { background: var(--accent); color: var(--dark); }
 
-    </style>
+    
+        /* ===================== 圆润层（2026-10 用户：整体圆润一点 / 上下间距别太大 / 开关参考 iOS）===================== */
+        /* 大圆角：令牌已经换成 --r-sm 6 / --r-md 10 / --r-lg 14 / --r-pill 999，这里把各层写死的直角盖回来 */
+        .container { border-radius: var(--r-lg); }
+        .card, .inline-card, .modal-content, .theme-panel, .daily-group, .fb-card,
+        .career-report-head, .seg-bar, .debug-console, .fb-card-body { border-radius: var(--r-md); }
+        .card::after, .inline-card::after { border-radius: inherit; }
+        .card::before, .inline-card::before { border-radius: var(--r-sm); }
+        .tabs { border-radius: var(--r-lg) 0 0 var(--r-lg); }
+        button, .stat-chip, .career-scope-bar > button, .daily-tab, .paste-btn { border-radius: var(--r-pill) !important; }
+        .fb-chip, .seg-btn, .tab-btn, .fb-all { border-radius: var(--r-sm) !important; }
+        input, select, textarea { border-radius: var(--r-sm) !important; }
+        /* 上下间距瘦身：功能页不要留一大片空白 */
+        body { padding: 12px 14px; }
+        .tab-content { padding: 18px 22px 22px; max-height: 94vh; }
+        .card { margin-top: 12px; }
+        .card > label { margin-bottom: 6px; }
+        .career-report-head { padding-bottom: 10px; margin-bottom: 10px; gap: 12px; }
+        .career-report-head .crh-title { font-size: 20px; margin: 4px 0 3px; }
+        .career-report-head .crh-kicker { letter-spacing: 0.2em; }
+        .seg-bar { margin: 0 0 10px; }
+        .flex-row { gap: 8px; }
+        .daily-group { margin-bottom: 10px; padding: 10px 12px; }
+        .fb-cards { gap: 8px; margin-top: 8px; }
+        .hint-text { margin-top: 4px; }
+        /* iOS 那种开关：<button class="sw" aria-pressed> 或 .fb-all 里那个 checkbox + .sw-track */
+        .sw {
+            display: inline-flex; align-items: center; gap: 9px;
+            background: transparent !important; border: 0 !important;
+            padding: 3px 2px !important; clip-path: none !important;
+            box-shadow: none !important; cursor: pointer; letter-spacing: 0;
+        }
+        .sw .sw-track, .fb-all .sw-track {
+            position: relative; width: 44px; height: 26px; flex: none;
+            border-radius: 999px; background: var(--line-2);
+            transition: background .16s ease;
+        }
+        .sw .sw-track::after, .fb-all .sw-track::after {
+            content: ''; position: absolute; top: 2px; left: 2px;
+            width: 22px; height: 22px; border-radius: 999px;
+            background: var(--surface); box-shadow: 0 1px 2px rgba(20,30,40,.28);
+            transition: transform .16s ease;
+        }
+        .sw[aria-pressed="true"] .sw-track { background: var(--accent); }
+        .sw[aria-pressed="true"] .sw-track::after { transform: translateX(18px); }
+        .sw-label { font-size: 13px; font-weight: 700; color: var(--ink-2); letter-spacing: 0.02em; }
+        .sw[aria-pressed="true"] .sw-label { color: var(--accent-ink); }
+        .fb-all { display: inline-flex; align-items: center; gap: 9px; padding: 5px 12px; border: 1px solid var(--line-1); background: var(--surface); cursor: pointer; }
+        .fb-all input[type="checkbox"] { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+        .fb-all input:checked + .sw-track { background: var(--accent); }
+        .fb-all input:checked + .sw-track::after { transform: translateX(18px); }
+        .fb-all.is-half .sw-track { background: var(--accent-line); }
+        .fb-all.is-half .sw-track::after { transform: translateX(9px); }
+        .fb-all.is-on .sw-label { color: var(--accent-ink); }
+        .fb-all { border-radius: var(--r-pill) !important; }
+        .theme-swatch, .theme-effect { border-radius: var(--r-md); }
+        .career-rest-day { border-radius: var(--r-sm); }
+</style>
 </head>
 
 <body>
@@ -3857,12 +3914,12 @@
                             <div class="card" id="fbBulkCard">
                                 <div class="flex-row" style="justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
                                     <label style="margin:0;">⑤ 巨多 · 卡片模式 <span class="card-sub">一张卡 = 一条消息</span></label>
-                                    <button id="fbBulkBtn" class="fb-chip" aria-pressed="false">📚 巨多：关</button>
+                                    <button id="fbBulkBtn" class="sw" role="switch" aria-pressed="false"><span class="sw-track"></span><span class="sw-label" id="fbBulkLabel">巨多：关</span></button>
                                 </div>
                                 <div class="hint-text" id="fbBulkHint" style="margin-top:8px;">关着就是上面那个文本框；打开后「⚡ 生成反馈格式」的结果会一张一张出现在下面 —— 可以改正文、可以粘截图，勾选后「复制选中」是一条一条复制 —— 粘到钉钉/飞书发出去就是一条消息，不会把多张并成一条。</div>
                                 <div id="fbBulkPane" style="display:none; margin-top:12px;">
                                     <div class="flex-row" style="flex-wrap:wrap;">
-                                        <label class="fb-all" title="全选 / 取消全选（半勾 = 只选了其中几张）"><input type="checkbox" id="fbCardAllBox"> 全选</label>
+                                        <label class="fb-all" title="全选 / 取消全选（半勾 = 只选了其中几张）"><input type="checkbox" id="fbCardAllBox"><span class="sw-track"></span><span class="sw-label">全选</span></label>
                                         <button id="fbCardCopyBtn">📋 复制选中（一条一条来）</button>
                                         <button id="fbCardCopyAllBtn" class="secondary">📋 合并复制成一条</button>
                                         <button id="fbCardAddBtn" class="secondary">＋ 空白卡片</button>
@@ -13697,7 +13754,10 @@
                                                 const picked = fbCards.filter(c => c.sel).length;
                                                 all.checked = fbCards.length > 0 && picked === fbCards.length;
                                                 all.indeterminate = picked > 0 && picked < fbCards.length;   // 半勾：只选了几张
-                                                if (all.parentNode) all.parentNode.classList.toggle('is-on', !!all.checked);
+                                                if (all.parentNode) {
+                                                    all.parentNode.classList.toggle('is-on', !!all.checked);
+                                                    all.parentNode.classList.toggle('is-half', !!all.indeterminate);
+                                                }
                                             }
                                         }
                                         function fbBulkRender() {
@@ -13706,7 +13766,8 @@
                                             if (btn) {
                                                 btn.classList.toggle('active', fbBulkOn);
                                                 btn.setAttribute('aria-pressed', fbBulkOn ? 'true' : 'false');
-                                                btn.textContent = fbBulkOn ? '📚 巨多：开' : '📚 巨多：关';
+                                                const label = document.getElementById('fbBulkLabel');
+                                                if (label) label.textContent = fbBulkOn ? '巨多：开' : '巨多：关';
                                             }
                                             if (pane) pane.style.display = fbBulkOn ? '' : 'none';
                                             fbCardRender();
