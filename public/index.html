@@ -13403,11 +13403,17 @@
                                         if (!n) return '';
                                         return fbFeedbackText(f);
                                     }
-                                    // 这段粘贴像不像「工单 / 玩家数据」（是就补进卡片，别当普通文字贴进去）
+                                    // 这段粘贴是不是「喜扑工单 / 玩家数据」（是就补进卡片，别当普通文字贴进去）
+                                    // ⚠️ 只认「真能解析出东西」的：内部工单（工单号 + 来源/游戏/UID 那套）不拦，
+                                    //    免得把内部工单的文本吞掉、跟原有流程打架
                                     function fbLooksTicketPaste(t) {
                                         const v = String(t == null ? '' : t);
-                                        return /玩家数据[:：]/.test(v) || /工单[:：]?\s*工单号/.test(v)
-                                            || /【详细描述】/.test(v) || /【问题类型】/.test(v);
+                                        if (!v.trim()) return false;
+                                        // 内部工单：首行「工单号⇥…」且没有 主体 / 游戏名称 这两列 → 不归这里管
+                                        if (/^\s*工单号[\t ]/.test(v) && !/主体|游戏名称/.test(v)) return false;
+                                        if (fbTicketBlocks(v).length) return true;
+                                        if (fbTicketTableRows(v).length) return true;
+                                        return !!fbTicketPlayer(v).uid;
                                     }
 
                                     function fbGenerate() {

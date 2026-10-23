@@ -2209,6 +2209,22 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     await sleep(40);
     check(/请把来源切成「工单」/.test($('fbHint').textContent),
       '粘的是喜扑工单但来源没选工单 → 提示把来源切成「工单」', $('fbHint').textContent);
+
+    // 跟原有「内部工单」不打架：内部工单模板 + 来源工单，粘内部工单 → 还是内部工单格式
+    doc.querySelector('#fbTemplateGroup .fb-chip[data-fb-template="gongdan"]').click();
+    await sleep(30);
+    doc.querySelector('#fbSourceGroup .fb-chip[data-fb-source="工单"]').click();
+    await sleep(30);
+    const innerOrder = [
+      '工单号\tG-123', '来源\t企微', '游戏\t异世界勇者', '区服\t001服',
+      'UID\t12345678', '账号\tabc', '角色ID\t87654321', '角色名\t张三',
+      '问题描述\t玩家反馈，麻烦看看', '提交人\t李四', '联系人\t王五', '手机号码\t13800000000',
+    ].join('\n');
+    $('fbRawInput').value = innerOrder;
+    $('fbGenerateBtn').click();
+    await sleep(40);
+    check(/工单号：G-123/.test($('fbOutput').value) && !/【喜扑UID】/.test($('fbOutput').value),
+      '内部工单模板 + 来源工单 → 还是内部工单格式（没被喜扑那套抢走）', $('fbOutput').value.split('\n')[0]);
     check(posts.length === posts8s, '工单模板全程不发请求（只在本机处理）', posts.length - posts8s);
   }
   console.log('--- 8t. 工单列表整段粘贴 → 快速开卡；缺的信息在卡片上再粘一次补 ---');
@@ -2341,6 +2357,13 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     $('fbRawInput').value = '角色ID\t138145608\n绑定的手机\t18932927094\n联系人电话\t18932927094';
     $('fbGenerateBtn').click();
     await sleep(40);
+    // 往卡片上粘「内部工单」文本 → 不该被当成喜扑工单吞掉
+    const bodyBeforeInner = bodyOf(0).textContent;
+    $('fbCardHint').textContent = '';
+    pasteInto(bodyOf(0), '工单号\tG-9\n来源\t企微\n角色ID\t123\n联系人\t王五');
+    await sleep(60);
+    check(!/已经有了/.test($('fbCardHint').textContent) && bodyOf(0).textContent === bodyBeforeInner,
+      '卡片上粘内部工单文本不会被喜扑那套拦下（不会误吞/误改）', $('fbCardHint').textContent);
     check(doc.querySelectorAll('#fbCards .fb-card').length === cardsBeforeBad && !/【喜扑UID】/.test($('fbOutput').value),
       '只有字段名⇥值、没有工单号那种，不会多开卡、也不出九行（退回原模板）',
       doc.querySelectorAll('#fbCards .fb-card').length);

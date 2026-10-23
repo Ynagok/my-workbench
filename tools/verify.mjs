@@ -698,10 +698,13 @@ ok(s.includes('function fbTicketMerge(cardText, pasteText)') && s.includes("if (
   && s.includes('if (!f.id && oid) { f.id = oid; n++; }'),
   '补信息只填空着的格子：粘玩家数据补 喜扑UID/渠道，粘工单整块补 角色ID/发生时间/具体描述/编号（已有的不覆盖）');
 ok(s.includes('function fbLooksTicketPaste(t)') && s.includes("if (txt && fbLooksTicketPaste(txt)) {")
+  && s.includes("if (/^\\s*工单号[\\t ]/.test(v) && !/主体|游戏名称/.test(v)) return false;")
+  && s.includes('if (fbTicketBlocks(v).length) return true;')
+  && s.includes('return !!fbTicketPlayer(v).uid;')
   && s.includes('const merged = fbTicketMerge(fbCardText(el.innerHTML), txt);')
   && s.includes('el.textContent = merged;')
   && s.includes("if (!merged) { fbCardHintSet('这张卡里这些信息已经有了（没补新东西）'); return; }"),
-  '在卡片上粘贴时先判断是不是工单/玩家数据 → 是就补进这张卡（否则才走原来的图片 / 普通粘贴）');
+  '在卡片上粘贴时先判断是不是喜扑工单/玩家数据 → 是就补进这张卡（内部工单文本不拦，免得吞掉；否则走原来的图片 / 普通粘贴）');
 ok(s.includes('const tkRows = tkBlocks.length ? [] : fbTicketTableRows(raw);')
   && s.includes('? tkBlocks.map(b => fbTicketText(fbTicketFields(b), tkPlayer))')
   && s.includes(': tkRows.map(fbTicketRowText);'),
