@@ -2404,6 +2404,48 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
       && /区服：V1/.test(gcard.textContent) && /编号：1536284/.test(gcard.textContent),
       '常规格式的卡片粘工单整块：空着的补上、区服与编号保持卡片自己的', gcard.textContent);
     if ($('fbBulkBtn').getAttribute('aria-pressed') === 'true') { $('fbBulkBtn').click(); await sleep(30); }
+
+    // 只粘玩家数据（没有「玩家数据：」前缀）→ 补进卡片，不新开卡
+    if ($('fbBulkBtn').getAttribute('aria-pressed') !== 'true') { $('fbBulkBtn').click(); await sleep(30); }
+    doc.querySelector('#fbTemplateGroup .fb-chip[data-fb-template="menghuan"]').click();
+    await sleep(30);
+    doc.querySelector('#fbSourceGroup .fb-chip[data-fb-source="工单"]').click();
+    await sleep(30);
+    $('fbCardClearBtn').click();
+    await sleep(40);
+    check(doc.querySelectorAll('#fbCards .fb-card').length === 0, '（上下文）先清空卡片',
+      doc.querySelectorAll('#fbCards .fb-card').length);
+    $('fbRawInput').value = tkPlain;
+    $('fbGenerateBtn').click();
+    await sleep(50);
+    const bodiesAll = doc.querySelectorAll('#fbCards .fb-card-body');
+    const onlyBody = bodiesAll[bodiesAll.length - 1];
+    check(!!onlyBody && /【喜扑UID】：/.test(onlyBody.textContent), '（上下文）工单整块开出一张卡',
+      onlyBody && onlyBody.textContent.replace(/\n/g, ' | ').slice(0, 60));
+    const rawPlayer = '176674940\t番糖-梦幻消除战-支付宝小程序\tandroid\n0\n\n梦幻消除战\n\n53141283';
+    pasteInto(onlyBody, rawPlayer);
+    await sleep(60);
+    check(/【喜扑UID】：176674940/.test(onlyBody.textContent) && /【渠道】：支付宝小程序/.test(onlyBody.textContent),
+      '卡片上粘「没写玩家数据：前缀」的那一坨，也能补 喜扑UID / 渠道', onlyBody.textContent.replace(/\n/g, ' | ').slice(0, 80));
+
+    // 巨多开着、只勾一张卡，在文本框粘玩家数据点生成 → 补那张卡，不开新卡
+    $('fbCardClearBtn').click();
+    await sleep(40);
+    $('fbRawInput').value = tkPlain;
+    $('fbGenerateBtn').click();
+    await sleep(50);
+    const oneBox = doc.querySelector('#fbCards .fb-card-check');
+    oneBox.checked = true;
+    fire(oneBox, 'change');
+    await sleep(30);
+    $('fbRawInput').value = rawPlayer;
+    $('fbGenerateBtn').click();
+    await sleep(60);
+    check(doc.querySelectorAll('#fbCards .fb-card').length === 1
+      && /【喜扑UID】：176674940/.test($('fbCards').textContent),
+      '只勾一张卡时粘玩家数据点生成 → 补进那张卡（不再多开一张空卡）',
+      doc.querySelectorAll('#fbCards .fb-card').length + ' 张 / ' + $('fbHint').textContent);
+    if ($('fbBulkBtn').getAttribute('aria-pressed') === 'true') { $('fbBulkBtn').click(); await sleep(30); }
   }
 
   console.log('--- 9. 无未捕获异常 ---');

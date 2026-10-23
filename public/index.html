@@ -13259,20 +13259,33 @@
                                         return out;
                                     }
                                     // 「玩家数据：176674940⇥番糖-梦幻消除战-支付宝小程序⇥android …」→ 喜扑UID / 渠道
+                                    // ⚠️ 没有「玩家数据：」前缀、直接粘后台那一坨也认（用户 2026-10：粘玩家数据不填充）——
+                                    //    只在认得出「渠道那一串」（带 - 且含平台词）时才认 UID / 角色ID，避免把工单号当 UID
                                     function fbTicketPlayer(raw) {
                                         const r = { uid: '', channel: '', roleId: '' };
                                         const text = String(raw == null ? '' : raw);
-                                        const idx = text.lastIndexOf('玩家数据');
-                                        if (idx === -1) return r;
-                                        const toks = text.slice(idx).replace(/^玩家数据[:：]/, '').split(/[\t\r\n]+/).map(t => t.trim()).filter(Boolean);
-                                        toks.forEach(t => {
-                                            if (/^\d{6,}$/.test(t)) {
-                                                if (!r.uid) { r.uid = t; return; }
-                                                if (!r.roleId) r.roleId = t;
-                                                return;
-                                            }
-                                            if (!r.channel && t.indexOf('-') !== -1 && !/^\d+$/.test(t)) r.channel = t.slice(t.lastIndexOf('-') + 1).trim();
-                                        });
+                                        const labelled = /玩家数据[:：]/.test(text);
+                                        const seg = labelled
+                                            ? text.slice(text.lastIndexOf('玩家数据')).replace(/^玩家数据[:：]/, '')
+                                            : text;
+                                        const toks = seg.split(/[\t\r\n]+/).map(t => t.trim()).filter(Boolean);
+                                        const isNum = t => /^\d{6,}$/.test(t);
+                                        // 渠道 = 带「-」、不像日期、不像纯数字的那串；不写前缀时还要求含平台词
+                                        const chIdx = toks.findIndex(t => t.indexOf('-') !== -1 && !/^\d{4}-\d{2}-\d{2}/.test(t) && !/^\d+$/.test(t));
+                                        let ok = false;
+                                        if (chIdx !== -1) {
+                                            const t = toks[chIdx];
+                                            const plat = /(小程序|安卓|android|ios|app|官网|应用宝|oppo|vivo|华为|小米|taptap|b站|4399|九游)/i.test(t);
+                                            if (labelled || plat) { r.channel = t.slice(t.lastIndexOf('-') + 1).trim(); ok = true; }
+                                        }
+                                        if (ok) {
+                                            // UID = 渠道之前最近的 6 位以上数字；角色ID = 渠道之后最近的 6 位以上数字
+                                            for (let i = chIdx - 1; i >= 0; i--) { if (isNum(toks[i])) { r.uid = toks[i]; break; } }
+                                            for (let i = chIdx + 1; i < toks.length; i++) { if (isNum(toks[i]) && toks[i] !== r.uid) { r.roleId = toks[i]; break; } }
+                                        } else if (labelled) {
+                                            const f = toks.findIndex(isNum);
+                                            if (f !== -1) r.uid = toks[f];
+                                        }
                                         return r;
                                     }
                                     // 工单列表页整段复制：一行一张单（第一格可能是空勾选框）
@@ -13511,6 +13524,22 @@
                                         if (fbSource === '工单') {
                                             const tkBlocks = fbTicketBlocks(raw);
                                             const tkRows = tkBlocks.length ? [] : fbTicketTableRows(raw);
+                                            // 只粘了「玩家数据」：补进选中的那张卡（或唯一一张卡），不要再开新卡
+                                            if (!tkBlocks.length && !tkRows.length) {
+                                                const pOnly = fbTicketPlayer(raw);
+                                                if (pOnly.uid && fbBulkOn) {
+                                                    const boxes = Array.from(document.querySelectorAll('#fbCards .fb-card-check'));
+                                                    const picked = boxes.filter(b => b.checked);
+                                                    const idx = boxes.length === 1 ? 0 : (picked.length === 1 ? +picked[0].dataset.fbCheck : -1);
+                                                    const body = idx >= 0 ? document.querySelector('#fbCards .fb-card[data-fb-card="' + idx + '"] .fb-card-body') : null;
+                                                    if (body) {
+                                                        const merged0 = fbTicketMerge(fbCardText(body.innerHTML), raw);
+                                                        if (merged0) { body.textContent = merged0; fbCardsSyncFromDom(); fbBulkSaveNow(); fbCardHintSet('已把玩家数据补进第 ' + (idx + 1) + ' 张卡'); fbSetHint('已补进第 ' + (idx + 1) + ' 张卡（没新开卡）'); return; }
+                                                        fbSetHint('这张卡里已经有这些信息了'); return;
+                                                    }
+                                                    fbSetHint('先勾选一张卡（只勾一张），再点生成就会补进那张卡'); return;
+                                                }
+                                            }
                                             if (tkBlocks.length || tkRows.length) {
                                                 const tkPlayer = fbTicketPlayer(raw);
                                                 const tkRecs = tkBlocks.length

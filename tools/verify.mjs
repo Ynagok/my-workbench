@@ -712,6 +712,16 @@ ok(s.includes('const tkRows = tkBlocks.length ? [] : fbTicketTableRows(raw);')
   && s.includes(': tkRows.map(r => fbTicketRowRec(r, tkPlayer));'),
   '「生成反馈格式」两条路：工单整块 / 工单列表行（后者直接开多张卡）');
 
+// ---- 3p. 只粘玩家数据：没前缀也认；补进选中的那张卡，不新开卡 ----
+ok(s.includes('const labelled = /玩家数据[:：]/.test(text);')
+  && s.includes('const plat = /(小程序|安卓|android|ios|app|官网|应用宝|oppo|vivo|华为|小米|taptap|b站|4399|九游)/i.test(t);')
+  && s.includes('if (labelled || plat) { r.channel = t.slice(t.lastIndexOf(\'-\') + 1).trim(); ok = true; }'),
+  '玩家数据没写「玩家数据：」前缀也认（靠平台词认渠道，避免把工单号当 UID）');
+ok(s.includes("先勾选一张卡（只勾一张），再点生成就会补进那张卡")
+  && s.includes("const merged0 = fbTicketMerge(fbCardText(body.innerHTML), raw);")
+  && s.includes("已把玩家数据补进第 ' + (idx + 1) + ' 张卡'"),
+  '只粘玩家数据点生成时补进选中/唯一那张卡，不再多开一张空卡');
+
 // ---- 4. 花括号/圆括号平衡（粗查，排除字符串内的干扰仅作参考） ----
 const count = (str, ch) => (str.split(ch).length - 1);
 const braces = count(js, '{') - count(js, '}');
