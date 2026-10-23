@@ -669,6 +669,37 @@ ok(/const looksTicket = \/主体\/\.test\(String\(raw \|\| ''\)\) && \/游戏名
   && /请把模板切成「工单（反馈）」/.test(s),
   '选错模板时能认出这段是喜扑工单并提示切到「工单（反馈）」');
 
+// ---- 3o. 工单列表整段 → 快速开卡；缺的信息在卡片上再粘一次补 ----
+ok(s.includes('function fbTicketTableRows(raw)') && s.includes('function fbTicketRowText(r)')
+  && s.includes("if (line.indexOf('\\t') === -1) return;")
+  && s.includes('const i = cells.findIndex(c => /^\\d{4,}$/.test(c));'),
+  '工单列表整段（制表符分隔、第一格可能是空勾选框）→ 一行一张单，找工单号那一格起算 12 列');
+ok(s.includes('function fbTicketRowText(r)')
+  && s.includes("+ '\\n【喜扑UID】：'")
+  && s.includes("+ '\\n【设备信息】：'")
+  && s.includes("+ '\\n编号：' + r.orderId;"),
+  '每行直接出九行格式（标题按游戏名称；角色ID/喜扑UID/渠道/具体描述 先留空等补）');
+ok(s.includes('function fbFeedbackParse(text)') && s.includes('function fbFeedbackText(f)')
+  && s.includes("if (/问题反馈$/.test(k)) { f.title = k; return; }")
+  && s.includes("if (k === '具体描述') { f.body = v; return; }"),
+  '卡片正文（九行格式）能被读回字段表、再写回九行（补信息前后格式不跑偏）');
+ok(s.includes('function fbTicketMerge(cardText, pasteText)') && s.includes("if (!n) return '';")
+  && s.includes('if (!f.uid && player.uid) { f.uid = player.uid; n++; }')
+  && s.includes('if (!f.channel && player.channel) { f.channel = player.channel; n++; }')
+  && s.includes('if (!f.roleId && wRole) { f.roleId = wRole; n++; }')
+  && s.includes('if (!f.occur && occur) { f.occur = occur; n++; }')
+  && s.includes('if (!f.id && oid) { f.id = oid; n++; }'),
+  '补信息只填空着的格子：粘玩家数据补 喜扑UID/渠道，粘工单整块补 角色ID/发生时间/具体描述/编号（已有的不覆盖）');
+ok(s.includes('function fbLooksTicketPaste(t)') && s.includes("if (txt && fbLooksTicketPaste(txt)) {")
+  && s.includes('const merged = fbTicketMerge(fbCardText(el.innerHTML), txt);')
+  && s.includes('el.textContent = merged;')
+  && s.includes("if (!merged) { fbCardHintSet('这张卡里这些信息已经有了（没补新东西）'); return; }"),
+  '在卡片上粘贴时先判断是不是工单/玩家数据 → 是就补进这张卡（否则才走原来的图片 / 普通粘贴）');
+ok(s.includes("const rows = blocks.length ? [] : fbTicketTableRows(raw);")
+  && s.includes('? blocks.map(b => fbTicketText(fbTicketFields(b), player))')
+  && s.includes(': rows.map(fbTicketRowText);'),
+  '「生成反馈格式」两条路：工单整块 / 工单列表行（后者直接开多张卡）');
+
 // ---- 4. 花括号/圆括号平衡（粗查，排除字符串内的干扰仅作参考） ----
 const count = (str, ch) => (str.split(ch).length - 1);
 const braces = count(js, '{') - count(js, '}');

@@ -2184,6 +2184,79 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
       '模板选错（梦幻）粘工单 → 提示切到「工单（反馈）」', $('fbHint').textContent);
     check(posts.length === posts8s, '工单模板全程不发请求（只在本机处理）', posts.length - posts8s);
   }
+  console.log('--- 8t. 工单列表整段粘贴 → 快速开卡；缺的信息在卡片上再粘一次补 ---');
+  {
+    const posts8t = posts.length;
+    doc.querySelector('.tab-btn[data-tab="feedback"]').click();
+    await sleep(40);
+    doc.querySelector('#fbTemplateGroup .fb-chip[data-fb-template="ticket"]').click();
+    await sleep(30);
+    if ($('fbBulkBtn').getAttribute('aria-pressed') !== 'true') { $('fbBulkBtn').click(); await sleep(30); }
+    $('fbCardClearBtn').click();
+    await sleep(40);
+
+    // 用户给的原文：后台工单列表整段复制（制表符分隔，第 2 行起第一格是勾选框空的）
+    const rowsText = [
+      '1536284\t一线工单\t微信\t游戏问题\t喜扑\t【问题类型】道具丢失 【问题描...\t微信-梦幻消除战\tV1\t待接管\t未接管\t18932927094\t2026-10-23 14:21:58\t\t\t ',
+      '\t1536283\t一线工单\t微信\t充值问题\t喜扑\t【问题类型】充值问题 【问题描...\t微信-梦幻消除战\tV2\t待接管\t未接管\t13018896865\t2026-10-23 14:20:40\t\t\t ',
+      '\t1536282\t一线工单\t微信\t游戏问题\t喜扑\t【问题类型】道具丢失 【问题描...\t微信-梦幻消除战\tV0\t待接管\t未接管\t17604811801\t2026-10-23 14:20:33\t\t\t ',
+      '\t1536281\t一线工单\t普通\t找回账号\t喜扑\t\t唱舞全明星\tV3\t待接管\t未接管\t15578871156\t2026-10-23 14:17:41',
+    ].join('\n');
+    $('fbRawInput').value = rowsText;
+    $('fbGenerateBtn').click();
+    await sleep(50);
+    const cards = () => doc.querySelectorAll('#fbCards .fb-card');
+    check(cards().length === 4, '工单列表整段粘 + 巨多开着 → 一行开一张卡（4 行 = 4 张）', cards().length);
+    check(/工单列表行/.test($('fbHint').textContent), '提示里说明是按「工单列表行」开的卡', $('fbHint').textContent);
+    const c1 = $('fbCards').textContent;
+    check(/【梦幻消除战问题反馈】/.test(c1) && /编号：1536284/.test(c1),
+      '第 1 张：标题按「微信-梦幻消除战」生成、编号 1536284', c1.slice(0, 60));
+    check(/【唱舞全明星问题反馈】/.test($('fbCards').textContent) && /编号：1536281/.test($('fbCards').textContent),
+      '第 4 张（唱舞全明星）：标题也跟着换', $('fbCards').textContent.slice(-120));
+    check(/【喜扑UID】：\n/.test(c1) && /【角色ID】：\n/.test(c1),
+      '列表里拿不到的信息先空着（喜扑UID / 角色ID / 渠道）', c1);
+    check($('fbOutput').value.split(/\n\n/).filter(x => x.trim()).length === 4,
+      '文本框里也是 4 段（关掉巨多时照样能用）', $('fbOutput').value.split(/\n\n/).length);
+
+    // 在卡片上再粘一次「玩家数据」→ 只补这张卡
+    const pasteInto = (body, text) => {
+      const ev = new window.Event('paste', { bubbles: true });
+      Object.defineProperty(ev, 'clipboardData', { value: { files: [], items: [], getData: () => text } });
+      body.dispatchEvent(ev);
+    };
+    const bodyOf = i => doc.querySelectorAll('#fbCards .fb-card-body')[i];
+    const playerBlob = '玩家数据：176674940\t番糖-梦幻消除战-支付宝小程序\tandroid\t';
+    pasteInto(bodyOf(0), playerBlob);
+    await sleep(60);
+    check(/【喜扑UID】：176674940/.test(bodyOf(0).textContent) && /【渠道】：支付宝小程序/.test(bodyOf(0).textContent),
+      '选中第 1 张再粘「玩家数据」→ 这张卡补上 喜扑UID / 渠道', bodyOf(0).textContent);
+    check(!/176674940/.test(bodyOf(1).textContent), '只补这一张，别的卡不受影响', bodyOf(1).textContent);
+    check(/已把粘到的信息补进这张卡/.test($('fbCardHint').textContent), '提示写「已把粘到的信息补进这张卡」', $('fbCardHint').textContent);
+
+    // 再往第 2 张粘「工单整块」→ 补 角色ID / 发生时间 / 具体描述，编号还是这张自己的
+    const tkBlock = [
+      '工单：工单号\t1536243 (近一个月来单：1)',
+      '主体\t喜扑',
+      '游戏名称\t微信-梦幻消除战',
+      '角色ID\t76929541',
+      '问题描述\t【问题类型】道具丢失',
+      '【详细描述】10.20号晚上七点左右，不小心删除了顶级糕点，帮我找回一下',
+      '发生时间\t2026-10-20 18:55:00',
+    ].join('\n');
+    pasteInto(bodyOf(1), tkBlock);
+    await sleep(60);
+    check(/【角色ID】：76929541/.test(bodyOf(1).textContent), '第 2 张补上角色ID', bodyOf(1).textContent);
+    check(/【发生时间】：2026-10-20 18:55:00/.test(bodyOf(1).textContent) && /【具体描述】：10\.20号晚上七点左右/.test(bodyOf(1).textContent),
+      '发生时间 / 具体描述 也补上了', bodyOf(1).textContent);
+    check(/编号：1536283/.test(bodyOf(1).textContent) && !/1536243/.test(bodyOf(1).textContent),
+      '编号还是这张卡自己的（粘来的 1536243 不会覆盖）', bodyOf(1).textContent);
+
+    // 已经补过的再粘一次 → 不重复贴、只提示
+    pasteInto(bodyOf(1), tkBlock);
+    await sleep(60);
+    check(/已经有了/.test($('fbCardHint').textContent), '同一份信息再粘一次 → 提示已经有了（不会把原文糊进卡片）', $('fbCardHint').textContent);
+    check(posts.length === posts8t, '列表开卡 / 补信息全程不发请求', posts.length - posts8t);
+  }
   console.log('--- 9. 无未捕获异常 ---');
   check(!warns.some(w => w.startsWith('ERROR')), 'console.error 未被调用：' + warns.filter(w => w.startsWith('ERROR')).join(' | '));
   check(jsdomErrors.length === 0, '页面无未捕获异常（jsdomError）', jsdomErrors.slice(0, 3));
