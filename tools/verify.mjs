@@ -638,6 +638,9 @@ ok(/\.career-rest-day \{[\s\S]{0,420}?overflow: hidden; box-sizing: border-box;/
   && /\.career-rest-day b \{[\s\S]{0,220}?padding: 0 3px; margin-left: 0;/.test(s)
   && /\.career-rest-day i \{[\s\S]{0,320}?max-width: 100%; overflow: hidden; text-overflow: ellipsis;/.test(s),
   '日历格子里的「日期 / 休·班次」小片都收在边框里（格子上 overflow:hidden、去掉负 margin、长班次名省略号）');
+ok(/\.card:has\(details\.card-more\[open\]\)[\s\S]{0,120}?overflow: visible;/.test(s)
+  && /\.card > \.flex-row:has\(details\.card-more\[open\]\) \{ z-index: 40; \}/.test(s),
+  '「⋯ 更多」浮层真能盖在卡片外面：展开时用 :has() 放开 .card 的 overflow:hidden 并把那一行提到 z-index 40（否则会被卡片裁掉 / 被后面的行压住）');
 
 // ---- 3l. 七日任务（并进「话术生成」页的一段：进度日志 → 按内置任务表判定的进度话术，只在本机处理）----
 ok(/class="seg-bar" data-for="tab-gen"/.test(s) && /data-seg="reply" data-n="01">话术生成</.test(s)

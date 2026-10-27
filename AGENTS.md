@@ -147,6 +147,13 @@ npm run verify     # 改完代码、push 前的完整自检
   - **工具条**：客服生涯总览卡只留「🗂️ 归档今日日报」+「🗓️ 排班休息」两个主按钮，导出CSV / 导出JSON / 导入JSON / 清空本机 折进 `details.card-more`（点「⋯ 更多」展开）——**按钮 id 没变**，测试照旧能点。
     - ⚠️ **「⋯ 更多」展开的是一块浮层，不是把工具条撑高**（2026-10 用户：「点击更多出来的这几个选项有点乱」）：`details.card-more > div` 改成 `position: absolute; top: calc(100% + 6px); right: 0; z-index: 30`（父级 `details.card-more` 要 `position: relative`）+ `display: grid; grid-template-columns: 1fr; gap: 6px; min-width: 176px`，卡片面 + 细边 + `--shadow-2`；里面每个按钮 `display: flex; width: 100%; text-align: left; font-size: 12.5px; padding: 6px 10px !important`，`.ic` 图标 `margin-right: 7px`。**别再改回默认的 `details` 竖排展开**，那样 4 个按钮会把工具条往下顶歪。
     - 浮层会**自动收起**：`bindAll` 里挂了一条 `document` 级 `click` 监听 —— 点浮层外面收起，点浮层里任意 `button`（导出/导入/清空）也收起；`themePanel` 那套开合逻辑不受影响。
+    - ⚠️ **浮层必须真的盖在卡片外面**（2026-10 用户截图：「这一块被盖住了」——4 个按钮被下面的统计行压住 / 被卡片裁掉，点不到）：`.card` 默认 `overflow: hidden`，而且「暗色收口层」里有 `.card > * { position: relative; z-index: 1 }`，所以浮层会被裁 + 被后面的行压住。修法是展开时用 `:has()` 放开那两条：
+      ```css
+      .card:has(details.card-more[open]),
+      .inline-card:has(details.card-more[open]) { overflow: visible; }
+      .card > .flex-row:has(details.card-more[open]) { z-index: 40; }
+      ```
+      **别删这两条**（`verify.mjs` 3j-2 有断言）；也别为了这个把 `.card` 的 `overflow: hidden` 全局改掉（卡片圆角 / 斜纹靠它收口）。
     - **日历小片不再出框**（2026-10 用户：「日历的小图标出框了」）：`.career-rest-day` 改 `padding: 5px 8px 7px !important` + `overflow: hidden; box-sizing: border-box`；`.career-rest-day b`（日期数字）去掉负 margin、改 `padding: 0 3px; max-width: 100%`；`.career-rest-day i`（「休」/ 班次小片）加 `max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap`。**这三条一起锁着「小片不能溢出格子边框」**，`verify.mjs` 有断言。
 - **🗓️ 排班休息（2026-10 用户要求，后改成微软日历样式）**：客服生涯工具条上的「🗓️ 排班休息」按钮（`#careerRestBtn`）展开 `#careerRestCard` 面板。
   - **月历版式（2026-10 用户要求：「按微软日历的样式排布，要有星期」）**：`#careerRestGrid` 里先画一行星期表头 `.rest-cal-week`（`CAREER_WEEK_LABELS` = 日 / 一 / 二 / 三 / 四 / 五 / 六，**周日排最前，跟 Windows / Outlook 中文日历一致**；周末两列 `.wd.is-weekend` 标红），下面 `.rest-cal-grid` 是 **7 列网格**，每天一格 `.career-rest-day`（数字在左上）。

@@ -3456,6 +3456,11 @@
             border-radius: var(--r-sm) !important;
         }
         details.card-more > div > button .ic { margin-right: 7px; }
+        /* 浮层要能真的盖在卡片外面：.card 默认 overflow:hidden（会裁掉），而且 .card > * 带 z-index:1
+           （后面的行会把浮层压住）—— 展开时用 :has() 放开这两条。2026-10 用户截图「这一块被盖住了」。 */
+        .card:has(details.card-more[open]),
+        .inline-card:has(details.card-more[open]) { overflow: visible; }
+        .card > .flex-row:has(details.card-more[open]) { z-index: 40; }
         /* ⭐ 高频回复：一行一条，标题行放计数芯片，正文折两行 */
         .reply-top-item {
             border: 1px solid var(--line-0); border-left: 3px solid var(--accent-line);
