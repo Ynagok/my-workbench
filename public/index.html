@@ -3313,6 +3313,7 @@
         /* 只投票时藏掉「店家管理 / 发起投票 / 报表抬头」——投的人只需要选店 + 看结果 */
         html[data-vote-only="1"] #teaShopCard,
         html[data-vote-only="1"] #teaPollAdminBox,
+        html[data-vote-only="1"] #teaInfoCard,
         html[data-vote-only="1"] #teaReportHead { display: none; }
         /* 手机上单列、按钮大一点 */
         @media (max-width: 560px) {
@@ -3334,6 +3335,34 @@
         details.tea-shop-card[open] > summary::before { content: '▾'; }
         details.tea-shop-card > summary:hover { color: var(--accent-ink); }
         details.tea-shop-card[open] > summary { margin-bottom: 8px; }
+
+        /* ---------- 下午茶信息 → 话术（2026-10：反推 GM 玩家页「玩家下午茶信息」那块） ---------- */
+        #teaInfoCard textarea { font-size: 12px; }
+        #teaInfoOut { background: var(--surface-2); }
+        .tea-layer {
+            margin-top: 8px; padding: 8px 10px;
+            border: 1px solid var(--line-0); border-radius: var(--r-sm);
+            background: var(--surface-2);
+        }
+        .tea-layer.is-cur { border-color: var(--accent-line); background: var(--surface); }
+        .tea-layer-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; font-size: 12.5px; }
+        .tea-layer-head b { font-size: 13px; color: var(--ink-0); }
+        .tea-layer-head .tl-state {
+            font-size: 11px; padding: 0 6px; border-radius: var(--r-pill);
+            border: 1px solid var(--line-1); color: var(--ink-2);
+        }
+        .tea-layer-head .tl-state.on { border-color: var(--accent-line); color: var(--accent-ink); background: var(--accent-dim); }
+        .tea-layer-head .tl-meta { color: var(--ink-3); font-size: 11.5px; }
+        .tea-rewards { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+        .tea-reward {
+            font-size: 11.5px; padding: 3px 8px; border-radius: var(--r-sm);
+            border: 1px solid var(--line-0); background: var(--surface); color: var(--ink-1);
+        }
+        .tea-reward b { color: var(--ink-0); font-weight: 600; }
+        .tea-reward .tr-id { color: var(--ink-3); margin-left: 4px; font-size: 10.5px; }
+        .tea-reward.is-up { border-color: var(--accent-line); background: var(--accent-dim); }
+        .tea-reward.is-drawn { border-color: var(--line-2); background: var(--surface-3); color: var(--ink-3); }
+        .tea-reward.is-drawn b { color: var(--ink-2); }
 
         /* ---------- 统计页通用：紧凑信息条（少写字、多给数） ---------- */
         /* 用来替代原来成段的说明文字：一条事实 = 一片，扫一眼就能读。 */
@@ -4427,6 +4456,24 @@
                     <button id="teaRefreshBtn" class="secondary">🔄 刷新</button>
                     <button id="teaCopyResultBtn" class="secondary">📋 复制结果</button>
                 </div>
+            </div>
+
+            <!-- 下午茶信息 → 话术：反推 GM「玩家下午茶信息」那块（吉运节节高） -->
+            <div class="card" id="teaInfoCard">
+                <label>🍵 下午茶信息 → 话术
+                    <span class="card-sub">吉运节节高 · 粘 GM 玩家页里那块「玩家下午茶信息」</span>
+                </label>
+                <textarea id="teaInfoInput" rows="5" style="margin-top:10px;" placeholder="把 GM 玩家页「下午茶信息展示」里的「玩家下午茶信息」整块复制进来（纯文本或网页源码都行）—— 认档位 / 当前层 / 抽奖次数 / 大奖 / 6 层奖励"></textarea>
+                <div class="flex-row" style="margin-top:10px;">
+                    <button id="teaInfoParseBtn">🔍 解析并生成话术</button>
+                    <button id="teaInfoCopyBtn" class="secondary">📋 复制话术</button>
+                    <button id="teaInfoClearBtn" class="reset-btn">🧹 清空</button>
+                    <span class="hint-text" id="teaInfoHint"></span>
+                </div>
+                <div class="stat-chips" id="teaInfoSummary"></div>
+                <div id="teaLayerBox"></div>
+                <label style="margin-top:14px;">话术</label>
+                <textarea id="teaInfoOut" rows="10" readonly placeholder="解析完这里出现可以直接发玩家的话术"></textarea>
             </div>
 
             <!-- 预设店家：收在折叠面板里（平时不用管，也永远不会被清除） -->
@@ -15246,6 +15293,207 @@
                                         const totalVotes = list.reduce((a, v) => a + v.shopIds.length, 0);
                                         return { devices: list.length, totalVotes: totalVotes, rows: rows };
                                     }
+                                    // ==================== 下午茶信息 → 话术（反推 GM「玩家下午茶信息」那块）====================
+                                    // GM 玩家页「下午茶信息展示」里那块（游戏里玩家叫它「吉运节节高」）长这样：
+                                    //   玩家下午茶信息（固定 6 层，绿色奖励表示已抽取）
+                                    //   下午茶档位 configId=15 / groupId=3803 ｜ 当前层 3 ｜ 是否有抽奖次数 是（2 次） ｜ 大奖 未抽取
+                                    //   第 3 层 已解锁 商品 380303 / 价格 30 / 已抽 1/4
+                                    //     道具 2000026 × 1  ID 2000026 / 奖励位 0 升层奖励
+                                    // 这里做两件事：① 把那一块解析出来照着展示；② 生成一段可以直接发玩家的话术。
+                                    // ⚠️ 只在本机处理，不进 /api/data（跟别的粘贴解析一个规矩）。
+                                    const TEA_INFO_MAX = 200000;
+                                    // 归一化：贴网页源码也行（先把绿色的「已抽取」标出来再剥标签），最后压成一行按关键字切
+                                    function teaInfoPrep(raw) {
+                                        let s = String(raw == null ? '' : raw);
+                                        if (/<\/?[a-zA-Z][^>]*>/.test(s)) {
+                                            s = s.replace(/<div class="afternoon-tea-reward is-drawn">([\s\S]*?<\/div>)\s*<\/div>/g,
+                                                '<div class="afternoon-tea-reward">$1</div> 已抽取 </div>');
+                                            s = s.replace(/<script[\s\S]*?<\/script>/gi, ' ').replace(/<style[\s\S]*?<\/style>/gi, ' ');
+                                            s = s.replace(/<br\s*\/?>/gi, ' ')
+                                                .replace(/<\/(tr|div|p|li|h\d|table)>/gi, ' ')
+                                                .replace(/<[^>]+>/g, ' ');
+                                        }
+                                        s = s.replace(/&nbsp;/g, ' ').replace(/&times;/g, '×').replace(/&amp;/g, '&');
+                                        return s.replace(/[ \t\u00a0]+/g, ' ').replace(/\s*\n\s*/g, ' ').trim().slice(0, TEA_INFO_MAX);
+                                    }
+                                    // 解析成 { configId, groupId, cur, draws, grand, noProgress, layers:[{n,state,goods,price,drawn,total,rewards}] }
+                                    function teaInfoParse(raw) {
+                                        const src = teaInfoPrep(raw);
+                                        const info = { configId: '', groupId: '', cur: '', draws: '', grand: '', noProgress: false, layers: [], src: src };
+                                        if (!src) return info;
+                                        const mC = /configId\s*[=:：]\s*(\d+)/i.exec(src);
+                                        if (mC) info.configId = mC[1];
+                                        const mG = /groupId\s*[=:：]\s*(\d+)/i.exec(src);
+                                        if (mG) info.groupId = mG[1];
+                                        const mCur = /当前层\s*[:：]?\s*(-|\d+)/.exec(src);
+                                        if (mCur && mCur[1] !== '-') info.cur = mCur[1];
+                                        const mD = /[（(]\s*(\d+)\s*次\s*[）)]/.exec(src) || /(?:抽奖次数|剩余次数)\s*[:：]?\s*(\d+)/.exec(src);
+                                        if (mD) info.draws = mD[1];
+                                        const mW = /大奖\s*[:：]?\s*(已抽取|未抽取|已抽到|未抽到)/.exec(src);
+                                        if (mW) info.grand = mW[1];
+                                        info.noProgress = /没有该玩家的下午茶|没有[^。]{0,6}抽取进度/.test(src) || !info.cur;
+                                        const parts = src.split(/第\s*(\d+)\s*层/);
+                                        for (let i = 1; i < parts.length; i += 2) {
+                                            const n = +parts[i];
+                                            const body = ' ' + String(parts[i + 1] || '').trim() + ' ';
+                                            const head = body.slice(0, 60);
+                                            const state = /未解锁/.test(head) ? '未解锁'
+                                                : /已抽完|已完成/.test(head) ? '已抽完'
+                                                    : /已解锁|可抽取/.test(head) ? '已解锁' : '';
+                                            const mg = /商品\s*(\d+)\s*\/\s*价格\s*(\d+)\s*\/\s*已抽\s*(\d+)\s*\/\s*(\d+)/.exec(body);
+                                            const rewards = [];
+                                            const reTail = /×\s*(\d+)\s*ID\s*(\d+)\s*\/\s*奖励位\s*(\d+)(\s*已抽取)?(\s*升层奖励)?/g;
+                                            let mt, last = 0;
+                                            while ((mt = reTail.exec(body))) {
+                                                let name = body.slice(last, mt.index).trim();
+                                                last = reTail.lastIndex;
+                                                name = name.replace(/^(未解锁|已解锁|已抽完|可抽取)\s*/, '')
+                                                    .replace(/^商品\s*\d+\s*\/\s*价格\s*\d+\s*\/\s*已抽\s*\d+\s*\/\s*\d+/, '')
+                                                    .trim();
+                                                // 源码版把「已抽取」标在整条奖励盒后面 → 这个标记属于**上一条**
+                                                let trailDrawn = false;
+                                                if (/^已抽取/.test(name)) {
+                                                    trailDrawn = true;
+                                                    name = name.replace(/^已抽取\s*/, '').trim();
+                                                }
+                                                if (trailDrawn && rewards.length) rewards[rewards.length - 1].drawn = true;
+                                                rewards.push({
+                                                    name: name || '奖励', count: +mt[1], id: mt[2], slot: +mt[3],
+                                                    drawn: !!mt[4], up: !!mt[5]
+                                                });
+                                            }
+                                            info.layers.push({
+                                                n: n, state: state, goods: mg ? mg[1] : '', price: mg ? +mg[2] : 0,
+                                                drawn: mg ? +mg[3] : 0, total: mg ? +mg[4] : 0, rewards: rewards
+                                            });
+                                        }
+                                        info.layers.sort((a, b) => a.n - b.n);
+                                        return info;
+                                    }
+                                    // GM 页有时只写「道具 2000029」—— 本地物品名表里认识就换成真名
+                                    function teaInfoLabel(rw) {
+                                        const m = /^道具\s*(\d+)$/.exec(String((rw && rw.name) || '').trim());
+                                        const key = m ? m[1] : String((rw && rw.id) || '');
+                                        let nm = '';
+                                        try { nm = (key && itemNameMap && itemNameMap[key]) || ''; } catch (_) { nm = ''; }
+                                        return nm || (rw && rw.name) || '奖励';
+                                    }
+                                    // 生成话术（玩家能直接看懂的那种，不带 configId 以外的东西）
+                                    function teaInfoScript(info) {
+                                        const out = ['【下午茶 · 吉运节节高】'];
+                                        if (info.configId || info.groupId) {
+                                            const seg = [];
+                                            if (info.configId) seg.push('configId=' + info.configId);
+                                            if (info.groupId) seg.push('groupId=' + info.groupId);
+                                            out.push('档位：' + seg.join(' / '));
+                                        }
+                                        if (!info.layers.length) {
+                                            out.push('这块没认出层数 / 奖励 —— 麻烦把「玩家下午茶信息」整块（含第 1–6 层）复制过来，或者发截图。');
+                                            return out.join('\n');
+                                        }
+                                        if (info.noProgress) {
+                                            out.push('这边没查到您有下午茶（吉运节节高）的抽取记录～');
+                                            out.push('麻烦发一下角色ID + 区服（有截图更好），这边马上帮您核对。');
+                                            return out.join('\n');
+                                        }
+                                        const cur = info.layers.filter(l => String(l.n) === String(info.cur))[0] || null;
+                                        out.push('当前进度：第 ' + info.cur + ' 层' + (cur && cur.total ? '（已抽 ' + cur.drawn + '/' + cur.total + '）' : ''));
+                                        out.push('剩余抽奖次数：' + (info.draws === '' ? '（GM 页没显示）' : info.draws + ' 次'));
+                                        if (info.grand) out.push('大奖：' + info.grand);
+                                        if (cur && cur.rewards.length) {
+                                            out.push('第 ' + cur.n + ' 层奖励'
+                                                + (cur.goods ? '（商品 ' + cur.goods + (cur.price ? ' / 价格 ' + cur.price : '') + '）' : '') + '：');
+                                            cur.rewards.forEach(rw => {
+                                                out.push('　· ' + teaInfoLabel(rw) + ' ×' + rw.count
+                                                    + (rw.up ? '（升层奖励）' : '') + (rw.drawn ? '（已抽到）' : ''));
+                                            });
+                                        }
+                                        const got = [];
+                                        info.layers.forEach(l => l.rewards.forEach(rw => {
+                                            if (rw.drawn) got.push(teaInfoLabel(rw) + ' ×' + rw.count + '（第 ' + l.n + ' 层）');
+                                        }));
+                                        if (got.length) out.push('已抽到：' + got.join('、'));
+                                        const locked = info.layers.filter(l => l.state === '未解锁' && String(l.n) !== String(info.cur))
+                                            .map(l => '第 ' + l.n + ' 层');
+                                        if (locked.length) out.push('还没解锁：' + locked.join('、'));
+                                        return out.join('\n');
+                                    }
+                                    // 照着 GM 那块的样子画出来 + 填话术
+                                    function teaInfoRender(info) {
+                                        const sum = document.getElementById('teaInfoSummary');
+                                        const box = document.getElementById('teaLayerBox');
+                                        const outEl = document.getElementById('teaInfoOut');
+                                        if (sum) {
+                                            const chips = [];
+                                            if (info.configId || info.groupId) {
+                                                chips.push(statChip('档位 configId=' + (info.configId || '—') + ' / groupId=' + (info.groupId || '—')));
+                                            }
+                                            chips.push(info.cur ? statChip('当前层 第 ' + info.cur + ' 层', 'k-accent') : statChip('当前层 —'));
+                                            chips.push(statChip('抽奖次数 ' + (info.draws === '' ? '—' : info.draws + ' 次')));
+                                            if (info.grand) chips.push(statChip('大奖 ' + info.grand, /^已/.test(info.grand) ? 'k-accent' : 'k-plain'));
+                                            chips.push(statChip('认出 ' + info.layers.length + ' 层'));
+                                            if (info.noProgress) chips.push(statChip('Redis 里没有抽取进度', 'k-warn'));
+                                            sum.innerHTML = chips.join('');
+                                        }
+                                        if (box) {
+                                            box.innerHTML = info.layers.length ? info.layers.map(l => {
+                                                const isCur = String(l.n) === String(info.cur);
+                                                const head = '<div class="tea-layer-head"><b>第 ' + l.n + ' 层</b>'
+                                                    + (l.state ? '<span class="tl-state' + (l.state !== '未解锁' ? ' on' : '') + '">'
+                                                        + escapeHtml(l.state) + '</span>' : '')
+                                                    + (l.total ? '<span class="tl-meta">已抽 ' + l.drawn + '/' + l.total + '</span>' : '')
+                                                    + (l.goods ? '<span class="tl-meta">商品 ' + escapeHtml(l.goods)
+                                                        + (l.price ? ' / 价格 ' + l.price : '') + '</span>' : '')
+                                                    + '</div>';
+                                                const rw = l.rewards.map(x => '<span class="tea-reward'
+                                                    + (x.up ? ' is-up' : '') + (x.drawn ? ' is-drawn' : '') + '">'
+                                                    + '<b>' + escapeHtml(teaInfoLabel(x)) + '</b> ×' + x.count
+                                                    + '<span class="tr-id">ID ' + escapeHtml(x.id) + '</span></span>').join('');
+                                                return '<div class="tea-layer' + (isCur ? ' is-cur' : '') + '">' + head
+                                                    + (rw ? '<div class="tea-rewards">' + rw + '</div>' : '') + '</div>';
+                                            }).join('') : '';
+                                        }
+                                        if (outEl) outEl.value = teaInfoScript(info);
+                                        return info;
+                                    }
+                                    function teaInfoRun() {
+                                        const input = document.getElementById('teaInfoInput');
+                                        const outEl = document.getElementById('teaInfoOut');
+                                        const raw = (input && input.value) || '';
+                                        if (!raw.trim()) {
+                                            teaSetHint('teaInfoHint', '先把 GM 玩家页那块「玩家下午茶信息」粘到上面的框里');
+                                            if (outEl) outEl.value = '';
+                                            return null;
+                                        }
+                                        const info = teaInfoParse(raw);
+                                        teaInfoRender(info);
+                                        const nRw = info.layers.reduce((a, l) => a + l.rewards.length, 0);
+                                        if (!info.layers.length) teaSetHint('teaInfoHint', '没认出「第 N 层 / 商品 … / 奖励位 …」这些字样 —— 把整块重新复制一次试试');
+                                        else {
+                                            teaSetHint('teaInfoHint', '认出 ' + info.layers.length + ' 层 · ' + nRw + ' 条奖励'
+                                                + (info.noProgress ? '（没有抽取进度 → 按「没查到记录」写）' : ''));
+                                        }
+                                        return info;
+                                    }
+                                    function teaInfoCopy() {
+                                        const outEl = document.getElementById('teaInfoOut');
+                                        const t = (outEl && outEl.value) || '';
+                                        if (!t.trim()) { teaSetHint('teaInfoHint', '还没生成话术：先粘信息点「解析并生成话术」'); return; }
+                                        safeCopy(t);
+                                        teaSetHint('teaInfoHint', '话术已复制');
+                                    }
+                                    function teaInfoClear() {
+                                        ['teaInfoInput', 'teaInfoOut'].forEach(id => {
+                                            const el = document.getElementById(id);
+                                            if (el) el.value = '';
+                                        });
+                                        const sum = document.getElementById('teaInfoSummary');
+                                        if (sum) sum.innerHTML = '';
+                                        const box = document.getElementById('teaLayerBox');
+                                        if (box) box.innerHTML = '';
+                                        teaSetHint('teaInfoHint', '已清空');
+                                    }
+
                                     function teaResultText() {
                                         const r = teaResult();
                                         const d = teaPollData && teaPollData.date ? teaPollData.date : teaTodayStr();
@@ -16220,6 +16468,10 @@
                                         setClick('teaClearMineBtn', teaClearMyVote);
                                         setClick('teaRefreshBtn', teaRefresh);
                                         setClick('teaCopyResultBtn', teaCopyResult);
+                                        // 下午茶信息 → 话术（粘 GM「玩家下午茶信息」那块）
+                                        setClick('teaInfoParseBtn', teaInfoRun);
+                                        setClick('teaInfoCopyBtn', teaInfoCopy);
+                                        setClick('teaInfoClearBtn', teaInfoClear);
                                         // 反馈模板（模板 / 来源选择片 + 生成 / 复制 / 清空）
                                         fbLoadState();
                                         fbRenderChips();

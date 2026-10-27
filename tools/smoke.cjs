@@ -2721,6 +2721,97 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     await sleep(40);
   }
 
+  console.log('--- 8y. 下午茶信息 → 话术（反推 GM「玩家下午茶信息」那块）---');
+  {
+    const posts8y = posts.length;
+    doc.querySelector('.tab-btn[data-tab="tea"]').click();
+    await sleep(60);
+    check(!!$('teaInfoCard') && !!$('teaInfoInput') && !!$('teaInfoOut')
+      && !!$('teaInfoParseBtn') && !!$('teaInfoCopyBtn') && !!$('teaInfoClearBtn'),
+      '下午茶页多了「🍵 下午茶信息 → 话术」卡（粘贴框 + 解析 / 复制 / 清空 + 话术框）');
+
+    // ① 用户会粘的那一块（纯文本版：GM 页整块复制下来就长这样）
+    const pasteText = [
+      '玩家下午茶信息 （固定 6 层，绿色奖励表示已抽取）',
+      '下午茶档位 configId=15 / groupId=3803 （最近一条下午茶触发记录）',
+      '当前层 3 是否有抽奖次数 是（2 次） 大奖 未抽取',
+      '第 6 层 未解锁 商品 380306 / 价格 0 / 已抽 0/1 无相牌 × 1 ID 1010101 / 奖励位 0',
+      '第 5 层 未解锁 商品 380305 / 价格 88 / 已抽 0/2 红宝石 × 1540 ID 103 / 奖励位 0 升层奖励 道具 2000029 × 1 ID 2000029 / 奖励位 1',
+      '第 3 层 已解锁 商品 380303 / 价格 30 / 已抽 1/4 道具 2000026 × 1 ID 2000026 / 奖励位 0 升层奖励 红宝石 × 500 ID 103 / 奖励位 1 秘藏宝匣 × 2 ID 31906 / 奖励位 2 体力 × 1200 ID 101 / 奖励位 3 升层奖励'
+    ].join('\n');
+    $('teaInfoInput').value = pasteText;
+    $('teaInfoParseBtn').click();
+    await sleep(80);
+    const sum8y = $('teaInfoSummary').textContent;
+    check(/configId=15/.test(sum8y) && /groupId=3803/.test(sum8y) && /当前层 第 3 层/.test(sum8y)
+      && /抽奖次数 2 次/.test(sum8y) && /大奖 未抽取/.test(sum8y) && /认出 3 层/.test(sum8y),
+      '粘一整块 → 认出档位 / 当前层 / 抽奖次数 / 大奖 / 层数', sum8y.slice(0, 140));
+    const layers8y = $('teaLayerBox').querySelectorAll('.tea-layer');
+    const cur8y = $('teaLayerBox').querySelector('.tea-layer.is-cur');
+    check(layers8y.length === 3 && !!cur8y && /第 3 层/.test(cur8y.textContent),
+      '认到的 3 层都画出来，当前层（第 3 层）那格高亮', layers8y.length + ' 层');
+    const rw8y = $('teaLayerBox').textContent;
+    check(/秘藏宝匣/.test(rw8y) && /红宝石/.test(rw8y) && $('teaLayerBox').querySelectorAll('.tea-reward.is-up').length === 3,
+      '奖励照原样列出来（升层奖励单独标出来；本地物品名表认识的换成真名）', rw8y.replace(/\s+/g, ' ').slice(0, 120));
+    const script8y = $('teaInfoOut').value;
+    check(/【下午茶 · 吉运节节高】/.test(script8y) && /当前进度：第 3 层（已抽 1\/4）/.test(script8y)
+      && /剩余抽奖次数：2 次/.test(script8y) && /大奖：未抽取/.test(script8y)
+      && /还没解锁：第 5 层、第 6 层/.test(script8y) && /秘藏宝匣 ×2/.test(script8y),
+      '话术按「档位 / 当前进度 / 次数 / 大奖 / 本层奖励 / 未解锁」写出来', script8y.split('\n').slice(0, 4).join(' | '));
+
+    // ② 已抽取的奖励（网页源码里 is-drawn 的绿盒子 → 归一化时标成「已抽取」）
+    $('teaInfoInput').value = '当前层 3 大奖 已抽取 第 3 层 已解锁 商品 380303 / 价格 30 / 已抽 2/4 '
+      + '红宝石 × 500 ID 103 / 奖励位 0 已抽取 秘藏宝匣 × 2 ID 31906 / 奖励位 1';
+    $('teaInfoParseBtn').click();
+    await sleep(80);
+    check(/已抽到：红宝石 ×500（第 3 层）/.test($('teaInfoOut').value)
+      && $('teaLayerBox').querySelectorAll('.tea-reward.is-drawn').length === 1,
+      '带「已抽取」标记的奖励会标灰，并在话术里单列「已抽到」', $('teaInfoOut').value.replace(/\n/g, ' | ').slice(0, 120));
+
+    // ②b 直接贴 GM 页源码（绿色盒子挂的是 is-drawn 这个 class）：标记属于它前面那条奖励
+    $('teaInfoInput').value = '<div class="panel panel-default afternoon-tea-card"><div class="panel-body">'
+      + '当前层 3 是否有抽奖次数 是（1 次） 大奖 未抽取'
+      + '<div class="afternoon-tea-layer-wrap"><div class="panel-heading"><strong>第 3 层</strong><span>已解锁</span></div>'
+      + '<div class="text-muted">商品 380303 / 价格 30 / 已抽 1/2</div><div class="afternoon-tea-rewards">'
+      + '<div class="afternoon-tea-reward is-drawn"><strong>红宝石</strong> × 500 <div class="small">ID 103 / 奖励位 0</div></div>'
+      + '<div class="afternoon-tea-reward "><strong>秘藏宝匣</strong> × 2 <div class="small">ID 31906 / 奖励位 1</div></div>'
+      + '</div></div></div></div>';
+    $('teaInfoParseBtn').click();
+    await sleep(80);
+    check($('teaLayerBox').querySelectorAll('.tea-reward.is-drawn').length === 1
+      && /红宝石/.test($('teaLayerBox').querySelector('.tea-reward.is-drawn').textContent)
+      && /已抽到：红宝石 ×500/.test($('teaInfoOut').value),
+      '贴网页源码也认：is-drawn 那条（红宝石）才算已抽取，不串到下一条', $('teaLayerBox').querySelector('.tea-reward.is-drawn').textContent);
+
+    // ③ GM 页 Redis 里没进度（就是那种「以下仅展示 6 层奖励配置」）：话术改成「没查到记录」
+    $('teaInfoInput').value = '玩家下午茶信息 Redis 中没有该玩家的下午茶抽取进度，以下仅展示反查到的 6 层奖励配置。 '
+      + '下午茶档位 configId=15 / groupId=3803 当前层 - 是否有抽奖次数 否（0 次） 大奖 未抽取 '
+      + '第 1 层 未解锁 商品 380301 / 价格 10 / 已抽 0/4 红宝石 × 100 ID 103 / 奖励位 0';
+    $('teaInfoParseBtn').click();
+    await sleep(80);
+    check(/没查到您有下午茶（吉运节节高）的抽取记录/.test($('teaInfoOut').value)
+      && /麻烦发一下角色ID \+ 区服/.test($('teaInfoOut').value),
+      '没有抽取进度时话术不瞎报层数，改成「没查到记录，麻烦发角色ID/区服」', $('teaInfoOut').value.replace(/\n/g, ' | ').slice(0, 120));
+
+    // ④ 空输入 / 清空
+    $('teaInfoInput').value = '';
+    $('teaInfoParseBtn').click();
+    await sleep(40);
+    check($('teaInfoOut').value === '' && /先把 GM 玩家页那块/.test($('teaInfoHint').textContent),
+      '空输入只给提示，不生成话术', $('teaInfoHint').textContent);
+    $('teaInfoInput').value = pasteText;
+    $('teaInfoParseBtn').click();
+    await sleep(60);
+    $('teaInfoClearBtn').click();
+    await sleep(40);
+    check($('teaInfoInput').value === '' && $('teaInfoOut').value === ''
+      && $('teaLayerBox').innerHTML === '' && $('teaInfoSummary').innerHTML === '',
+      '「清空」把输入 / 面板 / 话术一起清掉');
+
+    check(posts.slice(posts8y).filter(p => /careerData|teaInfo|dailyData/.test(p.url)).length === 0,
+      '下午茶信息解析全程只在本机（不碰服务端）', posts.slice(posts8y).map(p => p.url).join(' | '));
+  }
+
   console.log('--- 9. 无未捕获异常 ---');
   check(!warns.some(w => w.startsWith('ERROR')), 'console.error 未被调用：' + warns.filter(w => w.startsWith('ERROR')).join(' | '));
   check(jsdomErrors.length === 0, '页面无未捕获异常（jsdomError）', jsdomErrors.slice(0, 3));

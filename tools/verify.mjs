@@ -556,6 +556,28 @@ ok(/const TEA_SHOPS_CACHE_KEY = 'teaShopsCache';/.test(s) && /function teaSaveSh
   && /function teaLoadShopsCache\(\)/.test(s) && /已用本机备份恢复/.test(s)
   && /const o = \(typeof s === 'string'\) \? \{ name: s \} : s;/.test(s),
   '下午茶：店家只存店名 + 本机另存备份，服务端那份没了就自动恢复（永不随投票一起清）');
+// ---- 3g-2. 下午茶信息 → 话术（反推 GM「玩家下午茶信息」那块，游戏里叫「吉运节节高」）----
+ok(/<div class="card" id="teaInfoCard">/.test(s) && /id="teaInfoInput"/.test(s) && /id="teaInfoOut"/.test(s)
+  && /id="teaInfoParseBtn"/.test(s) && /id="teaInfoCopyBtn"/.test(s) && /id="teaInfoClearBtn"/.test(s)
+  && /id="teaInfoSummary"/.test(s) && /id="teaLayerBox"/.test(s)
+  && /setClick\('teaInfoParseBtn', teaInfoRun\)/.test(s) && /setClick\('teaInfoCopyBtn', teaInfoCopy\)/.test(s)
+  && /setClick\('teaInfoClearBtn', teaInfoClear\)/.test(s)
+  && /html\[data-vote-only="1"\] #teaInfoCard/.test(s),
+  '下午茶页多了「🍵 下午茶信息 → 话术」卡（粘贴框 + 解析 / 复制 / 清空 + 汇总芯片 + 分层展示 + 话术框；只投票模式藏掉）');
+ok(/const TEA_INFO_MAX = 200000;/.test(s) && /function teaInfoPrep\(raw\)/.test(s)
+  && /function teaInfoParse\(raw\)/.test(s) && /function teaInfoScript\(info\)/.test(s)
+  && /function teaInfoRender\(info\)/.test(s) && /function teaInfoRun\(\)/.test(s)
+  && /afternoon-tea-reward is-drawn/.test(s),
+  '下午茶信息解析：贴纯文本或网页源码都认（源码里绿色 is-drawn 的奖励会标成「已抽取」）');
+ok(/const parts = src\.split\(\/第\\s\*\(\\d\+\)\\s\*层\/\);/.test(s)
+  && /商品\\s\*\(\\d\+\)\\s\*\\\/\\s\*价格\\s\*\(\\d\+\)\\s\*\\\/\\s\*已抽\\s\*\(\\d\+\)\\s\*\\\/\\s\*\(\\d\+\)/.test(s)
+  && /奖励位\\s\*\(\\d\+\)/.test(s) && /升层奖励/.test(s) && /已抽取/.test(s)
+  && /当前层\\s\*\[:：\]\?\\s\*\(-\|\\d\+\)/.test(s) && /大奖\\s\*\[:：\]\?\\s\*\(已抽取\|未抽取\|已抽到\|未抽到\)/.test(s),
+  '能认出 GM 那块的结构：档位 configId/groupId、当前层、抽奖次数、大奖、每层「商品 / 价格 / 已抽 x/y」与每条奖励（ID / 奖励位 / 升层奖励 / 已抽取）');
+ok(/【下午茶 · 吉运节节高】/.test(s) && /没查到您有下午茶（吉运节节高）的抽取记录/.test(s)
+  && /剩余抽奖次数：/.test(s) && /还没解锁：/.test(s) && /已抽到：/.test(s)
+  && /function teaInfoLabel\(rw\)/.test(s) && /itemNameMap\[key\]/.test(s),
+  '生成的话术：档位 / 当前进度 / 剩余次数 / 大奖 / 本层奖励 / 已抽到 / 未解锁；没有抽取进度时改成「没查到记录，麻烦发角色ID/区服」；奖励名会用本地物品名表换成真名');
 
 // ---- 3h. SOP 助手已整块删除（2026-10，用户要求）；服务端的 sop 口令关与 seed 工具保留 ----
 ok(!/sop/i.test(s),
