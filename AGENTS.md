@@ -48,7 +48,7 @@ npm run verify     # 改完代码、push 前的完整自检
 
 | 命令 | 内容 |
 |---|---|
-| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 468 项 + 「接口挂起时界面仍可用」+ 服务端冒烟 42 项 |
+| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 494 项 + 「接口挂起时界面仍可用」+ 服务端冒烟 42 项 |
 | `npm run verify:static` | 只要静态校验 + 语法检查（最快） |
 | `npm run report` | 打印一份真实生成的日报，肉眼确认排版（含 ⑥伙伴弹途 / ⑦异世界勇者） |
 | `npm run build:data` | 从 GM 玩家页快照提取 4 张权威映射表 + 与硬编码常量的**差异报告**（见下「游戏数据管线」） |
@@ -58,7 +58,7 @@ npm run verify     # 改完代码、push 前的完整自检
 | `npm run smoke:pmc` | **生管物料订单工作台**（`public/pmc.html`）自检，123 项（含加工周期工作日推算 + 在途锁定/调整建议 + 真实 8.5MB xlsx 端到端导入）；**不在 verify 里**，见下「生管物料订单工作台」一节 |
 | `npm test` | = `npm run verify` |
 
-`npm run verify` 失败就不要提交。它一共 5 段：静态结构 → 语法 → jsdom 集成冒烟 **468 项** → 接口挂起时界面仍可用 → 服务端冒烟 **42 项**。
+`npm run verify` 失败就不要提交。它一共 5 段：静态结构 → 语法 → jsdom 集成冒烟 **494 项** → 接口挂起时界面仍可用 → 服务端冒烟 **42 项**。
 
 - jsdom 未安装时前端冒烟会自动回落到本机 DSH 自带的那份。
 - `tools/smoke-server.cjs` 用 `PORT` + `DATA_FILE` 环境变量把服务端指到随机端口和 `tools/out/` 里的临时文件，**不会碰真实 `data.json`**；子进程 stdio 必须用 `ignore`/`inherit`（沙箱禁管道，`pipe` 会 EPERM）。
@@ -156,12 +156,25 @@ npm run verify     # 改完代码、push 前的完整自检
   - **存哪儿**：只写本机 `localStorage['careerRestDays']`（`YYYY-MM-DD` 数组，`careerRestLoad` / `careerRestSave` / `careerRestToggle`），**不进 `/api/data`** —— 跟 `careerData` 一个规矩。
   - **统计口径（`careerStats` 里只有这一处）**：`const restSet = careerRestSet()` 之后 —— ① **断档只数工作日**（`gapWorkDays()` 跳过休息日）；② **连续记录不休息日打断**（中间全是休息日就继续连续）；③ 新增 `restDays`（记录区间内的休息天数）与 `dutyDays = spanDays - restDays`（**在岗天数**），KPI「记录区间」副标与「数据质量」芯片都会显示「在岗 / 休息」。
   - **归档体检也跳过休息日**：休息日不报「漏登记」，另起一片「休息 N 天（不算漏登记）」。
+- **🕒 排班日历识别（2026-10 用户：「排班板块增加可识别排班日历的功能，根据识别的排班日历，自动对日报和生涯中关于班次的数据进行匹配」）**：排班休息卡下面多一块 `.shift-import`（`#careerShiftInput` 粘贴框 + `🔍 识别并应用`(`#careerShiftParseBtn`) / `👀 先看认出什么`(`#careerShiftDetectBtn`) / `📋 同步到日报`(`#careerShiftTodayBtn`) / `🧹 清空排班`(`#careerShiftClearBtn`) + `#careerShiftLegend` 班次图例 + `#careerShiftStats` 生涯班次芯片）。
+  - **能认的写法**（混着粘也行）：① `2026-10-26 H班` / `2026/10/26 H`；② `10-26 H` / `10月26日（H班）`；③ 从日历网页复制的一坨 —— `2026年10月` 抬头 + `1 廿一休 2 廿二 12:00 F班 3 廿三 12:00 F班`（先按「时间 + 班次」抠 chip，再按「日期数字 → 后面最近的那个 chip / 休」绑定；日期回到 1 之前的那几天算**上个月**）；④ 班次表 `A 8:00-17:00 … O休息` → 只写班次定义（`careerShiftDefs`），图例里能看到 `H 14:00-23:00`。
+  - **存放**：只写本机 `localStorage['careerShiftDays']`（`{ 'YYYY-MM-DD': 'H' }`，休息 = `'O'`）与 `localStorage['careerShiftDefs']`（`{ H: '14:00-23:00' }`），**不进 `/api/data`**。`parse` / `apply` 的入口是 `careerParseShiftText(text, ymHint)` / `careerApplyShift(parsed, replace)`。
+  - **应用时**：同一天以新识别的为准；`'O'` 会**顺带写进 `careerRestDays`**（排班休息那天自动标休息），非 `O` 的那天从休息里删掉。
+  - **日历格**：`.career-rest-day` 多挂 `data-shift` 与 `.has-shift`，`<i>` 里显示班次代码（休息仍显示「休」；`.has-shift i` 让平时藏着的那个小片显形）；提示写「休息 N 天 · 排班 M 天」。
+  - **自动匹配班次**（用户要的第二半）：① 日报表单的「班次」下拉在空值时按**当天排班**带出（`val = (f.key === 'shift' ? careerShiftOfDate(careerToday()) : '') || f.default || …`）；② 在线客服日报抬头写 `（H班）` 时也读当天排班；③ 归档进生涯时 `careerFoldDaily()` 在日报没填班次时用当天排班补 `rec.shift`；④ 生涯侧边一排芯片显示「已匹配班次 N 天 + 各班次天数」。
+  - **测试**：`tools/smoke.cjs` 第 **8v** 节 **10 条**（粘贴框与四个按钮 / `YYYY-MM-DD H班` → 当天 H / 日历格显示 H / 日历一坨（1 号休 + 2·3 号 12:00 F班）/ 「休」自动标休息 / 提示写识别天数 / 班次表进图例 / 全程只写本机 / 「同步到日报」把班次写进三栏 / 清空后格子上的班次消失）；`tools/verify.mjs` 3b-4 另有 3 条静态断言。
 - **归档体检 / 漏登记提醒（2026-10）**：客服生涯总览卡里的 `#careerAuditBox` 由 `renderCareerAudit()` 填 —— 看**最近 7 天（不含今天）**有哪些日子 `careerData.records` 里没有，有就出 `k-warn` 芯片点名（「漏登记 N 天」+ 每个日期一片 + 指路「去每日日报归档或下面补录」），齐了就一片「最近 7 天都归档了」。日期用 `careerRecentDays(7)` 按 UTC 递减算，不依赖时区。
 - ⚠️ 想再换回暗色：把 `:root` 的 `--bg-0/--surface*/--ink*/--line*/--accent*` 换回深色值即可，但**要同时删掉/改掉「浅色收口层 · 柔和白」这一段 + `color-scheme: light` + select 箭头 SVG 的 `%23c89500`**，否则会有浅底白线。
 
 ## 每日日报（`data-tab="daily"` · 表单分组）
 
-工单日报 32 个字段 / 海外日报 17 个字段原来是平铺的一个 auto-fit 网格，用户反馈「每次填的时候都要找一下对应项在哪」（2026-10），现在按业务**分组**渲染 —— **只改排版，字段一个不合并、不删、不改名**（用户后来又强调过一遍「每个要填的项不合并删改，只是希望可以更方便查看填写」）：
+**三栏**：📋 工单日报（32 字段）/ 🌐 海外日报（17 字段）/ 💬 在线客服日报（10 字段，2026-10 新增）。三栏的字段 / 分组 / 自定义项 / 渲染都挂在同一张 `DAILY_TABS` 表上（`{ formId, btnId, fields, groups, customKey, label }`），**加第四栏只要改这张表 + 一个 form div**。
+
+- **在线客服日报（用户给的模板）**：`DAILY_ONLINE_FIELDS` = 客服 / 班次 / **53会话量** / **支付宝在线** / **邀评数** / **评价数** / **好评数** / **差评数** / 特殊问题 / 差评分析；分组 `DAILY_ONLINE_GROUPS` = 基础信息 / 💬 会话量 / ⭐ 邀评与评价 / 📝 问题与差评。
+  - ⚠️ 它的「支付宝在线」与工单日报的「支付宝在线」**同名但两个字段**（`online.alipay_session` vs `ticket.alipay`，前者是会话量、后者是在线量），统计时各算各的，别合并。
+  - 正文（`generateDailyReport` 的 `online` 分支）逐行就是用户的模板：`M月D日工作日报（H班）：` / `客服` / `53会话量：N` / `支付宝在线：N` / `邀评数：N` / `评价数：N` / `好评数：N` / `差评数：N` / `特殊问题：…` / `差评分析：…`；**有评价数时额外补一行「好评率：xx%」**（模板里没有，是顺手算的备注）。
+  - `careerItemsFromDaily(t, o, n)` 多了第三栏参数；`CAREER_ONLINE_LABEL_TO_KEY` 让「粘贴在线客服日报文本」也能导入（`hasOnline` 只清在线侧，工单/海外两边不动）。
+- **工单日报 32 个字段 / 海外日报 17 个字段原来是平铺的一个 auto-fit 网格**，用户反馈「每次填的时候都要找一下对应项在哪」（2026-10），现在按业务**分组**渲染 —— **只改排版，字段一个不合并、不删、不改名**（用户后来又强调过一遍「每个要填的项不合并删改，只是希望可以更方便查看填写」）：
 
 - **分组定义**：`DAILY_TICKET_GROUPS`（10 组：基础信息 / 工单与后台 / ① 繁花 / ② 乐缤纷 / ③ 不差钱 / ④ 你的江湖 / ⑤ 梦幻消除战 / ⑥ 伙伴弹途 / ⑦ 异世界勇者 / 待跟进）与 `DAILY_OVERSEAS_GROUPS`（**7 组**：基础信息 / 评价与来访 / **📮 邮箱（来访）** / SDk 工单 / 工单 / 监控 / 群维系）。**数组顺序 = 表单里从上到下的顺序**；字段靠自身的 `group` 归组（`DAILY_TICKET_FIELDS` / `DAILY_OVERSEAS_FIELDS` 里每个字段都带 `group`，**除此之外一个字都没动**）。
 - **渲染**：`renderDailyForm()` 按组出 `<section class="daily-group" data-group="…">` —— 组头 = 两位数编号 `.dg-n` + 标题 `.dg-title` + 副标 `.dg-sub` + 右上「已填 n/m」`.dg-fill`；组内 `.daily-group-grid` 自己一套 `repeat(auto-fit, minmax(150px,1fr))`。`.daily-form` 外层改成 flex 竖排，不再是全局网格。
@@ -501,8 +514,8 @@ package.json               scripts: start / verify / verify:static / smoke:serve
     - ⚠️ 它们可导入、**不进两侧卡片、不进「累计工作量」**；**2026-09 起页面上不再单独展示**（原来那张「🧩 对外报表口径（登记表 14 项）」卡片按用户要求删掉了），只继续参与**粘贴导入的「总计」对账**与 **CSV 导出**——数据模型 `CAREER_SHEET_ITEMS` / `CAREER_HIDDEN_ITEMS` / `careerSheetSum` 全部保留。
   - **`CAREER_IMPORT_ALIASES`**：登记表列名跟本系统标签写法不同的，导入时按别名对齐。目前两条：`（繁花+乐缤纷+梦幻）群维系` → `mhl_group`（海外侧群维系项）、`SSO国内工单` → `t_sso`（工单侧 SSO工单）。**所以历史数据的 142 会进海外侧统计、22 会进工单侧统计。**
   - **`extra` / 「①~⑥群维系不采集」都已成为历史**：工单侧现在**逐字段**统计工单日报（①~⑥ 各组平台各占一行），不再有聚合项或「不计入」的日报字段。
-  - **两套口径**：`累计工作量` = 39 项（界面两侧卡片与之对齐）；`登记表 14 列口径` = 登记表那 14 列（10 列已归入两侧统计，4 列只存档）。
-    - **2026-09 起界面上只呈现统计口径**：顶部是一条**两段式堆叠占比条**（`#careerSplitBar > i.ticket` 用 `--accent` 黄、`i.overseas` 用 `#3d7bd6` 蓝，宽度按两侧累计占比，段窄于 12% 就不写字）＋ 图例 `#careerSplitLegend`（工单侧/海外侧各自的数与占比 + 合计）；下面 `#careerSheetHint` 一行写明「工单侧 X + 海外侧 Y = 累计 Z；日均 …（按 N 个完整记录日）；数据只存在这台设备的浏览器里，不会同步给别的设备。」——**14 列口径不再出现在界面上**。
+  - **两套口径**：`累计工作量` = 45 项（工单 29 + 海外 10 + 在线客服 6，界面各侧卡片与之对齐）；`登记表 14 列口径` = 登记表那 14 列（10 列已归入各侧统计，4 列只存档）。
+    - **2026-09 起界面上只呈现统计口径**：顶部是一条**堆叠占比条**（`#careerSplitBar > i` 用内联色：工单 `--accent` 黄 / 海外 `#3d7bd6` 蓝 / 在线客服 `#16a34a` 绿，宽度按各侧累计占比，段窄于 12% 就不写字）＋ 图例 `#careerSplitLegend`（各侧的数与占比 + 合计）；下面 `#careerSheetHint` 一行写明「工单侧 X + 海外侧 Y (+ 在线客服侧 Z) = 累计 W；日均 …（按 N 个完整记录日）；数据只存在这台设备的浏览器里，不会同步给别的设备。」——**14 列口径不再出现在界面上**。⚠️ **在线客服侧还没有数据时（sum = 0）占比条 / 图例 / 芯片都不显示这一侧**，老记录的界面跟以前一模一样。
     - 用上传的表导入时**两者都是 5,623，与原表完全一致**（因为表里那 4 个只存档列全是 0）。
   - **导入的「总计」核对用 14 列口径**（不是统计口径），否则有群维系数据的天数会被误报成「总计对不上」。
   - **归档时机**：点「生成日报」时顺手归档当天；跨天自动刷新那条路径**故意不归档**（否则会把昨天的数记到今天）。同一天重复归档 = 覆盖。也可用页面上的「归档今日日报」按钮手动触发。
@@ -514,7 +527,7 @@ package.json               scripts: start / verify / verify:static / smoke:serve
        - ⚠️ 折算复用 `careerItemsFromDaily(t, o)`（与点「生成日报」自动归档**同一套口径**），所以日报文本导入的结果与归档完全一致。
        - 覆盖策略：**按侧覆盖**——粘了工单日报就清工单侧旧值、粘了海外日报就清海外侧旧值，没粘的那侧保留（避免只补一段把另一段清空）。
   - **统计项**（用户要"更能量化工作成果"，已去掉面试/简历相关表述；**2026-09 按用户「更直观一点」重排过版式，又加了身份筛选 / 指标详情 / 折叠面板**）：
-    - **身份筛选**：顶部 `#careerScopeBar` 三个按钮「全部 / 📋工单 / 🌐海外」（`data-scope`，选中的加 `.active`）。`careerScopeState` 存在本机 `localStorage['careerScope']`（**不是 careerData，也不走服务端**）。`careerStats(scope)` 是唯一的开关：scope=某一侧时，每条记录的「工作量」改成**该侧项之和**（`careerSideTotal(rec, scope)`），于是日均 / 最高单日 / 连续记录 / 月度 / 趋势全部自动跟着身份走；scope=all 时和以前一模一样。选某一侧时：另一侧的统计卡 `#careerCardTicket`/`#careerCardOverseas` 隐藏、两侧占比条 `#careerSplitWrap` 隐藏、`#careerSheetHint` 只讲那一侧。
+    - **身份筛选**：顶部 `#careerScopeBar` 四个按钮「全部 / 📋工单 / 🌐海外 / 💬在线客服」（`data-scope`，选中的加 `.active`；按钮是从 `CAREER_SIDES` 渲染的，`verify` 有断言）。`careerScopeState` 存在本机 `localStorage['careerScope']`（**不是 careerData，也不走服务端**），合法性用 `isCareerSide()` 判。`careerStats(scope)` 是唯一的开关：scope=某一侧时，每条记录的「工作量」改成**该侧项之和**（`careerSideTotal(rec, scope)`），于是日均 / 最高单日 / 连续记录 / 月度 / 趋势全部自动跟着身份走；scope=all 时和以前一模一样。选某一侧时：其他侧的统计卡 `careerCard{Ticket,Overseas,Online}` 隐藏（`CAREER_SIDES.forEach` 统一处理）、占比条 `#careerSplitWrap` 隐藏、`#careerSheetHint` 只讲那一侧。
     - **指标详情** `#careerDetailItem`（范围：全部工作量 / 工单侧 / 海外侧 / 逐项，含 SDk 三项明细）+ `#careerDetailGrain`（按日 / 按月）→ `#careerDetailSummary` 5 张小卡（总量 / 日均 / **按日时是中位数、按月时是月均** / 最高单日或最高月 / 记录天数或月数）+ `#careerDetailChart` 柱状（按日只画最近 90 个记录日）+ `#careerDetailTable`（期间 / 合计 / 日均 / 占总量）。取值走 `careerDetailValue(rec, sel)`。
     - **周维度**（`#careerWeeklyTable`，新卡「🗓️ 周维度」）：按**周一为一周第一天**聚合（`weekStartOf()`），列 = 周（周一～周日）/ 记录天数 / 总量 / 日均 / 最高单日 / **环比上周** / **同比（4 周前）** —— 没有去年数据，所以「同比」用 4 周前那一周当代理（表下有一行说明）。最近的在最上面。
     - **来源结构**（`#careerStructureBox`，在「趋势 · 月度汇总」卡里）：按 `kind`（来源大类）画一条多色占比条 + 图例（`CAREER_KIND_COLORS` 按顺序取色，段宽 <12% 不写字），下面一行 **Top3 集中度**（前 3 个单项的合计占比）+「N 个来源大类、M 项有产出」。**跟着身份筛选走**（选海外就只统计海外侧项）。

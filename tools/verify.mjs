@@ -168,9 +168,9 @@ ok(/data-tab="career"/.test(s) && /id="tab-career"/.test(s), '客服生涯标签
   const badT = tPair.filter(([k, g]) => !tIds.has(g)).map(([k]) => k);
   const badO = oPair.filter(([k, g]) => !oIds.has(g)).map(([k]) => k);
   ok(!badT.length && !badO.length, '字段引用的分组都存在' + (badT.length || badO.length ? '，越界：' + badT.concat(badO).join('/') : ''));
-  ok(/const groups = tab === 'ticket' \? DAILY_TICKET_GROUPS : DAILY_OVERSEAS_GROUPS;/.test(s)
+  ok(/const groups = def\.groups\(\);/.test(s) && /const DAILY_TABS = \{/.test(s)
     && /<section class="daily-group" data-group=/.test(s) && /class="daily-group-grid"/.test(s),
-    'renderDailyForm 按分组渲染（组 = 一片 section + 组内网格）');
+    'renderDailyForm 按分组渲染（组 = 一片 section + 组内网格；三栏共用一张 DAILY_TABS 表）');
   ok(/data-group="misc"[\s\S]{0,900}?looseFields\.map\(fieldHtml\)/.test(s),
     '没归组的字段有兜底（misc 组照旧渲染，不会把新字段吞掉）');
   ok(/function updateDailyGroupFill\(container, tab\)/.test(s)
@@ -218,13 +218,51 @@ ok(/const careerAllItems = \(\) => CAREER_ITEMS\.concat\(CAREER_BREAKDOWN\)\.con
 ok(/id="careerScopeBar"/.test(s) && /data-scope="overseas"/.test(s) && /function careerSetScope\(scope\)/.test(s)
   && /function careerSideTotal\(rec, scope\)/.test(s) && /careerStats\(scope\)/.test(s),
   '身份筛选已注入（全部 / 工单 / 海外 驱动整页统计）');
-ok(/id="careerCardTicket"/.test(s) && /id="careerCardOverseas"/.test(s)
-  && /cardTicket\.style\.display = \(!scoped \|\| scope === 'ticket'\)/.test(s),
-  '选某一侧时另一侧统计卡隐藏');
+ok(/id="careerCardTicket"/.test(s) && /id="careerCardOverseas"/.test(s) && /id="careerCardOnline"/.test(s)
+  && /const card = document\.getElementById\('careerCard' \+ sd\.key\.charAt\(0\)\.toUpperCase\(\) \+ sd\.key\.slice\(1\)\);/
+  && /if \(card\) card\.style\.display = \(!scoped \|\| scope === sd\.key\) \? '' : 'none';/.test(s),
+  '选某一侧时另一侧统计卡隐藏（三侧统一走 CAREER_SIDES 循环）');
 // 指标详情：选范围（某一侧 / 某一项）+ 按日·按月 + 总量 / 平均值
 ok(/function careerDetailValue\(rec, sel\)/.test(s) && /function renderCareerDetail\(\)/.test(s)
   && /id="careerDetailItem"/.test(s) && /id="careerDetailGrain"/.test(s) && /id="careerDetailSummary"/.test(s),
   '指标详情面板已注入（选某一侧或某一项，按日/按月看总量与平均值）');
+// ---- 3b-3. 在线客服日报（第三栏）+ 生涯在线客服侧（2026-10 用户）----
+ok(/const DAILY_ONLINE_FIELDS = \[/.test(s) && /'53会话量'/.test(s) && /'支付宝在线'/.test(s)
+  && /'邀评数'/.test(s) && /'评价数'/.test(s) && /'好评数'/.test(s) && /'差评数'/.test(s)
+  && /'特殊问题'/.test(s) && /'差评分析'/.test(s)
+  && /id="dailyTabOnline"/.test(s) && /id="dailyFormOnline"/.test(s)
+  && /const DAILY_TABS = \{/.test(s) && /const DAILY_TAB_KEYS = \['ticket', 'overseas', 'online'\];/.test(s),
+  '在线客服日报：按用户给的模板建了第三栏（53会话量 / 支付宝在线 / 邀评 / 评价 / 好评 / 差评 / 特殊问题 / 差评分析），三栏共用 DAILY_TABS');
+ok(/text \+= `\$\{date\.month\}月\$\{date\.day\}日工作日报（\$\{shift\}班）：\\n`;/.test(s)
+  && /text \+= `53会话量：\$\{d\.kf53_session \|\| 0\}\\n`;/.test(s)
+  && /text \+= `差评分析：\$\{d\.bad_analysis \|\| ''\}\\n`;/.test(s),
+  '在线客服日报正文就是用户给的模板（抬头带班次 + 客服 + 8 行「标签：值」）');
+ok(/const careerOnlineKind = \(key\) =>/.test(s) && /const CAREER_ONLINE_ITEMS = DAILY_ONLINE_FIELDS/.test(s)
+  && /\.filter\(f => f\.type === 'number'\)/.test(s)
+  && /from: \['online\.' \+ f\.key\]/.test(s)
+  && /CAREER_TICKET_ITEMS\.concat\(CAREER_OVERSEAS_ITEMS\)\.concat\(CAREER_ONLINE_ITEMS\)/.test(s)
+  && /\{ key: 'online', label: '在线客服', icon: '💬' \}/.test(s)
+  && /data-scope="online"/.test(s) && /id="careerSideOnline"/.test(s),
+  '生涯多了「在线客服」侧：统计项从日报字段自动生成（6 项数值），并进 CAREER_ITEMS / 身份筛选 / 统计卡');
+ok(/function careerItemsFromDaily\(t, o, n\)/.test(s) && /const src = tab === 'ticket' \? tt : \(tab === 'online' \? nn : oo\);/.test(s)
+  && /const CAREER_ONLINE_LABEL_TO_KEY = \(function \(\) \{/.test(s)
+  && /hasOnline: false, t: \{\}, o: \{\}, n: \{\}/.test(s)
+  && /if \(r\.hasOnline\) for \(const it of CAREER_ONLINE_ITEMS\) delete items\[it\.key\];/.test(s),
+  '在线客服的数能折算进生涯、也能从「在线客服日报文本」粘贴导入（hasOnline 只清自己那一侧）');
+// ---- 3b-4. 排班日历识别（自动匹配日报 / 生涯的班次）----
+ok(/const CAREER_SHIFT_KEY = 'careerShiftDays';/.test(s) && /const CAREER_SHIFT_DEF_KEY = 'careerShiftDefs';/.test(s)
+  && /function careerShiftOfDate\(date\)/.test(s) && /function careerParseShiftText\(text, ymHint\)/.test(s)
+  && /function careerApplyShift\(parsed, replace\)/.test(s)
+  && /id="careerShiftInput"/.test(s) && /id="careerShiftParseBtn"/.test(s)
+  && /id="careerShiftLegend"/.test(s) && /id="careerShiftClearBtn"/.test(s),
+  '排班板块加了「识别排班日历」：粘贴框 + 识别 / 清空 + 班次图例，结果只存本机（careerShiftDays / careerShiftDefs）');
+ok(/val = \(f\.key === 'shift' \? careerShiftOfDate\(careerToday\(\)\) : ''\) \|\| f\.default/.test(s)
+  && /const shift = d\.shift \|\| careerShiftOfDate\(careerToday\(\)\) \|\| '';/.test(s)
+  && /const shift = String\(t\.shift \|\| o\.shift \|\| n\.shift \|\| ''\)\.trim\(\) \|\| careerShiftOfDate\(careerToday\(\)\);/.test(s),
+  '班次自动匹配：日报表单按当天排班带出、在线客服日报抬头用排班、归档进生涯时也补上班次');
+ok(/const shift = String\(shiftMap\[date\] \|\| ''\)\.trim\(\);/.test(s) && /class="career-rest-day'/.test(s)
+  && /has-shift/.test(s) && /data-shift="' \+ escapeHtml\(shift\) \+ '"/.test(s),
+  '排班日历上每一天都标出识别到的班次（格子里的 data-shift + has-shift 样式）');
 // 补录 / 粘贴导入：默认收起，点标题才展开
 ok(/id="careerEditToggleBtn"/.test(s) && /id="careerEditBody"/.test(s)
   && /id="careerImportToggleBtn"/.test(s) && /id="careerImportBody"/.test(s)
@@ -424,8 +462,9 @@ ok(/function careerParseReportPaste\(text\)/.test(s) && /const reports = careerP
 ok(/const CAREER_TICKET_LABEL_TO_KEY = \(function \(\) \{[\s\S]{0,300}?for \(const f of DAILY_TICKET_FIELDS\)/.test(s)
   && /const CAREER_OVERSEAS_LABEL_TO_KEY = \(function \(\) \{[\s\S]{0,300}?for \(const f of DAILY_OVERSEAS_FIELDS\)/.test(s),
   '日报正文的「标签 → 字段 key」映射直接从日报字段定义推导（日报加字段不用手改）');
-ok(/function careerItemsFromDaily\(t, o\)/.test(s) && (s.match(/careerItemsFromDaily\(/g) || []).length >= 3,
-  '折算逻辑抽成 careerItemsFromDaily，自动归档与日报文本导入共用同一套口径');
+ok(/function careerItemsFromDaily\(t, o, n\)/.test(s) && (s.match(/careerItemsFromDaily\(/g) || []).length >= 3
+  && /const src = tab === 'ticket' \? tt : \(tab === 'online' \? nn : oo\);/.test(s),
+  '折算逻辑抽成 careerItemsFromDaily（工单 / 海外 / 在线客服三栏），自动归档与日报文本导入共用同一套口径');
 ok(/①繁花微信【2】|\[\u2460\u2461\u2462\u2463\u2464\u2465\u2466\]/.test(s) && /支付宝后台/.test(s) && /dy在线/.test(s),
   '日报解析覆盖 ①~⑦ 组行（含 手Q / 支付宝后台 这两个写法）');
 ok(/CAREER_STATUS_PENDING = '总计为空\/待确认'/.test(s), '口径注明「总计为空/待确认」不计入完整记录天数');

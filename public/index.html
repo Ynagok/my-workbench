@@ -3518,6 +3518,26 @@
         .career-rest-day.rest { background: var(--accent-dim); border-color: var(--accent); }
         .career-rest-day.rest b { color: var(--accent-ink); }
         .career-rest-day.rest i { visibility: visible; }
+        /* 排班日历识别出来的班次（H / F / A1…）：格子里左上角那个小片也露出来 */
+        .career-rest-day.has-shift i {
+            visibility: visible;
+            color: var(--ink-1); background: var(--surface-3); border-color: var(--line-1);
+            font-weight: 700;
+        }
+        /* 🕒 识别排班日历那一块 */
+        .shift-import {
+            margin-top: 12px; padding: 10px 12px;
+            border: 1px solid var(--line-0); border-radius: var(--r-md);
+            background: var(--surface-2);
+        }
+        .shift-import-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; margin-bottom: 8px; }
+        .shift-import-head .dg-title { font-size: 13px; font-weight: 700; color: var(--ink-0); }
+        .shift-import-head .dg-sub { font-size: 12px; color: var(--ink-2); }
+        .shift-import-head code { font-family: var(--font-mono, monospace); font-size: 11px; background: var(--surface); border: 1px solid var(--line-0); border-radius: var(--r-sm); padding: 0 4px; }
+        #careerShiftInput { width: 100%; min-height: 84px; resize: vertical; font-size: 12px; }
+        #careerShiftLegend { margin-top: 8px; }
+        #careerShiftLegend span b { color: var(--accent-ink); }
+        #careerShiftStats { margin-top: 8px; }
         .career-rest-day.is-today { border-color: var(--accent); }
         .career-rest-day.is-today b { background: var(--accent); color: var(--dark); }
 
@@ -3970,6 +3990,7 @@
                     <div class="flex-row" style="gap: 8px;">
                         <button id="dailyTabTicket" class="daily-tab-btn active">📋 工单日报</button>
                         <button id="dailyTabOverseas" class="daily-tab-btn">🌐 海外日报</button>
+                        <button id="dailyTabOnline" class="daily-tab-btn">💬 在线客服日报</button>
                     </div>
                     <div class="flex-row" style="gap: 8px; align-items: center;">
                         <span id="dailyDateHint" class="badge">--</span>
@@ -3978,6 +3999,7 @@
                 </div>
                 <div id="dailyFormTicket" class="daily-form"></div>
                 <div id="dailyFormOverseas" class="daily-form" style="display: none;"></div>
+                <div id="dailyFormOnline" class="daily-form" style="display: none;"></div>
             </div>
 
             <div class="card">
@@ -4034,6 +4056,7 @@
                         <button type="button" data-scope="all" class="active">全部</button>
                         <button type="button" data-scope="ticket">📋 工单</button>
                         <button type="button" data-scope="overseas">🌐 海外</button>
+                        <button type="button" data-scope="online">💬 在线客服</button>
                     </div>
                     <span class="hint-text" id="careerScopeHint">只看某一侧</span>
                     <span class="stat-chips" id="careerTopChips" style="margin-left:auto;">
@@ -4061,6 +4084,11 @@
             <div class="card" id="careerCardOverseas" data-seg-card="detail">
                 <label>🌐 海外统计 <span class="card-sub">取自海外日报</span></label>
                 <div id="careerSideOverseas" style="margin-top: 12px;"></div>
+            </div>
+
+            <div class="card" id="careerCardOnline" data-seg-card="detail">
+                <label>💬 在线客服统计 <span class="card-sub">取自在线客服日报</span></label>
+                <div id="careerSideOnline" style="margin-top: 12px;"></div>
             </div>
 
             <div class="card" id="careerCardDetail" data-seg-card="trend">
@@ -4123,6 +4151,28 @@
                     <span class="hint-text" id="careerRestHint"></span>
                 </div>
                 <div id="careerRestGrid" class="rest-cal"></div>
+                <!-- [需求] 2026-10：识别排班日历 → 自动匹配日报与生涯里的班次 -->
+                <div class="shift-import">
+                    <div class="shift-import-head">
+                        <span class="dg-title">🕒 识别排班日历</span>
+                        <span class="dg-sub">把排班日历 / 班次表粘进来（支持 <code>2026-10-26 H班</code>、<code>10月26日 H班</code>、以及从日历网页复制的一整坨）→ 自动给每天配上班次，日报「班次」和生涯按它匹配</span>
+                    </div>
+                    <textarea id="careerShiftInput" rows="4" placeholder="例：
+2026年10月
+1 廿一休 2 廿二 12:00 F班 3 廿三 12:00 F班
+4 廿四休 5 廿五休 6 廿六 12:00 F班
+或者一行一天：2026-10-26 H班
+班次表也可以一起粘：A 8:00-17:00 A1 8:00-20:00 A2 9:00-21:00 A3 11:00-23:00 A4 10:00-22:00 B 9:00-18:00 D 10:00-19:00 F 12:00-21:00 H 14:00-23:00 W 9:30-18:30 O休息"></textarea>
+                    <div class="flex-row" style="flex-wrap:wrap; align-items:center;">
+                        <button id="careerShiftParseBtn">🔍 识别并应用</button>
+                        <button id="careerShiftDetectBtn" class="secondary" title="只识别、不写入">👀 先看认出什么</button>
+                        <button id="careerShiftTodayBtn" class="secondary" title="把今天的班次带进日报">📋 同步到日报</button>
+                        <button id="careerShiftClearBtn" class="reset-btn">🧹 清空排班</button>
+                        <span class="hint-text" id="careerShiftHint">还没识别排班</span>
+                    </div>
+                    <div class="career-legend" id="careerShiftLegend"></div>
+                    <div class="stat-chips" id="careerShiftStats"></div>
+                </div>
             </div>
 
             <div class="card" id="careerCardEdit" data-seg-card="data">
@@ -6708,14 +6758,26 @@
                                             mute: 0, ban: 0,
                                             cp_ticket: 0, cn_ticket: 0, mhl_group: 0, sj_group: 0
                                         },
+                                        // [需求] 在线客服日报（第三栏）：53会话量 / 支付宝在线 / 邀评 / 评价 / 好评 / 差评 + 两段文字
+                                        online: {
+                                            name: '客服',
+                                            shift: '',
+                                            kf53_session: 0, alipay_session: 0,
+                                            invite: 0, reviewed: 0, good: 0, bad: 0,
+                                            special: '', bad_analysis: ''
+                                        },
                                         ticketCustom: [],
                                         overseasCustom: [],
+                                        onlineCustom: [],
                                         currentTab: 'ticket'
                                     };
 
+                                    // 班次代码（排班日历里那套：A / A1…A4 / B / D / F / H / W，O = 休息）
+                                    const DAILY_SHIFT_CODES = ['A', 'A1', 'A2', 'A3', 'A4', 'B', 'D', 'F', 'H', 'W', 'O'];
+
                                     const DAILY_TICKET_FIELDS = [
                                         { key: 'name', label: '姓名', type: 'text', group: 'base', placeholder: '如：客服' },
-                                        { key: 'shift', label: '班次', type: 'select', group: 'base', options: ['A', 'F', 'H'], default: 'A' },
+                                        { key: 'shift', label: '班次', type: 'select', group: 'base', options: DAILY_SHIFT_CODES, default: 'A' },
                                         { key: 'sso', label: 'SSO工单', type: 'number', group: 'ticket' },
                                         { key: 'kf53', label: '53客服在线', type: 'number', group: 'ticket' },
                                         { key: 'alipay', label: '支付宝在线', type: 'number', group: 'ticket' },
@@ -6796,16 +6858,49 @@
                                         { id: 'group', title: '👥 群维系', sub: '异世界 / 梦幻·繁花·乐缤纷' }
                                     ];
 
+                                    // ==================== 在线客服日报（2026-10 用户给的模板）====================
+                                    // 10月26日工作日报（H班）：
+                                    // 客服
+                                    // 53会话量： / 支付宝在线： / 邀评数： / 评价数： / 好评数： / 差评数： / 特殊问题： / 差评分析：
+                                    // 班次不再手填死（见排班日历识别）：日期对应的排班自动带出来，正文抬头就是「（H班）」。
+                                    const DAILY_ONLINE_FIELDS = [
+                                        { key: 'name', label: '客服', type: 'text', group: 'base', placeholder: '如：客服' },
+                                        { key: 'shift', label: '班次', type: 'select', group: 'base', options: DAILY_SHIFT_CODES, default: '' },
+                                        { key: 'kf53_session', label: '53会话量', type: 'number', group: 'session' },
+                                        { key: 'alipay_session', label: '支付宝在线', type: 'number', group: 'session' },
+                                        { key: 'invite', label: '邀评数', type: 'number', group: 'review' },
+                                        { key: 'reviewed', label: '评价数', type: 'number', group: 'review' },
+                                        { key: 'good', label: '好评数', type: 'number', group: 'review' },
+                                        { key: 'bad', label: '差评数', type: 'number', group: 'review' },
+                                        { key: 'special', label: '特殊问题', type: 'textarea', group: 'note', fullWidth: true, placeholder: '一行一条' },
+                                        { key: 'bad_analysis', label: '差评分析', type: 'textarea', group: 'note', fullWidth: true, placeholder: '差评原因 / 处理方式' }
+                                    ];
+                                    const DAILY_ONLINE_GROUPS = [
+                                        { id: 'base', title: '👤 基础信息', sub: '客服 · 班次（按排班日历自动带出）' },
+                                        { id: 'session', title: '💬 会话量', sub: '53 / 支付宝在线' },
+                                        { id: 'review', title: '⭐ 邀评与评价', sub: '邀评 · 评价 · 好评 · 差评' },
+                                        { id: 'note', title: '📝 问题与差评', sub: '特殊问题 / 差评分析，一行一条' }
+                                    ];
+                                    // 三栏日报的「同构」映射：新加一栏时只改这张表，渲染 / 生成 / 归档都跟着走
+                                    const DAILY_TABS = {
+                                        ticket: { formId: 'dailyFormTicket', btnId: 'dailyTabTicket', fields: () => DAILY_TICKET_FIELDS, groups: () => DAILY_TICKET_GROUPS, customKey: 'ticketCustom', label: '工单日报' },
+                                        overseas: { formId: 'dailyFormOverseas', btnId: 'dailyTabOverseas', fields: () => DAILY_OVERSEAS_FIELDS, groups: () => DAILY_OVERSEAS_GROUPS, customKey: 'overseasCustom', label: '海外日报' },
+                                        online: { formId: 'dailyFormOnline', btnId: 'dailyTabOnline', fields: () => DAILY_ONLINE_FIELDS, groups: () => DAILY_ONLINE_GROUPS, customKey: 'onlineCustom', label: '在线客服日报' }
+                                    };
+                                    const DAILY_TAB_KEYS = ['ticket', 'overseas', 'online'];
+
                                     // ==================== 客服生涯 · 数据模型 ====================
-                                    // 口径：分「工单」「海外」两侧，跟日报的两个分栏一一对应；
+                                    // 口径：分「工单」「海外」「在线客服」三侧，跟日报的三栏一一对应；
                                     // 每侧的统计项以该侧日报的字段为准（日报里有的字段都算，不再有「额外项」）。
                                     // 同时保留对外《工作量登记表》的 14 列口径（CAREER_SHEET_ITEMS）用于粘贴导入与对账。
                                     const CAREER_KEY = 'careerData';
                                     const CAREER_SIDES = [
                                         { key: 'ticket', label: '工单', icon: '📋' },
-                                        { key: 'overseas', label: '海外', icon: '🌐' }
+                                        { key: 'overseas', label: '海外', icon: '🌐' },
+                                        // [需求] 2026-10 用户：「日报和生涯增加在线客服」→ 生涯多一个「在线客服」侧
+                                        { key: 'online', label: '在线客服', icon: '💬' }
                                     ];
-                                    // 计入统计的项（两侧的卡片与「累计工作量」都只算这些）
+                                    // 计入统计的项（各侧的卡片与「累计工作量」都只算这些）
                                     // ⚠️ 工单侧 = 「工单日报」的全部数值字段（除姓名/班次），**从 DAILY_TICKET_FIELDS 自动生成**：
                                     //    以后往日报加字段，这里自动跟着有，不会漏统计（verify 有断言锁定这个构造方式）。
                                     //    用户清单：SSO工单…⑦异世界勇者 全部 29 项都在工单侧，所以**不排除任何字段**。
@@ -6837,7 +6932,14 @@
                                         { key: 'mute', label: '监控禁言', side: 'overseas', kind: '监控', from: ['overseas.mute'] },
                                         { key: 'ban', label: '监控封号', side: 'overseas', kind: '监控', from: ['overseas.ban'] }
                                     ];
-                                    const CAREER_ITEMS = CAREER_TICKET_ITEMS.concat(CAREER_OVERSEAS_ITEMS);
+                                    // 在线客服侧（2026-10 用户：「日报和生涯增加在线客服」）——
+                                    // 统计项同样从日报字段自动生成：6 个数值项（53会话量 / 支付宝在线 / 邀评 / 评价 / 好评 / 差评）；
+                                    // 「特殊问题」「差评分析」是文字，只归档进记录、不进统计。
+                                    const careerOnlineKind = (key) => (key === 'kf53_session' || key === 'alipay_session') ? '会话量' : '评价';
+                                    const CAREER_ONLINE_ITEMS = DAILY_ONLINE_FIELDS
+                                        .filter(f => f.type === 'number')
+                                        .map(f => ({ key: 't_' + f.key, label: f.label, side: 'online', kind: careerOnlineKind(f.key), from: ['online.' + f.key] }));
+                                    const CAREER_ITEMS = CAREER_TICKET_ITEMS.concat(CAREER_OVERSEAS_ITEMS).concat(CAREER_ONLINE_ITEMS);
                                     // SDk工单明细：日报表单里分「梦幻 / 爱江山 / 月光」三项填，**合计仍是 ov_sso 那一个数**
                                     // （ov_sso 读 overseas.sdk = 三项之和；登记表只给总量的历史数据照样算得对）。
                                     // 所以这三项只作为**明细**展示与查看（不进 CAREER_ITEMS）——合计里已经含过一次，不重复计。
@@ -6859,7 +6961,8 @@
                                     // 侧内分组的显示顺序（表里同组的项保证挨在一起，组小计只出现一次）
                                     const CAREER_KIND_ORDER = {
                                         ticket: ['工单/后台', '在线客服', '其他'],
-                                        overseas: ['工单/后台', '群维系', '评价回复', '来访', '监控'].concat(CAREER_SUB_KINDS)
+                                        overseas: ['工单/后台', '群维系', '评价回复', '来访', '监控'].concat(CAREER_SUB_KINDS),
+                                        online: ['会话量', '评价']
                                     };
                                     // 「来源结构」条每段一种颜色（按分组顺序取）
                                     const CAREER_KIND_COLORS = ['#3d7bd6', '#d97706', '#16a34a', '#9333ea', '#dc2626', '#0891b2', '#65a30d', '#db2777'];
@@ -6892,7 +6995,7 @@
                                     const CAREER_STATUS_DONE = '已完成记录';
                                     const CAREER_STATUS_PENDING = '总计为空/待确认';
 
-                                    // 累计工作量 = 只算计入统计的项（工单 29 + 海外 10 = 39；SDk 三项明细不计，合计里已含）
+                                    // 累计工作量 = 只算计入统计的项（工单 29 + 海外 10 + 在线客服 6 = 45；SDk / 邮箱明细不计，合计里已含）
                                     const careerSum = (items) => CAREER_ITEMS.reduce((s, it) => s + (parseFloat(items && items[it.key]) || 0), 0);
                                     // 海外 SDk 工单的**合并总量**：表单里分三项填，日报正文与统计总量按一个「SDk工单」算。
                                     // 三项都是空时退回旧字段 sdk —— 历史日报/登记表里只有总量、没有明细，不能丢。
@@ -6921,16 +7024,18 @@
                                     const careerItemsOfSide = (side) => CAREER_ITEMS.filter(it => it.side === side);
 
                                     let careerData = { records: {}, updatedAt: null };
-                                    // 「身份」筛选：全部 / 只看工单 / 只看海外（只影响显示，不改数据）。存在本机，刷新后保持。
+                                    // 「身份」筛选：全部 / 只看工单 / 只看海外 / 只看在线客服（只影响显示，不改数据）。存在本机，刷新后保持。
+                                    const careerScopeKeys = () => CAREER_SIDES.map(s => s.key);
+                                    const isCareerSide = (s) => careerScopeKeys().indexOf(s) !== -1;
                                     const CAREER_SCOPE_KEY = 'careerScope';
                                     let careerScopeState = (function () {
                                         try {
                                             const v = localStorage.getItem(CAREER_SCOPE_KEY);
-                                            return (v === 'ticket' || v === 'overseas') ? v : 'all';
+                                            return isCareerSide(v) ? v : 'all';
                                         } catch (e) { return 'all'; }
                                     })();
                                     function careerSetScope(scope) {
-                                        careerScopeState = (scope === 'ticket' || scope === 'overseas') ? scope : 'all';
+                                        careerScopeState = isCareerSide(scope) ? scope : 'all';
                                         try { localStorage.setItem(CAREER_SCOPE_KEY, careerScopeState); } catch (e) { /* 存不了就只影响本次 */ }
                                         renderCareer();
                                     }
@@ -6994,15 +7099,18 @@
                                     }
 
                                     // 把「日报字段值」折算成生涯项（自动归档与「粘贴日报文本」共用，保证两条路口径一致）
-                                    function careerItemsFromDaily(t, o) {
+                                    // t = 工单日报，o = 海外日报，n = 在线客服日报（三栏都要能折算）
+                                    function careerItemsFromDaily(t, o, n) {
                                         // SDk / 邮箱 都是「分三项填、合并成一个总量」，折算前先合成 ov_sso / ov_email 读的那个字段
                                         const tt = t || {};
                                         const oo = Object.assign({}, o || {}, { sdk: careerSdkTotal(o), email: careerEmailTotal(o) });
+                                        const nn = n || {};
                                         const pick = (path) => {
                                             const i = path.indexOf('.');
                                             const tab = path.slice(0, i);
                                             const field = path.slice(i + 1);
-                                            return parseFloat((tab === 'ticket' ? tt : oo)[field]) || 0;
+                                            const src = tab === 'ticket' ? tt : (tab === 'online' ? nn : oo);
+                                            return parseFloat(src[field]) || 0;
                                         };
                                         const items = {};
                                         for (const it of careerAllItems()) {
@@ -7013,15 +7121,18 @@
                                         return items;
                                     }
 
-                                    // 把当前日报（工单 + 海外两栏一起）折算成一条生涯记录
+                                    // 把当前日报（工单 + 海外 + 在线客服三栏一起）折算成一条生涯记录
                                     function careerFoldDaily() {
                                         const t = dailyData.ticket || {};
                                         const o = dailyData.overseas || {};
-                                        const items = careerItemsFromDaily(t, o);
+                                        const n = dailyData.online || {};
+                                        const items = careerItemsFromDaily(t, o, n);
                                         const total = careerSum(items);
+                                        // 班次：日报里填了就用；没填就用识别出来的排班日历（用户要求「自动匹配班次」）
+                                        const shift = String(t.shift || o.shift || n.shift || '').trim() || careerShiftOfDate(careerToday());
                                         return {
-                                            name: String(t.name || o.name || '').trim(),
-                                            shift: String(t.shift || '').trim(),
+                                            name: String(t.name || o.name || n.name || '').trim(),
+                                            shift: shift,
                                             items,
                                             total,
                                             status: total > 0 ? CAREER_STATUS_DONE : CAREER_STATUS_PENDING,
@@ -7209,10 +7320,12 @@
                                         // 兼容旧版数据：补齐缺失字段
                                         if (!Array.isArray(dailyData.ticketCustom)) dailyData.ticketCustom = [];
                                         if (!Array.isArray(dailyData.overseasCustom)) dailyData.overseasCustom = [];
-                                        if (!dailyData.currentTab) dailyData.currentTab = 'ticket';
-                                        // 关键：补齐 ticket / overseas 主对象，避免旧版本数据缺字段直接崩溃
+                                        if (!Array.isArray(dailyData.onlineCustom)) dailyData.onlineCustom = [];
+                                        if (!DAILY_TABS[dailyData.currentTab]) dailyData.currentTab = 'ticket';
+                                        // 关键：补齐 ticket / overseas / online 主对象，避免旧版本数据缺字段直接崩溃
                                         dailyData.ticket = { ...cloneDefault(DAILY_DEFAULT_DATA.ticket), ...(asObject(dailyData.ticket) || {}) };
                                         dailyData.overseas = { ...cloneDefault(DAILY_DEFAULT_DATA.overseas), ...(asObject(dailyData.overseas) || {}) };
+                                        dailyData.online = { ...cloneDefault(DAILY_DEFAULT_DATA.online), ...(asObject(dailyData.online) || {}) };
                                         // 客服生涯只认本机：不管 bundle 里有没有 careerData 都不用它，
                                         // 永远从这台设备的 localStorage 读（各客服各记各的，不同步）。
                                         careerData = normalizeCareer(careerLoadLocal());
@@ -10786,8 +10899,9 @@
                                     // 「已填 n/m」小片：一眼看出哪一组还没填
                                     function updateDailyGroupFill(container, tab) {
                                         if (!container) return;
-                                        const all = tab === 'ticket' ? DAILY_TICKET_FIELDS : DAILY_OVERSEAS_FIELDS;
-                                        const data = dailyData[tab] || {};
+                                        const def = DAILY_TABS[tab] || DAILY_TABS.ticket;
+                                        const all = def.fields();
+                                        const data = (dailyData[tab] || {});
                                         container.querySelectorAll('.daily-group').forEach(sec => {
                                             const gid = sec.dataset.group;
                                             const chip = sec.querySelector('[data-fill]');
@@ -10810,11 +10924,12 @@
                                     }
 
                                     function renderDailyForm(tab) {
-                                        const container = document.getElementById(tab === 'ticket' ? 'dailyFormTicket' : 'dailyFormOverseas');
+                                        const def = DAILY_TABS[tab] || DAILY_TABS.ticket;
+                                        const container = document.getElementById(def.formId);
                                         if (!container) return;
-                                        const fields = tab === 'ticket' ? DAILY_TICKET_FIELDS : DAILY_OVERSEAS_FIELDS;
-                                        const data = dailyData[tab];
-                                        const customKey = tab === 'ticket' ? 'ticketCustom' : 'overseasCustom';
+                                        const fields = def.fields();
+                                        const data = dailyData[tab] = dailyData[tab] || {};
+                                        const customKey = def.customKey;
                                         const customs = dailyData[customKey] || [];
 
                                         // [优化] 记录当前焦点位置，重建后恢复
@@ -10830,7 +10945,7 @@
                                         const selEnd = activeEl && activeEl.selectionEnd !== undefined ? activeEl.selectionEnd : null;
 
                                         let html = '';
-                                        const groups = tab === 'ticket' ? DAILY_TICKET_GROUPS : DAILY_OVERSEAS_GROUPS;
+                                        const groups = def.groups();
                                         const used = new Set();
 
                                         // 单个字段 → 一段 HTML（口径与原来一致：select 缺省值会回填并落盘）
@@ -10838,7 +10953,8 @@
                                             used.add(f.key);
                                             let val = data[f.key] !== undefined ? data[f.key] : '';
                                             if (f.type === 'select' && (val === '' || val === null || val === undefined)) {
-                                                val = f.default || (f.options && f.options[0]) || '';
+                                                // [需求] 班次跟着「排班日历」走：今天排的是 H 班就自动带 H（识别过排班才有值）
+                                                val = (f.key === 'shift' ? careerShiftOfDate(careerToday()) : '') || f.default || (f.options && f.options[0]) || '';
                                                 data[f.key] = val;
                                                 debouncedSaveDaily();
                                             }
@@ -11006,6 +11122,35 @@
                                                     text += `${c.label || ''}${c.value ? '：' + c.value : ''}\n`;
                                                 }
                                             }
+                                        } else if (tab === 'online') {
+                                            // [需求] 在线客服日报（用户给的模板）：
+                                            // 10月26日工作日报（H班）：/ 客服 / 53会话量：/ 支付宝在线：/ 邀评数：/ 评价数：/ 好评数：/ 差评数：/ 特殊问题：/ 差评分析：
+                                            const shift = d.shift || careerShiftOfDate(careerToday()) || '';
+                                            text += `${date.month}月${date.day}日工作日报（${shift}班）：\n`;
+                                            text += `${d.name || '客服'}\n`;
+                                            text += `53会话量：${d.kf53_session || 0}\n`;
+                                            text += `支付宝在线：${d.alipay_session || 0}\n`;
+                                            text += `邀评数：${d.invite || 0}\n`;
+                                            text += `评价数：${d.reviewed || 0}\n`;
+                                            text += `好评数：${d.good || 0}\n`;
+                                            text += `差评数：${d.bad || 0}\n`;
+                                            text += `特殊问题：${d.special || ''}\n`;
+                                            text += `差评分析：${d.bad_analysis || ''}\n`;
+                                            // 有评价时额外补一行好评率（差评分析常被问），不是模板里的行
+                                            const reviewedCnt = parseFloat(d.reviewed) || 0;
+                                            if (reviewedCnt > 0) {
+                                                const goodRate = ((parseFloat(d.good) || 0) / reviewedCnt) * 100;
+                                                text += `好评率：${goodRate.toFixed(1)}%\n`;
+                                            }
+
+                                            const customs = dailyData.onlineCustom || [];
+                                            const valid = customs.filter(c => (c.label || c.value));
+                                            if (valid.length) {
+                                                text += '\n';
+                                                for (const c of valid) {
+                                                    text += `${c.label || ''}${c.value ? '：' + c.value : ''}\n`;
+                                                }
+                                            }
                                         } else {
                                             const ratingTotal = (parseFloat(d.ios) || 0) + (parseFloat(d.google) || 0);
                                             const visitTotal = (parseFloat(d.fb) || 0) + (parseFloat(d.fb_yl) || 0) + careerEmailTotal(d) + careerSdkTotal(d);
@@ -11047,24 +11192,16 @@
                                     }
 
                                     function switchDailyTab(tab) {
+                                        if (!DAILY_TABS[tab]) tab = 'ticket';
                                         dailyData.currentTab = tab;
                                         saveData('dailyData', dailyData);
-                                        const ticketBtn = document.getElementById('dailyTabTicket');
-                                        const overseasBtn = document.getElementById('dailyTabOverseas');
-                                        const ticketForm = document.getElementById('dailyFormTicket');
-                                        const overseasForm = document.getElementById('dailyFormOverseas');
-                                        if (!ticketBtn || !overseasBtn) return;
-                                        if (tab === 'ticket') {
-                                            ticketBtn.classList.add('active');
-                                            overseasBtn.classList.remove('active');
-                                            ticketForm.style.display = '';
-                                            overseasForm.style.display = 'none';
-                                        } else {
-                                            overseasBtn.classList.add('active');
-                                            ticketBtn.classList.remove('active');
-                                            overseasForm.style.display = '';
-                                            ticketForm.style.display = 'none';
-                                        }
+                                        DAILY_TAB_KEYS.forEach(k => {
+                                            const def = DAILY_TABS[k];
+                                            const btn = document.getElementById(def.btnId);
+                                            const form = document.getElementById(def.formId);
+                                            if (btn) btn.classList.toggle('active', k === tab);
+                                            if (form) form.style.display = (k === tab) ? '' : 'none';
+                                        });
                                         renderDailyForm(tab);
                                     }
 
@@ -11100,10 +11237,10 @@
                                         });
                                     }
 
-                                    // 某条记录在某个「身份」下的工作量：全部 = 39 项之和；某一侧 = 该侧项之和
+                                    // 某条记录在某个「身份」下的工作量：全部 = 45 项之和；某一侧 = 该侧项之和
                                     function careerSideTotal(rec, scope) {
                                         const items = (rec && rec.items) || {};
-                                        if (scope !== 'ticket' && scope !== 'overseas') return careerSum(items);
+                                        if (!isCareerSide(scope)) return careerSum(items);
                                         return careerItemsOfSide(scope).reduce((a, it) => a + (parseFloat(items[it.key]) || 0), 0);
                                     }
 
@@ -11133,6 +11270,217 @@
                                         const y = +String(ym).slice(0, 4), m = +String(ym).slice(5, 7);
                                         return new Date(Date.UTC(y, m, 0)).getUTCDate();
                                     }
+
+                                    // ==================== 🕒 排班日历识别（2026-10 用户需求）====================
+                                    // 用户：「排班板块增加可识别排班日历的功能，根据识别的排班日历，自动对日报和生涯中关于班次的数据进行匹配」
+                                    // 口径：把排班日历 / 班次表粘进来 → 解析出「哪天是哪个班」→ 只存本机
+                                    //   localStorage['careerShiftDays'] = { 'YYYY-MM-DD': 'H', … }（休息 = 'O'）
+                                    //   localStorage['careerShiftDefs'] = { H: '14:00-23:00', … }（班次表那行：A 8:00-17:00 …）
+                                    // 之后：日报的「班次」字段按当天日期自动带出、在线客服日报抬头写「（H班）」、
+                                    //       生涯里每条记录带上当天的班次（班次分布统计）。
+                                    const CAREER_SHIFT_KEY = 'careerShiftDays';
+                                    const CAREER_SHIFT_DEF_KEY = 'careerShiftDefs';
+                                    function careerShiftLoad() {
+                                        try { return asObject(JSON.parse(localStorage.getItem(CAREER_SHIFT_KEY) || '{}')) || {}; } catch (e) { return {}; }
+                                    }
+                                    function careerShiftSave(map) {
+                                        try { localStorage.setItem(CAREER_SHIFT_KEY, JSON.stringify(map || {})); } catch (e) { }
+                                    }
+                                    function careerShiftDefsLoad() {
+                                        try { return asObject(JSON.parse(localStorage.getItem(CAREER_SHIFT_DEF_KEY) || '{}')) || {}; } catch (e) { return {}; }
+                                    }
+                                    function careerShiftDefsSave(map) {
+                                        try { localStorage.setItem(CAREER_SHIFT_DEF_KEY, JSON.stringify(map || {})); } catch (e) { }
+                                    }
+                                    // 某一天的班次（'' = 没识别过）
+                                    function careerShiftOfDate(date) {
+                                        const m = careerShiftLoad();
+                                        return String(m[date] || '').trim();
+                                    }
+                                    function careerShiftCount(ym) {
+                                        const m = careerShiftLoad();
+                                        return Object.keys(m).filter(d => d.slice(0, 7) === ym && m[d] && m[d] !== 'O').length;
+                                    }
+                                    // 把一段排班日历文本解析成 { days:{date:code}, defs:{code:time}, month:'YYYY-MM', rest:[date] }
+                                    // 认这三种写法（混着粘也行）：
+                                    //   ① 2026-10-26 H班 / 2026/10/26 H     ② 10月26日 H班 / 10-26 H
+                                    //   ③ 从日历网页复制的一坨：`1 廿一休`、`2 廿二 12:00 F班`、`26 H班`（配合「2026年10月」抬头）
+                                    function careerParseShiftText(text, ymHint) {
+                                        const out = { days: {}, defs: {}, month: '', rest: [], unresolved: 0 };
+                                        let src = String(text || '');
+                                        if (!src.trim()) return out;
+
+                                        // 班次表：A 8:00-17:00 / A1 8:00-20:00 / O休息
+                                        src.replace(/([A-Z]\d?)\s*[:：]?\s*(\d{1,2}:\d{2})\s*[-~—－]\s*(\d{1,2}:\d{2})/g, (m, code, a, b) => {
+                                            out.defs[code] = a + '-' + b; return m;
+                                        });
+                                        src.replace(/([A-Z]\d?)\s*[:：]?\s*(休息|公休)/g, (m, code) => {
+                                            out.defs[code] = '休息'; return m;
+                                        });
+
+                                        // 年月：优先「2026年10月」，其次 2026-10，最后用面板当前月 / 今天
+                                        const hint = String(ymHint || '');
+                                        let year, month;
+                                        const mYm = /(\d{4})\s*[年\-\/.]\s*(\d{1,2})\s*月?/.exec(src);
+                                        if (mYm) { year = +mYm[1]; month = +mYm[2]; }
+                                        else if (/^\d{4}-\d{2}$/.test(hint)) { year = +hint.slice(0, 4); month = +hint.slice(5, 7); }
+                                        else { const t = getBeijingDate(); year = t.year; month = t.month; }
+                                        if (!(month >= 1 && month <= 12)) { const t = getBeijingDate(); year = t.year; month = t.month; }
+                                        out.month = year + '-' + String(month).padStart(2, '0');
+                                        const pad = (n) => String(n).padStart(2, '0');
+                                        const mk = (y, m, d) => y + '-' + pad(m) + '-' + pad(d);
+                                        const put = (y, m, d, code) => {
+                                            if (!(d >= 1 && d <= 31) || !(m >= 1 && m <= 12)) return false;
+                                            if (d > careerDaysInMonth(y + '-' + pad(m))) return false;
+                                            const date = mk(y, m, d);
+                                            out.days[date] = code;
+                                            if (code === 'O') out.rest.push(date);
+                                            return true;
+                                        };
+
+                                        // ① 完整日期：2026-10-26 H / 2026/10/26（H班）
+                                        // ⚠️ 这里的空白只吃空格 / 制表符（不吃换行）：否则「2026年10月\n1 廿一休」会被当成「10月1日」吃掉 1 号
+                                        let work = src;
+                                        work = work.replace(/(\d{4})[ \t]*[-\/.][ \t]*(\d{1,2})[ \t]*[-\/.][ \t]*(\d{1,2})[ \t]*(?:[（(][^）)]*[）)])?[ \t]*([A-Z]\d?)?[ \t]*班?/g,
+                                            (m, y, mo, d, code) => {
+                                                if (code) put(+y, +mo, +d, code);
+                                                return ' '.repeat(m.length);
+                                            });
+                                        // ② 月-日：10-26 H / 10-26（H班）
+                                        work = work.replace(/(\d{1,2})[ \t]*[-\/.][ \t]*(\d{1,2})(?!\d)[ \t]*(?:日)?[ \t]*(?:[（(][^）)]*[）)])?[ \t]*([A-Z]\d?)?[ \t]*班?/g,
+                                            (m, mo, d, code) => {
+                                                if (code && +mo >= 1 && +mo <= 12 && +d >= 1 && +d <= 31) put(year, +mo, +d, code);
+                                                return ' '.repeat(m.length);
+                                            });
+                                        // ③ 月日：10月26日（H班）
+                                        work = work.replace(/(\d{1,2})[ \t]*月[ \t]*(\d{1,2})[ \t]*日?[ \t]*(?:[（(][^）)]*[）)])?[ \t]*([A-Z]\d?)?[ \t]*班?/g,
+                                            (m, mo, d, code) => {
+                                                if (code) put(year, +mo, +d, code);
+                                                return ' '.repeat(m.length);
+                                            });
+
+                                        // ④ 日历那一坨：先抠出「时间 + 班次」的 chip，再按「日期数字 → 最近的 chip / 休」绑定
+                                        const chips = [];
+                                        let re = /(\d{1,2}:\d{2})[ \t]*([A-Z]\d?)[ \t]*班/g, mm;
+                                        while ((mm = re.exec(work))) chips.push({ at: mm.index, code: mm[2] });
+                                        // 只写「F班」没写时间的：先按时间 chip 的位置把时间段遮掉，避免同一个 chip 被算两次
+                                        const noTime = work.replace(/\d{1,2}:\d{2}/g, (m) => ' '.repeat(m.length));
+                                        re = /([A-Z]\d?)[ \t]*班/g;
+                                        while ((mm = re.exec(noTime))) chips.push({ at: mm.index, code: mm[1] });
+                                        chips.sort((a, b) => a.at - b.at);
+
+                                        // 把时间、四位年份、已经是 chip 的位置遮掉，剩下的数字才当「几号」
+                                        let masked = noTime;
+                                        masked = masked.replace(/\b\d{4}\b/g, (m) => ' '.repeat(m.length));
+                                        chips.forEach(c => { masked = masked.slice(0, c.at) + ' '.repeat(c.code.length + 1) + masked.slice(c.at + c.code.length + 1); });
+
+                                        const marks = [], restMarks = [];
+                                        re = /(?<![\d])(\d{1,2})(?![\d])/g;
+                                        while ((mm = re.exec(masked))) {
+                                            const d = +mm[1];
+                                            if (d >= 1 && d <= 31) marks.push({ at: mm.index, day: d });
+                                        }
+                                        re = /(休|公休)/g;
+                                        while ((mm = re.exec(masked))) restMarks.push(mm.index);
+
+                                        // 日期序列里如果「先出现大号、再回到 1」，说明开头那几个是上个月的尾巴
+                                        let firstOne = -1;
+                                        for (let i = 0; i < marks.length; i++) { if (marks[i].day === 1) { firstOne = i; break; } }
+                                        const calendarMode = marks.length >= 1 && (chips.length + restMarks.length) > 0;
+                                        if (calendarMode) {
+                                            const prevMonth = month - 1 < 1 ? 12 : month - 1;
+                                            const prevYear = month - 1 < 1 ? year - 1 : year;
+                                            marks.forEach((mk2, i) => {
+                                                const inPrev = firstOne > 0 && i < firstOne;
+                                                const y2 = inPrev ? prevYear : year;
+                                                const m2 = inPrev ? prevMonth : month;
+                                                // 这个日期后面、下一个日期之前，有没有 chip
+                                                const nextAt = (i + 1 < marks.length) ? marks[i + 1].at : masked.length;
+                                                const chip = chips.filter(c => c.at > mk2.at && c.at < nextAt)[0];
+                                                const isRest = restMarks.some(p => p > mk2.at && p < Math.min(nextAt, mk2.at + 12));
+                                                if (chip) put(y2, m2, mk2.day, chip.code);
+                                                else if (isRest) put(y2, m2, mk2.day, 'O');
+                                            });
+                                        }
+                                        out.unresolved = Object.keys(out.days).length ? 0 : 1;
+                                        return out;
+                                    }
+                                    // 应用识别结果：并进本机排班（同一天以新识别的为准），'O' 顺带标成休息日
+                                    function careerApplyShift(parsed, replace) {
+                                        const parsedDays = (parsed && parsed.days) || {};
+                                        const map = replace ? {} : careerShiftLoad();
+                                        Object.keys(parsedDays).forEach(d => { map[d] = parsedDays[d]; });
+                                        careerShiftSave(map);
+                                        if (parsed && parsed.defs && Object.keys(parsed.defs).length) {
+                                            const defs = replace ? {} : careerShiftDefsLoad();
+                                            Object.assign(defs, parsed.defs);
+                                            careerShiftDefsSave(defs);
+                                        }
+                                        const restList = careerRestLoad();
+                                        Object.keys(parsedDays).forEach(d => {
+                                            const i = restList.indexOf(d);
+                                            if (parsedDays[d] === 'O') { if (i === -1) restList.push(d); }
+                                            else if (i !== -1) restList.splice(i, 1);
+                                        });
+                                        careerRestSave(restList);
+                                        return Object.keys(parsedDays).length;
+                                    }
+                                    // 班次表 + 某个班次的时间（例如 H → 14:00-23:00），日报抬头用不上，但表格里能看懂
+                                    function careerShiftDefText(code) {
+                                        const defs = careerShiftDefsLoad();
+                                        return defs[code] || '';
+                                    }
+                                    // 生涯页的「班次分布」：按记录日期对应的班次分组
+                                    function careerShiftStats() {
+                                        const map = careerShiftLoad();
+                                        const out = { total: 0, byCode: {}, rest: 0 };
+                                        Object.keys(careerData.records).forEach(d => {
+                                            const code = String(map[d] || '').trim();
+                                            if (!code) return;
+                                            out.total++;
+                                            out.byCode[code] = (out.byCode[code] || 0) + 1;
+                                            if (code === 'O') out.rest++;
+                                        });
+                                        return out;
+                                    }
+                                    function careerRenderShiftLegend() {
+                                        const box = document.getElementById('careerShiftLegend');
+                                        const statBox = document.getElementById('careerShiftStats');
+                                        const hint = document.getElementById('careerShiftHint');
+                                        if (hint) {
+                                            const map = careerShiftLoad();
+                                            const n = Object.keys(map).length;
+                                            hint.textContent = n ? ('已识别 ' + n + ' 天排班（只存本机）') : '还没识别排班：把排班日历 / 班次表粘到上面的框里';
+                                        }
+                                        const defs = careerShiftDefsLoad();
+                                        const map = careerShiftLoad();
+                                        const codes = Object.keys(defs).sort();
+                                        const useCodes = codes.length ? codes : Array.from(new Set(Object.keys(map).map(d => map[d]))).sort();
+                                        if (box) {
+                                            box.innerHTML = useCodes.length
+                                                ? useCodes.map(code => {
+                                                    const days = Object.keys(map).filter(d => map[d] === code).length;
+                                                    const t = defs[code] || (code === 'O' ? '休息' : '');
+                                                    return '<span><b>' + escapeHtml(code) + '</b> ' + escapeHtml(t) + (days ? ' · ' + days + ' 天' : '') + '</span>';
+                                                }).join('')
+                                                : '';
+                                        }
+                                        if (statBox) {
+                                            // 生涯里：有多少天带班次、哪个班最多（跟日报归档的日期对应）
+                                            const st = careerShiftStats();
+                                            const chips = [];
+                                            if (st.total) {
+                                                chips.push(statChip('已匹配班次 ' + st.total + ' 天', 'k-accent'));
+                                                Object.keys(st.byCode).sort((a, b) => st.byCode[b] - st.byCode[a]).slice(0, 6)
+                                                    .forEach(code => chips.push(statChip(code + ' 班 ' + st.byCode[code] + ' 天')));
+                                                if (st.rest) chips.push(statChip('休息 ' + st.rest + ' 天', 'k-plain'));
+                                            } else {
+                                                chips.push(statChip('生涯里还没有带班次的记录（识别排班后归档的日报会带上班次）', 'k-plain'));
+                                            }
+                                            statBox.innerHTML = chips.join('');
+                                        }
+                                    }
+
                                     // 微软日历那种月视图：星期表头（周日在最前）+ 7 列月历 + 今天/休息标记
                                     const CAREER_WEEK_LABELS = ['日', '一', '二', '三', '四', '五', '六'];
                                     function careerRenderRestGrid() {
@@ -11147,6 +11495,7 @@
                                         const n = careerDaysInMonth(ym);
                                         const firstDow = new Date(Date.UTC(y, m - 1, 1)).getUTCDay();  // 0 = 周日
                                         const rest = careerRestSet();
+                                        const shiftMap = careerShiftLoad();
                                         const today = careerToday();
 
                                         let h = '<div class="rest-cal-week">'
@@ -11159,14 +11508,21 @@
                                             const date = ym + '-' + String(d).padStart(2, '0');
                                             const dow = new Date(date + 'T00:00:00Z').getUTCDay();
                                             const isRest = rest.has(date);
+                                            // 排班日历识别出来的班次（O = 休息），没有就空着
+                                            const shift = String(shiftMap[date] || '').trim();
+                                            const tag = isRest ? '休' : (shift ? shift : '');
                                             h += '<button type="button" class="career-rest-day'
                                                 + (isRest ? ' rest' : '')
+                                                + (shift && !isRest ? ' has-shift' : '')
                                                 + ((dow === 0 || dow === 6) ? ' weekend' : '')
                                                 + (date === today ? ' is-today' : '')
                                                 + '" data-rest="' + date + '"'
+                                                + ' data-shift="' + escapeHtml(shift) + '"'
                                                 + ' aria-pressed="' + (isRest ? 'true' : 'false') + '"'
-                                                + ' title="' + date + ' 周' + CAREER_WEEK_LABELS[dow] + (isRest ? '（休息）' : '') + '">'
-                                                + '<b>' + d + '</b><i>' + (isRest ? '休' : '') + '</i></button>';
+                                                + ' title="' + date + ' 周' + CAREER_WEEK_LABELS[dow]
+                                                + (shift ? '（' + escapeHtml(shift) + (shift === 'O' ? ' 休息' : ' 班') + '）' : '')
+                                                + (isRest ? '（休息）' : '') + '">'
+                                                + '<b>' + d + '</b><i>' + escapeHtml(tag) + '</i></button>';
                                         }
                                         const tail = (firstDow + n) % 7;
                                         for (let i = tail; i > 0 && i < 7; i++) h += '<span class="rest-cal-blank" aria-hidden="true"></span>';
@@ -11176,8 +11532,10 @@
                                         const title = document.getElementById('careerRestTitle');
                                         if (title) title.textContent = y + ' 年 ' + m + ' 月';
                                         const cnt = Array.from(rest).filter(d => d.slice(0, 7) === ym).length;
+                                        const shiftCnt = careerShiftCount(ym);
                                         const hint = document.getElementById('careerRestHint');
-                                        if (hint) hint.textContent = '休息 ' + cnt + ' 天 · 点日期切换（只存本机）';
+                                        if (hint) hint.textContent = '休息 ' + cnt + ' 天' + (shiftCnt ? ' · 排班 ' + shiftCnt + ' 天' : '') + ' · 点日期切换（只存本机）';
+                                        careerRenderShiftLegend();
                                     }
 
                                     // 上个月 / 下个月（微软日历那种左右箭头）
@@ -11193,9 +11551,9 @@
                                     }
 
                                     function careerStats(scope) {
-                                        scope = (scope === 'ticket' || scope === 'overseas') ? scope : 'all';
+                                        scope = isCareerSide(scope) ? scope : 'all';
                                         const dates = Object.keys(careerData.records).sort();
-                                        // scope 决定每条记录参与统计的「工作量」：全部=两侧之和，某侧=该侧之和。
+                                        // scope 决定每条记录参与统计的「工作量」：全部=各侧之和，某侧=该侧之和。
                                         // 这样日均/最高单日/连续记录/月度/趋势…全都自动跟着身份走（口径只有这一处）。
                                         const all = dates.map(d => {
                                             const r = careerData.records[d];
@@ -11224,7 +11582,7 @@
                                             if (kinds.length > dayMaxKinds.n) dayMaxKinds = { n: kinds.length, date: r.date };
                                             for (const k of kinds) itemTotals[k] = (itemTotals[k] || 0) + r.items[k];
                                         }
-                                        // 两侧分开统计（工单 / 海外），各自的项、合计、侧内最高单日都在这里算好
+                                        // 各侧分开统计（工单 / 海外 / 在线客服），各自的项、合计、侧内最高单日都在这里算好
                                         const sideStats = {};
                                         for (const side of CAREER_SIDES) {
                                             const list = careerItemsOfSide(side.key);
@@ -11376,9 +11734,11 @@
                                     function renderCareer() {
                                         const scope = careerScopeState;
                                         const scoped = scope !== 'all';
-                                        const scopeLabel = scope === 'ticket' ? '工单' : (scope === 'overseas' ? '海外' : '');
+                                        const sideByKey = {};
+                                        CAREER_SIDES.forEach(sd => { sideByKey[sd.key] = sd; });
+                                        const scopeLabel = scoped ? (sideByKey[scope] ? sideByKey[scope].label : '') : '';
                                         const s = careerStats(scope);
-                                        const tSumAll = s.sideStats.ticket.sum, oSumAll = s.sideStats.overseas.sum, allSum = tSumAll + oSumAll;
+                                        const allSum = CAREER_SIDES.reduce((a, sd) => a + (s.sideStats[sd.key] ? s.sideStats[sd.key].sum : 0), 0);
                                         // 身份按钮高亮 + 提示语
                                         const scopeBar = document.getElementById('careerScopeBar');
                                         if (scopeBar) {
@@ -11388,20 +11748,20 @@
                                         if (scopeHint) {
                                             scopeHint.textContent = scoped
                                                 ? '当前身份只看「' + scopeLabel + '」：总览 / 趋势 / 月度都只算这一侧'
-                                                : '选「工单」或「海外」，整页统计只算那一侧';
+                                                : '选「工单」「海外」或「在线客服」，整页统计只算那一侧';
                                         }
                                         // 不是「全部」时，某一侧统计卡藏起来
-                                        const cardTicket = document.getElementById('careerCardTicket');
-                                        const cardOverseas = document.getElementById('careerCardOverseas');
-                                        if (cardTicket) cardTicket.style.display = (!scoped || scope === 'ticket') ? '' : 'none';
-                                        if (cardOverseas) cardOverseas.style.display = (!scoped || scope === 'overseas') ? '' : 'none';
+                                        CAREER_SIDES.forEach(sd => {
+                                            const card = document.getElementById('careerCard' + sd.key.charAt(0).toUpperCase() + sd.key.slice(1));
+                                            if (card) card.style.display = (!scoped || scope === sd.key) ? '' : 'none';
+                                        });
 
                                         // 报表抬头：数据范围（标题下）+ 右上角元数据格
                                         const rhSub = document.getElementById('careerReportSub');
                                         if (rhSub) {
                                             const range = s.days ? (s.good[0].date + ' ～ ' + s.good[s.good.length - 1].date) : '还没有记录';
                                             rhSub.textContent = '数据范围 ' + range + '　·　口径：'
-                                                + (scoped ? '只看「' + scopeLabel + '」侧' : '工单 + 海外两侧合计')
+                                                + (scoped ? '只看「' + scopeLabel + '」侧' : CAREER_SIDES.map(sd => sd.label).join(' + ') + ' 三侧合计')
                                                 + '　·　来源：本机日报归档 / 补录 / 粘贴导入';
                                         }
                                         const rhMeta = document.getElementById('careerReportMeta');
@@ -11438,7 +11798,7 @@
                                             // 「工作量总览」还是那 9 项，只是数字按选中的身份算（累计那栏的副标题跟着变）
                                             const sumSub = scoped
                                                 ? (allSum ? '占全部 ' + careerPct(s.sum / allSum) : '还没有记录')
-                                                : (s.days ? '工单 ' + careerNum(tSumAll) + ' + 海外 ' + careerNum(oSumAll) : '还没有记录');
+                                                : (s.days ? CAREER_SIDES.map(sd => sd.label + ' ' + careerNum((s.sideStats[sd.key] || {}).sum || 0)).join(' + ') : '还没有记录');
                                             kpi.innerHTML = [
                                                 // 先给最该看的 4 个：累计 / 日均 / 最高单日 / 完整记录天数
                                                 careerKpiCard(scoped ? scopeLabel + '侧累计' : '累计工作量', careerNum(s.sum), sumSub, true),
@@ -11453,31 +11813,35 @@
                                                 careerKpiCard('近 30 记录日日均', careerNum(s.recent30.avg, 1), '近 7 日 ' + careerNum(s.recent7.avg, 1) + (s.mom ? ' · 环比 ' + (s.mom.delta >= 0 ? '+' : '') + careerPct(s.mom.delta) : ''), false, true)
                                             ].join('');
                                         }
-                                        // 两侧占比：一条堆叠条 + 图例（比一行文字直观；只看某一侧时没意义，藏起来）
+                                        // 三侧占比：一条堆叠条 + 图例（比一行文字直观；只看某一侧时没意义，藏起来）
+                                        // 「在线客服」侧还没有数据时不占位（老记录的界面跟以前一模一样）
+                                        const shownSides = CAREER_SIDES.filter(sd => sd.key !== 'online' || (((s.sideStats[sd.key] || {}).sum || 0) > 0));
+                                        const SIDE_COLORS = { ticket: 'var(--accent)', overseas: '#3d7bd6', online: '#16a34a' };
+                                        const SIDE_TEXT = { ticket: 'var(--dark)', overseas: '#fff', online: '#fff' };
                                         const splitWrap = document.getElementById('careerSplitWrap');
                                         if (splitWrap) splitWrap.style.display = scoped ? 'none' : '';
                                         const bar = document.getElementById('careerSplitBar');
                                         const legend = document.getElementById('careerSplitLegend');
                                         if (bar && legend) {
-                                            const tSum = s.sideStats.ticket.sum, oSum = s.sideStats.overseas.sum;
-                                            const total = tSum + oSum;
+                                            const total = shownSides.reduce((a, sd) => a + ((s.sideStats[sd.key] || {}).sum || 0), 0);
                                             if (!total) {
                                                 bar.innerHTML = '';
                                                 legend.innerHTML = '<span>还没有记录，先在上面「每日日报」点一次「生成日报」，或在下面粘贴导入。</span>';
                                             } else {
                                                 const pct = (v) => total ? ((v / total) * 100) : 0;
-                                                bar.innerHTML = '<i class="ticket" style="width:' + pct(tSum).toFixed(2) + '%" title="工单侧 ' + careerNum(tSum) + '">'
-                                                    + (pct(tSum) >= 12 ? '工单 ' + careerPct(pct(tSum) / 100) : '') + '</i>'
-                                                    + '<i class="overseas" style="width:' + pct(oSum).toFixed(2) + '%" title="海外侧 ' + careerNum(oSum) + '">'
-                                                    + (pct(oSum) >= 12 ? '海外 ' + careerPct(pct(oSum) / 100) : '') + '</i>';
-                                                legend.innerHTML = '<span><i class="ticket"></i>工单侧 ' + careerNum(tSum) + '（' + careerPct(pct(tSum) / 100) + '）</span>'
-                                                    + '<span><i class="overseas"></i>海外侧 ' + careerNum(oSum) + '（' + careerPct(pct(oSum) / 100) + '）</span>'
-                                                    + '<span>合计 ' + careerNum(total) + '</span>';
+                                                bar.innerHTML = shownSides.map(sd => {
+                                                    const v = (s.sideStats[sd.key] || {}).sum || 0;
+                                                    return '<i style="width:' + pct(v).toFixed(2) + '%;background:' + SIDE_COLORS[sd.key] + ';color:' + SIDE_TEXT[sd.key] + '" title="' + escapeHtml(sd.label) + '侧 ' + careerNum(v) + '">'
+                                                        + (pct(v) >= 12 ? escapeHtml(sd.label) + ' ' + careerPct(pct(v) / 100) : '') + '</i>';
+                                                }).join('');
+                                                legend.innerHTML = shownSides.map(sd => {
+                                                    const v = (s.sideStats[sd.key] || {}).sum || 0;
+                                                    return '<span><i style="background:' + SIDE_COLORS[sd.key] + '"></i>' + escapeHtml(sd.label) + '侧 ' + careerNum(v) + '（' + careerPct(pct(v) / 100) + '）</span>';
+                                                }).join('') + '<span>合计 ' + careerNum(total) + '</span>';
                                             }
                                         }
                                         const sheetHint = document.getElementById('careerSheetHint');
                                         if (sheetHint) {
-                                            const tSum = s.sideStats.ticket.sum, oSum = s.sideStats.overseas.sum;
                                             // 原来是一整句，现在拆成芯片：扫一眼就是「哪一侧 + 多少 + 日均 + 几天」
                                             if (scoped) {
                                                 sheetHint.innerHTML = statChips([
@@ -11488,16 +11852,17 @@
                                                     statChip('只存本机', 'k-warn')
                                                 ]);
                                             } else {
-                                                sheetHint.innerHTML = statChips([
-                                                    statChip('工单侧 ' + careerNum(tSum)),
-                                                    statChip(' + ', 'k-op'),
-                                                    statChip('海外侧 ' + careerNum(oSum)),
-                                                    statChip(' = ', 'k-op'),
-                                                    statChip('累计 ' + careerNum(s.sum), 'k-accent'),
-                                                    statChip('日均 ' + careerNum(s.avg, 1)),
-                                                    statChip('按 ' + s.days + ' 个完整记录日'),
-                                                    statChip('只存本机', 'k-warn')
-                                                ]);
+                                                const chips = [];
+                                                shownSides.forEach((sd, i) => {
+                                                    if (i) chips.push(statChip(' + ', 'k-op'));
+                                                    chips.push(statChip(sd.label + '侧 ' + careerNum((s.sideStats[sd.key] || {}).sum || 0)));
+                                                });
+                                                chips.push(statChip(' = ', 'k-op'));
+                                                chips.push(statChip('累计 ' + careerNum(s.sum), 'k-accent'));
+                                                chips.push(statChip('日均 ' + careerNum(s.avg, 1)));
+                                                chips.push(statChip('按 ' + s.days + ' 个完整记录日'));
+                                                chips.push(statChip('只存本机', 'k-warn'));
+                                                sheetHint.innerHTML = statChips(chips);
                                             }
                                         }
 
@@ -11612,7 +11977,7 @@
                                             ab.innerHTML = h;
                                         }
 
-                                        // 两侧分开统计：工单 / 海外，各自的项与合计（按类别分组，组内按累计降序，组小计只出现一次）
+                                        // 各侧分开统计：工单 / 海外 / 在线客服，各自的项与合计（按类别分组，组内按累计降序，组小计只出现一次）
                                         for (const side of CAREER_SIDES) {
                                             const box = document.getElementById('careerSide' + side.key.charAt(0).toUpperCase() + side.key.slice(1));
                                             if (!box) continue;
@@ -11730,6 +12095,8 @@
 
                                         renderCareerAudit();
                                         renderCareerDetail();
+                                        // 排班日历：班次图例 / 生涯里已匹配班次的天数（跟着记录变）
+                                        careerRenderShiftLegend();
                                     }
 
                                     // ---------- 🗓️ 归档体检 / 漏登记提醒（用户要求） ----------
@@ -11765,7 +12132,7 @@
                                     // ---------- 指标详情：挑一项（或某一侧），看它的总量 / 平均值 / 按日·按月的趋势 ----------
                                     function careerDetailValue(rec, sel) {
                                         const items = (rec && rec.items) || {};
-                                        if (sel === 'ticket' || sel === 'overseas') {
+                                        if (isCareerSide(sel)) {
                                             return careerItemsOfSide(sel).reduce((a, it) => a + (parseFloat(items[it.key]) || 0), 0);
                                         }
                                         if (sel && sel !== 'all') return parseFloat(items[sel]) || 0;
@@ -11775,9 +12142,9 @@
                                         const sel = document.getElementById('careerDetailItem');
                                         if (!sel || sel.dataset.built === '1') return;
                                         let html = '<optgroup label="总览">'
-                                            + '<option value="all">全部工作量（工单 + 海外）</option>'
-                                            + '<option value="ticket">工单侧合计</option>'
-                                            + '<option value="overseas">海外侧合计</option></optgroup>';
+                                            + '<option value="all">全部工作量（' + CAREER_SIDES.map(sd => sd.label).join(' + ') + '）</option>'
+                                            + CAREER_SIDES.map(sd => '<option value="' + sd.key + '">' + sd.label + '侧合计</option>').join('')
+                                            + '</optgroup>';
                                         for (const side of CAREER_SIDES) {
                                             const list = careerItemsOfSide(side.key).concat(side.key === 'overseas' ? CAREER_BREAKDOWN : []);
                                             html += '<optgroup label="' + escapeHtml(side.label) + '侧 · 逐项">'
@@ -11793,8 +12160,9 @@
                                         const grainEl = document.getElementById('careerDetailGrain');
                                         const sel = (selEl && selEl.value) || 'all';
                                         const grain = (grainEl && grainEl.value) === 'month' ? 'month' : 'day';
-                                        const item = (sel !== 'all' && sel !== 'ticket' && sel !== 'overseas') ? careerItemByKey(sel) : null;
-                                        const scopeName = sel === 'all' ? '全部工作量' : (sel === 'ticket' ? '工单侧' : (sel === 'overseas' ? '海外侧' : ((item && item.label) || sel)));
+                                        const item = (sel !== 'all' && !isCareerSide(sel)) ? careerItemByKey(sel) : null;
+                                        const selSide = isCareerSide(sel) ? CAREER_SIDES.filter(sd => sd.key === sel)[0] : null;
+                                        const scopeName = sel === 'all' ? '全部工作量' : (selSide ? selSide.label + '侧' : ((item && item.label) || sel));
 
                                         // 逐期汇总（只算「已完成记录」那几天；某期该范围是 0 就跳过）
                                         const periods = [];
@@ -11984,7 +12352,8 @@
                                             const hint = document.getElementById('careerArchiveHint');
                                             if (hint) {
                                                 hint.textContent = '已按当前日报归档 ' + d + '：当日工作量 ' + rec.total
-                                                    + (rec.total ? '' : '（两栏都是 0，记为「总计为空/待确认」，不计入统计）')
+                                                    + (rec.total ? '' : '（三栏都是 0，记为「总计为空/待确认」，不计入统计）')
+                                                    + (rec.shift ? ' · 班次 ' + rec.shift + '（跟排班日历对齐）' : '')
                                                     + ' · 同一天重复归档会覆盖';
                                             }
                                             appendDebug('\n🗂️ 客服生涯已归档 ' + d + '，当日工作量 ' + rec.total);
@@ -12059,24 +12428,34 @@
                                         m['邮箱·月光'] = 'email_yl';
                                         return m;
                                     })();
+                                    // 在线客服日报的标签 → 字段（53会话量 / 支付宝在线 / 邀评数 / 评价数 / 好评数 / 差评数）
+                                    const CAREER_ONLINE_LABEL_TO_KEY = (function () {
+                                        const m = {};
+                                        for (const f of DAILY_ONLINE_FIELDS) {
+                                            if (f.type !== 'number') continue;
+                                            m[f.label] = f.key;
+                                        }
+                                        m['支付宝在线（会话）'] = 'alipay_session';
+                                        return m;
+                                    })();
                                     function careerReportDate(month, day) {
                                         return getBeijingDate().year + '-' + String(month).padStart(2, '0') + '-' + String(day).padStart(2, '0');
                                     }
 
-                                    // 解析工单日报 / 海外日报正文（两段可以一起粘，也可以粘多天的）。
-                                    // 返回 [{date, name, shift, hasTicket, hasOverseas, items, total}]
+                                    // 解析工单日报 / 海外日报 / 在线客服日报正文（三段可以一起粘，也可以粘多天的）。
+                                    // 「哪一侧」按真的认出来的标签算（hasTicket / hasOverseas / hasOnline），不再看表头长什么样。
+                                    // 返回 [{date, name, shift, hasTicket, hasOverseas, hasOnline, items, total}]
                                     function careerParseReportPaste(text) {
                                         const byDate = {};
-                                        const rec = (d) => byDate[d] || (byDate[d] = { date: d, name: '', shift: '', hasTicket: false, hasOverseas: false, t: {}, o: {} });
+                                        const rec = (d) => byDate[d] || (byDate[d] = { date: d, name: '', shift: '', hasTicket: false, hasOverseas: false, hasOnline: false, t: {}, o: {}, n: {} });
                                         let cur = null;
                                         for (const raw of String(text || '').split(/\r?\n/)) {
                                             const line = raw.trim();
                                             if (!line) continue;
-                                            // ① 工单日报表头：9月24日工作日报（F班）：
+                                            // ① 日报表头：9月24日工作日报（F班）：（工单 / 在线客服两栏都是这个开头）
                                             const ht = line.match(/^(\d{1,2})月(\d{1,2})日工作日报/);
                                             if (ht) {
                                                 cur = rec(careerReportDate(+ht[1], +ht[2]));
-                                                cur.hasTicket = true;
                                                 const sh = line.match(/（([^）]*)）/);
                                                 if (sh && !cur.shift) cur.shift = sh[1].replace(/班$/, '');
                                                 continue;
@@ -12115,21 +12494,27 @@
                                                     const label = m1[1].trim();
                                                     const ko = CAREER_OVERSEAS_LABEL_TO_KEY[label];
                                                     const kt = CAREER_TICKET_LABEL_TO_KEY[label];
-                                                    if (ko) cur.o[ko] = parseInt(m1[2], 10);
-                                                    else if (kt) cur.t[kt] = parseInt(m1[2], 10);
+                                                    const kn = CAREER_ONLINE_LABEL_TO_KEY[label];
+                                                    const val = parseInt(m1[2], 10);
+                                                    // 「支付宝在线」工单日报与在线客服日报里同名：这行已经是在线客服日报（或还没出现工单标签）→ 记在线侧
+                                                    if (kn && (cur.hasOnline || !cur.hasTicket)) {
+                                                        cur.n[kn] = val; cur.hasOnline = true;
+                                                    } else if (ko) { cur.o[ko] = val; cur.hasOverseas = true; }
+                                                    else if (kt) { cur.t[kt] = val; cur.hasTicket = true; }
+                                                    else if (kn) { cur.n[kn] = val; cur.hasOnline = true; }
                                                     continue;
                                                 }
                                                 const m2 = part.match(/^(.+?)(\d+)\s*$/);
                                                 if (m2) {
                                                     const kt = CAREER_TICKET_LABEL_TO_KEY[m2[1].trim()];
-                                                    if (kt) cur.t[kt] = parseInt(m2[2], 10);
+                                                    if (kt) { cur.t[kt] = parseInt(m2[2], 10); cur.hasTicket = true; }
                                                 }
                                             }
                                         }
                                         return Object.keys(byDate).sort().map(d => {
                                             const r = byDate[d];
-                                            const items = careerItemsFromDaily(r.t, r.o);
-                                            return { date: r.date, name: r.name, shift: r.shift, hasTicket: r.hasTicket, hasOverseas: r.hasOverseas, items, total: careerSum(items) };
+                                            const items = careerItemsFromDaily(r.t, r.o, r.n);
+                                            return { date: r.date, name: r.name, shift: r.shift, hasTicket: r.hasTicket, hasOverseas: r.hasOverseas, hasOnline: r.hasOnline, items, total: careerSum(items) };
                                         });
                                     }
 
@@ -12148,11 +12533,12 @@
                                                 // 这次粘贴覆盖了哪一侧，就把那一侧的旧值清掉（避免残留旧数）
                                                 if (r.hasTicket) for (const it of CAREER_TICKET_ITEMS) delete items[it.key];
                                                 if (r.hasOverseas) for (const it of CAREER_OVERSEAS_ITEMS.concat(CAREER_BREAKDOWN)) delete items[it.key];
+                                                if (r.hasOnline) for (const it of CAREER_ONLINE_ITEMS) delete items[it.key];
                                                 Object.assign(items, r.items);
                                                 const total = careerSum(items);
                                                 careerCommit({
                                                     name: r.name || prev.name || '',
-                                                    shift: r.shift || prev.shift || '',
+                                                    shift: r.shift || prev.shift || careerShiftOfDate(r.date) || '',
                                                     items,
                                                     total,
                                                     status: total > 0 ? CAREER_STATUS_DONE : CAREER_STATUS_PENDING,
@@ -12164,7 +12550,7 @@
                                             renderCareer();
                                             if (hint) {
                                                 hint.textContent = '识别为日报格式：' + reports.length + ' 天（'
-                                                    + reports.map(r => r.date + (r.hasTicket ? ' 工单' : '') + (r.hasOverseas ? '+海外' : '') + '=' + r.total).join('；') + '）';
+                                                    + reports.map(r => r.date + (r.hasTicket ? ' 工单' : '') + (r.hasOverseas ? '+海外' : '') + (r.hasOnline ? '+在线' : '') + '=' + r.total).join('；') + '）';
                                             }
                                             return;
                                         }
@@ -15584,6 +15970,7 @@
                                         // 日报生成
                                         setClick('dailyTabTicket', () => switchDailyTab('ticket'));
                                         setClick('dailyTabOverseas', () => switchDailyTab('overseas'));
+                                        setClick('dailyTabOnline', () => switchDailyTab('online'));
                                         setClick('generateDailyBtn', () => {
                                             generateDailyReport();
                                             // 点「生成日报」即顺手归档进「客服生涯」（跨天自动刷新那条路径不归档，避免把昨天的数记到今天）
@@ -15597,8 +15984,8 @@
                                             const area = document.getElementById('dailyResultArea');
                                             if (!area) return;
                                             const date = getBeijingDate();
-                                            const tab = dailyData.currentTab || 'ticket';
-                                            const fileName = `${tab === 'ticket' ? '工单' : '海外'}日报_${date.year}${String(date.month).padStart(2, '0')}${String(date.day).padStart(2, '0')}.txt`;
+                                            const tab = DAILY_TABS[dailyData.currentTab] ? dailyData.currentTab : 'ticket';
+                                            const fileName = `${DAILY_TABS[tab].label}_${date.year}${String(date.month).padStart(2, '0')}${String(date.day).padStart(2, '0')}.txt`;
                                             const blob = new Blob([area.value], { type: 'text/plain' });
                                             const a = document.createElement('a');
                                             a.href = URL.createObjectURL(blob);
@@ -15607,17 +15994,13 @@
                                         });
                                         setClick('resetDailyBtn', () => {
                                             if (!confirm('确认重置模板？所有填写内容将被清空（姓名保留）。')) return;
-                                            const tab = dailyData.currentTab || 'ticket';
+                                            const tab = DAILY_TABS[dailyData.currentTab] ? dailyData.currentTab : 'ticket';
                                             // [需求] 重置不清姓名：把当前这一栏的姓名原样带过去（原本空着就保持空着）
                                             const prevTab = asObject(dailyData[tab]);
                                             const keepName = (prevTab && Object.prototype.hasOwnProperty.call(prevTab, 'name')) ? prevTab.name : undefined;
-                                            if (tab === 'ticket') {
-                                                dailyData.ticket = { ...DAILY_DEFAULT_DATA.ticket };
-                                                dailyData.ticketCustom = [];
-                                            } else {
-                                                dailyData.overseas = { ...DAILY_DEFAULT_DATA.overseas };
-                                                dailyData.overseasCustom = [];
-                                            }
+                                            const def = DAILY_TABS[tab];
+                                            dailyData[tab] = Object.assign({}, DAILY_DEFAULT_DATA[tab]);
+                                            dailyData[def.customKey] = [];
                                             if (keepName !== undefined) dailyData[tab].name = keepName;
                                             saveData('dailyData', dailyData);
                                             renderDailyForm(tab);
@@ -15703,6 +16086,68 @@
                                                 careerRenderRestGrid();
                                                 renderCareer();
                                             });
+
+                                            // 🕒 排班日历识别：粘贴 → 解析 → 写入本机 → 日报 / 生涯自动匹配
+                                            const shiftArea = document.getElementById('careerShiftInput');
+                                            const shiftHint = (msg, cls) => {
+                                                const el = document.getElementById('careerShiftHint');
+                                                if (!el) return;
+                                                el.textContent = msg;
+                                                el.className = 'hint-text' + (cls ? ' ' + cls : '');
+                                            };
+                                            const parseNow = (apply, replace) => {
+                                                const text = (shiftArea && shiftArea.value) || '';
+                                                if (!text.trim()) { shiftHint('先把排班日历粘到上面的框里'); return null; }
+                                                const ym = careerRestMonthState || mo && mo.value || careerToday().slice(0, 7);
+                                                const parsed = careerParseShiftText(text, ym);
+                                                const n = Object.keys(parsed.days).length;
+                                                const nDefs = Object.keys(parsed.defs || {}).length;
+                                                if (!n && !nDefs) { shiftHint('没认出排班：每行写「2026-10-26 H班」或「26 H班」，也可以直接粘日历那一坨'); return null; }
+                                                if (!apply) {
+                                                    if (!n) {
+                                                        shiftHint('认出班次表 ' + nDefs + ' 个班次（' + Object.keys(parsed.defs).slice(0, 6).map(c => c + ' ' + parsed.defs[c]).join(' / ') + '），但没认出具体哪天上班');
+                                                        return parsed;
+                                                    }
+                                                    const sample = Object.keys(parsed.days).sort().slice(0, 6)
+                                                        .map(d => d.slice(5) + ' ' + parsed.days[d]).join(' / ');
+                                                    shiftHint('认出 ' + n + ' 天（' + sample + (n > 6 ? ' …' : '') + '）· 点「识别并应用」写进排班');
+                                                    return parsed;
+                                                }
+                                                const applied = careerApplyShift(parsed, !!replace);
+                                                careerRenderRestGrid();
+                                                renderCareer();
+                                                shiftHint('已写入 ' + applied + ' 天排班'
+                                                    + (nDefs ? ' + 班次表 ' + nDefs + ' 个' : '')
+                                                    + (parsed.month ? '（' + parsed.month + '）' : '')
+                                                    + ' · 日报班次会按当天排班自动带出');
+                                                return parsed;
+                                            };
+                                            setClick('careerShiftParseBtn', () => parseNow(true, false));
+                                            setClick('careerShiftDetectBtn', () => parseNow(false, false));
+                                            setClick('careerShiftTodayBtn', () => {
+                                                const d = careerToday();
+                                                const code = careerShiftOfDate(d);
+                                                if (!code) { shiftHint('今天（' + d + '）的排班还没识别：先粘排班日历点「识别并应用」'); return; }
+                                                dailyData.ticket = dailyData.ticket || {};
+                                                dailyData.overseas = dailyData.overseas || {};
+                                                dailyData.online = dailyData.online || {};
+                                                dailyData.ticket.shift = code;
+                                                dailyData.overseas.shift = code;
+                                                dailyData.online.shift = code;
+                                                saveData('dailyData', dailyData);
+                                                DAILY_TAB_KEYS.forEach(k => renderDailyForm(k));
+                                                shiftHint('今天（' + d + '）的班次 ' + code + ' 已带到日报三栏');
+                                            });
+                                            setClick('careerShiftClearBtn', () => {
+                                                if (!confirm('确认清空识别出来的排班（休息标记也会一起清掉）？')) return;
+                                                careerShiftSave({});
+                                                careerShiftDefsSave({});
+                                                careerRenderRestGrid();
+                                                renderCareer();
+                                                if (shiftArea) shiftArea.value = '';
+                                                shiftHint('排班已清空');
+                                            });
+                                            careerRenderShiftLegend();
                                         })();
                                         setClick('careerExportCsvBtn', () => {
                                             if (!careerDownload('客服生涯_' + careerToday() + '.csv', careerCsvText(), 'text/csv')) alert('当前环境不支持导出');
@@ -15884,22 +16329,14 @@
                                         // 初始化日报页面
                                         (function initDaily() {
                                             const tab = dailyData.currentTab || 'ticket';
-                                            const ticketBtn = document.getElementById('dailyTabTicket');
-                                            const overseasBtn = document.getElementById('dailyTabOverseas');
-                                            const ticketForm = document.getElementById('dailyFormTicket');
-                                            const overseasForm = document.getElementById('dailyFormOverseas');
-                                            if (!ticketBtn) return;
-                                            if (tab === 'ticket') {
-                                                ticketBtn.classList.add('active');
-                                                overseasBtn.classList.remove('active');
-                                                ticketForm.style.display = '';
-                                                overseasForm.style.display = 'none';
-                                            } else {
-                                                overseasBtn.classList.add('active');
-                                                ticketBtn.classList.remove('active');
-                                                overseasForm.style.display = '';
-                                                ticketForm.style.display = 'none';
-                                            }
+                                            if (!document.getElementById('dailyTabTicket')) return;
+                                            DAILY_TAB_KEYS.forEach(k => {
+                                                const def = DAILY_TABS[k];
+                                                const btn = document.getElementById(def.btnId);
+                                                const form = document.getElementById(def.formId);
+                                                if (btn) btn.classList.toggle('active', k === tab);
+                                                if (form) form.style.display = (k === tab) ? '' : 'none';
+                                            });
                                             renderDailyForm(tab);
                                             const date = getBeijingDate();
                                             const hint = document.getElementById('dailyDateHint');
@@ -16166,17 +16603,15 @@
                                     function refreshDataViews() {
                                         try {
                                             if (!dailyTouched) {
-                                                const tab = dailyData.currentTab || 'ticket';
-                                                const ticketBtn = document.getElementById('dailyTabTicket');
-                                                const overseasBtn = document.getElementById('dailyTabOverseas');
-                                                const ticketForm = document.getElementById('dailyFormTicket');
-                                                const overseasForm = document.getElementById('dailyFormOverseas');
-                                                if (ticketBtn && overseasBtn && ticketForm && overseasForm) {
-                                                    const isTicket = tab === 'ticket';
-                                                    ticketBtn.classList.toggle('active', isTicket);
-                                                    overseasBtn.classList.toggle('active', !isTicket);
-                                                    ticketForm.style.display = isTicket ? '' : 'none';
-                                                    overseasForm.style.display = isTicket ? 'none' : '';
+                                                const tab = DAILY_TABS[dailyData.currentTab] ? dailyData.currentTab : 'ticket';
+                                                if (document.getElementById('dailyTabTicket')) {
+                                                    DAILY_TAB_KEYS.forEach(k => {
+                                                        const def = DAILY_TABS[k];
+                                                        const btn = document.getElementById(def.btnId);
+                                                        const form = document.getElementById(def.formId);
+                                                        if (btn) btn.classList.toggle('active', k === tab);
+                                                        if (form) form.style.display = (k === tab) ? '' : 'none';
+                                                    });
                                                     renderDailyForm(tab);
                                                 }
                                                 const hint = document.getElementById('dailyDateHint');

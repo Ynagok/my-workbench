@@ -2468,6 +2468,145 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     if ($('fbBulkBtn').getAttribute('aria-pressed') === 'true') { $('fbBulkBtn').click(); await sleep(30); }
   }
 
+  console.log('--- 8u. 在线客服日报（用户给的模板）+ 生涯第三侧 ---');
+  {
+    const posts8u = posts.length;
+    doc.querySelector('.tab-btn[data-tab="daily"]').click();
+    await sleep(40);
+    check(!!$('dailyTabOnline') && !!$('dailyFormOnline'),
+      '日报多了第三栏「在线客服日报」（工单 / 海外 / 在线客服）');
+    $('dailyTabOnline').click();
+    await sleep(40);
+    check($('dailyFormOnline').style.display !== 'none'
+      && $('dailyFormTicket').style.display === 'none'
+      && $('dailyFormOverseas').style.display === 'none',
+      '切到在线客服栏：只显示它自己的表单，另外两栏收起');
+    const onlineFieldKeys = ['name', 'shift', 'kf53_session', 'alipay_session', 'invite', 'reviewed', 'good', 'bad', 'special', 'bad_analysis'];
+    const onlineKeys = Array.from($('dailyFormOnline').querySelectorAll('[data-key]')).map(el => el.dataset.key);
+    check(onlineKeys.length === 10 && onlineFieldKeys.every(k => onlineKeys.indexOf(k) !== -1),
+      '在线客服表单 10 个字段（53会话量 / 支付宝在线 / 邀评数 / 评价数 / 好评数 / 差评数 / 特殊问题 / 差评分析）',
+      onlineKeys.join(','));
+
+    const onlineSets = [['name', '客服小美'], ['kf53_session', 12], ['alipay_session', 5],
+      ['invite', 3], ['reviewed', 2], ['good', 2], ['bad', 0],
+      ['special', '崩溃问题 1 例'], ['bad_analysis', '网络波动导致']];
+    let setN = 0;
+    for (const [k, v] of onlineSets) if (setDailyField('dailyFormOnline', k, v)) setN++;
+    check(setN === onlineSets.length, '在线客服那 9 个填写项都能填进去', setN);
+
+    $('generateDailyBtn').click();
+    await sleep(80);
+    const onlineRep = $('dailyResultArea').value;
+    check(/^\d{1,2}月\d{1,2}日工作日报（[A-Z]\d?班）：$/.test(onlineRep.split('\n')[0]),
+      '在线客服日报抬头就是「M月D日工作日报（X班）：」', onlineRep.split('\n')[0]);
+    check(/^客服小美$/m.test(onlineRep)
+      && /53会话量：12/.test(onlineRep) && /支付宝在线：5/.test(onlineRep)
+      && /邀评数：3/.test(onlineRep) && /评价数：2/.test(onlineRep)
+      && /好评数：2/.test(onlineRep) && /差评数：0/.test(onlineRep)
+      && /特殊问题：崩溃问题 1 例/.test(onlineRep) && /差评分析：网络波动导致/.test(onlineRep),
+      '正文逐行就是用户给的模板（客服 / 53会话量 / 支付宝在线 / 邀评 / 评价 / 好评 / 差评 / 特殊问题 / 差评分析）',
+      onlineRep.replace(/\n/g, ' | ').slice(0, 200));
+
+    const recOnline = ((lastCareer() || { records: {} }).records || {})[bjToday] || { items: {} };
+    check(recOnline.items.t_kf53_session === 12 && recOnline.items.t_alipay_session === 5
+      && recOnline.items.t_invite === 3 && recOnline.items.t_reviewed === 2
+      && recOnline.items.t_good === 2,
+      '在线客服的数已折算进生涯（t_ 前缀 6 项，工单/海外两边不受影响）', recOnline.items);
+
+    doc.querySelector('.tab-btn[data-tab="career"]').click();
+    await sleep(60);
+    check(!!$('careerCardOnline') && !!$('careerSideOnline')
+      && /53会话量/.test($('careerSideOnline').textContent),
+      '生涯多了「💬 在线客服统计」卡片（逐项明细里有 53会话量）', $('careerSideOnline').textContent.slice(0, 60));
+    check(!!doc.querySelector('#careerScopeBar [data-scope="online"]'),
+      '身份筛选多了「💬 在线客服」这一侧');
+    doc.querySelector('#careerScopeBar [data-scope="online"]').click();
+    await sleep(60);
+    check(/在线客服侧累计/.test($('careerSheetHint').textContent)
+      && $('careerCardOnline').style.display !== 'none'
+      && $('careerCardTicket').style.display === 'none'
+      && $('careerCardOverseas').style.display === 'none',
+      '只看在线客服时：只算这一侧、只显示这一侧的统计卡', $('careerSheetHint').textContent.slice(0, 80));
+    doc.querySelector('#careerScopeBar [data-scope="all"]').click();
+    await sleep(40);
+    check(/在线客服侧/.test($('careerSheetHint').textContent),
+      '回到「全部」：三侧合计里有在线客服那一截', $('careerSheetHint').textContent.slice(0, 120));
+    check(posts.slice(posts8u).filter(p => /careerData|careerShift|careerRest/.test(p.url)).length === 0,
+      '在线客服日报 / 生涯第三侧不往服务端存（生涯与排班只在本机）',
+      posts.slice(posts8u).map(p => p.url).join(' | '));
+  }
+
+  console.log('--- 8v. 排班日历识别（自动匹配日报 / 生涯的班次） ---');
+  {
+    const posts8v = posts.length;
+    doc.querySelector('.tab-btn[data-tab="career"]').click();
+    await sleep(40);
+    $('careerRestBtn').click();
+    await sleep(60);
+    check(!!$('careerShiftInput') && !!$('careerShiftParseBtn') && !!$('careerShiftDetectBtn') && !!$('careerShiftClearBtn'),
+      '排班休息卡里多了「🕒 识别排班日历」粘贴框 + 识别 / 先看 / 同步 / 清空按钮');
+
+    // ① 一行一天：2026-10-26 H班
+    $('careerShiftInput').value = bjToday + ' H班';
+    $('careerShiftParseBtn').click();
+    await sleep(60);
+    let shiftMap = {};
+    try { shiftMap = JSON.parse(window.localStorage.getItem('careerShiftDays') || '{}'); } catch (_) { }
+    check(shiftMap[bjToday] === 'H', '粘「YYYY-MM-DD H班」→ 当天记成 H 班', JSON.stringify(shiftMap).slice(0, 90));
+    const cellToday = doc.querySelector('[data-rest="' + bjToday + '"]');
+    check(!!cellToday && cellToday.getAttribute('data-shift') === 'H' && cellToday.classList.contains('has-shift'),
+      '排班日历上今天那格显示班次 H（不再是空的）', cellToday && cellToday.outerHTML.slice(0, 110));
+
+    // ② 日历那一坨（带农历、休息、时间+班次 chip）
+    const ymCur = bjToday.slice(0, 7);
+    $('careerShiftInput').value = ymCur.replace('-', '年') + '月\n1 廿一休 2 廿二 12:00 F班 3 廿三 12:00 F班';
+    $('careerShiftParseBtn').click();
+    await sleep(60);
+    shiftMap = {};
+    try { shiftMap = JSON.parse(window.localStorage.getItem('careerShiftDays') || '{}'); } catch (_) { }
+    check(shiftMap[ymCur + '-01'] === 'O' && shiftMap[ymCur + '-02'] === 'F' && shiftMap[ymCur + '-03'] === 'F',
+      '从日历网页复制的一坨也认：1 号「休」→ O，2 / 3 号「12:00 F班」→ F',
+      [ymCur + '-01', shiftMap[ymCur + '-01'], shiftMap[ymCur + '-02'], shiftMap[ymCur + '-03']].join(' '));
+    const cell1 = doc.querySelector('[data-rest="' + ymCur + '-01"]');
+    check(!!cell1 && cell1.classList.contains('rest') && cell1.textContent.indexOf('休') !== -1,
+      '排班里的「休」自动标成休息日（日历格变黄并显示「休」）', cell1 && cell1.textContent);
+    check(/已写入 \d+ 天排班|已识别 \d+ 天排班/.test($('careerShiftHint').textContent),
+      '提示写明识别 / 写入了多少天排班（只存本机）', $('careerShiftHint').textContent);
+
+    // ③ 班次表：A 8:00-17:00 … O休息 → 图例能显示时间
+    $('careerShiftInput').value = 'A 8:00-17:00 F 12:00-21:00 H 14:00-23:00 O休息';
+    $('careerShiftParseBtn').click();
+    await sleep(60);
+    check(/H\s*14:00-23:00/.test($('careerShiftLegend').textContent),
+      '班次表也能识别（H 14:00-23:00 出现在图例里）', $('careerShiftLegend').textContent.slice(0, 120));
+    check(posts.slice(posts8v).filter(p => /careerData|careerShift|careerRest/.test(p.url)).length === 0,
+      '排班识别全程只写本机 localStorage，不往服务端存',
+      posts.slice(posts8v).map(p => p.url).join(' | '));
+
+    // ④ 同步到日报：三栏班次都换成当天排班
+    const todayCode = (() => { try { return JSON.parse(window.localStorage.getItem('careerShiftDays') || '{}')[bjToday] || ''; } catch (_) { return ''; } })();
+    $('careerShiftTodayBtn').click();
+    await sleep(80);
+    doc.querySelector('.tab-btn[data-tab="daily"]').click();
+    await sleep(40);
+    $('dailyTabOnline').click();
+    await sleep(40);
+    const shiftSel = $('dailyFormOnline').querySelector('[data-key="shift"]');
+    check(!!shiftSel && shiftSel.value === todayCode && todayCode !== '',
+      '「同步到日报」把当天班次写进日报三栏（今天 = ' + todayCode + '）', shiftSel && shiftSel.value);
+
+    // ⑤ 清空排班
+    doc.querySelector('.tab-btn[data-tab="career"]').click();
+    await sleep(40);
+    $('careerShiftClearBtn').click();
+    await sleep(60);
+    let cleared = {};
+    try { cleared = JSON.parse(window.localStorage.getItem('careerShiftDays') || '{}'); } catch (_) { }
+    check(Object.keys(cleared).length === 0
+      && !doc.querySelector('[data-rest="' + bjToday + '"]').classList.contains('has-shift'),
+      '清空排班：本机记录清掉、日历格上的班次也消失');
+  }
+
   console.log('--- 9. 无未捕获异常 ---');
   check(!warns.some(w => w.startsWith('ERROR')), 'console.error 未被调用：' + warns.filter(w => w.startsWith('ERROR')).join(' | '));
   check(jsdomErrors.length === 0, '页面无未捕获异常（jsdomError）', jsdomErrors.slice(0, 3));
