@@ -648,6 +648,16 @@ ok(/id="careerHeadline"/.test(s) && /id="ovbizHeadline"/.test(s) && /\.stat-head
   '两个统计页顶部都有一句话摘要（累计 / 日均 / 最高单日 / 在岗）');
 ok(/details class="card-more"/.test(s) && /details\.card-more > summary/.test(s),
   '客服生涯工具条收拢：导出 / 导入 / 清空折进「⋯ 更多」，主按钮只留归档 + 排班休息');
+ok(/details\.card-more > div \{[\s\S]{0,320}?position: absolute; top: calc\(100% \+ 6px\); right: 0;/
+  .test(s)
+  && /details\.card-more > div \{[\s\S]{0,420}?grid-template-columns: 1fr;/.test(s)
+  && /details\.card-more > div > button \{[\s\S]{0,260}?width: 100%;/.test(s)
+  && /document\.querySelectorAll\('details\.card-more\[open\]'\)\.forEach/.test(s),
+  '「⋯ 更多」展开是一块**浮层**（绝对定位、一列等宽按钮、图标对齐），点里面按钮 / 点外面都会收起（不再把工具条撑歪）');
+ok(/\.career-rest-day \{[\s\S]{0,420}?overflow: hidden; box-sizing: border-box;/.test(s)
+  && /\.career-rest-day b \{[\s\S]{0,220}?padding: 0 3px; margin-left: 0;/.test(s)
+  && /\.career-rest-day i \{[\s\S]{0,320}?max-width: 100%; overflow: hidden; text-overflow: ellipsis;/.test(s),
+  '日历格子里的「日期 / 休·班次」小片都收在边框里（格子上 overflow:hidden、去掉负 margin、长班次名省略号）');
 
 // ---- 3l. 七日任务（并进「话术生成」页的一段：进度日志 → 按内置任务表判定的进度话术，只在本机处理）----
 ok(/class="seg-bar" data-for="tab-gen"/.test(s) && /data-seg="reply" data-n="01">话术生成</.test(s)

@@ -3441,7 +3441,21 @@
         }
         details.card-more > summary::-webkit-details-marker { display: none; }
         details.card-more[open] > summary { border-color: var(--accent-line); color: var(--accent-ink); background: var(--accent-dim); }
-        details.card-more > div { margin-top: 8px; }
+        /* 展开后是一块浮层（不是挤在工具条里把整行撑歪）：一列、按钮等宽、图标对齐 */
+        details.card-more > div {
+            position: absolute; top: calc(100% + 6px); right: 0; z-index: 30;
+            margin-top: 0; padding: 8px;
+            display: grid; grid-template-columns: 1fr; gap: 6px; min-width: 176px;
+            background: var(--surface); border: 1px solid var(--line-0);
+            border-radius: var(--r-md); box-shadow: var(--shadow-2);
+        }
+        details.card-more > div > button {
+            display: flex; align-items: center; justify-content: flex-start; gap: 0;
+            width: 100%; margin: 0; padding: 6px 10px !important;
+            font-size: 12.5px; letter-spacing: 0.02em; text-align: left;
+            border-radius: var(--r-sm) !important;
+        }
+        details.card-more > div > button .ic { margin-right: 7px; }
         /* ⭐ 高频回复：一行一条，标题行放计数芯片，正文折两行 */
         .reply-top-item {
             border: 1px solid var(--line-0); border-left: 3px solid var(--accent-line);
@@ -3491,23 +3505,27 @@
         }
         .rest-cal-blank { min-height: 58px; }
         .career-rest-day {
-            position: relative; min-height: 58px; padding: 6px 7px 5px !important;
+            position: relative; min-height: 58px; padding: 5px 8px 7px !important;
             display: flex; flex-direction: column; align-items: flex-start;
             background: var(--surface); border: 1px solid var(--line-0);
             border-radius: var(--r-md); clip-path: none;
+            /* 圆角格子：里面那两个小片（日期 / 休·班次）一律不许探出边框 */
+            overflow: hidden; box-sizing: border-box;
             font-size: 12px; line-height: 1.15; letter-spacing: 0; color: var(--ink-2);
             text-align: left; cursor: pointer;
         }
         .career-rest-day b {
             font-family: var(--font-mono); font-size: 13px; font-weight: 700;
             color: var(--ink-0); font-variant-numeric: tabular-nums;
-            padding: 0 4px; margin-left: -4px; border-radius: var(--r-sm);
+            padding: 0 3px; margin-left: 0; border-radius: var(--r-sm);
+            max-width: 100%;
         }
         .career-rest-day i {
             font-style: normal; margin-top: auto;
             font-size: 10px; line-height: 1; padding: 1px 4px;
             color: var(--accent-ink); background: var(--accent-dim);
             border: 1px solid var(--accent-line); border-radius: var(--r-sm);
+            max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
             visibility: hidden;
         }
         .career-rest-day.weekend { background: var(--surface-2); }
@@ -16733,6 +16751,14 @@
                                         setClick('careerLoadDayBtn', careerLoadDay);
                                         setClick('careerSaveDayBtn', careerSaveDay);
                                         setClick('careerDeleteDayBtn', careerDeleteDay);
+
+                                        // 「⋯ 更多」是浮层：点外面 / 点里面的按钮后自动收起（不然会一直挂在那儿）
+                                        document.addEventListener('click', (e) => {
+                                            document.querySelectorAll('details.card-more[open]').forEach(d => {
+                                                if (!d.contains(e.target)) { d.open = false; return; }
+                                                if (e.target.closest && e.target.closest('button')) d.open = false;
+                                            });
+                                        });
 
                                         // 初始化日报页面
                                         (function initDaily() {

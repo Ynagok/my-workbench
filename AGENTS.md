@@ -1,4 +1,4 @@
-# work-bad · 客服冷静演绎工作台
+﻿# work-bad · 客服冷静演绎工作台
 
 单文件前端（`public/index.html`）+ 极简同步后端（`server.js` / express）。
 数据走 `/api/data/<key>`（GET 读、POST 写，key 有白名单校验），落盘到 `data.json`；前端 **localStorage 优先、服务端兜底**。
@@ -48,7 +48,7 @@ npm run verify     # 改完代码、push 前的完整自检
 
 | 命令 | 内容 |
 |---|---|
-| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 516 项 + 「接口挂起时界面仍可用」+ 服务端冒烟 46 项 |
+| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 519 项 + 「接口挂起时界面仍可用」+ 服务端冒烟 46 项 |
 | `npm run verify:static` | 只要静态校验 + 语法检查（最快） |
 | `npm run report` | 打印一份真实生成的日报，肉眼确认排版（含 ⑥伙伴弹途 / ⑦异世界勇者） |
 | `npm run build:data` | 从 GM 玩家页快照提取 4 张权威映射表 + 与硬编码常量的**差异报告**（见下「游戏数据管线」） |
@@ -58,7 +58,7 @@ npm run verify     # 改完代码、push 前的完整自检
 | `npm run smoke:pmc` | **生管物料订单工作台**（`public/pmc.html`）自检，123 项（含加工周期工作日推算 + 在途锁定/调整建议 + 真实 8.5MB xlsx 端到端导入）；**不在 verify 里**，见下「生管物料订单工作台」一节 |
 | `npm test` | = `npm run verify` |
 
-`npm run verify` 失败就不要提交。它一共 5 段：静态结构 → 语法 → jsdom 集成冒烟 **516 项** → 接口挂起时界面仍可用 → 服务端冒烟 **46 项**。
+`npm run verify` 失败就不要提交。它一共 5 段：静态结构 → 语法 → jsdom 集成冒烟 **519 项** → 接口挂起时界面仍可用 → 服务端冒烟 **46 项**。
 
 - jsdom 未安装时前端冒烟会自动回落到本机 DSH 自带的那份。
 - `tools/smoke-server.cjs` 用 `PORT` + `DATA_FILE` 环境变量把服务端指到随机端口和 `tools/out/` 里的临时文件，**不会碰真实 `data.json`**；子进程 stdio 必须用 `ignore`/`inherit`（沙箱禁管道，`pipe` 会 EPERM）。
@@ -145,6 +145,9 @@ npm run verify     # 改完代码、push 前的完整自检
   - ⚠️ 冒烟对这些块用的是 `textContent` 精确/正则断言（如 `工单侧 17 + 海外侧 53 = 累计 70`、`Top3 集中度：`、`合计占`、`待确认 1 天`、`异常线 μ+2σ`、`活动 / 版本峰值标注`、`只存在这台设备的浏览器里`、`不上传服务端`）—— 改芯片文案要同步改断言。
 - **报告式「一句话摘要」+ 工具条收拢（2026-10）**：两个统计页顶部 `.stat-headline`（`#careerHeadline` / `#ovbizHeadline`）由 `renderCareer()` / `ovbizRender()` 填 —— 「累计 X · 日均 Y · 最高单日 Z（日期）· 在岗 N 天 / 区间 M 天（休 K）」一行读完；没数据时回落成一片提示芯片。KPI 卡左侧加了一根 2px 强调条（主指标黄、次指标灰），表格首列加粗、行高收到 1.6。
   - **工具条**：客服生涯总览卡只留「🗂️ 归档今日日报」+「🗓️ 排班休息」两个主按钮，导出CSV / 导出JSON / 导入JSON / 清空本机 折进 `details.card-more`（点「⋯ 更多」展开）——**按钮 id 没变**，测试照旧能点。
+    - ⚠️ **「⋯ 更多」展开的是一块浮层，不是把工具条撑高**（2026-10 用户：「点击更多出来的这几个选项有点乱」）：`details.card-more > div` 改成 `position: absolute; top: calc(100% + 6px); right: 0; z-index: 30`（父级 `details.card-more` 要 `position: relative`）+ `display: grid; grid-template-columns: 1fr; gap: 6px; min-width: 176px`，卡片面 + 细边 + `--shadow-2`；里面每个按钮 `display: flex; width: 100%; text-align: left; font-size: 12.5px; padding: 6px 10px !important`，`.ic` 图标 `margin-right: 7px`。**别再改回默认的 `details` 竖排展开**，那样 4 个按钮会把工具条往下顶歪。
+    - 浮层会**自动收起**：`bindAll` 里挂了一条 `document` 级 `click` 监听 —— 点浮层外面收起，点浮层里任意 `button`（导出/导入/清空）也收起；`themePanel` 那套开合逻辑不受影响。
+    - **日历小片不再出框**（2026-10 用户：「日历的小图标出框了」）：`.career-rest-day` 改 `padding: 5px 8px 7px !important` + `overflow: hidden; box-sizing: border-box`；`.career-rest-day b`（日期数字）去掉负 margin、改 `padding: 0 3px; max-width: 100%`；`.career-rest-day i`（「休」/ 班次小片）加 `max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap`。**这三条一起锁着「小片不能溢出格子边框」**，`verify.mjs` 有断言。
 - **🗓️ 排班休息（2026-10 用户要求，后改成微软日历样式）**：客服生涯工具条上的「🗓️ 排班休息」按钮（`#careerRestBtn`）展开 `#careerRestCard` 面板。
   - **月历版式（2026-10 用户要求：「按微软日历的样式排布，要有星期」）**：`#careerRestGrid` 里先画一行星期表头 `.rest-cal-week`（`CAREER_WEEK_LABELS` = 日 / 一 / 二 / 三 / 四 / 五 / 六，**周日排最前，跟 Windows / Outlook 中文日历一致**；周末两列 `.wd.is-weekend` 标红），下面 `.rest-cal-grid` 是 **7 列网格**，每天一格 `.career-rest-day`（数字在左上）。
     - **对齐**：月初按 `firstDow = new Date(Date.UTC(y, m - 1, 1)).getUTCDay()` 补 `.rest-cal-blank` 空格子，月末再补到整周，所以 1 号永远落在它自己那一列、格子不会塌。

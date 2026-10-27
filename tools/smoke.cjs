@@ -1730,6 +1730,21 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
       && doc.querySelectorAll('#careerCardOverview details.card-more button').length === 4
       && !!doc.querySelector('#careerCardOverview #careerArchiveBtn'),
       '导出 / 导入 / 清空收进「⋯ 更多」，主按钮只留归档 + 排班休息');
+    // 「更多」是浮层：打开后一排按钮，点里面的按钮 / 点外面都会自动收起
+    const more = doc.querySelector('#careerCardOverview details.card-more');
+    more.open = true;
+    await sleep(20);
+    check(more.open && more.querySelectorAll(':scope > div > button').length === 4
+      && more.querySelectorAll(':scope > div > button svg.ic').length === 4,
+      '「⋯ 更多」展开是 4 个带图标的按钮（浮层里一列排好）', more.querySelectorAll(':scope > div > button').length);
+    $('careerImportJsonBtn').click();
+    await sleep(40);
+    check(!more.open, '点了浮层里的按钮 → 浮层自动收起');
+    more.open = true;
+    await sleep(20);
+    doc.querySelector('.tab-btn[data-tab="career"]').click();
+    await sleep(40);
+    check(!more.open, '点浮层外面 → 浮层收起');
     doc.querySelector('.tab-btn[data-tab="overseas"]').click();
     await sleep(60);
     check(doc.querySelectorAll('#tab-overseas .seg-btn').length === 3,
