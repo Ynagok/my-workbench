@@ -1,9 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const fs = require('fs');
-const os = require('os');
 const path = require('path');
-const { execFile } = require('child_process');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -13,8 +11,7 @@ const DATA_FILE = process.env.DATA_FILE
   : path.join(__dirname, 'data.json');
 
 app.use(cors());
-// 截图识别会上传 base64 图片，所以放宽到 10MB（普通 /api/data 的写入仍有 key 白名单挡着）
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({ limit: '2mb' }));
 
 // 静态文件：把前端 HTML 放在 public 目录
 app.use(express.static(path.join(__dirname, 'public')));
@@ -215,93 +212,6 @@ app.post('/api/vote/:key', (req, res) => {
   data[key] = poll;
   writeData(data);
   res.json({ success: true, value: poll });
-});
-
-// ==================== 截图识别（排班日历）：POST /api/ocr ====================
-// 浏览器里没有可靠的离线 OCR，所以放在服务端做：
-//   1) Windows 10/11：直接用系统自带的 Windows.Media.Ocr（tools/ocr-win.ps1，**不用装任何东西**，
-//      系统里装了中文语言包就能认中文）；先把图放大 3 倍再认 —— 日历里「12:00 F班」那种小字放大后识别率差很多。
-//   2) 其它平台（或系统没 OCR 引擎）：退回本机装的 tesseract（PATH 里或常见安装路径，可用 OCR_TESSERACT 指定）。
-//   3) 都没有 → 501 + 提示，前端会告诉用户怎么办（功能降级，粘文本那条路照旧可用）。
-// 图片以 dataURL（base64）POST 上来，落一个临时文件，用完就删。
-const OCR_MAX_BYTES = 8 * 1024 * 1024;
-const OCR_PS1 = path.join(__dirname, 'tools', 'ocr-win.ps1');
-const IMG_DATAURL_RE = /^data:image\/(png|jpe?g|webp|gif|bmp);base64,([A-Za-z0-9+/=\s]+)$/i;
-
-function runCmd(cmd, args, timeout) {
-  return new Promise((resolve) => {
-    let child;
-    try {
-      child = execFile(cmd, args, { timeout: timeout || 60000, maxBuffer: 8 * 1024 * 1024, windowsHide: true },
-        (err, stdout, stderr) => resolve({ err: err || null, stdout: String(stdout || ''), stderr: String(stderr || '') }));
-    } catch (e) {
-      return resolve({ err: e, stdout: '', stderr: String((e && e.message) || e) });   // 沙箱里可能直接 EPERM
-    }
-    if (child && child.on) child.on('error', () => { });
-  });
-}
-
-let ocrTesseractPath = null;   // null = 还没探测；'' = 探测过但没有；其它 = 可执行文件路径
-async function findTesseract() {
-  if (ocrTesseractPath !== null) return ocrTesseractPath;
-  const cands = [];
-  if (process.env.OCR_TESSERACT) cands.push(process.env.OCR_TESSERACT);
-  cands.push('tesseract');
-  if (process.platform === 'win32') {
-    cands.push('C:\\Program Files\\Tesseract-OCR\\tesseract.exe');
-    cands.push('C:\\Program Files (x86)\\Tesseract-OCR\\tesseract.exe');
-    if (process.env.LOCALAPPDATA) cands.push(path.join(process.env.LOCALAPPDATA, 'Programs', 'Tesseract-OCR', 'tesseract.exe'));
-  } else {
-    cands.push('/usr/bin/tesseract', '/usr/local/bin/tesseract');
-  }
-  for (const c of cands) {
-    const r = await runCmd(c, ['--version'], 15000);
-    if (!r.err) { ocrTesseractPath = c; return c; }
-  }
-  ocrTesseractPath = '';
-  return '';
-}
-
-// 返回 { text, engine } 或 { error, hint }
-async function ocrImage(tmpFile) {
-  if (process.platform === 'win32' && fs.existsSync(OCR_PS1)) {
-    const r = await runCmd('powershell.exe',
-      ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', OCR_PS1, '-Path', tmpFile, '-Scale', '3'], 90000);
-    if (!r.err) return { text: r.stdout, engine: 'windows' };
-    // 退出码 2 = 系统没装 OCR 引擎；其它错误也继续试 tesseract
-  }
-  const tess = await findTesseract();
-  if (tess) {
-    let r = await runCmd(tess, [tmpFile, 'stdout', '-l', 'chi_sim+eng', '--psm', '6'], 90000);
-    if (r.err) r = await runCmd(tess, [tmpFile, 'stdout', '-l', 'eng', '--psm', '6'], 90000);   // 没装中文包
-    if (!r.err) return { text: r.stdout, engine: 'tesseract' };
-  }
-  return {
-    error: 'no-ocr',
-    hint: '这台机器没有可用的 OCR：Windows 10/11 直接可用（系统自带）；其它系统请装 tesseract（如 apt-get install tesseract-ocr tesseract-ocr-chi-sim），或用 OCR_TESSERACT 指定路径'
-  };
-}
-
-app.post('/api/ocr', async (req, res) => {
-  const body = req.body || {};
-  const m = IMG_DATAURL_RE.exec(String(body.image || ''));
-  if (!m) return res.status(400).json({ ok: false, error: 'bad-image', hint: '传一张图片的 dataURL（png / jpg / webp / bmp）' });
-  const buf = Buffer.from(m[2], 'base64');
-  if (!buf.length || buf.length > OCR_MAX_BYTES) {
-    return res.status(400).json({ ok: false, error: 'bad-image', hint: '图片是空的或太大（上限 8MB）' });
-  }
-  const ext = m[1].toLowerCase() === 'jpeg' ? 'jpg' : m[1].toLowerCase();
-  const tmpFile = path.join(os.tmpdir(), 'workbad-ocr-' + Date.now() + '-' + Math.random().toString(16).slice(2) + '.' + ext);
-  try {
-    fs.writeFileSync(tmpFile, buf);
-    const out = await ocrImage(tmpFile);
-    if (out.error) return res.status(501).json({ ok: false, error: out.error, hint: out.hint });
-    res.json({ ok: true, engine: out.engine, text: out.text });
-  } catch (e) {
-    res.status(500).json({ ok: false, error: 'ocr-failed', hint: String((e && e.message) || e) });
-  } finally {
-    try { fs.unlinkSync(tmpFile); } catch (e) { /* 临时文件清不掉不影响结果 */ }
-  }
 });
 
 // 启动

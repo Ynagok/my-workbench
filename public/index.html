@@ -3542,29 +3542,6 @@
             color: var(--ink-1); background: var(--surface-3); border-color: var(--line-1);
             font-weight: 700;
         }
-        /* 🕒 识别排班日历那一块 */
-        .shift-import {
-            margin-top: 12px; padding: 10px 12px;
-            border: 1px solid var(--line-0); border-radius: var(--r-md);
-            background: var(--surface-2);
-        }
-        .shift-import-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; margin-bottom: 8px; }
-        .shift-import-head .dg-title { font-size: 13px; font-weight: 700; color: var(--ink-0); }
-        .shift-import-head .dg-sub { font-size: 12px; color: var(--ink-2); }
-        .shift-import-head code { font-family: var(--font-mono, monospace); font-size: 11px; background: var(--surface); border: 1px solid var(--line-0); border-radius: var(--r-sm); padding: 0 4px; }
-        #careerShiftInput { width: 100%; min-height: 84px; resize: vertical; font-size: 12px; }
-        /* 📷 截图识别：拖进来的区域 */
-        .shift-shot {
-            display: flex; flex-direction: column; gap: 4px;
-            margin-top: 8px; padding: 8px 10px;
-            border: 1px dashed var(--line-1); border-radius: var(--r-sm);
-            background: var(--surface); font-size: 12px; color: var(--ink-2);
-        }
-        .shift-shot.is-over { border-color: var(--accent); background: var(--accent-dim); }
-        .shift-shot b { color: var(--ink-0); }
-        #careerShiftLegend { margin-top: 8px; }
-        #careerShiftLegend span b { color: var(--accent-ink); }
-        #careerShiftStats { margin-top: 8px; }
         /* 按钮里的线性图标（替掉原来的 emoji，粗细 / 大小统一） */
         .ic {
             width: 15px; height: 15px; flex: none;
@@ -4236,34 +4213,6 @@
                         <button type="button" id="careerShiftEditClear" class="reset-btn">清空这天</button>
                         <button type="button" id="careerShiftEditClose" class="secondary">收起</button>
                     </div>
-                </div>
-                <!-- [需求] 2026-10：识别排班日历 → 自动匹配日报与生涯里的班次 -->
-                <div class="shift-import">
-                    <div class="shift-import-head">
-                        <span class="dg-title">🕒 识别排班日历</span>
-                        <span class="dg-sub">把排班日历 / 班次表粘进来（支持 <code>2026-10-26 H班</code>、<code>10月26日 H班</code>、以及从日历网页复制的一整坨）→ 自动给每天配上班次，日报「班次」和生涯按它匹配</span>
-                    </div>
-                    <textarea id="careerShiftInput" rows="4" placeholder="例：
-2026年10月
-1 廿一休 2 廿二 12:00 F班 3 廿三 12:00 F班
-4 廿四休 5 廿五休 6 廿六 12:00 F班
-或者一行一天：2026-10-26 H班
-班次表也可以一起粘：A 8:00-17:00 A1 8:00-20:00 A2 9:00-21:00 A3 11:00-23:00 A4 10:00-22:00 B 9:00-18:00 D 10:00-19:00 F 12:00-21:00 H 14:00-23:00 W 9:30-18:30 O休息"></textarea>
-                    <div class="flex-row" style="flex-wrap:wrap; align-items:center;">
-                        <button id="careerShiftParseBtn">🔍 识别并应用</button>
-                        <button id="careerShiftDetectBtn" class="secondary" title="只识别、不写入">👀 先看认出什么</button>
-                        <button id="careerShiftTodayBtn" class="secondary" title="把今天的班次带进日报">📋 同步到日报</button>
-                        <button id="careerShiftClearBtn" class="reset-btn">🧹 清空排班</button>
-                        <input type="file" id="careerOcrFile" accept="image/*" style="display:none;">
-                        <button id="careerOcrPickBtn" class="secondary" type="button" title="传排班日历截图（也支持 Ctrl+V 粘 / 拖进来）">📷 传截图识别</button>
-                        <span class="hint-text" id="careerShiftHint">还没识别排班</span>
-                    </div>
-                    <div class="shift-shot" id="careerOcrDrop">
-                        <span class="dg-sub">截图识别：点「📷 传截图识别」选一张排班日历 / 班次表的图，或者把它 <b>Ctrl+V</b> 粘进下面的框、<b>拖</b>到这块里 —— 认出来的文本会先填进框里（可以手改），再按「识别并应用」。</span>
-                        <span class="hint-text" id="careerOcrHint"></span>
-                    </div>
-                    <div class="career-legend" id="careerShiftLegend"></div>
-                    <div class="stat-chips" id="careerShiftStats"></div>
                 </div>
             </div>
 
@@ -11363,56 +11312,22 @@
                                         return new Date(Date.UTC(y, m, 0)).getUTCDate();
                                     }
 
-                                    // ==================== 🕒 排班日历识别（2026-10 用户需求）====================
-                                    // 用户：「排班板块增加可识别排班日历的功能，根据识别的排班日历，自动对日报和生涯中关于班次的数据进行匹配」
-                                    // 口径：把排班日历 / 班次表粘进来 → 解析出「哪天是哪个班」→ 只存本机
+                                    // ==================== 🕒 排班（日历上手改班次）====================
+                                    // 用户：「日历的班次也要可以手动修改」—— 去掉「粘排班日历 / 截图识别」那条路以后，
+                                    // 班次只靠日历上点「点日期：改班次」手动挑，口径还是只存本机：
                                     //   localStorage['careerShiftDays'] = { 'YYYY-MM-DD': 'H', … }（休息 = 'O'）
-                                    //   localStorage['careerShiftDefs'] = { H: '14:00-23:00', … }（班次表那行：A 8:00-17:00 …）
                                     // 之后：日报的「班次」字段按当天日期自动带出、在线客服日报抬头写「（H班）」、
                                     //       生涯里每条记录带上当天的班次（班次分布统计）。
                                     const CAREER_SHIFT_KEY = 'careerShiftDays';
-                                    const CAREER_SHIFT_DEF_KEY = 'careerShiftDefs';
-                                    // 合法班次代码（排班表那套）——OCR 出来的字母要「靠」到这几个上面才算数
+                                    // 合法班次代码（排班表那套）
                                     const CAREER_SHIFT_CODES = ['A', 'A1', 'A2', 'A3', 'A4', 'B', 'D', 'F', 'H', 'W', 'O'];
-                                    // 一串字母 → 合法班次代码；认不出返回 ''（OCR 常把 1 认成 I / l / |，O 认成 0）
-                                    function careerShiftCode(tok) {
-                                        const t = String(tok == null ? '' : tok).toUpperCase().replace(/[^A-Z0-9]/g, '');
-                                        if (!t) return '';
-                                        if (CAREER_SHIFT_CODES.indexOf(t) !== -1) return t;
-                                        const fixed = t.replace(/[IL|]/g, '1').replace(/0/g, 'O');
-                                        return CAREER_SHIFT_CODES.indexOf(fixed) !== -1 ? fixed : '';
-                                    }
-                                    // 截图 OCR 出来的文本先归一化：全角转半角、拆开的数字合起来、各种横线统一、别字纠正
-                                    function careerOcrNormalize(text) {
-                                        let s = String(text == null ? '' : text);
-                                        // 全角 → 半角（：０-９ Ａ-Ｚ （） － 都在这段里）
-                                        s = s.replace(/[\uFF01-\uFF5E]/g, ch => String.fromCharCode(ch.charCodeAt(0) - 0xFEE0)).replace(/\u3000/g, ' ');
-                                        // OCR 常把「12:00」认成「1 2 : 00」→ 先并数字、再并冒号
-                                        s = s.replace(/(\d)\s+(?=\d)/g, '$1');
-                                        s = s.replace(/(\d)\s*:\s*(\d{2})/g, '$1:$2');
-                                        // 时间段之间的各种横线 / 点号 → -
-                                        s = s.replace(/(\d{1,2}:\d{2})\s*[.。,，、·~～—–－_]\s*(?=\d{1,2}:\d{2})/g, '$1-');
-                                        // 「A1」被认成「AI / Al / A|」
-                                        s = s.replace(/\b([A-Z])[Il|](?=[ \t]*\d{1,2}:\d{2})/g, '$11');
-                                        // 「0休息」其实是 O 休息
-                                        s = s.replace(/\b[0O]\s*休\s*息/g, 'O休息');
-                                        // 休息被认成「体息」
-                                        s = s.replace(/[体庥]\s*息/g, '休息');
-                                        return s;
-                                    }
                                     function careerShiftLoad() {
                                         try { return asObject(JSON.parse(localStorage.getItem(CAREER_SHIFT_KEY) || '{}')) || {}; } catch (e) { return {}; }
                                     }
                                     function careerShiftSave(map) {
                                         try { localStorage.setItem(CAREER_SHIFT_KEY, JSON.stringify(map || {})); } catch (e) { }
                                     }
-                                    function careerShiftDefsLoad() {
-                                        try { return asObject(JSON.parse(localStorage.getItem(CAREER_SHIFT_DEF_KEY) || '{}')) || {}; } catch (e) { return {}; }
-                                    }
-                                    function careerShiftDefsSave(map) {
-                                        try { localStorage.setItem(CAREER_SHIFT_DEF_KEY, JSON.stringify(map || {})); } catch (e) { }
-                                    }
-                                    // 某一天的班次（'' = 没识别过）
+                                    // 某一天的班次（'' = 还没排班）
                                     function careerShiftOfDate(date) {
                                         const m = careerShiftLoad();
                                         return String(m[date] || '').trim();
@@ -11421,289 +11336,6 @@
                                         const m = careerShiftLoad();
                                         return Object.keys(m).filter(d => d.slice(0, 7) === ym && m[d] && m[d] !== 'O').length;
                                     }
-                                    // 把一段排班日历文本解析成 { days:{date:code}, defs:{code:time}, month:'YYYY-MM', rest:[date] }
-                                    // 认这三种写法（混着粘也行）：
-                                    //   ① 2026-10-26 H班 / 2026/10/26 H     ② 10月26日 H班 / 10-26 H
-                                    //   ③ 从日历网页复制的一坨：`1 廿一休`、`2 廿二 12:00 F班`、`26 H班`（配合「2026年10月」抬头）
-                                    function careerParseShiftText(text, ymHint) {
-                                        const out = { days: {}, defs: {}, month: '', rest: [], unresolved: 0 };
-                                        // 截图 OCR 出来的文本也能直接喂进来：先归一化（全角、拆开的数字、别字…）
-                                        let src = careerOcrNormalize(text);
-                                        if (!src.trim()) return out;
-
-                                        // 班次表：A 8:00-17:00 / A1 8:00-20:00 / O休息（字母认歪的也靠到合法代码上）
-                                        src.replace(/([A-Z]\d?)[ \t]*(\d{1,2}:\d{2})[ \t]*-[ \t]*(\d{1,2}:\d{2})/g, (m, code, a, b) => {
-                                            const c = careerShiftCode(code);
-                                            if (c && c !== 'O') out.defs[c] = a + '-' + b;
-                                            return m;
-                                        });
-                                        src.replace(/([A-Z]\d?)[ \t]*(?:休息|公休)/g, (m, code) => {
-                                            const c = careerShiftCode(code);
-                                            if (c) out.defs[c] = '休息';
-                                            return m;
-                                        });
-
-                                        // 年月：优先「2026年10月」，其次 2026-10，最后用面板当前月 / 今天
-                                        const hint = String(ymHint || '');
-                                        let year, month;
-                                        const mYm = /(\d{4})\s*[年\-\/.]\s*(\d{1,2})\s*月?/.exec(src);
-                                        if (mYm) { year = +mYm[1]; month = +mYm[2]; }
-                                        else if (/^\d{4}-\d{2}$/.test(hint)) { year = +hint.slice(0, 4); month = +hint.slice(5, 7); }
-                                        else { const t = getBeijingDate(); year = t.year; month = t.month; }
-                                        if (!(month >= 1 && month <= 12)) { const t = getBeijingDate(); year = t.year; month = t.month; }
-                                        out.month = year + '-' + String(month).padStart(2, '0');
-                                        const pad = (n) => String(n).padStart(2, '0');
-                                        const mk = (y, m, d) => y + '-' + pad(m) + '-' + pad(d);
-                                        const put = (y, m, d, code) => {
-                                            if (!(d >= 1 && d <= 31) || !(m >= 1 && m <= 12)) return false;
-                                            if (d > careerDaysInMonth(y + '-' + pad(m))) return false;
-                                            const date = mk(y, m, d);
-                                            out.days[date] = code;
-                                            if (code === 'O') out.rest.push(date);
-                                            return true;
-                                        };
-
-                                        // ① 完整日期：2026-10-26 H / 2026/10/26（H班）
-                                        // ⚠️ 这里的空白只吃空格 / 制表符（不吃换行）：否则「2026年10月\n1 廿一休」会被当成「10月1日」吃掉 1 号
-                                        let work = src;
-                                        work = work.replace(/(\d{4})[ \t]*[-\/.][ \t]*(\d{1,2})[ \t]*[-\/.][ \t]*(\d{1,2})[ \t]*(?:[（(][^）)]*[）)])?[ \t]*([A-Z]\d?)?[ \t]*班?/g,
-                                            (m, y, mo, d, code) => {
-                                                const c = careerShiftCode(code);
-                                                if (c) put(+y, +mo, +d, c);
-                                                return ' '.repeat(m.length);
-                                            });
-                                        // ② 月-日：10-26 H / 10-26（H班）
-                                        work = work.replace(/(\d{1,2})[ \t]*[-\/.][ \t]*(\d{1,2})(?!\d)[ \t]*(?:日)?[ \t]*(?:[（(][^）)]*[）)])?[ \t]*([A-Z]\d?)?[ \t]*班?/g,
-                                            (m, mo, d, code) => {
-                                                const c = careerShiftCode(code);
-                                                if (c && +mo >= 1 && +mo <= 12 && +d >= 1 && +d <= 31) put(year, +mo, +d, c);
-                                                return ' '.repeat(m.length);
-                                            });
-                                        // ③ 月日：10月26日（H班）
-                                        work = work.replace(/(\d{1,2})[ \t]*月[ \t]*(\d{1,2})[ \t]*日?[ \t]*(?:[（(][^）)]*[）)])?[ \t]*([A-Z]\d?)?[ \t]*班?/g,
-                                            (m, mo, d, code) => {
-                                                const c = careerShiftCode(code);
-                                                if (c) put(year, +mo, +d, c);
-                                                return ' '.repeat(m.length);
-                                            });
-
-                                        // ④ 日历那一坨：先抠出「时间 + 班次」的 chip，再按「日期数字 → 最近的 chip / 休」绑定
-                                        // ⚠️ OCR 容易把「班」认成别的字，所以「时间 + 合法代码」不强制带「班」也算 chip
-                                        const chips = [];
-                                        let re = /(\d{1,2}:\d{2})[ \t]*([A-Z]\d?)/g, mm;
-                                        while ((mm = re.exec(work))) {
-                                            const code = careerShiftCode(mm[2]);
-                                            if (code) chips.push({ at: mm.index, code: code });
-                                        }
-                                        // 只写「F班」没写时间的：先按时间 chip 的位置把时间段遮掉，避免同一个 chip 被算两次
-                                        const noTime = work.replace(/\d{1,2}:\d{2}/g, (m) => ' '.repeat(m.length));
-                                        re = /([A-Z]\d?)[ \t]*班/g;
-                                        while ((mm = re.exec(noTime))) {
-                                            const code = careerShiftCode(mm[1]);
-                                            if (code) chips.push({ at: mm.index, code: code });
-                                        }
-                                        chips.sort((a, b) => a.at - b.at);
-
-                                        // 把时间、四位年份、已经是 chip 的位置遮掉，剩下的数字才当「几号」
-                                        let masked = noTime;
-                                        masked = masked.replace(/\b\d{4}\b/g, (m) => ' '.repeat(m.length));
-                                        chips.forEach(c => { masked = masked.slice(0, c.at) + ' '.repeat(c.code.length + 1) + masked.slice(c.at + c.code.length + 1); });
-
-                                        const marks = [], restMarks = [];
-                                        re = /(?<![\d])(\d{1,2})(?![\d])/g;
-                                        while ((mm = re.exec(masked))) {
-                                            const d = +mm[1];
-                                            if (d >= 1 && d <= 31) marks.push({ at: mm.index, day: d });
-                                        }
-                                        re = /(休|公休)/g;
-                                        while ((mm = re.exec(masked))) restMarks.push(mm.index);
-
-                                        // 日期序列里如果「先出现大号、再回到 1」，说明开头那几个是上个月的尾巴
-                                        let firstOne = -1;
-                                        for (let i = 0; i < marks.length; i++) { if (marks[i].day === 1) { firstOne = i; break; } }
-                                        const calendarMode = marks.length >= 1 && (chips.length + restMarks.length) > 0;
-                                        if (calendarMode) {
-                                            const prevMonth = month - 1 < 1 ? 12 : month - 1;
-                                            const prevYear = month - 1 < 1 ? year - 1 : year;
-                                            marks.forEach((mk2, i) => {
-                                                const inPrev = firstOne > 0 && i < firstOne;
-                                                const y2 = inPrev ? prevYear : year;
-                                                const m2 = inPrev ? prevMonth : month;
-                                                // 这个日期后面、下一个日期之前，有没有 chip
-                                                const nextAt = (i + 1 < marks.length) ? marks[i + 1].at : masked.length;
-                                                const chip = chips.filter(c => c.at > mk2.at && c.at < nextAt)[0];
-                                                const isRest = restMarks.some(p => p > mk2.at && p < Math.min(nextAt, mk2.at + 12));
-                                                if (chip) put(y2, m2, mk2.day, chip.code);
-                                                else if (isRest) put(y2, m2, mk2.day, 'O');
-                                            });
-                                        }
-                                        out.unresolved = Object.keys(out.days).length ? 0 : 1;
-                                        return out;
-                                    }
-                                    // 应用识别结果：并进本机排班（同一天以新识别的为准），'O' 顺带标成休息日
-                                    function careerApplyShift(parsed, replace) {
-                                        const parsedDays = (parsed && parsed.days) || {};
-                                        const map = replace ? {} : careerShiftLoad();
-                                        Object.keys(parsedDays).forEach(d => { map[d] = parsedDays[d]; });
-                                        careerShiftSave(map);
-                                        if (parsed && parsed.defs && Object.keys(parsed.defs).length) {
-                                            const defs = replace ? {} : careerShiftDefsLoad();
-                                            Object.assign(defs, parsed.defs);
-                                            careerShiftDefsSave(defs);
-                                        }
-                                        const restList = careerRestLoad();
-                                        Object.keys(parsedDays).forEach(d => {
-                                            const i = restList.indexOf(d);
-                                            if (parsedDays[d] === 'O') { if (i === -1) restList.push(d); }
-                                            else if (i !== -1) restList.splice(i, 1);
-                                        });
-                                        careerRestSave(restList);
-                                        return Object.keys(parsedDays).length;
-                                    }
-                                    // ==================== 截图识别（排班日历）：图片 → 服务端 OCR → 文本 ====================
-                                    // 浏览器里没有可靠的离线 OCR，所以走服务端的 /api/ocr：
-                                    //   Windows 用系统自带 OCR（tools/ocr-win.ps1，放大 3 倍再认），其它系统用 tesseract；都没有就提示怎么办。
-                                    // 认出来的文本先填进输入框（用户可以手改），再走同一套解析 / 应用。
-                                    const CAREER_OCR_MAX = 8 * 1024 * 1024;
-                                    function careerOcrSay(msg, cls) {
-                                        const el = document.getElementById('careerOcrHint');
-                                        if (!el) return;
-                                        el.textContent = msg || '';
-                                        el.className = 'hint-text' + (cls ? ' ' + cls : '');
-                                    }
-                                    function careerOcrReadFile(file) {
-                                        return new Promise((resolve, reject) => {
-                                            const r = new FileReader();
-                                            r.onload = () => resolve(String(r.result || ''));
-                                            r.onerror = () => reject(new Error('读不出这张图'));
-                                            r.readAsDataURL(file);
-                                        });
-                                    }
-                                    async function careerOcrImage(file) {
-                                        if (!file) return;
-                                        if (!/^image\//.test(String(file.type || ''))) { careerOcrSay('这个文件不是图片'); return; }
-                                        if (file.size > CAREER_OCR_MAX) { careerOcrSay('图片太大（上限 8MB），先裁掉多余部分再试'); return; }
-                                        careerOcrSay('正在识别截图…（第一次会慢一点）');
-                                        let dataUrl = '';
-                                        try { dataUrl = await careerOcrReadFile(file); } catch (e) { careerOcrSay(String(e.message || e)); return; }
-                                        let resp = null, json = null;
-                                        try {
-                                            resp = await fetchWithTimeout('api/ocr', {
-                                                method: 'POST',
-                                                headers: { 'Content-Type': 'application/json' },
-                                                body: JSON.stringify({ image: dataUrl })
-                                            }, 120000);
-                                            json = await resp.json().catch(() => null);
-                                        } catch (e) {
-                                            careerOcrSay('识别请求失败：' + String((e && e.message) || e));
-                                            return;
-                                        }
-                                        if (!resp || !resp.ok || !json || json.ok !== true) {
-                                            const why = (json && (json.hint || json.error)) || ('HTTP ' + (resp && resp.status));
-                                            careerOcrSay('截图识别用不了：' + why);
-                                            return;
-                                        }
-                                        const text = careerOcrNormalize(json.text || '');
-                                        const area = document.getElementById('careerShiftInput');
-                                        if (area) area.value = text;
-                                        const parsed = careerShiftParseApply(true, false);
-                                        const n = parsed ? Object.keys(parsed.days).length : 0;
-                                        if (!text.trim()) {
-                                            careerOcrSay('这张图没认出文字：换张清楚一点的（字太小可以先放大截图）');
-                                            return;
-                                        }
-                                        careerOcrSay('已用' + (json.engine === 'windows' ? '系统 OCR' : ' tesseract') + '识别：'
-                                            + (n ? ('认出 ' + n + ' 天排班，已写进本机（文本也填在框里，可以手改后再应用）')
-                                                : '认出文字了，但没对上日期 / 班次 —— 文本已填到框里，改一下再点「识别并应用」'));
-                                    }
-                                    // 把「当前输入框里的文本」解析并（可选）应用；按钮和截图识别共用这一套
-                                    function careerShiftParseApply(apply, replace) {
-                                        const area = document.getElementById('careerShiftInput');
-                                        const text = (area && area.value) || '';
-                                        const hintEl = document.getElementById('careerShiftHint');
-                                        const say = (msg) => { if (hintEl) hintEl.textContent = msg; };
-                                        if (!text.trim()) { say('先把排班日历粘到上面的框里'); return null; }
-                                        const mo = document.getElementById('careerRestMonth');
-                                        const ym = careerRestMonthState || (mo && mo.value) || careerToday().slice(0, 7);
-                                        const parsed = careerParseShiftText(text, ym);
-                                        const n = Object.keys(parsed.days).length;
-                                        const nDefs = Object.keys(parsed.defs || {}).length;
-                                        if (!n && !nDefs) { say('没认出排班：每行写「2026-10-26 H班」或「26 H班」，也可以直接粘日历那一坨 / 传截图'); return null; }
-                                        if (!apply) {
-                                            if (!n) {
-                                                say('认出班次表 ' + nDefs + ' 个班次（' + Object.keys(parsed.defs).slice(0, 6).map(c => c + ' ' + parsed.defs[c]).join(' / ') + '），但没认出具体哪天上班');
-                                                return parsed;
-                                            }
-                                            const sample = Object.keys(parsed.days).sort().slice(0, 6)
-                                                .map(d => d.slice(5) + ' ' + parsed.days[d]).join(' / ');
-                                            say('认出 ' + n + ' 天（' + sample + (n > 6 ? ' …' : '') + '）· 点「识别并应用」写进排班');
-                                            return parsed;
-                                        }
-                                        const applied = careerApplyShift(parsed, !!replace);
-                                        careerRenderRestGrid();
-                                        renderCareer();
-                                        say('已写入 ' + applied + ' 天排班'
-                                            + (nDefs ? ' + 班次表 ' + nDefs + ' 个' : '')
-                                            + (parsed.month ? '（' + parsed.month + '）' : '')
-                                            + ' · 日报班次会按当天排班自动带出');
-                                        return parsed;
-                                    }
-                                    // 班次表 + 某个班次的时间（例如 H → 14:00-23:00），日报抬头用不上，但表格里能看懂
-                                    function careerShiftDefText(code) {
-                                        const defs = careerShiftDefsLoad();
-                                        return defs[code] || '';
-                                    }
-                                    // 生涯页的「班次分布」：按记录日期对应的班次分组
-                                    function careerShiftStats() {
-                                        const map = careerShiftLoad();
-                                        const out = { total: 0, byCode: {}, rest: 0 };
-                                        Object.keys(careerData.records).forEach(d => {
-                                            const code = String(map[d] || '').trim();
-                                            if (!code) return;
-                                            out.total++;
-                                            out.byCode[code] = (out.byCode[code] || 0) + 1;
-                                            if (code === 'O') out.rest++;
-                                        });
-                                        return out;
-                                    }
-                                    function careerRenderShiftLegend() {
-                                        const box = document.getElementById('careerShiftLegend');
-                                        const statBox = document.getElementById('careerShiftStats');
-                                        const hint = document.getElementById('careerShiftHint');
-                                        if (hint) {
-                                            const map = careerShiftLoad();
-                                            const n = Object.keys(map).length;
-                                            hint.textContent = n ? ('已识别 ' + n + ' 天排班（只存本机）') : '还没识别排班：把排班日历 / 班次表粘到上面的框里';
-                                        }
-                                        const defs = careerShiftDefsLoad();
-                                        const map = careerShiftLoad();
-                                        const codes = Object.keys(defs).sort();
-                                        const useCodes = codes.length ? codes : Array.from(new Set(Object.keys(map).map(d => map[d]))).sort();
-                                        if (box) {
-                                            box.innerHTML = useCodes.length
-                                                ? useCodes.map(code => {
-                                                    const days = Object.keys(map).filter(d => map[d] === code).length;
-                                                    const t = defs[code] || (code === 'O' ? '休息' : '');
-                                                    return '<span><b>' + escapeHtml(code) + '</b> ' + escapeHtml(t) + (days ? ' · ' + days + ' 天' : '') + '</span>';
-                                                }).join('')
-                                                : '';
-                                        }
-                                        if (statBox) {
-                                            // 生涯里：有多少天带班次、哪个班最多（跟日报归档的日期对应）
-                                            const st = careerShiftStats();
-                                            const chips = [];
-                                            if (st.total) {
-                                                chips.push(statChip('已匹配班次 ' + st.total + ' 天', 'k-accent'));
-                                                Object.keys(st.byCode).sort((a, b) => st.byCode[b] - st.byCode[a]).slice(0, 6)
-                                                    .forEach(code => chips.push(statChip(code + ' 班 ' + st.byCode[code] + ' 天')));
-                                                if (st.rest) chips.push(statChip('休息 ' + st.rest + ' 天', 'k-plain'));
-                                            } else {
-                                                chips.push(statChip('生涯里还没有带班次的记录（识别排班后归档的日报会带上班次）', 'k-plain'));
-                                            }
-                                            statBox.innerHTML = chips.join('');
-                                        }
-                                    }
-
                                     // 微软日历那种月视图：星期表头（周日在最前）+ 7 列月历 + 今天/休息标记
                                     const CAREER_WEEK_LABELS = ['日', '一', '二', '三', '四', '五', '六'];
                                     // 「点日期」是标休息还是改班次（只存本机；默认标休息 = 原来那套行为）
@@ -11734,12 +11366,12 @@
                                         const cur = careerShiftOfDate(date);
                                         if (codesBox) {
                                             codesBox.innerHTML = CAREER_SHIFT_CODES.map(code => {
-                                                const t = careerShiftDefText(code);
                                                 const on = code === cur;
+                                                const tail = code === 'O' ? '休息' : '';
                                                 return '<button type="button" class="se-code' + (on ? ' is-on' : '') + '" data-code="' + code + '"'
-                                                    + ' title="' + escapeHtml(code + (t ? ' ' + t : (code === 'O' ? ' 休息' : ''))) + '">'
+                                                    + ' title="' + escapeHtml(code + (tail ? ' ' + tail : '')) + '">'
                                                     + '<b>' + escapeHtml(code) + '</b>'
-                                                    + (t ? '<span>' + escapeHtml(t) + '</span>' : (code === 'O' ? '<span>休息</span>' : ''))
+                                                    + (tail ? '<span>' + escapeHtml(tail) + '</span>' : '')
                                                     + '</button>';
                                             }).join('') + '<button type="button" class="se-code se-code-blank' + (cur ? '' : ' is-on') + '" data-code=""><b>—</b><span>不排班</span></button>';
                                         }
@@ -11747,7 +11379,7 @@
                                         if (nowEl) {
                                             const restSet = careerRestSet();
                                             nowEl.textContent = cur
-                                                ? ('现在是 ' + cur + (cur === 'O' ? '（休息）' : (careerShiftDefText(cur) ? '（' + careerShiftDefText(cur) + '）' : '')))
+                                                ? ('现在是 ' + cur + (cur === 'O' ? '（休息）' : ''))
                                                 : ('还没排班' + (restSet.has(date) ? '（这天标了休息）' : ''));
                                         }
                                     }
@@ -11770,7 +11402,7 @@
                                         careerRenderRestGrid();
                                         renderCareer();
                                         careerShiftEditOpen(date);
-                                        const hint = document.getElementById('careerShiftHint');
+                                        const hint = document.getElementById('careerRestHint');
                                         if (hint) hint.textContent = date + ' 已手动设为「' + (c || '不排班') + (c === 'O' ? '（休息）' : '') + '」（只存本机）';
                                     }
                                     function careerRenderRestGrid() {
@@ -11827,7 +11459,6 @@
                                         if (hint) hint.textContent = '休息 ' + cnt + ' 天' + (shiftCnt ? ' · 排班 ' + shiftCnt + ' 天' : '')
                                             + (careerRestModeState === 'shift' ? ' · 点日期改班次（只存本机）' : ' · 点日期切换（只存本机）');
                                         careerRestModePaint();
-                                        careerRenderShiftLegend();
                                     }
 
                                     // 上个月 / 下个月（微软日历那种左右箭头）
@@ -12387,8 +12018,6 @@
 
                                         renderCareerAudit();
                                         renderCareerDetail();
-                                        // 排班日历：班次图例 / 生涯里已匹配班次的天数（跟着记录变）
-                                        careerRenderShiftLegend();
                                     }
 
                                     // ---------- 🗓️ 归档体检 / 漏登记提醒（用户要求） ----------
@@ -16488,92 +16117,6 @@
                                             setClick('careerShiftEditClear', () => careerShiftEditPick(''));
                                             setClick('careerShiftEditClose', careerShiftEditClose);
 
-                                            // 🕒 排班日历识别：粘贴 / 截图 → 解析 → 写入本机 → 日报 / 生涯自动匹配
-                                            const shiftArea = document.getElementById('careerShiftInput');
-                                            const shiftHint = (msg, cls) => {
-                                                const el = document.getElementById('careerShiftHint');
-                                                if (!el) return;
-                                                el.textContent = msg;
-                                                el.className = 'hint-text' + (cls ? ' ' + cls : '');
-                                            };
-                                            // 解析 / 应用抽到 careerShiftParseApply（截图识别也用同一套）
-                                            const parseNow = (apply, replace) => careerShiftParseApply(apply, replace);
-                                            setClick('careerShiftParseBtn', () => parseNow(true, false));
-                                            setClick('careerShiftDetectBtn', () => parseNow(false, false));
-                                            setClick('careerShiftTodayBtn', () => {
-                                                const d = careerToday();
-                                                const code = careerShiftOfDate(d);
-                                                if (!code) { shiftHint('今天（' + d + '）的排班还没识别：先粘排班日历点「识别并应用」'); return; }
-                                                dailyData.ticket = dailyData.ticket || {};
-                                                dailyData.overseas = dailyData.overseas || {};
-                                                dailyData.online = dailyData.online || {};
-                                                dailyData.ticket.shift = code;
-                                                dailyData.overseas.shift = code;
-                                                dailyData.online.shift = code;
-                                                saveData('dailyData', dailyData);
-                                                DAILY_TAB_KEYS.forEach(k => renderDailyForm(k));
-                                                shiftHint('今天（' + d + '）的班次 ' + code + ' 已带到日报三栏');
-                                            });
-                                            setClick('careerShiftClearBtn', () => {
-                                                if (!confirm('确认清空识别出来的排班（休息标记也会一起清掉）？')) return;
-                                                careerShiftSave({});
-                                                careerShiftDefsSave({});
-                                                careerRenderRestGrid();
-                                                renderCareer();
-                                                if (shiftArea) shiftArea.value = '';
-                                                shiftHint('排班已清空');
-                                            });
-
-                                            // 📷 截图识别：选图 / Ctrl+V 粘图 / 拖进来 → 服务端 OCR → 文本填进框里
-                                            setClick('careerOcrPickBtn', () => {
-                                                const f = document.getElementById('careerOcrFile');
-                                                if (!f) { careerOcrSay('这个浏览器不支持选图'); return; }
-                                                f.value = '';
-                                                f.click();
-                                            });
-                                            addEvent('careerOcrFile', 'change', () => {
-                                                const f = document.getElementById('careerOcrFile');
-                                                const file = f && f.files && f.files[0];
-                                                if (file) careerOcrImage(file);
-                                            });
-                                            const ocrFromDataTransfer = (dt) => {
-                                                if (!dt) return false;
-                                                let file = null;
-                                                const files = dt.files;
-                                                if (files && files.length) {
-                                                    for (let i = 0; i < files.length; i++) {
-                                                        if (/^image\//.test(String(files[i].type || ''))) { file = files[i]; break; }
-                                                    }
-                                                }
-                                                if (!file && dt.items) {
-                                                    for (let i = 0; i < dt.items.length; i++) {
-                                                        const it = dt.items[i];
-                                                        if (it.kind === 'file' && /^image\//.test(String(it.type || ''))) { file = it.getAsFile(); break; }
-                                                    }
-                                                }
-                                                if (!file) return false;
-                                                careerOcrImage(file);
-                                                return true;
-                                            };
-                                            if (shiftArea) {
-                                                shiftArea.addEventListener('paste', (e) => {
-                                                    if (ocrFromDataTransfer(e.clipboardData)) e.preventDefault();
-                                                });
-                                            }
-                                            const drop = document.getElementById('careerOcrDrop');
-                                            if (drop) {
-                                                ['dragenter', 'dragover'].forEach(t => drop.addEventListener(t, (e) => {
-                                                    e.preventDefault();
-                                                    drop.classList.add('is-over');
-                                                }));
-                                                ['dragleave', 'dragend'].forEach(t => drop.addEventListener(t, () => drop.classList.remove('is-over')));
-                                                drop.addEventListener('drop', (e) => {
-                                                    e.preventDefault();
-                                                    drop.classList.remove('is-over');
-                                                    if (!ocrFromDataTransfer(e.dataTransfer)) careerOcrSay('拖进来的东西里没有图片');
-                                                });
-                                            }
-                                            careerRenderShiftLegend();
                                         })();
                                         setClick('careerExportCsvBtn', () => {
                                             if (!careerDownload('客服生涯_' + careerToday() + '.csv', careerCsvText(), 'text/csv')) alert('当前环境不支持导出');
