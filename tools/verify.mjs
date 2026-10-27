@@ -279,6 +279,13 @@ ok(/val = \(f\.key === 'shift' \? careerShiftOfDate\(careerToday\(\)\) : ''\) \|
 ok(/const shift = String\(shiftMap\[date\] \|\| ''\)\.trim\(\);/.test(s) && /class="career-rest-day'/.test(s)
   && /has-shift/.test(s) && /data-shift="' \+ escapeHtml\(shift\) \+ '"/.test(s),
   '排班日历上每一天都标出排好的班次（格子里的 data-shift + has-shift 样式）');
+// 「日历 → 日报」这一步留着（用户：「日历同步到日报的功能还是要的」）
+ok(/id="careerShiftTodayBtn"/.test(s) && /setClick\('careerShiftTodayBtn', \(\) => \{/.test(s)
+  && /dailyData\.ticket\.shift = code;/.test(s) && /dailyData\.overseas\.shift = code;/.test(s)
+  && /dailyData\.online\.shift = code;/.test(s)
+  && /DAILY_TAB_KEYS\.forEach\(k => renderDailyForm\(k\)\);/.test(s)
+  && /还没排班：先在「点日期：改班次」模式下点今天挑一个班次/.test(s),
+  '排班卡上的「同步到日报」还在：把今天的班次写进日报三栏的「班次」并重画表单；今天没排班时给提示不瞎写');
 // 补录 / 粘贴导入：默认收起，点标题才展开
 ok(/id="careerEditToggleBtn"/.test(s) && /id="careerEditBody"/.test(s)
   && /id="careerImportToggleBtn"/.test(s) && /id="careerImportBody"/.test(s)

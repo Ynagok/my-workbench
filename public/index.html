@@ -4197,6 +4197,8 @@
                         <button type="button" class="rest-mode-btn active" id="careerRestModeRest" data-mode="rest">点日期：标休息</button>
                         <button type="button" class="rest-mode-btn" id="careerRestModeShift" data-mode="shift">点日期：改班次</button>
                     </span>
+                    <!-- [需求] 2026-10：把日历上今天的班次同步进日报三栏（识别那块去掉后只留这个动作） -->
+                    <button id="careerShiftTodayBtn" class="secondary" title="把日历上今天的班次带进每日日报三栏">同步到日报</button>
                     <button id="careerRestWeekendBtn" class="secondary">周末全休</button>
                     <button id="careerRestClearMonthBtn" class="reset-btn">清空本月</button>
                     <span class="hint-text" id="careerRestHint"></span>
@@ -16116,6 +16118,25 @@
                                             });
                                             setClick('careerShiftEditClear', () => careerShiftEditPick(''));
                                             setClick('careerShiftEditClose', careerShiftEditClose);
+                                            // 日历 → 日报：把今天排好的班次写进工单 / 海外 / 在线客服三栏的「班次」
+                                            setClick('careerShiftTodayBtn', () => {
+                                                const d = careerToday();
+                                                const code = careerShiftOfDate(d);
+                                                const hint = document.getElementById('careerRestHint');
+                                                if (!code) {
+                                                    if (hint) hint.textContent = '今天（' + d + '）还没排班：先在「点日期：改班次」模式下点今天挑一个班次';
+                                                    return;
+                                                }
+                                                dailyData.ticket = dailyData.ticket || {};
+                                                dailyData.overseas = dailyData.overseas || {};
+                                                dailyData.online = dailyData.online || {};
+                                                dailyData.ticket.shift = code;
+                                                dailyData.overseas.shift = code;
+                                                dailyData.online.shift = code;
+                                                saveData('dailyData', dailyData);
+                                                DAILY_TAB_KEYS.forEach(k => renderDailyForm(k));
+                                                if (hint) hint.textContent = '今天（' + d + '）的班次 ' + code + ' 已同步到日报三栏';
+                                            });
 
                                         })();
                                         setClick('careerExportCsvBtn', () => {

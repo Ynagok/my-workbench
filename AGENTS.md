@@ -48,7 +48,7 @@ npm run verify     # 改完代码、push 前的完整自检
 
 | 命令 | 内容 |
 |---|---|
-| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 506 项 + 「接口挂起时界面仍可用」+ 服务端冒烟 42 项 |
+| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 509 项 + 「接口挂起时界面仍可用」+ 服务端冒烟 42 项 |
 | `npm run verify:static` | 只要静态校验 + 语法检查（最快） |
 | `npm run report` | 打印一份真实生成的日报，肉眼确认排版（含 ⑥伙伴弹途 / ⑦异世界勇者） |
 | `npm run build:data` | 从 GM 玩家页快照提取 4 张权威映射表 + 与硬编码常量的**差异报告**（见下「游戏数据管线」） |
@@ -58,7 +58,7 @@ npm run verify     # 改完代码、push 前的完整自检
 | `npm run smoke:pmc` | **生管物料订单工作台**（`public/pmc.html`）自检，123 项（含加工周期工作日推算 + 在途锁定/调整建议 + 真实 8.5MB xlsx 端到端导入）；**不在 verify 里**，见下「生管物料订单工作台」一节 |
 | `npm test` | = `npm run verify` |
 
-`npm run verify` 失败就不要提交。它一共 5 段：静态结构 → 语法 → jsdom 集成冒烟 **506 项** → 接口挂起时界面仍可用 → 服务端冒烟 **42 项**。
+`npm run verify` 失败就不要提交。它一共 5 段：静态结构 → 语法 → jsdom 集成冒烟 **509 项** → 接口挂起时界面仍可用 → 服务端冒烟 **42 项**。
 
 - jsdom 未安装时前端冒烟会自动回落到本机 DSH 自带的那份。
 - `tools/smoke-server.cjs` 用 `PORT` + `DATA_FILE` 环境变量把服务端指到随机端口和 `tools/out/` 里的临时文件，**不会碰真实 `data.json`**；子进程 stdio 必须用 `ignore`/`inherit`（沙箱禁管道，`pipe` 会 EPERM）。
@@ -159,13 +159,14 @@ npm run verify     # 改完代码、push 前的完整自检
   - **存哪儿**：只写本机 `localStorage['careerRestDays']`（`YYYY-MM-DD` 数组，`careerRestLoad` / `careerRestSave` / `careerRestToggle`），**不进 `/api/data`** —— 跟 `careerData` 一个规矩。
   - **统计口径（`careerStats` 里只有这一处）**：`const restSet = careerRestSet()` 之后 —— ① **断档只数工作日**（`gapWorkDays()` 跳过休息日）；② **连续记录不休息日打断**（中间全是休息日就继续连续）；③ 新增 `restDays`（记录区间内的休息天数）与 `dutyDays = spanDays - restDays`（**在岗天数**），KPI「记录区间」副标与「数据质量」芯片都会显示「在岗 / 休息」。
   - **归档体检也跳过休息日**：休息日不报「漏登记」，另起一片「休息 N 天（不算漏登记）」。
-- **🕒 排班（2026-10：只靠日历上手改）**：排班休息卡里原来那块 `.shift-import`（粘排班日历 + `🔍 识别并应用` / `👀 先看认出什么` / `📋 同步到日报` / `🧹 清空排班` + 班次图例 `#careerShiftLegend` + 生涯班次芯片 `#careerShiftStats`）和 **截图 OCR**（`POST /api/ocr` + `tools/ocr-win.ps1` + tesseract 兜底）**已按用户要求整块删掉**（2026-10 用户：「去掉识别排班的部分」）。
+- **🕒 排班（2026-10：只靠日历上手改 + 同步到日报）**：排班休息卡里原来那块 `.shift-import`（粘排班日历 + `🔍 识别并应用` / `👀 先看认出什么` / `🧹 清空排班` + 班次图例 `#careerShiftLegend` + 生涯班次芯片 `#careerShiftStats`）和 **截图 OCR**（`POST /api/ocr` + `tools/ocr-win.ps1` + tesseract 兜底）**已按用户要求整块删掉**（2026-10 用户：「去掉识别排班的部分」）；**唯独「📋 同步到日报」这个动作按用户要求留了下来**（「日历同步到日报的功能还是要的」），挪到排班卡工具条上，见下。
   - **删掉的东西**：`careerParseShiftText` / `careerApplyShift` / `careerShiftParseApply` / `careerOcrNormalize` / `careerShiftCode` / `careerShiftDefs*` / `careerShiftDefText` / `careerShiftStats` / `careerRenderShiftLegend` / `careerOcrSay` / `careerOcrReadFile` / `careerOcrImage` / `CAREER_OCR_MAX`；`server.js` 的 `/api/ocr`、`OCR_PS1`、`findTesseract`、`ocrImage`、`require('os')`、`require('child_process')` 一起没了，`express.json` **收回 `2mb`**；`tools/ocr-win.ps1` 已删。⚠️ **别再捡回来**（`verify.mjs` 3b-4 有反向断言：这些名字 / `id="careerShiftInput"` / `shift-import` / 「识别排班」都不该再出现）。
   - **剩下的口径**：班次只存本机 `localStorage['careerShiftDays']`（`{ 'YYYY-MM-DD': 'H' }`，休息 = `'O'`），**不进 `/api/data`**；读写入口是 `careerShiftLoad` / `careerShiftSave` / `careerShiftOfDate(date)` / `careerShiftCount(ym)`；合法班次代码 `CAREER_SHIFT_CODES`（A / A1–A4 / B / D / F / H / W / O）。
   - **日历格**：`.career-rest-day` 多挂 `data-shift` 与 `.has-shift`，`<i>` 里显示班次代码（休息仍显示「休」；`.has-shift i` 让平时藏着的那个小片显形）；提示写「休息 N 天 · 排班 M 天」。
+  - **📋 同步到日报（2026-10 用户：「日历同步到日报的功能还是要的」）**：排班卡工具条的 `#careerShiftTodayBtn`（「同步到日报」，在「周末全休」前面）把**今天**的班次写进 `dailyData.ticket.shift` / `.overseas.shift` / `.online.shift`，`saveData` 后 `DAILY_TAB_KEYS.forEach(k => renderDailyForm(k))` 重画三栏；今天没排班时只在 `#careerRestHint` 里提示「先在「点日期：改班次」模式下点今天挑一个班次」，不瞎写。⚠️ 海外栏本来就没有「班次」输入框，写 `.overseas.shift` 是给生涯归档（`careerFoldDaily`）用的。
   - **自动匹配班次**：① 日报表单的「班次」下拉在空值时按**当天排班**带出（`val = (f.key === 'shift' ? careerShiftOfDate(careerToday()) : '') || f.default || …`）；② 在线客服日报抬头写 `（H班）` 时也读当天排班；③ 归档进生涯时 `careerFoldDaily()` 在日报没填班次时用当天排班补 `rec.shift`。
   - **✏️ 日历上手改班次（2026-10 用户：「日历的班次也要可以手动修改」）**：排班卡工具条多了 `.rest-mode` 两个切换按钮 `#careerRestModeRest`（点日期：标休息，**默认**）/ `#careerRestModeShift`（点日期：改班次），模式存本机 `localStorage['careerRestMode']`（`careerRestModeSet` / `careerRestModePaint`）。改班次模式下点某天 → 弹出 `#careerShiftEditBox` 面板：抬头 `#careerShiftEditDate` = 那天、`#careerShiftEditCodes` 里 `CAREER_SHIFT_CODES` 每个班次一个按钮（`O` 标「休息」）+ 一个「不排班」，当前班次是 `.is-on` 选中态。挑完 → `careerShiftEditPick(code)` 写 `careerShiftDays[date]`（空 = 删掉这天），**挑 `O` 会顺带进 `careerRestDays`**，然后重画日历 / 生涯并刷新面板；`#careerShiftEditClear` 清空这天、`#careerShiftEditClose` 收起，操作结果写在排班卡的 `#careerRestHint` 上。⚠️ **默认模式必须是标休息**（`smoke` 8m/8p 都是按「点日期 = 切休息」写的）；`.rest-mode-btn` 样式在圆润层里，按钮用 `!important` 盖掉全局按钮样式。
-  - **测试**：`tools/smoke.cjs` 第 **8v** 节 **4 条**（识别那块整个不在了 / 排班卡上没有「识别排班 · 截图识别」字样 / 手排的班次换月再回来还在 / 全程 0 请求，只写本机）；第 **8x** 节 **14 条**（6 个工具条按钮都是内联 `svg.ic` 且没有 emoji / 两种点日期模式与默认值 / 点日期弹 12 个班次面板 / 挑 H 写进本机且格子显示 / 挑 O 顺带标休息 / 清空这天 / `#careerRestHint` 提示 / 「⋯ 更多」浮层开合与自动收起）；`tools/verify.mjs` 3b-4 有静态断言（含反向断言）。
+  - **测试**：`tools/smoke.cjs` 第 **8v** 节 **7 条**（识别那块整个不在了 / 排班卡上没有「识别排班 · 截图识别」字样 / 「同步到日报」按钮还在 / 手排的班次换月再回来还在 / 全程 0 请求，只写本机 / 「同步到日报」把今天 H 班写进日报「班次」/ 同步后给一句提示）；第 **8x** 节 **14 条**（6 个工具条按钮都是内联 `svg.ic` 且没有 emoji / 两种点日期模式与默认值 / 点日期弹 12 个班次面板 / 挑 H 写进本机且格子显示 / 挑 O 顺带标休息 / 清空这天 / `#careerRestHint` 提示 / 「⋯ 更多」浮层开合与自动收起）；`tools/verify.mjs` 3b-4 有静态断言（含反向断言）。
 - **归档体检 / 漏登记提醒（2026-10）**：客服生涯总览卡里的 `#careerAuditBox` 由 `renderCareerAudit()` 填 —— 看**最近 7 天（不含今天）**有哪些日子 `careerData.records` 里没有，有就出 `k-warn` 芯片点名（「漏登记 N 天」+ 每个日期一片 + 指路「去每日日报归档或下面补录」），齐了就一片「最近 7 天都归档了」。日期用 `careerRecentDays(7)` 按 UTC 递减算，不依赖时区。
 - ⚠️ 想再换回暗色：把 `:root` 的 `--bg-0/--surface*/--ink*/--line*/--accent*` 换回深色值即可，但**要同时删掉/改掉「浅色收口层 · 柔和白」这一段 + `color-scheme: light` + select 箭头 SVG 的 `%23c89500`**，否则会有浅底白线。
 

@@ -2577,13 +2577,15 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     await sleep(40);
     $('careerRestBtn').click();
     await sleep(60);
-    const goneIds = ['careerShiftInput', 'careerShiftParseBtn', 'careerShiftDetectBtn', 'careerShiftTodayBtn',
+    const goneIds = ['careerShiftInput', 'careerShiftParseBtn', 'careerShiftDetectBtn',
       'careerShiftClearBtn', 'careerOcrPickBtn', 'careerOcrFile', 'careerOcrDrop', 'careerOcrHint',
       'careerShiftLegend', 'careerShiftStats', 'careerShiftHint'];
     const stillThere = goneIds.filter(id => $(id));
     check(stillThere.length === 0 && !doc.querySelector('.shift-import'),
       '「识别排班日历」整块已按用户要求去掉（粘贴框 / 识别按钮 / 截图 / 图例 / 班次芯片都不在了）',
       stillThere.join(', ') || 'ok');
+    check(!!$('careerShiftTodayBtn'),
+      '「同步到日报」这个动作留着（用户要求：日历同步到日报的功能还是要的）');
     const restText = $('careerRestCard').textContent;
     check(!/识别排班|截图识别|粘排班/.test(restText),
       '排班卡上不再出现「识别排班 / 截图识别」这些字样', restText.slice(0, 140));
@@ -2608,6 +2610,25 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     check(posts.slice(posts8v).filter(p => /careerData|careerShift|careerRest/.test(p.url)).length === 0,
       '排班还是只写本机（没有 careerShiftDays / careerRestDays 之类的请求）',
       posts.slice(posts8v).map(p => p.url).join(' | '));
+
+    // 「同步到日报」：把今天排好的班次写进日报三栏的「班次」
+    $('careerRestMonth').value = bjToday.slice(0, 7);
+    $('careerRestMonth').dispatchEvent(new window.Event('change', { bubbles: true }));
+    await sleep(80);
+    doc.querySelector('[data-rest="' + bjToday + '"]').click();
+    await sleep(60);
+    $('careerShiftEditCodes').querySelector('[data-code="H"]').click();
+    await sleep(80);
+    $('careerShiftTodayBtn').click();
+    await sleep(140);
+    const shiftNow = ['dailyFormTicket', 'dailyFormOnline'].map(id => {
+      const el = $(id) && $(id).querySelector('[data-key="shift"]');
+      return el ? el.value : '没找到班次';
+    });
+    check(shiftNow.every(v => v === 'H'),
+      '「同步到日报」把今天（' + bjToday + '）的班次 H 写进日报的「班次」栏（工单 + 在线客服）', shiftNow.join(' / '));
+    check(/已同步到日报三栏/.test($('careerRestHint').textContent),
+      '同步完在排班卡上给一句提示', $('careerRestHint').textContent);
     $('careerRestModeRest').click();
     await sleep(40);
   }
