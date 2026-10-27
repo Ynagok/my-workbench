@@ -40,6 +40,9 @@ vc.on('error', (...a) => jsdomErrors.push('console.error: ' + a.map(String).join
 // ---- 模拟服务端的 fetch（两个 jsdom 实例共用同一份 serverData，模拟「不同设备连同一个服务端」）----
 // /api/vote/:key 要照着真服务端的语义来：原子合并（只动自己那条）+ 当天 23:00 过期连数据一起删
 // + 截止时间（deadline 'HH:MM' 到点后 409，只能看结果；数据留到 23:00）
+// /api/ocr（截图识别）在这里是可控的假实现：测试用 mockOcr.text 喂一段「OCR 风格」的文本，
+// 设 mockOcr.fail = true 就模拟「这台机器没有 OCR」→ 501。
+const mockOcr = { text: '', fail: false };
 function makeFetchMock(store, log, nowFn) {
   const beijing = nowFn || (() => new Date(Date.now() + 8 * 3600 * 1000));
   const expired = (p) => {
@@ -114,6 +117,15 @@ function makeFetchMock(store, log, nowFn) {
         at: (old && old.at) || new Date().toISOString(), updatedAt: new Date().toISOString(),
       };
       return { ok: true, status: 200, json: async () => ({ success: true, value: JSON.parse(JSON.stringify(poll)) }) };
+    }
+    if (String(url).indexOf('api/ocr') !== -1) {
+      if (mockOcr.fail) {
+        return {
+          ok: false, status: 501,
+          json: async () => ({ ok: false, error: 'no-ocr', hint: '这台机器没有可用的 OCR（测试模拟）' }),
+        };
+      }
+      return { ok: true, status: 200, json: async () => ({ ok: true, engine: 'mock', text: mockOcr.text }) };
     }
     if (method === 'GET') {
       // value 必须是真正的 undefined，才会走 loadData 的 defaultValue 分支（首次打开场景）
@@ -2623,6 +2635,59 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     check(Object.keys(cleared).length === 0
       && !doc.querySelector('[data-rest="' + bjToday + '"]').classList.contains('has-shift'),
       '清空排班：本机记录清掉、日历格上的班次也消失');
+  }
+
+  console.log('--- 8w. 截图识别（排班日历）：图片 → /api/ocr → 文本 → 排班 ---');
+  {
+    const posts8w = posts.length;
+    doc.querySelector('.tab-btn[data-tab="career"]').click();
+    await sleep(40);
+    $('careerRestBtn').click();
+    await sleep(60);
+    check(!!$('careerOcrPickBtn') && !!$('careerOcrFile') && !!$('careerOcrDrop') && !!$('careerOcrHint'),
+      '排班卡里多了「📷 传截图识别」按钮 + 选图 input + 拖拽区 + 提示');
+
+    // ① 正常识别：假服务端返回「OCR 风格」的文本（全角数字 / 全角冒号 / Ｆ／字母认歪），页面要先归一化再解析
+    mockOcr.text = '2026年10月\n１ 廿一休\n２ 廿二 １２：００ Ｆ班\n３ 廿三 １２：００ F班\nA 8:00-17:00 Ｈ 14:00-23:00 0休息';
+    mockOcr.fail = false;
+    const wipe = () => { try { window.localStorage.removeItem('careerShiftDays'); window.localStorage.removeItem('careerShiftDefs'); } catch (_) { } };
+    wipe();
+    const file = new window.File([new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10])], 'cal.png', { type: 'image/png' });
+    const dropEv = new window.Event('drop', { bubbles: true, cancelable: true });
+    dropEv.dataTransfer = { files: [file], items: [] };
+    $('careerOcrDrop').dispatchEvent(dropEv);
+    await sleep(300);
+    const ocrPost = posts.slice(posts8w).filter(p => /api\/ocr/.test(p.url));
+    check(ocrPost.length === 1 && ocrPost[0].method === 'POST' && /^data:image\/png;base64,/.test(String(ocrPost[0].body && ocrPost[0].body.image || '')),
+      '拖一张图进去 → POST api/ocr（body.image 是 dataURL）', ocrPost.length + ' ' + (ocrPost[0] && ocrPost[0].url));
+    const ocrText = $('careerShiftInput').value;
+    check(/12:00 F班/.test(ocrText) && !/[：]/.test(ocrText.split('\n')[2] || ''),
+      'OCR 文本先归一化再填进框里（全角 １２：００ → 12:00、Ｆ → F）', ocrText.replace(/\n/g, ' | ').slice(0, 120));
+    let ocrMap = {};
+    try { ocrMap = JSON.parse(window.localStorage.getItem('careerShiftDays') || '{}'); } catch (_) { }
+    check(ocrMap['2026-10-02'] === 'F' && ocrMap['2026-10-03'] === 'F' && ocrMap['2026-10-01'] === 'O',
+      '认出来的排班直接写进本机（2/3 号 F 班、1 号休）', JSON.stringify(ocrMap).slice(0, 120));
+    check(/认出 3 天排班/.test($('careerOcrHint').textContent),
+      '提示写明认出多少天、文本可手改', $('careerOcrHint').textContent);
+
+    // ② 服务端没有 OCR（501）→ 说明原因，别把输入框弄乱
+    mockOcr.fail = true;
+    const before = $('careerShiftInput').value;
+    const dropEv2 = new window.Event('drop', { bubbles: true, cancelable: true });
+    dropEv2.dataTransfer = { files: [file], items: [] };
+    $('careerOcrDrop').dispatchEvent(dropEv2);
+    await sleep(300);
+    check(/截图识别用不了/.test($('careerOcrHint').textContent)
+      && $('careerShiftInput').value === before,
+      '没有 OCR 时提示原因（这台机器没有可用的 OCR…），已填的文本不动', $('careerOcrHint').textContent);
+    mockOcr.fail = false;
+
+    // ③ 拖进来的不是图片 → 只提示
+    const dropEv3 = new window.Event('drop', { bubbles: true, cancelable: true });
+    dropEv3.dataTransfer = { files: [], items: [] };
+    $('careerOcrDrop').dispatchEvent(dropEv3);
+    await sleep(60);
+    check(/没有图片/.test($('careerOcrHint').textContent), '拖进来的东西不是图片时只提示', $('careerOcrHint').textContent);
   }
 
   console.log('--- 9. 无未捕获异常 ---');

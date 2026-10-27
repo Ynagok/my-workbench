@@ -235,6 +235,27 @@ async function main() {
     const normalSopLike = await req('GET', '/api/data/sopcheck');
     check(normalSopLike.status === 403,
       'SOP：别的 sop 前缀 key 同样受保护（不想裸奔）', normalSopLike.status);
+
+    // ---- 截图识别 /api/ocr ----
+    // 这台机器有没有 OCR 取决于系统（Windows 10/11 自带；CI / 沙箱里可能没有），所以这里只锁「形状」：
+    //   有引擎 → 200 + { ok:true, engine, text }；没有 → 501 + { ok:false, error:'no-ocr', hint }
+    // 两种情况都必须**不写 data.json**、也不留临时文件。
+    const TINY_PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+    const ocr = await req('POST', '/api/ocr', { image: TINY_PNG });
+    check(ocr.status === 200 || ocr.status === 501,
+      'OCR：能识别就 200，没有引擎就 501（都不会 500）', ocr.status);
+    if (ocr.status === 200) {
+      check(ocr.json && ocr.json.ok === true && typeof ocr.json.text === 'string' && !!ocr.json.engine,
+        'OCR：200 时返回 { ok, engine, text }', ocr.json && { engine: ocr.json.engine, len: String(ocr.json.text || '').length });
+    } else {
+      check(ocr.json && ocr.json.ok === false && ocr.json.error === 'no-ocr' && /OCR/.test(String(ocr.json.hint || '')),
+        'OCR：501 时说清没有可用的 OCR、并给出办法', ocr.json);
+    }
+    const ocrBad = await req('POST', '/api/ocr', { image: 'not-an-image' });
+    check(ocrBad.status === 400 && ocrBad.json && ocrBad.json.error === 'bad-image',
+      'OCR：不是图片 dataURL → 400 bad-image', ocrBad.status);
+    const ocrEmpty = await req('POST', '/api/ocr', {});
+    check(ocrEmpty.status === 400, 'OCR：body 里没有 image → 400', ocrEmpty.status);
   } finally {
     try { child.kill(); } catch (_) { /* ignore */ }
     await new Promise((r) => setTimeout(r, 150));

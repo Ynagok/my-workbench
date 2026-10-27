@@ -321,6 +321,33 @@ ok(s.includes('⑤ 顶不住鸟 · 卡片模式') && s.includes('顶不住鸟：
   && !/巨多：开|巨多：关/.test(s),
   '卡片模式那一块在界面上叫「顶不住鸟」（内部仍是 fbBulk / fbBulkOn，题头与开关文案都是新名字）');
 
+// ---- 3b-5. 截图识别（排班日历）：/api/ocr + Windows 自带 OCR / tesseract 兜底 ----
+const svOcr = fs.existsSync('server.js') ? fs.readFileSync('server.js', 'utf8') : '';
+ok(/function careerOcrNormalize\(text\)/.test(s)
+  && /s\.replace\(\/\[\\uFF01-\\uFF5E\]\/g, ch => String\.fromCharCode\(ch\.charCodeAt\(0\) - 0xFEE0\)\)/.test(s)
+  && /function careerShiftCode\(tok\)/.test(s) && /const CAREER_SHIFT_CODES = \[/.test(s)
+  && /careerOcrNormalize\(text\)/.test(s),
+  '截图识别的文本先归一化：全角转半角、拆开的数字合起来、横线统一、字母「靠」到合法班次代码上');
+ok(/async function careerOcrImage\(file\)/.test(s) && /fetchWithTimeout\('api\/ocr'/.test(s)
+  && /id="careerOcrPickBtn"/.test(s) && /id="careerOcrFile"/.test(s) && /id="careerOcrDrop"/.test(s)
+  && /addEventListener\('paste', \(e\) => \{/.test(s) && /addEventListener\('drop', \(e\) => \{/.test(s)
+  && /if \(!\/\^image\\\/\/\.test\(String\(file\.type \|\| ''\)\)\)/.test(s) && /CAREER_OCR_MAX/.test(s),
+  '截图识别：选图 / Ctrl+V 粘 / 拖进来 都能把图片 POST 到 api/ocr（只收图片、8MB 上限）');
+ok(/function careerShiftParseApply\(apply, replace\)/.test(s)
+  && /const parseNow = \(apply, replace\) => careerShiftParseApply\(apply, replace\);/.test(s)
+  && /const parsed = careerShiftParseApply\(true, false\);/.test(s),
+  '粘文本和截图识别共用同一套「解析 → 应用」入口（careerShiftParseApply）');
+ok(/app\.post\('\/api\/ocr'/.test(svOcr) && /const OCR_PS1 = path\.join\(__dirname, 'tools', 'ocr-win\.ps1'\)/.test(svOcr)
+  && /'-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', OCR_PS1/.test(svOcr) && /'-Scale', '3'/.test(svOcr)
+  && /async function findTesseract\(\)/.test(svOcr) && /'chi_sim\+eng'/.test(svOcr)
+  && /error: 'no-ocr'/.test(svOcr) && /status\(501\)/.test(svOcr) && /status\(400\)/.test(svOcr)
+  && /const IMG_DATAURL_RE = \/\^data:image/.test(svOcr) && /fs\.unlinkSync\(tmpFile\)/.test(svOcr),
+  '服务端 /api/ocr：Windows 用系统自带 OCR（放大 3 倍）→ 不行再试 tesseract → 都没有就 501 说清办法；图片落临时文件、用完删');
+ok(fs.existsSync('tools/ocr-win.ps1')
+  && /Windows\.Media\.Ocr/.test(fs.readFileSync('tools/ocr-win.ps1', 'utf8'))
+  && /HighQualityBicubic/.test(fs.readFileSync('tools/ocr-win.ps1', 'utf8')),
+  'tools/ocr-win.ps1：WinRT 的 Windows.Media.Ocr，先把图放大（HighQualityBicubic）再认');
+
 // ---- 3d. 海外业务统计（岗位周报整表粘贴）----
 ok(/data-tab="overseas"/.test(s) && /id="tab-overseas"/.test(s) && /海外业务统计/.test(s),
   '「海外业务统计」标签页已注入（侧边栏 + 页面）');

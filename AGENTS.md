@@ -48,17 +48,17 @@ npm run verify     # 改完代码、push 前的完整自检
 
 | 命令 | 内容 |
 |---|---|
-| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 497 项 + 「接口挂起时界面仍可用」+ 服务端冒烟 42 项 |
+| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 504 项 + 「接口挂起时界面仍可用」+ 服务端冒烟 46 项 |
 | `npm run verify:static` | 只要静态校验 + 语法检查（最快） |
 | `npm run report` | 打印一份真实生成的日报，肉眼确认排版（含 ⑥伙伴弹途 / ⑦异世界勇者） |
 | `npm run build:data` | 从 GM 玩家页快照提取 4 张权威映射表 + 与硬编码常量的**差异报告**（见下「游戏数据管线」） |
 | `npm run extract:maps` | 把玩家页快照抽成 `tools/out/page-*.json` **精简映射表**（只有 id→名称，不带玩家信息），见下「游戏数据管线」 |
 | `npm run audit:maps` | 用 `tools/out/page-*.json` 对账 4 张硬编码常量表，出 `tools/out/map-audit.md`（缺 / 多 / 名称不一致） |
-| `npm run smoke:server` | 单独跑服务端冒烟（真起进程 + 真发 HTTP，42 项，含 SOP 口令 7 项） |
+| `npm run smoke:server` | 单独跑服务端冒烟（真起进程 + 真发 HTTP，46 项，含 SOP 口令 7 项 + 截图识别 `/api/ocr` 4 项） |
 | `npm run smoke:pmc` | **生管物料订单工作台**（`public/pmc.html`）自检，123 项（含加工周期工作日推算 + 在途锁定/调整建议 + 真实 8.5MB xlsx 端到端导入）；**不在 verify 里**，见下「生管物料订单工作台」一节 |
 | `npm test` | = `npm run verify` |
 
-`npm run verify` 失败就不要提交。它一共 5 段：静态结构 → 语法 → jsdom 集成冒烟 **497 项** → 接口挂起时界面仍可用 → 服务端冒烟 **42 项**。
+`npm run verify` 失败就不要提交。它一共 5 段：静态结构 → 语法 → jsdom 集成冒烟 **504 项** → 接口挂起时界面仍可用 → 服务端冒烟 **46 项**。
 
 - jsdom 未安装时前端冒烟会自动回落到本机 DSH 自带的那份。
 - `tools/smoke-server.cjs` 用 `PORT` + `DATA_FILE` 环境变量把服务端指到随机端口和 `tools/out/` 里的临时文件，**不会碰真实 `data.json`**；子进程 stdio 必须用 `ignore`/`inherit`（沙箱禁管道，`pipe` 会 EPERM）。
@@ -162,6 +162,11 @@ npm run verify     # 改完代码、push 前的完整自检
   - **应用时**：同一天以新识别的为准；`'O'` 会**顺带写进 `careerRestDays`**（排班休息那天自动标休息），非 `O` 的那天从休息里删掉。
   - **日历格**：`.career-rest-day` 多挂 `data-shift` 与 `.has-shift`，`<i>` 里显示班次代码（休息仍显示「休」；`.has-shift i` 让平时藏着的那个小片显形）；提示写「休息 N 天 · 排班 M 天」。
   - **自动匹配班次**（用户要的第二半）：① 日报表单的「班次」下拉在空值时按**当天排班**带出（`val = (f.key === 'shift' ? careerShiftOfDate(careerToday()) : '') || f.default || …`）；② 在线客服日报抬头写 `（H班）` 时也读当天排班；③ 归档进生涯时 `careerFoldDaily()` 在日报没填班次时用当天排班补 `rec.shift`；④ 生涯侧边一排芯片显示「已匹配班次 N 天 + 各班次天数」。
+  - **📷 截图识别（2026-10 用户：「排班日历的识别要支持能识别截图」）**：排班卡里多了「📷 传截图识别」按钮 + 隐藏的 `#careerOcrFile` + 拖拽区 `#careerOcrDrop` + 提示 `#careerOcrHint`；输入框 `#careerShiftInput` 支持 **Ctrl+V 粘图**，`.shift-import` 里的虚线框支持**拖图**。图片以 dataURL POST 到 `api/ocr`，回来的文本先 `careerOcrNormalize()` 归一化、填进输入框，然后**直接走 `careerShiftParseApply`**（和粘文本同一套解析 / 应用），并把「认出几天」写在提示里。
+    - **OCR 放在服务端**（浏览器里没有可靠的离线 OCR）：`server.js` 的 `POST /api/ocr`（body `{ image: "data:image/…" }`，8MB 上限；`express.json` 上限因此从 2MB 放宽到 10MB，`/api/data` 的写入仍有 key 白名单挡着）→ 图片落到系统临时目录 → **Windows 直接调用系统自带的 `Windows.Media.Ocr`**（`tools/ocr-win.ps1`：先把图放大 3 倍再认 —— 日历里「12:00 F班」那种小字放大后识别率差很多；系统装了中文语言包就能认中文，**不用装任何东西**）→ 不是 Windows 或系统没引擎就退回**本机 tesseract**（PATH / 常见安装路径 / 用 `OCR_TESSERACT` 指定；`chi_sim+eng` 不行再试 `eng`）→ 都没有就 **501 `{ error:"no-ocr", hint }`**，前端把「这台机器没有可用的 OCR」和办法显示出来，粘文本那条路照旧。临时文件用完 `fs.unlinkSync` 删掉。
+    - ⚠️ **OCR 文本很脏**，所以先归一化：全角数字 / 全角冒号（`１２：００`）、被拆开的数字（`1 2 : 00`）、时间段之间的 `·`、`AI`（其实是 A1）、`0休息`（其实是 O休息）、还有把「班」认成别的字。`careerOcrNormalize()` 做全角转半角 + 并数字 + 统一横线 + 修 `AI` / `0休息` / `体息`；`careerShiftCode()` 把字母「靠」到 `CAREER_SHIFT_CODES`（A / A1–A4 / B / D / F / H / W / O，`I`·`l`·`|`→`1`、`0`→`O`）；解析器里「时间 + 合法代码」**不再强制带「班」**（OCR 容易把「班」认歪）。
+    - ⚠️ **线上（Render）没有 OCR**：那台是 Linux、没装 tesseract → 会走 501 分支，页面会提示装法；要在线上用就得给服务端加 tesseract（例如换 Docker + `apt-get install tesseract-ocr tesseract-ocr-chi-sim`），或者本机 `npm start` 用。
+    - 测试：`tools/smoke.cjs` 第 **8w** 节 **5 条**（按钮 / 选图 input / 拖拽区都在；**拖一张 `image/png` 进去 → POST `api/ocr`（body.image 是 dataURL）→ 全角 OCR 文本被归一化后填进框里 → 2·3 号记成 F 班、1 号记成休**；服务端 501 时提示「截图识别用不了」且不动已填文本；拖进来的不是图片只提示）；`tools/smoke-server.cjs` 加 **4 条**（`/api/ocr` 有引擎 200 / 没引擎 501，都不是 500；坏图片 400；没有 image 400）；`tools/verify.mjs` 3b-5 有 **4 条**静态断言（含 `tools/ocr-win.ps1` 用 WinRT + 放大）。⚠️ `tools/smoke.cjs` 的 `makeFetchMock` **专门给 `api/ocr` 留了可控假实现**（`mockOcr.text` / `mockOcr.fail`），别让它落回通用分支。
   - **测试**：`tools/smoke.cjs` 第 **8v** 节 **10 条**（粘贴框与四个按钮 / `YYYY-MM-DD H班` → 当天 H / 日历格显示 H / 日历一坨（1 号休 + 2·3 号 12:00 F班）/ 「休」自动标休息 / 提示写识别天数 / 班次表进图例 / 全程只写本机 / 「同步到日报」把班次写进三栏 / 清空后格子上的班次消失）；`tools/verify.mjs` 3b-4 另有 3 条静态断言。
 - **归档体检 / 漏登记提醒（2026-10）**：客服生涯总览卡里的 `#careerAuditBox` 由 `renderCareerAudit()` 填 —— 看**最近 7 天（不含今天）**有哪些日子 `careerData.records` 里没有，有就出 `k-warn` 芯片点名（「漏登记 N 天」+ 每个日期一片 + 指路「去每日日报归档或下面补录」），齐了就一片「最近 7 天都归档了」。日期用 `careerRecentDays(7)` 按 UTC 递减算，不依赖时区。
 - ⚠️ 想再换回暗色：把 `:root` 的 `--bg-0/--surface*/--ink*/--line*/--accent*` 换回深色值即可，但**要同时删掉/改掉「浅色收口层 · 柔和白」这一段 + `color-scheme: light` + select 箭头 SVG 的 `%23c89500`**，否则会有浅底白线。
