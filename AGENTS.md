@@ -48,7 +48,7 @@ npm run verify     # 改完代码、push 前的完整自检
 
 | 命令 | 内容 |
 |---|---|
-| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 520 项 + 「接口挂起时界面仍可用」+ 服务端冒烟 42 项 |
+| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 523 项 + 「接口挂起时界面仍可用」+ 服务端冒烟 42 项 |
 | `npm run verify:static` | 只要静态校验 + 语法检查（最快） |
 | `npm run report` | 打印一份真实生成的日报，肉眼确认排版（含 ⑥伙伴弹途 / ⑦异世界勇者） |
 | `npm run build:data` | 从 GM 玩家页快照提取 4 张权威映射表 + 与硬编码常量的**差异报告**（见下「游戏数据管线」） |
@@ -58,7 +58,7 @@ npm run verify     # 改完代码、push 前的完整自检
 | `npm run smoke:pmc` | **生管物料订单工作台**（`public/pmc.html`）自检，123 项（含加工周期工作日推算 + 在途锁定/调整建议 + 真实 8.5MB xlsx 端到端导入）；**不在 verify 里**，见下「生管物料订单工作台」一节 |
 | `npm test` | = `npm run verify` |
 
-`npm run verify` 失败就不要提交。它一共 5 段：静态结构 → 语法 → jsdom 集成冒烟 **520 项** → 接口挂起时界面仍可用 → 服务端冒烟 **42 项**。
+`npm run verify` 失败就不要提交。它一共 5 段：静态结构 → 语法 → jsdom 集成冒烟 **523 项** → 接口挂起时界面仍可用 → 服务端冒烟 **42 项**。
 
 - jsdom 未安装时前端冒烟会自动回落到本机 DSH 自带的那份。
 - `tools/smoke-server.cjs` 用 `PORT` + `DATA_FILE` 环境变量把服务端指到随机端口和 `tools/out/` 里的临时文件，**不会碰真实 `data.json`**；子进程 stdio 必须用 `ignore`/`inherit`（沙箱禁管道，`pipe` 会 EPERM）。
@@ -138,7 +138,7 @@ npm run verify     # 改完代码、push 前的完整自检
   - **客服生涯 4 段**：`overview` 总览（总览卡 + 排班休息面板）/ `detail` 逐项明细（工单统计 + 海外统计）/ `trend` 趋势与分析（指标详情 + 趋势·月度 + 周维度）/ `data` 数据与补录（数据质量 + 补录 + 粘贴导入）；**海外 3 段**：`overview`（岗位总览 + 详情图表）/ `detail`（逐项 + 月度 + 周 + 人员 + 每日）/ `data`（粘贴导入那张卡）。
   - **开关机制**：卡片上挂 `data-seg-card="overview|detail|trend|data"`，`statsSetSeg(tabId, seg)` 只给当前段的卡片加 `.seg-on`；CSS `[data-seg-card]{display:none}` / `[data-seg-card].seg-on{display:block}`。⚠️ **内联 `style.display` 仍然优先**（排班休息面板靠这个收起，`renderCareer` 按身份隐藏两侧卡片也靠它），所以别把显示逻辑全搬进 CSS。
   - **切标签页回第一段**：`.tab-btn` 的 onclick 里对 `career` / `overseas` 调 `statsSetSeg(…, 'overview')`，免得停在上次的明细段。
-  - **「话术生成」页也用了这套**（2026-10）：`.seg-bar[data-for="tab-gen"]` 两段 —— `01 话术生成`（原来的两块 `data-seg-card="reply"`）/ `02 七日任务进度`（`#genSevendayPane` + `data-seg-card="sevenday"`）；`bindSegBar` 末尾 `statsSetSeg('tab-gen', 'reply')` 初始化。⚠️ 这两段**不在**「回第一段」名单里（切回话术生成时停在用户上次看的那段）。⚠️ **这一页的分段条不吸顶**（`#tab-gen > .seg-bar { position: static; }`）：`.seg-bar` 默认 `position: sticky; top: 0`，而这条夹在卡片中间，吸顶时滚动会把下面的文本框 / 卡片切成两半（2026-10 用户截图「网页的这个条感觉有点奇怪」）；统计页那两条**仍然吸顶**（长页面用得上）。
+  - **「话术生成」页也用了这套**（2026-10）：`.seg-bar[data-for="tab-gen"]` **三段** —— `01 话术生成`（原来的两块 `data-seg-card="reply"`）/ `02 七日任务进度`（`#genSevendayPane` + `data-seg-card="sevenday"`）/ `03 吉运节节高（下午茶）`（`#genTeaInfoPane` + `data-seg-card="teainfo"`，见下一节）；`bindSegBar` 末尾 `statsSetSeg('tab-gen', 'reply')` 初始化。⚠️ 这几段**不在**「回第一段」名单里（切回话术生成时停在用户上次看的那段）。⚠️ **这一页的分段条不吸顶**（`#tab-gen > .seg-bar { position: static; }`）：`.seg-bar` 默认 `position: sticky; top: 0`，而这条夹在卡片中间，吸顶时滚动会把下面的文本框 / 卡片切成两半（2026-10 用户截图「网页的这个条感觉有点奇怪」）；统计页那两条**仍然吸顶**（长页面用得上）。
   - ⚠️ **旧的 `.jump-bar` / `.jump-chip` / `bindJumpBar()` 已整段删除**（冒烟/静态断言锁着「不该再出现」），别再捡回来。
 
   - `.career-scroll table.career-table` 现在**表头吸顶 + 首列吸左**（宽表横向拖动时不跟丢）。
@@ -385,15 +385,17 @@ npm run verify     # 改完代码、push 前的完整自检
 - **测试**：`tools/smoke.cjs` 第 **8j** 节（**47 条**）：店家存服务端（**只有店名、不再写备注**）+ **店家管理是默认收起的 `<details>`、标题带家数** + **本机备份 `teaShopsCache`** + **服务端店家被清空时用备份自动恢复并推回去** + **投票被 23:00 清掉后店家原样还在** / 发起 today 的投票 + 名字快照与默认标题 / 分享链接格式 / 复制分享文案 / 第一次投票生成 voterId / **投票走 `/api/vote` 服务端合并** / 结果按店家计数且**不出现人名** / 另一台设备投票合并进同一份 / 改票覆盖不翻倍 / 撤销 / 复制结果 / 手动截止后 409 挡住 / 过期 GET 连数据删掉 / 状态行讲 23:00 清除；**截止时间 12 条**（`type=time` / 存进 `deadline` / 状态行写「HH:MM 截止」/ 过了的时间不让发起 / **到点后投票区收起 + 只留说明 + 数据还在 + 结果照常** / 到点后前端挡下不发请求 / 绕开前端直接 POST → 服务端 409 `closedReason:'deadline'` / 改回未到点又能投 / 手动截止也是「只能看结果」）；**另起一个 jsdom**（URL 带 `?vote=`）验 `data-vote-only` / 侧边栏与店家管理被藏 / **没发那 9 个启动请求** / 能选店能投 / 与自己 voterId 不同 / 两台设备统计在一起 / **到点后只投票页也收起投票区且点提交不发请求**。`tools/smoke-server.cjs` 另有 **23 条**（合并语义、改票、非法 voterId/shopIds/key、404/409/410、**过期投票被真的从 data.json 删掉**、当天 23:00 前不误删、**deadline 到点前后各一遍 + `closed/closedReason` + 格式不对的 deadline 忽略**）。`tools/verify.mjs` 3g 有 15 条静态断言（含「备注整段拿掉 + 店家折叠 + 本机备份/自动恢复」两条）。
   - ⚠️ 冒烟里的 fetch mock（`makeFetchMock(store, log)`）**照着真服务端实现了 `/api/vote` 的合并与过期清理**，两个 jsdom 共用同一个 `serverData` 来模拟「两台设备连同一个服务端」—— 改服务端语义时这里要一起改。
 
-## 🍵 下午茶信息 → 话术（`#teaInfoCard` · 反推 GM 玩家页，2026-10）
+## 🎊 吉运节节高 → 话术（`#teaInfoCard` · 反推 GM 玩家页，2026-10）
 
-用户给的 GM 玩家页快照（`Summer.html`）里，「礼品」下拉下有一个 **`gift/afternoonTeaInfo/<playerId>`「下午茶信息展示」** 页，正文就是一块 **「玩家下午茶信息」**（游戏里玩家叫它 **「吉运节节高」**，来源映射里对应 `245 下午茶礼包购买` / `246 下午茶礼包免费领取`）。用户要求：**照着这块反推，加一个「下午茶信息 → 话术」的生成功能**。
+⚠️⚠️ **这里的「下午茶」是游戏内活动「吉运节节高」在 GM 后台的显示名，跟「🧋 下午茶投票」那一页毫无关系**（用户明确纠正过：「这个下午茶和原来的下午茶投票不是一个东西」）。所以这块**挂在「话术生成」页的第三段**（`.seg-bar[data-for="tab-gen"]` 的 `03 吉运节节高（下午茶）`，`#genTeaInfoPane` + `data-seg-card="teainfo"`，紧跟在 `02 七日任务进度` 后面），**不在 `#tab-tea` 里**（`verify.mjs` 3g-2 有反向断言：下午茶投票那一段里不该出现 `teaInfoCard` / 「吉运节节高」）。
+
+用户给的 GM 玩家页快照（`Summer.html`）里，「礼品」下拉下有一个 **`gift/afternoonTeaInfo/<playerId>`「下午茶信息展示」** 页，正文就是一块 **「玩家下午茶信息」**（游戏内活动名是 **「吉运节节高」**，来源映射里对应 `245 下午茶礼包购买` / `246 下午茶礼包免费领取`）。用户要求：**照着这块反推，加一个话术生成功能**。
 
 - **GM 那块长什么样**（原样摘下来，别臆造字段）：
   - 抬头 `玩家下午茶信息（固定 6 层，绿色奖励表示已抽取）`；Redis 里没有进度时会多一句 `Redis 中没有该玩家的下午茶抽取进度，以下仅展示反查到的 6 层奖励配置。`
   - 摘要表 4 组：**下午茶档位** `configId=15 / groupId=3803`（最近一条下午茶触发记录）· **当前层**（数字或 `-`）· **是否有抽奖次数** `是（2 次）` / `否（0 次）` · **大奖** `已抽取` / `未抽取`。
   - 6 个层块（DOM 顺序是 **第 6 → 第 1 层**）：`第 N 层` + 状态（`未解锁` / `已解锁`）+ `商品 380306 / 价格 0 / 已抽 0/1` + 若干奖励盒：`<strong>名字</strong> × 数量` + `ID xxx / 奖励位 n`（可能带 `升层奖励`），**已抽取的盒子挂 `.is-drawn`（绿色）**。
-- **界面**：下午茶页多一张卡 `#teaInfoCard`「🍵 下午茶信息 → 话术」——粘贴框 `#teaInfoInput` + 「🔍 解析并生成话术」`#teaInfoParseBtn` / 「📋 复制话术」`#teaInfoCopyBtn` / 「🧹 清空」`#teaInfoClearBtn` + 提示 `#teaInfoHint` + 汇总芯片 `#teaInfoSummary` + 分层展示 `#teaLayerBox` + 话术框 `#teaInfoOut`（只读）。**只投票页（`?vote=`）用 `html[data-vote-only="1"] #teaInfoCard` 藏掉**。
+- **界面**：卡 `#teaInfoCard`「🎊 吉运节节高 → 话术」——粘贴框 `#teaInfoInput` + 「🔍 解析并生成话术」`#teaInfoParseBtn` / 「📋 复制话术」`#teaInfoCopyBtn` / 「🧹 清空」`#teaInfoClearBtn` + 提示 `#teaInfoHint` + 汇总芯片 `#teaInfoSummary` + 分层展示 `#teaLayerBox` + 话术框 `#teaInfoOut`（只读）。整块包在 `#genTeaInfoPane`（`data-seg-card="teainfo"`）里，靠分段条切；**只投票页不用管它**（它根本不在那页）。
 - **解析**（`teaInfoPrep` / `teaInfoParse` / `teaInfoLabel`，`public/index.html` 里的 `TEA_INFO_MAX = 200000`）：
   - **纯文本、网页源码都能贴**：源码里先把 `.afternoon-tea-reward.is-drawn` 的盒子标成「已抽取」再剥标签（`teaInfoPrep`），所以「哪些奖励已经抽到」认得出来。
   - 归一化后压成一行，按 `第 N 层` 切开（`src.split(/第\s*(\d+)\s*层/)`，**层号排序成 1→6**）；每层用 `商品 x / 价格 y / 已抽 a/b` 与 **`× 数量 ID id / 奖励位 n [已抽取][升层奖励]`** 抓奖励（奖励名 = 上一段尾巴，剥掉「未解锁/已解锁」「商品…」前缀）。
@@ -411,7 +413,7 @@ npm run verify     # 改完代码、push 前的完整自检
   - ⚠️ **不写价格**（内部价，`价格` 只在解析时读、面板和话术都不展示）；**奖励数量一律按粘进来的数据走**，不同玩家可能不一样，别写死。
   - ⚠️ **`当前层 = -` 或 Redis 里没进度时走另一条分支**：`这边没查到您有下午茶（吉运节节高）的抽取记录～` + `麻烦发一下角色ID + 区服（有截图更好）…`，**别瞎报层数**。
 - **只在本机**：纯前端解析，**不写 `/api/data`、也不改 `teaShops` / `teaPoll_*`**（跟别的粘贴解析一个规矩）；页面上不持久化，清空就没了。
-- **测试**：`tools/smoke.cjs` 第 **8y** 节 **12 条**（卡片与按钮齐全 / 粘一整块认出档位·当前层·次数·大奖·层数 / 当前层那格高亮 / 升层奖励单独标 / **道具代码按映射换人话（2000049 → 随机奖励宝箱）+ 数量照数据走** / **话术就是用户模板那两句、且不含价格** / 纯文本里的「已抽取」标灰并写进「抽到了第 X 层的…」 / **大奖已抽取 → 换成「已获得最终大奖」** / **贴源码认 is-drawn 不串到下一条** / 没进度时改「没查到记录」/ 空输入只提示 / 清空全清 / 全程 0 请求）；`tools/verify.mjs` 3g-2 有 **5 条**静态断言。
+- **测试**：`tools/smoke.cjs` 第 **8y** 节 **14 条**（第三段按钮在、切过去只有这段亮 / **下午茶投票页里没有这块** / 卡片与按钮齐全 / 粘一整块认出档位·当前层·次数·大奖·层数 / 当前层那格高亮 / 升层奖励单独标 / **道具代码按映射换人话（2000049 → 随机奖励宝箱）+ 数量照数据走** / **话术就是用户模板那两句、且不含价格** / 纯文本里的「已抽取」标灰并写进「抽到了第 X 层的…」 / **大奖已抽取 → 换成「已获得最终大奖」** / **贴源码认 is-drawn 不串到下一条** / 没进度时改「没查到记录」/ 空输入只提示 / 清空全清 / 全程 0 请求）；`tools/verify.mjs` 3g-2（6 条）+ 3l（分段条现在三段）有静态断言。
 
 ## SOP 助手（**已删除** · 2026-10，用户要求）
 

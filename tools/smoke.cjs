@@ -2721,14 +2721,25 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     await sleep(40);
   }
 
-  console.log('--- 8y. 下午茶信息 → 话术（反推 GM「玩家下午茶信息」那块）---');
+  console.log('--- 8y. 吉运节节高 → 话术（反推 GM「玩家下午茶信息」那块；不是下午茶投票）---');
   {
     const posts8y = posts.length;
-    doc.querySelector('.tab-btn[data-tab="tea"]').click();
+    // 它挂在「话术生成」页的第三段（吉运节节高（下午茶）），不是下午茶投票页
+    doc.querySelector('.tab-btn[data-tab="gen"]').click();
     await sleep(60);
+    const segTea = doc.querySelector('#tab-gen .seg-btn[data-seg="teainfo"]');
+    check(!!segTea && /吉运节节高/.test(segTea.textContent),
+      '「话术生成」页多了第三段「吉运节节高（下午茶）」（跟七日任务并排）',
+      segTea && segTea.textContent);
+    segTea.click();
+    await sleep(60);
+    check(!doc.querySelector('#tab-tea #teaInfoCard'),
+      '这一块已经不在「下午茶投票」页里了（两者不是一个东西）');
     check(!!$('teaInfoCard') && !!$('teaInfoInput') && !!$('teaInfoOut')
-      && !!$('teaInfoParseBtn') && !!$('teaInfoCopyBtn') && !!$('teaInfoClearBtn'),
-      '下午茶页多了「🍵 下午茶信息 → 话术」卡（粘贴框 + 解析 / 复制 / 清空 + 话术框）');
+      && !!$('teaInfoParseBtn') && !!$('teaInfoCopyBtn') && !!$('teaInfoClearBtn')
+      && $('genTeaInfoPane').classList.contains('seg-on')
+      && !$('genSevendayPane').classList.contains('seg-on'),
+      '切到这一段：卡在（粘贴框 + 解析 / 复制 / 清空 + 话术框）、七日任务那段收起');
 
     // ① 用户会粘的那一块（纯文本版：GM 页整块复制下来就长这样）
     const pasteText = [
@@ -2818,7 +2829,7 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
       '「清空」把输入 / 面板 / 话术一起清掉');
 
     check(posts.slice(posts8y).filter(p => /careerData|teaInfo|dailyData/.test(p.url)).length === 0,
-      '下午茶信息解析全程只在本机（不碰服务端）', posts.slice(posts8y).map(p => p.url).join(' | '));
+      '吉运节节高解析全程只在本机（不碰服务端）', posts.slice(posts8y).map(p => p.url).join(' | '));
   }
 
   console.log('--- 9. 无未捕获异常 ---');

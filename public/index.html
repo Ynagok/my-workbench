@@ -3313,7 +3313,6 @@
         /* 只投票时藏掉「店家管理 / 发起投票 / 报表抬头」——投的人只需要选店 + 看结果 */
         html[data-vote-only="1"] #teaShopCard,
         html[data-vote-only="1"] #teaPollAdminBox,
-        html[data-vote-only="1"] #teaInfoCard,
         html[data-vote-only="1"] #teaReportHead { display: none; }
         /* 手机上单列、按钮大一点 */
         @media (max-width: 560px) {
@@ -3744,6 +3743,7 @@
             <div class="seg-bar" data-for="tab-gen">
                 <button type="button" class="seg-btn active" data-seg="reply" data-n="01">话术生成</button>
                 <button type="button" class="seg-btn" data-seg="sevenday" data-n="02">七日任务进度</button>
+                <button type="button" class="seg-btn" data-seg="teainfo" data-n="03">吉运节节高（下午茶）</button>
             </div>
             <div class="inline-card" style="margin-bottom: 20px;" data-seg-card="reply">
                 <label style="font-size: 1.1rem; margin-bottom: 10px;">智能粘贴识别（支持资源/棋子/订单）</label>
@@ -3862,6 +3862,26 @@
                 <div class="card">
                     <label>③ 话术结果 <span class="card-sub">按天分组 · 一行一条任务</span></label>
                     <textarea id="sdOutput" rows="14" readonly></textarea>
+                </div>
+            </div>
+
+            <!-- 吉运节节高 → 话术：GM 后台那块叫「玩家下午茶信息」，跟下面的「下午茶投票」不是一个东西 -->
+            <div id="genTeaInfoPane" data-seg-card="teainfo">
+                <div class="card" id="teaInfoCard">
+                    <label>🎊 吉运节节高 → 话术
+                        <span class="card-sub">游戏内活动「吉运节节高」，GM 后台那块叫「玩家下午茶信息」（跟「下午茶投票」不是一个东西）</span>
+                    </label>
+                    <textarea id="teaInfoInput" rows="5" style="margin-top:10px;" placeholder="把 GM 玩家页「下午茶信息展示」里的「玩家下午茶信息」整块复制进来（纯文本或网页源码都行）—— 认档位 / 当前层 / 抽奖次数 / 大奖 / 每层奖励"></textarea>
+                    <div class="flex-row" style="margin-top:10px;">
+                        <button id="teaInfoParseBtn">🔍 解析并生成话术</button>
+                        <button id="teaInfoCopyBtn" class="secondary">📋 复制话术</button>
+                        <button id="teaInfoClearBtn" class="reset-btn">🧹 清空</button>
+                        <span class="hint-text" id="teaInfoHint"></span>
+                    </div>
+                    <div class="stat-chips" id="teaInfoSummary"></div>
+                    <div id="teaLayerBox"></div>
+                    <label style="margin-top:14px;">话术</label>
+                    <textarea id="teaInfoOut" rows="10" readonly placeholder="解析完这里出现可以直接发玩家的话术"></textarea>
                 </div>
             </div>
 
@@ -4456,24 +4476,6 @@
                     <button id="teaRefreshBtn" class="secondary">🔄 刷新</button>
                     <button id="teaCopyResultBtn" class="secondary">📋 复制结果</button>
                 </div>
-            </div>
-
-            <!-- 下午茶信息 → 话术：反推 GM「玩家下午茶信息」那块（吉运节节高） -->
-            <div class="card" id="teaInfoCard">
-                <label>🍵 下午茶信息 → 话术
-                    <span class="card-sub">吉运节节高 · 粘 GM 玩家页里那块「玩家下午茶信息」</span>
-                </label>
-                <textarea id="teaInfoInput" rows="5" style="margin-top:10px;" placeholder="把 GM 玩家页「下午茶信息展示」里的「玩家下午茶信息」整块复制进来（纯文本或网页源码都行）—— 认档位 / 当前层 / 抽奖次数 / 大奖 / 6 层奖励"></textarea>
-                <div class="flex-row" style="margin-top:10px;">
-                    <button id="teaInfoParseBtn">🔍 解析并生成话术</button>
-                    <button id="teaInfoCopyBtn" class="secondary">📋 复制话术</button>
-                    <button id="teaInfoClearBtn" class="reset-btn">🧹 清空</button>
-                    <span class="hint-text" id="teaInfoHint"></span>
-                </div>
-                <div class="stat-chips" id="teaInfoSummary"></div>
-                <div id="teaLayerBox"></div>
-                <label style="margin-top:14px;">话术</label>
-                <textarea id="teaInfoOut" rows="10" readonly placeholder="解析完这里出现可以直接发玩家的话术"></textarea>
             </div>
 
             <!-- 预设店家：收在折叠面板里（平时不用管，也永远不会被清除） -->
@@ -15293,8 +15295,10 @@
                                         const totalVotes = list.reduce((a, v) => a + v.shopIds.length, 0);
                                         return { devices: list.length, totalVotes: totalVotes, rows: rows };
                                     }
-                                    // ==================== 下午茶信息 → 话术（反推 GM「玩家下午茶信息」那块）====================
-                                    // GM 玩家页「下午茶信息展示」里那块（游戏里玩家叫它「吉运节节高」）长这样：
+                                    // ==================== 吉运节节高 → 话术（反推 GM「玩家下午茶信息」那块）====================
+                                    // ⚠️ 这里的「下午茶」是**游戏内活动「吉运节节高」在 GM 后台的显示名**，跟「🧋 下午茶投票」那一页毫无关系。
+                                    // 这一块挂在「话术生成」页的第三段（吉运节节高（下午茶）），不是下午茶投票页。
+                                    // GM 玩家页「下午茶信息展示」里那块长这样：
                                     //   玩家下午茶信息（固定 6 层，绿色奖励表示已抽取）
                                     //   下午茶档位 configId=15 / groupId=3803 ｜ 当前层 3 ｜ 是否有抽奖次数 是（2 次） ｜ 大奖 未抽取
                                     //   第 3 层 已解锁 商品 380303 / 价格 30 / 已抽 1/4

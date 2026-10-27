@@ -557,13 +557,20 @@ ok(/const TEA_SHOPS_CACHE_KEY = 'teaShopsCache';/.test(s) && /function teaSaveSh
   && /const o = \(typeof s === 'string'\) \? \{ name: s \} : s;/.test(s),
   '下午茶：店家只存店名 + 本机另存备份，服务端那份没了就自动恢复（永不随投票一起清）');
 // ---- 3g-2. 下午茶信息 → 话术（反推 GM「玩家下午茶信息」那块，游戏里叫「吉运节节高」）----
-ok(/<div class="card" id="teaInfoCard">/.test(s) && /id="teaInfoInput"/.test(s) && /id="teaInfoOut"/.test(s)
+ok(/<div id="genTeaInfoPane" data-seg-card="teainfo">[\s\S]{0,200}?<div class="card" id="teaInfoCard">/.test(s)
+  && /id="teaInfoInput"/.test(s) && /id="teaInfoOut"/.test(s)
   && /id="teaInfoParseBtn"/.test(s) && /id="teaInfoCopyBtn"/.test(s) && /id="teaInfoClearBtn"/.test(s)
   && /id="teaInfoSummary"/.test(s) && /id="teaLayerBox"/.test(s)
   && /setClick\('teaInfoParseBtn', teaInfoRun\)/.test(s) && /setClick\('teaInfoCopyBtn', teaInfoCopy\)/.test(s)
   && /setClick\('teaInfoClearBtn', teaInfoClear\)/.test(s)
-  && /html\[data-vote-only="1"\] #teaInfoCard/.test(s),
-  '下午茶页多了「🍵 下午茶信息 → 话术」卡（粘贴框 + 解析 / 复制 / 清空 + 汇总芯片 + 分层展示 + 话术框；只投票模式藏掉）');
+  && !/#teaInfoCard/.test((s.match(/<div id="tab-tea"[\s\S]*?<!-- ==================== 小游戏/) || [''])[0]),
+  '「吉运节节高 → 话术」卡挂在「话术生成」页的第三段（#genTeaInfoPane · data-seg-card="teainfo"），**不在下午茶投票页**（那是另一个东西）');
+{
+  const teaPane = (s.match(/<div id="tab-tea"[\s\S]*?<!-- ==================== 小游戏/) || [''])[0];
+  ok(!!teaPane && !/teaInfoCard|吉运节节高/.test(teaPane),
+    '下午茶投票页里不出现这一块（用户要求：这两个「下午茶」不是一回事）',
+    teaPane ? '' : '没切出下午茶那个 tab-contents 段');
+}
 ok(/const TEA_INFO_MAX = 200000;/.test(s) && /function teaInfoPrep\(raw\)/.test(s)
   && /function teaInfoParse\(raw\)/.test(s) && /function teaInfoScript\(info\)/.test(s)
   && /function teaInfoRender\(info\)/.test(s) && /function teaInfoRun\(\)/.test(s)
@@ -672,10 +679,11 @@ ok(/\.card:has\(details\.card-more\[open\]\)[\s\S]{0,120}?overflow: visible;/.te
 // ---- 3l. 七日任务（并进「话术生成」页的一段：进度日志 → 按内置任务表判定的进度话术，只在本机处理）----
 ok(/class="seg-bar" data-for="tab-gen"/.test(s) && /data-seg="reply" data-n="01">话术生成</.test(s)
   && /data-seg="sevenday" data-n="02">七日任务进度</.test(s) && /id="genSevendayPane"/.test(s)
+  && /data-seg="teainfo" data-n="03">吉运节节高（下午茶）</.test(s) && /id="genTeaInfoPane"/.test(s)
   && /data-seg-card="reply"/.test(s) && !/data-tab="sevenday"/.test(s) && !/id="tab-sevenday"/.test(s)
   && /statsSetSeg\('tab-gen', 'reply'\)/.test(s)
   && /#tab-gen > \.seg-bar \{ position: static; \}/.test(s),
-  '七日任务并进「话术生成」页：页内分段导航（话术生成 / 七日任务进度），侧边栏不再单独占一个标签；那一页的分段条不吸顶（避免滚动时把下面的文本框切成两半）');
+  '七日任务并进「话术生成」页：页内分段导航（话术生成 / 七日任务进度 / 吉运节节高（下午茶）），侧边栏不再单独占一个标签；那一页的分段条不吸顶（避免滚动时把下面的文本框切成两半）');
 ok(/id="sdLogInput"/.test(s) && /id="sdOutput"/.test(s) && /id="sdGenerateBtn"/.test(s)
   && /id="sdCopyBtn"/.test(s) && /id="sdClearBtn"/.test(s) && /id="sdReportSub"/.test(s),
   '七日任务那一段：粘进度日志 + 生成 / 复制 / 清空 + 结果框');
