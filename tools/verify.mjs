@@ -575,9 +575,14 @@ ok(/const parts = src\.split\(\/第\\s\*\(\\d\+\)\\s\*层\/\);/.test(s)
   && /当前层\\s\*\[:：\]\?\\s\*\(-\|\\d\+\)/.test(s) && /大奖\\s\*\[:：\]\?\\s\*\(已抽取\|未抽取\|已抽到\|未抽到\)/.test(s),
   '能认出 GM 那块的结构：档位 configId/groupId、当前层、抽奖次数、大奖、每层「商品 / 价格 / 已抽 x/y」与每条奖励（ID / 奖励位 / 升层奖励 / 已抽取）');
 ok(/【下午茶 · 吉运节节高】/.test(s) && /没查到您有下午茶（吉运节节高）的抽取记录/.test(s)
-  && /剩余抽奖次数：/.test(s) && /还没解锁：/.test(s) && /已抽到：/.test(s)
-  && /function teaInfoLabel\(rw\)/.test(s) && /itemNameMap\[key\]/.test(s),
-  '生成的话术：档位 / 当前进度 / 剩余次数 / 大奖 / 本层奖励 / 已抽到 / 未解锁；没有抽取进度时改成「没查到记录，麻烦发角色ID/区服」；奖励名会用本地物品名表换成真名');
+  && /核实该活动目前您共获得了 ' \+ u\.earned \+ ' 次抽奖次数，已使用了 ' \+ u\.used \+ ' 次抽奖。/.test(s)
+  && /抽到了第 ' \+ \(cur \|\| '—'\) \+ ' 层/.test(s)
+  && /层还未解锁。/.test(s) && /层的最终大奖。/.test(s)
+  && /function teaInfoUsage\(info\)/.test(s) && /function teaInfoLabel\(rw\)/.test(s) && /itemNameMap\[key\]/.test(s),
+  '生成的话术就按用户给的模板：核实该活动目前您共获得了 X 次抽奖次数，已使用了 X 次抽奖 → 抽到了第 X 层的…，第 X 层还未解锁 / 已获得第 N 层的最终大奖；没有进度时改成「没查到记录，麻烦发角色ID/区服」');
+ok(/const TEA_ITEM_ALIAS = \{ '2000049': '随机奖励宝箱' \};/.test(s) && /TEA_ITEM_ALIAS\[key\]/.test(s)
+  && !/价格/.test((s.match(/function teaInfoScript\(info\) \{[\s\S]*?\n {36}\}/) || [''])[0]),
+  '奖励名按映射换人话（2000049 先写「随机奖励宝箱」）；话术里不出现价格（内部价）；数量一律用粘进来的数据');
 
 // ---- 3h. SOP 助手已整块删除（2026-10，用户要求）；服务端的 sop 口令关与 seed 工具保留 ----
 ok(!/sop/i.test(s),

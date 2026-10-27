@@ -2737,15 +2737,15 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
       '当前层 3 是否有抽奖次数 是（2 次） 大奖 未抽取',
       '第 6 层 未解锁 商品 380306 / 价格 0 / 已抽 0/1 无相牌 × 1 ID 1010101 / 奖励位 0',
       '第 5 层 未解锁 商品 380305 / 价格 88 / 已抽 0/2 红宝石 × 1540 ID 103 / 奖励位 0 升层奖励 道具 2000029 × 1 ID 2000029 / 奖励位 1',
-      '第 3 层 已解锁 商品 380303 / 价格 30 / 已抽 1/4 道具 2000026 × 1 ID 2000026 / 奖励位 0 升层奖励 红宝石 × 500 ID 103 / 奖励位 1 秘藏宝匣 × 2 ID 31906 / 奖励位 2 体力 × 1200 ID 101 / 奖励位 3 升层奖励'
+      '第 3 层 已解锁 商品 380303 / 价格 30 / 已抽 1/4 道具 2000026 × 1 ID 2000026 / 奖励位 0 升层奖励 红宝石 × 500 ID 103 / 奖励位 1 秘藏宝匣 × 2 ID 31906 / 奖励位 2 体力 × 1200 ID 101 / 奖励位 3 升层奖励 道具 2000049 × 1 ID 2000049 / 奖励位 4'
     ].join('\n');
     $('teaInfoInput').value = pasteText;
     $('teaInfoParseBtn').click();
     await sleep(80);
     const sum8y = $('teaInfoSummary').textContent;
     check(/configId=15/.test(sum8y) && /groupId=3803/.test(sum8y) && /当前层 第 3 层/.test(sum8y)
-      && /抽奖次数 2 次/.test(sum8y) && /大奖 未抽取/.test(sum8y) && /认出 3 层/.test(sum8y),
-      '粘一整块 → 认出档位 / 当前层 / 抽奖次数 / 大奖 / 层数', sum8y.slice(0, 140));
+      && /已用 1 \/ 共 3 次（剩 2）/.test(sum8y) && /大奖 未抽取/.test(sum8y) && /认出 3 层/.test(sum8y),
+      '粘一整块 → 认出档位 / 当前层 / 抽奖次数（已用·共·剩）/ 大奖 / 层数', sum8y.slice(0, 160));
     const layers8y = $('teaLayerBox').querySelectorAll('.tea-layer');
     const cur8y = $('teaLayerBox').querySelector('.tea-layer.is-cur');
     check(layers8y.length === 3 && !!cur8y && /第 3 层/.test(cur8y.textContent),
@@ -2753,20 +2753,29 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     const rw8y = $('teaLayerBox').textContent;
     check(/秘藏宝匣/.test(rw8y) && /红宝石/.test(rw8y) && $('teaLayerBox').querySelectorAll('.tea-reward.is-up').length === 3,
       '奖励照原样列出来（升层奖励单独标出来；本地物品名表认识的换成真名）', rw8y.replace(/\s+/g, ' ').slice(0, 120));
+    check(/随机奖励宝箱/.test($('teaLayerBox').textContent)
+      && !/道具 2000049/.test($('teaLayerBox').textContent)
+      && /红宝石 ×1540/.test($('teaLayerBox').textContent),
+      '道具代码按映射换成人话（2000049 先写「随机奖励宝箱」），数量照粘贴的数据走（不是写死的）',
+      $('teaLayerBox').textContent.replace(/\s+/g, ' ').slice(0, 160));
     const script8y = $('teaInfoOut').value;
-    check(/【下午茶 · 吉运节节高】/.test(script8y) && /当前进度：第 3 层（已抽 1\/4）/.test(script8y)
-      && /剩余抽奖次数：2 次/.test(script8y) && /大奖：未抽取/.test(script8y)
-      && /还没解锁：第 5 层、第 6 层/.test(script8y) && /秘藏宝匣 ×2/.test(script8y),
-      '话术按「档位 / 当前进度 / 次数 / 大奖 / 本层奖励 / 未解锁」写出来', script8y.split('\n').slice(0, 4).join(' | '));
+    check(/【下午茶 · 吉运节节高】/.test(script8y)
+      && /核实该活动目前您共获得了 3 次抽奖次数，已使用了 1 次抽奖。/.test(script8y)
+      && /抽到了第 3 层（本层还没抽到奖励），第 5 层还未解锁。/.test(script8y)
+      && !/价格/.test(script8y),
+      '话术就是用户给的模板：共获得 X 次 / 已使用 X 次 → 抽到了第 X 层的…，第 X 层还未解锁（不写价格）',
+      script8y.replace(/\n/g, ' | ').slice(0, 160));
 
     // ② 已抽取的奖励（网页源码里 is-drawn 的绿盒子 → 归一化时标成「已抽取」）
     $('teaInfoInput').value = '当前层 3 大奖 已抽取 第 3 层 已解锁 商品 380303 / 价格 30 / 已抽 2/4 '
       + '红宝石 × 500 ID 103 / 奖励位 0 已抽取 秘藏宝匣 × 2 ID 31906 / 奖励位 1';
     $('teaInfoParseBtn').click();
     await sleep(80);
-    check(/已抽到：红宝石 ×500（第 3 层）/.test($('teaInfoOut').value)
+    check(/抽到了第 3 层的红宝石 ×500/.test($('teaInfoOut').value)
+      && /已获得第 \d+ 层的最终大奖。/.test($('teaInfoOut').value)
       && $('teaLayerBox').querySelectorAll('.tea-reward.is-drawn').length === 1,
-      '带「已抽取」标记的奖励会标灰，并在话术里单列「已抽到」', $('teaInfoOut').value.replace(/\n/g, ' | ').slice(0, 120));
+      '带「已抽取」标记的奖励会标灰，并在话术里写成「抽到了第 X 层的…」；大奖已抽到就换成「已获得最终大奖」',
+      $('teaInfoOut').value.replace(/\n/g, ' | ').slice(0, 140));
 
     // ②b 直接贴 GM 页源码（绿色盒子挂的是 is-drawn 这个 class）：标记属于它前面那条奖励
     $('teaInfoInput').value = '<div class="panel panel-default afternoon-tea-card"><div class="panel-body">'
@@ -2780,7 +2789,7 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     await sleep(80);
     check($('teaLayerBox').querySelectorAll('.tea-reward.is-drawn').length === 1
       && /红宝石/.test($('teaLayerBox').querySelector('.tea-reward.is-drawn').textContent)
-      && /已抽到：红宝石 ×500/.test($('teaInfoOut').value),
+      && /抽到了第 3 层的红宝石 ×500/.test($('teaInfoOut').value),
       '贴网页源码也认：is-drawn 那条（红宝石）才算已抽取，不串到下一条', $('teaLayerBox').querySelector('.tea-reward.is-drawn').textContent);
 
     // ③ GM 页 Redis 里没进度（就是那种「以下仅展示 6 层奖励配置」）：话术改成「没查到记录」
