@@ -250,7 +250,23 @@ ok(/function careerItemsFromDaily\(t, o, n\)/.test(s) && /const src = tab === 't
   && /if \(r\.hasOnline\) for \(const it of CAREER_ONLINE_ITEMS\) delete items\[it\.key\];/.test(s),
   '在线客服的数能折算进生涯、也能从「在线客服日报文本」粘贴导入（hasOnline 只清自己那一侧）');
 // ---- 3b-4. 排班日历识别（自动匹配日报 / 生涯的班次）----
-ok(/const CAREER_SHIFT_KEY = 'careerShiftDays';/.test(s) && /const CAREER_SHIFT_DEF_KEY = 'careerShiftDefs';/.test(s)
+ok(s.includes('class="ic"') && /\.ic \{[\s\S]{0,200}stroke: currentColor/.test(s)
+  && ['careerArchiveBtn', 'careerRestBtn', 'careerExportCsvBtn', 'careerExportJsonBtn', 'careerImportJsonBtn', 'careerClearLocalBtn']
+    .every(id => new RegExp('id="' + id + '"[^>]*><svg class="ic"').test(s)),
+  '客服生涯工具条 6 个按钮换成内联 SVG 线性图标（.ic：15px、stroke=currentColor、粗细统一），不再堆 emoji');
+ok(/const CAREER_REST_MODE_KEY = 'careerRestMode';/.test(s) && /function careerRestModeSet\(mode\)/.test(s)
+  && /id="careerRestModeBar"/.test(s) && /id="careerRestModeRest"/.test(s) && /id="careerRestModeShift"/.test(s)
+  && /careerRestModeState === 'shift'/.test(s),
+  '「点日期」可以切两种模式：标休息（默认）/ 改班次（.rest-mode 两个按钮，模式只存本机）');
+ok(/function careerShiftEditOpen\(date\)/.test(s) && /function careerShiftEditPick\(code\)/.test(s)
+  && /function careerShiftEditClose\(\)/.test(s)
+  && /id="careerShiftEditBox"/.test(s) && /id="careerShiftEditCodes"/.test(s)
+  && /id="careerShiftEditClear"/.test(s) && /id="careerShiftEditClose"/.test(s)
+  && /CAREER_SHIFT_CODES\.map\(code =>/.test(s) && /data-code="' \+ code \+ '"/.test(s)
+  && /if \(c\) map\[date\] = c; else delete map\[date\];/.test(s)
+  && /if \(c === 'O'\) restList\.push\(date\);/.test(s),
+  '日历上手改班次：点日期弹面板（11 个班次 + 不排班）、挑完写进本机并按卡片自己的模式重画；挑 O 顺带标休息');
+ok(s.includes('const CAREER_SHIFT_KEY = \'careerShiftDays\';') && /const CAREER_SHIFT_DEF_KEY = 'careerShiftDefs';/.test(s)
   && /function careerShiftOfDate\(date\)/.test(s) && /function careerParseShiftText\(text, ymHint\)/.test(s)
   && /function careerApplyShift\(parsed, replace\)/.test(s)
   && /id="careerShiftInput"/.test(s) && /id="careerShiftParseBtn"/.test(s)

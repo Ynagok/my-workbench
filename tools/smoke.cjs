@@ -2690,6 +2690,94 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     check(/没有图片/.test($('careerOcrHint').textContent), '拖进来的东西不是图片时只提示', $('careerOcrHint').textContent);
   }
 
+  console.log('--- 8x. 图标统一（线性 SVG）+ 日历上手改班次 ---');
+  {
+    // ① 工具条那几个按钮换成内联 SVG 线条图标（不再用 emoji，粗细/大小统一）
+    const iconIds = ['careerArchiveBtn', 'careerRestBtn', 'careerExportCsvBtn', 'careerExportJsonBtn', 'careerImportJsonBtn', 'careerClearLocalBtn'];
+    const svgOk = iconIds.filter(id => $(id) && $(id).querySelector('svg.ic')).length;
+    const emojiOk = iconIds.filter(id => $(id) && /[\u{1F300}-\u{1FAFF}]/u.test($(id).textContent)).length;
+    check(svgOk === iconIds.length && emojiOk === 0,
+      '客服生涯工具条 6 个按钮都用内联 SVG 图标（不再直接堆 emoji）', svgOk + '/' + iconIds.length + ' emoji=' + emojiOk);
+
+    doc.querySelector('.tab-btn[data-tab="career"]').click();
+    await sleep(60);
+    if ($('careerRestCard').style.display === 'none') { $('careerRestBtn').click(); await sleep(60); }
+    check(!!$('careerRestModeBar') && !!$('careerRestModeRest') && !!$('careerRestModeShift'),
+      '排班卡多了「点日期：标休息 / 点日期：改班次」两个切换按钮');
+    check($('careerRestModeRest').classList.contains('active') && !$('careerRestModeShift').classList.contains('active'),
+      '默认还是「点日期：标休息」（原来的行为不变）',
+      $('careerRestModeRest').className + ' | ' + $('careerRestModeShift').className);
+
+    // ② 切到「改班次」，点某一天 → 弹班次面板，挑一个班次写进本机
+    const ymX = (function () {
+      const mo = $('careerRestMonth');
+      return (mo && mo.value) || bjToday.slice(0, 7);
+    })();
+    const editDate = ymX + '-05';
+    try { window.localStorage.removeItem('careerShiftDays'); window.localStorage.removeItem('careerRestDays'); } catch (_) { }
+    $('careerRestModeShift').click();
+    await sleep(60);
+    check($('careerRestModeShift').classList.contains('active')
+      && window.localStorage.getItem('careerRestMode') === 'shift',
+      '切到「改班次」：按钮高亮 + 记在本机（刷新后还在）', window.localStorage.getItem('careerRestMode'));
+    doc.querySelector('[data-rest="' + editDate + '"]').click();
+    await sleep(60);
+    check($('careerShiftEditBox').style.display !== 'none'
+      && $('careerShiftEditDate').textContent === editDate
+      && $('careerShiftEditCodes').querySelectorAll('[data-code]').length === 12,
+      '点日期 → 弹出「改班次」面板：抬头是这天 + 12 个班次可选（11 个班次 + 不排班）',
+      $('careerShiftEditDate').textContent + ' / ' + $('careerShiftEditCodes').querySelectorAll('[data-code]').length);
+    const pickH = $('careerShiftEditCodes').querySelector('[data-code="H"]');
+    pickH.click();
+    await sleep(80);
+    let shiftX = {};
+    try { shiftX = JSON.parse(window.localStorage.getItem('careerShiftDays') || '{}'); } catch (_) { }
+    check(shiftX[editDate] === 'H', '挑 H 班 → 这天记成 H（只存本机）', JSON.stringify(shiftX).slice(0, 100));
+    const cellX = doc.querySelector('[data-rest="' + editDate + '"]');
+    check(!!cellX && cellX.getAttribute('data-shift') === 'H' && cellX.classList.contains('has-shift')
+      && cellX.textContent.indexOf('H') !== -1,
+      '日历格立刻显示 H 班', cellX && cellX.outerHTML.slice(0, 100));
+    check($('careerShiftEditCodes').querySelector('[data-code="H"]').classList.contains('is-on'),
+      '面板里当前班次是选中态');
+
+    // ③ 挑「O」= 休息：班次 O + 休息日一起记
+    $('careerShiftEditCodes').querySelector('[data-code="O"]').click();
+    await sleep(80);
+    let restX = [];
+    try { restX = JSON.parse(window.localStorage.getItem('careerRestDays') || '[]'); } catch (_) { }
+    shiftX = {};
+    try { shiftX = JSON.parse(window.localStorage.getItem('careerShiftDays') || '{}'); } catch (_) { }
+    check(shiftX[editDate] === 'O' && restX.indexOf(editDate) !== -1
+      && doc.querySelector('[data-rest="' + editDate + '"]').classList.contains('rest'),
+      '挑 O（休息）→ 班次记 O、同时进休息日、格子变「休」', shiftX[editDate] + ' / ' + restX.join(','));
+
+    // ④ 清空这天：班次和休息都去掉
+    $('careerShiftEditClear').click();
+    await sleep(80);
+    shiftX = {};
+    try { shiftX = JSON.parse(window.localStorage.getItem('careerShiftDays') || '{}'); } catch (_) { }
+    restX = [];
+    try { restX = JSON.parse(window.localStorage.getItem('careerRestDays') || '[]'); } catch (_) { }
+    check(!(editDate in shiftX) && restX.indexOf(editDate) === -1
+      && (doc.querySelector('[data-rest="' + editDate + '"]').getAttribute('data-shift') === ''),
+      '「清空这天」→ 班次和休息都清掉', JSON.stringify(shiftX).slice(0, 80));
+
+    // ⑤ 收起面板 + 切回「标休息」模式（点日期又是切休息）
+    $('careerShiftEditClose').click();
+    await sleep(40);
+    check($('careerShiftEditBox').style.display === 'none', '「收起」把改班次面板藏起来');
+    $('careerRestModeRest').click();
+    await sleep(60);
+    doc.querySelector('[data-rest="' + editDate + '"]').click();
+    await sleep(60);
+    restX = [];
+    try { restX = JSON.parse(window.localStorage.getItem('careerRestDays') || '[]'); } catch (_) { }
+    check($('careerShiftEditBox').style.display === 'none' && restX.indexOf(editDate) !== -1,
+      '切回「标休息」后点日期又是切休息（面板不弹）', restX.join(','));
+    $('careerRestModeRest').click();
+    await sleep(40);
+  }
+
   console.log('--- 9. 无未捕获异常 ---');
   check(!warns.some(w => w.startsWith('ERROR')), 'console.error 未被调用：' + warns.filter(w => w.startsWith('ERROR')).join(' | '));
   check(jsdomErrors.length === 0, '页面无未捕获异常（jsdomError）', jsdomErrors.slice(0, 3));
