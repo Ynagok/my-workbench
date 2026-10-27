@@ -14397,13 +14397,53 @@
                                     const SD_LOG_ORDER = ['time', 'schedule', 'event', 'id', 'oldP', 'newP', 'oldS', 'newS'];
 
                                     // 内置的固定任务表 —— 「任务表是固定的」所以直接写死在代码里，界面上不展示、也改不了。
-                                    // 现在放了两期七日任务（ID 不重复，两期的日志都认）：本期 2416–2450（35 条）+ 更早那期 2486–2520（35 条，ID 跟本期相差 70）。
-                                    // ⚠️ 期次换算规则（2026-10 用户：「每个任务代码加140就是下一期，减140就是上一期」）
-                                    // 已经在 sdTaskById() 里实现了：日志里的 ID 不在这张表里时，自动按 ±140（再 ±280、±420…）去找**同一个任务**，
-                                    // 第几天 / 描述 / 目标 / 奖励照抄那一行 —— 所以**不必**每开一期就往这里加 35 行，这张表留的是「±140 换不到的历史期」。
+                                    // 现在放了三期七日任务（ID 不重复，三期的日志都认）：
+                                    //   最新一期 2521–2555（35 条，客户端进度 / 客户端状态两列是「-」）
+                                    //   再往前 2416–2450（35 条）＋ 最早 2486–2520（35 条）
+                                    // ⚠️ 期次换算是**算出来的**，不写死偏移量（2026-10 用户：「每个任务代码加140就是下一期的对应任务，减140就是上一期」，
+                                    //    后来给了 2521 这一期才发现相邻两期其实只差 35，±140 只是「隔 4 期」的特例）：
+                                    //    sdPeriodInfo() 从表里量出「一期多少条」（现在是 35）→ ID 只要跟表里某一期的**同一位置**对齐（差值是一期的整数倍），
+                                    //    就照抄那一行的「天数 / 描述 / 目标 / 奖励」，进度与状态仍用日志里的。±35 / ±70 / ±105 / ±140… 全认。
                                     // 改任务就改这张表（列序：任务ID 天数 任务描述 目标 进度 客户端进度 客户端状态 状态 积分 奖励）。
                                     const SD_TASK_DEFAULT = [
                                         '任务ID\t天数\t任务描述\t目标\t进度\t客户端进度\t客户端状态\t状态\t积分\t奖励',
+                                        // —— 最新一期（2521–2555）：2026-10 用户又给的一整张表（客户端进度 / 客户端状态这两列是「-」）
+                                        '2521\t第1天\t登录1天\t1\t7\t-\t-\t已领取\t10\t102×15',
+                                        '2522\t第1天\t服务25个顾客\t25\t25\t-\t-\t已领取\t20\t101×35',
+                                        '2523\t第1天\t获取125张百戏牌\t125\t125\t-\t-\t已领取\t20\t50701×1',
+                                        '2524\t第1天\t获取50个猫猫头\t50\t0\t-\t-\t已领取\t20\t34101×1',
+                                        '2525\t第1天\t合成800次\t800\t0\t-\t-\t已领取\t10\t101×15',
+                                        '2526\t第2天\t登录2天\t2\t7\t-\t-\t已领取\t10\t102×15',
+                                        '2527\t第2天\t获得1张5星百戏牌\t1\t1\t-\t-\t已领取\t50\t151×1',
+                                        '2528\t第2天\t收集7500个道具\t7500\t0\t-\t-\t已领取\t20\t101×35',
+                                        '2529\t第2天\t使用50个道具\t50\t0\t-\t-\t已领取\t30\t40303×1',
+                                        '2530\t第2天\t获得3000活动代币\t3000\t0\t-\t-\t已领取\t15\t101×20',
+                                        '2531\t第3天\t登录3天\t3\t7\t-\t-\t已领取\t10\t102×15',
+                                        '2532\t第3天\t获得7张4星百戏牌\t7\t7\t-\t-\t已领取\t25\t101×35',
+                                        '2533\t第3天\t获取200个猫猫头\t200\t0\t-\t-\t已领取\t20\t30601×1',
+                                        '2534\t第3天\t收集11000个道具\t11000\t0\t-\t-\t已领取\t20\t101×50',
+                                        '2535\t第3天\t进行1次游戏内充值付费\t1\t1\t-\t-\t已领取\t80\t40304×1',
+                                        '2536\t第4天\t登录4天\t4\t7\t-\t-\t已领取\t20\t102×30',
+                                        '2537\t第4天\t获得22张4星百戏牌\t22\t22\t-\t-\t已领取\t50\t153×1',
+                                        '2538\t第4天\t获得6000活动代币\t6000\t0\t-\t-\t已领取\t40\t101×50',
+                                        '2539\t第4天\t使用100个道具\t100\t0\t-\t-\t已领取\t50\t30701×1',
+                                        '2540\t第4天\t合成3100次\t3100\t0\t-\t-\t已领取\t20\t101×35',
+                                        '2541\t第5天\t登录5天\t5\t7\t-\t-\t已领取\t20\t102×30',
+                                        '2542\t第5天\t获取310张百戏牌\t310\t310\t-\t-\t已领取\t20\t30701×1',
+                                        '2543\t第5天\t获取280个猫猫头\t280\t0\t-\t-\t已领取\t40\t101×50',
+                                        '2544\t第5天\t收集20000个道具\t20000\t0\t-\t-\t已领取\t40\t101×50',
+                                        '2545\t第5天\t获得3张5星百戏牌\t3\t3\t-\t-\t已领取\t50\t101×35',
+                                        '2546\t第6天\t登录6天\t6\t7\t-\t-\t已领取\t20\t102×30',
+                                        '2547\t第6天\t获取375张百戏牌\t375\t375\t-\t-\t已领取\t40\t173×1',
+                                        '2548\t第6天\t获得9000活动代币\t9000\t0\t-\t-\t已领取\t40\t30702×1',
+                                        '2549\t第6天\t收集23000个道具\t23000\t0\t-\t-\t已领取\t40\t101×50',
+                                        '2550\t第6天\t服务185个顾客\t185\t185\t-\t-\t已领取\t30\t101×35',
+                                        '2551\t第7天\t登录7天\t7\t7\t-\t-\t已领取\t30\t50101×1',
+                                        '2552\t第7天\t获得10600活动代币\t10600\t0\t-\t-\t已领取\t60\t33001×1',
+                                        '2553\t第7天\t获取335个猫猫头\t335\t0\t-\t-\t已领取\t60\t101×50',
+                                        '2554\t第7天\t收集27000个道具\t27000\t0\t-\t-\t已领取\t60\t157×1',
+                                        '2555\t第7天\t服务250个顾客\t250\t250\t-\t-\t已领取\t45\t101×30',
+                                        // —— 再往前一期（2416–2450）
                                         '2416\t第1天\t登录1天\t1\t4\t1\t2\t已领取\t10\t102×10',
                                         '2417\t第1天\t服务10个顾客\t10\t10\t10\t2\t已领取\t20\t101×25',
                                         '2418\t第1天\t获取55张百戏牌\t55\t55\t55\t2\t已领取\t20\t50701×1',
@@ -14439,7 +14479,7 @@
                                         '2448\t第7天\t获取120个猫猫头\t120\t0\t35\t1\t未完成\t60\t30702×1',
                                         '2449\t第7天\t收集12000个道具\t12000\t0\t3101\t1\t未完成\t60\t157×1',
                                         '2450\t第7天\t服务110个顾客\t110\t39\t38\t1\t未完成\t45\t101×30',
-                                        // —— 上一期（2486–2520）：留着，免得之前存下的那些日志回落成「任务2498」
+                                        // —— 最早那一期（2486–2520）：留着，免得之前存下的那些日志回落成「任务2498」
                                         '2486\t第1天\t登录1天\t1\t4\t1\t2\t可领取\t10\t102×15',
                                         '2487\t第1天\t服务20个顾客\t20\t20\t20\t2\t可领取\t20\t101×35',
                                         '2488\t第1天\t获取100张百戏牌\t100\t100\t100\t2\t可领取\t20\t50701×1',
@@ -14608,13 +14648,18 @@
                                             return tok;
                                         }).join(' + ');
                                     }
-                                    // 后台的状态口径：1 未完成 / 2 可领取（完成）；文字状态（可领取/未完成）原样用
+                                    // 后台的状态口径：1 未完成 / 2 可领取（完成）；文字状态（可领取/未完成/已领取）原样用
                                     function sdStatusText(v) {
                                         const s = String(v == null ? '' : v).trim();
-                                        if (!s) return '';
+                                        if (!s || s === '-') return '';
                                         if (s === '1') return '未完成';
                                         if (s === '2') return '已完成';
                                         return s;
+                                    }
+                                    // 表格里的空值有两种写法：空字符串 和「-」（2026-10 那期表的客户端进度/客户端状态就是「-」）
+                                    function sdCell(v) {
+                                        const s = String(v == null ? '' : v).trim();
+                                        return (s === '-' || s === '—' || s === '无' || s === '/') ? '' : s;
                                     }
                                     function sdDayText(v) {
                                         const s = String(v == null ? '' : v).trim();
@@ -14643,26 +14688,69 @@
                                         return '';
                                     }
 
-                                    // 期次换算（2026-10 用户给的规则）：
-                                    // 「每个任务代码加 140 就是下一期的对应任务，减 140 就是上一期」。
-                                    // 所以日志里出现内置表没有的 ID 时，先按 ±140（再 ±280、±420…）去表里找**同一个任务**，
-                                    // 第几天 / 描述 / 目标 / 奖励都照抄，只有进度和状态用日志里的 ——
-                                    // 这样每开一期都不用把整张表再抄一遍（少抄漏抄就会回落成「任务NNNN」）。
-                                    const SD_PERIOD_STEP = 140;
-                                    const SD_PERIOD_MAX = 4;   // 最多往前 / 往后找 4 期（±140 … ±560）
-                                    function sdTaskById(id, byId) {
+                                    // ==================== 期次换算（2026-10 优化）====================
+                                    // 旧做法：写死「±140 是隔壁期」，一期一变就得改代码。
+                                    // 新做法：从任务表里**量出一期多少条**（相邻两期 ID 连续 → 找最长的那段连号），
+                                    //   然后任何日志 ID 只要跟表里某一期的同一位置对齐（差值 = 一期 × 整数），就照抄那一行的
+                                    //   天数 / 描述 / 目标 / 积分 / 奖励。所以 ±35、±70、±105、±140… 全都自动成立。
+                                    //   候选里取「差值最小」的那一期（相邻期）；同样近就取**较新**的那期（目标值只会往上走，宁可估新不估旧）。
+                                    const SD_PERIOD_MAX = 20;   // 最多往前 / 往后找 20 期
+                                    let sdPeriodCache = { sig: '', len: 0, ids: [] };
+                                    function sdPeriodInfo(tasks) {
+                                        const list = (tasks || []).filter(t => t && t.id).slice()
+                                            .sort((a, b) => Number(a.id) - Number(b.id));
+                                        const ids = list.map(t => Number(t.id)).filter(n => n > 0);
+                                        const sig = ids.length + ':' + (ids[0] || '') + ':' + (ids[ids.length - 1] || '');
+                                        if (sdPeriodCache.sig === sig) return sdPeriodCache;
+                                        // ① 正规算法：一期 = 从「第1天」走到「第7天」，天数一回落就是下一期（最稳，不依赖 ID 连号）
+                                        let len = 0, count = 0;
+                                        const dayIdx = list.map(t => sdDayOrder(sdDayText(t.day)));   // 第N天 → N，未标 → 99
+                                        if (new Set(dayIdx).size >= 2) {
+                                            let prev = 0;
+                                            for (const d of dayIdx) {
+                                                count++;
+                                                // 天数往回走（第7天之后又出现第1天）→ 下一期开始了，一期就是前面这几条
+                                                if (count > 1 && d < prev) { len = count - 1; break; }
+                                                prev = d;
+                                            }
+                                            if (!len) len = count;   // 表里只有一期（没出现回落）
+                                        }
+                                        // ② 兜底：天数认不出（比如整表没写第几天）→ 用最长的一段连号当一期
+                                        if (!len) {
+                                            let run = 0, best = 0;
+                                            for (let i = 0; i < ids.length; i++) {
+                                                run = (i && ids[i] === ids[i - 1] + 1) ? run + 1 : 1;
+                                                if (run > best) best = run;
+                                            }
+                                            len = best;
+                                        }
+                                        sdPeriodCache = { sig: sig, len: len || 1, ids: ids };
+                                        return sdPeriodCache;
+                                    }
+                                    // 按 ID 找任务：先精确；没有再按「同位置的另一期」找最近的
+                                    function sdTaskById(id, byId, tasks) {
                                         const key = String(id == null ? '' : id).trim();
                                         if (!key || !/^\d+$/.test(key)) return null;
                                         if (byId[key]) return byId[key];
+                                        const list = tasks || Object.keys(byId).map(k => byId[k]);
+                                        const info = sdPeriodInfo(list);
+                                        if (!info.len || info.len < 2) return null;
                                         const n = Number(key);
-                                        for (let k = 1; k <= SD_PERIOD_MAX; k++) {
-                                            const off = SD_PERIOD_STEP * k;
-                                            const prev = byId[String(n - off)];
-                                            if (prev) return prev;
-                                            const next = byId[String(n + off)];
-                                            if (next) return next;
-                                        }
-                                        return null;
+                                        let best = null, bestAbs = Infinity;
+                                        info.ids.forEach(k => {
+                                            const delta = n - k;
+                                            if (delta === 0) return;
+                                            if (Math.abs(delta) % info.len !== 0) return;
+                                            const periods = Math.abs(delta) / info.len;
+                                            if (periods > SD_PERIOD_MAX) return;
+                                            const abs = Math.abs(delta);
+                                            // 更近的赢；一样近则取「较新那一期」（delta < 0 表示表里那行比日志老）
+                                            if (abs < bestAbs || (abs === bestAbs && delta < 0 && best && best.delta > 0)) {
+                                                best = { delta: delta, task: byId[String(k)] };
+                                                bestAbs = abs;
+                                            }
+                                        });
+                                        return best ? best.task : null;
                                     }
 
                                     // 主口径：进度日志 → 按任务表判「到了多少 / 还差多少 / 达成能领什么」
@@ -14686,7 +14774,7 @@
                                                 newP: String(last.newP == null ? '' : last.newP).trim(),
                                                 newS: String(last.newS == null ? '' : last.newS).trim(),
                                                 time: String(last.time == null ? '' : last.time).trim(),
-                                                t: sdTaskById(id, byId) || {}
+                                                t: sdTaskById(id, byId, tasks) || {}
                                             };
                                         });
                                         const sched = (logs.map(l => l.schedule).filter(Boolean)[0]) || '';
@@ -14705,18 +14793,21 @@
                                                 // 话术里不写任务ID：用「时间点 + 任务描述 + 进度」说清楚
                                                 const name = it.t.desc || ('任务' + it.id);
                                                 const clock = sdClock(it.time);
-                                                const target = String(it.t.target == null ? '' : it.t.target).trim();
-                                                const np = Number(it.newP), tg = Number(target);
-                                                const hasP = it.newP !== '' && isFinite(np);
+                                                const target = sdCell(it.t.target);
+                                                // 日志里的「新进度」为准；日志没带（空 /「-」）就用任务表「进度」那一列兜底
+                                                const prog = sdCell(it.newP) || sdCell(it.t.progress);
+                                                const np = Number(prog), tg = Number(target);
+                                                const hasP = prog !== '' && isFinite(np);
                                                 const hasT = target !== '' && isFinite(tg);
                                                 // 句式统一（跟紫色那版一样）：一律「已{动词} 进度[／目标]」，
                                                 // 认不出动词（任务表里没这套ID / 描述不是动词开头）就用「已进行」，不再混写「进度 123」
                                                 const verb = sdProgressVerb(name) || '进行';
-                                                const segs = ['已' + verb + ' ' + (it.newP || '—') + (hasT ? '/' + target : '')];
-                                                const done = it.newS === '2' || (hasP && hasT && np >= tg);
+                                                const segs = ['已' + verb + ' ' + (prog || '—') + (hasT ? '/' + target : '')];
+                                                const newS = sdCell(it.newS);
+                                                const done = newS === '2' || (hasP && hasT && np >= tg);
                                                 if (done) segs.push('已完成');
                                                 else if (hasP && hasT && tg > np) segs.push('还差 ' + (tg - np));
-                                                else segs.push(it.newS === '1' ? '未完成' : '进行中');
+                                                else segs.push(newS === '1' ? '未完成' : '进行中');
                                                 // 已完成 → 能领什么（客服最常被问）
                                                 if (done) {
                                                     const rw = [];
@@ -14749,8 +14840,9 @@
                                             lines.push(d);
                                             byDay[d].forEach((t, i) => {
                                                 const bits = [];
-                                                const num = String(t.custProgress || '').trim() || String(t.progress || '').trim();
-                                                const target = String(t.target || '').trim();
+                                                // 「-」当空值处理（新一期表的客户端进度 / 客户端状态就是「-」）
+                                                const num = sdCell(t.custProgress) || sdCell(t.progress);
+                                                const target = sdCell(t.target);
                                                 if (num || target) bits.push('目标 ' + (target || '—') + (num ? '（进度 ' + num + '）' : ''));
                                                 const st = sdStatusText(t.status);
                                                 if (st) bits.push(st);

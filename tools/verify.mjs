@@ -619,12 +619,15 @@ ok(/id="sdLogInput"/.test(s) && /id="sdOutput"/.test(s) && /id="sdGenerateBtn"/.
 ok(!/id="sdTaskFold"/.test(s) && !/id="sdTaskInput"/.test(s) && !/id="sdTaskSub"/.test(s)
   && !/sdInitTaskTable/.test(s) && !/sdTaskResetBtn/.test(s) && !/sdClearTask/.test(s),
   '任务表完全不上界面：页面上没有折叠区 / 只读框 / 条数副标（也没有「清掉任务表」按钮）');
-ok(/const SD_TASK_DEFAULT = \[/.test(s) && /'2416\\t第1天\\t登录1天/.test(s)
+ok(/const SD_TASK_DEFAULT = \[/.test(s)
+  && /'2521\\t第1天\\t登录1天\\t1\\t7\\t-\\t-\\t已领取/.test(s)
+  && /'2555\\t第7天\\t服务250个顾客/.test(s)
+  && /'2416\\t第1天\\t登录1天/.test(s)
   && /'2450\\t第7天\\t服务110个顾客/.test(s)
   && /'2486\\t第1天\\t登录1天/.test(s) && /'2520\\t第7天\\t服务200个顾客/.test(s)
-  && (s.match(/'\d{4}\\t第[1-7]天\\t/g) || []).length === 70
+  && (s.match(/'\d{4}\\t第[1-7]天\\t/g) || []).length === 105
   && /task: sdParseRows\(SD_TASK_DEFAULT, SD_TASK_ALIASES, SD_TASK_ORDER\)/.test(s),
-  '内置固定任务表 SD_TASK_DEFAULT（两期共 70 条：2416–2450 + 上一期 2486–2520）+ 解析时直接用这份常量');
+  '内置固定任务表 SD_TASK_DEFAULT（三期共 105 条：最新 2521–2555 + 2416–2450 + 2486–2520）+ 解析时直接用这份常量');
 ok(/const SD_TASK_ALIASES = \{/.test(s) && /const SD_LOG_ALIASES = \{/.test(s)
   && /const SD_TASK_ORDER = \[/.test(s) && /const SD_LOG_ORDER = \[/.test(s)
   && /function sdParseRows\(text, aliases, order\)/.test(s) && /const useHeader = hit >= 3;/.test(s)
@@ -633,22 +636,28 @@ ok(/const SD_TASK_ALIASES = \{/.test(s) && /const SD_LOG_ALIASES = \{/.test(s)
   '七日任务：表头按中文列名对齐（命中 ≥3 个就当带表头，否则按页面列序）+ 制表符/逗号/空白三种分隔；「客户端进度」也认');
 ok(/function sdBuildLog\(logs, tasks\)/.test(s) && /const byId = \{\};/.test(s)
   && /rows = seq\[id\]\.slice\(\)\.sort/.test(s)
-  && /const done = it\.newS === '2' \|\| \(hasP && hasT && np >= tg\);/.test(s)
+  && /const done = newS === '2' \|\| \(hasP && hasT && np >= tg\);/.test(s)
   && /segs\.push\('还差 ' \+ \(tg - np\)\)/.test(s) && /segs\.push\('已完成'\)/.test(s)
   && /segs\.push\('可领取 ' \+ rw\.join\(' \+ '\)\)/.test(s)
   && /const d = sdDayText\(it\.t\.day\) \|\| '未标天数';/.test(s),
   '进度话术口径：按任务ID 查任务表 → 第几天分组 + 到了多少/目标 + 还差多少 / 已完成时能领什么（同任务多条日志合成一条）');
-ok(/const SD_PERIOD_STEP = 140;/.test(s) && /const SD_PERIOD_MAX = [1-9]\d*;/.test(s)
-  && /function sdTaskById\(id, byId\)/.test(s)
+ok(/const SD_PERIOD_MAX = [1-9]\d*;/.test(s)
+  && /function sdPeriodInfo\(tasks\)/.test(s) && /function sdTaskById\(id, byId, tasks\)/.test(s)
   && /if \(byId\[key\]\) return byId\[key\];/.test(s)
-  && /const prev = byId\[String\(n - off\)\];/.test(s)
-  && /const next = byId\[String\(n \+ off\)\];/.test(s)
-  && /t: sdTaskById\(id, byId\) \|\| \{\}/.test(s),
-  '期次换算：任务代码 ±140（再 ±280、±420…）= 上一期 / 下一期的同一个任务，别的期的日志 ID 也能对上第几天 / 目标 / 奖励（不用每期再抄一遍任务表）');
+  && /if \(Math\.abs\(delta\) % info\.len !== 0\) return;/.test(s)
+  && /const periods = Math\.abs\(delta\) \/ info\.len;/.test(s)
+  && /t: sdTaskById\(id, byId, tasks\) \|\| \{\}/.test(s)
+  && !/SD_PERIOD_STEP/.test(s),
+  '期次换算是算出来的：从表里量出「一期多少条」，任何 ID 只要跟某一期同位置对齐（±35 / ±70 / ±140… 全认）就照抄那一行的天数 / 描述 / 目标 / 奖励（不再写死偏移量）');
+ok(/function sdCell\(v\)/.test(s) && /return \(s === '-' \|\| s === '—' \|\| s === '无' \|\| s === '\/'\) \? '' : s;/.test(s)
+  && /const num = sdCell\(t\.custProgress\) \|\| sdCell\(t\.progress\);/.test(s)
+  && /const target = sdCell\(it\.t\.target\);/.test(s),
+  '表格里的「-」当空值：新一期表客户端进度 / 客户端状态那两列是「-」，既不会算成进度也不会算成目标');
 ok(/function sdClock\(v\)/.test(s) && /function sdProgressVerb\(desc\)/.test(s)
   && /const SD_VERBS = \['收集', '获取', '获得', '使用', '合成', '登录', '服务', '进行', '完成'\];/.test(s)
   && /const verb = sdProgressVerb\(name\) \|\| '进行';/.test(s)
-  && /const segs = \['已' \+ verb \+ ' ' \+ \(it\.newP \|\| '—'\) \+ \(hasT \? '\/' \+ target : ''\)\];/.test(s)
+  && /const segs = \['已' \+ verb \+ ' ' \+ \(prog \|\| '—'\) \+ \(hasT \? '\/' \+ target : ''\)\];/.test(s)
+  && /const prog = sdCell\(it\.newP\) \|\| sdCell\(it\.t\.progress\);/.test(s)
   && /else if \(!it\.t\.desc\) segs\.push\('可领取活动奖励'\);/.test(s)
   && /lines\.push\(\(i \+ 1\) \+ '\. ' \+ \(clock \? clock \+ ' ' : ''\) \+ name \+ '：' \+ segs\.join\('，'\)\);/.test(s)
   && !/label = name === \('任务' \+ it\.id\)/.test(s),
