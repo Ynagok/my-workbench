@@ -633,30 +633,26 @@ ok(/class="seg-bar" data-for="tab-gamedata"/.test(s) && /data-seg="resource" dat
   && !/data-seg="activity"/.test(s) && !/data-seg-card="activity"/.test(s)
   && /<div data-seg-card="mirror">/.test(s) && /statsSetSeg\('tab-gamedata', 'resource'\)/.test(s)
   && /id="mergeInput"/.test(s) && /id="mergeParseBtn"/.test(s) && /id="mergeClearBtn"/.test(s)
-  && /id="mergeSummary"/.test(s) && /id="mergeDiff"/.test(s)
-  && /id="gdResTable"/.test(s) && /id="gdItemInput"/.test(s) && /id="gdItemBtn"/.test(s) && /id="gdItemOut"/.test(s)
+  && /id="mergeSummary"/.test(s)
+  && !/id="gdResTable"/.test(s) && !/id="gdResCount"/.test(s) && !/id="mergeDiff"/.test(s) && /id="gdItemInput"/.test(s) && /id="gdItemBtn"/.test(s) && /id="gdItemOut"/.test(s)
   && !/gdActChips/.test(s) && !/id="gdActInput"/.test(s) && !/id="gdActOut"/.test(s),
   '「游戏数据」页：MergeState 粘贴 + 两段（01 资源核对 / 02 棋盘镜像）；活动进度 2026-10 按用户要求整块删掉（含反向断言）');
 ok(/function mergeParse\(raw\)/.test(s) && /function mergeJson\(v, dflt\)/.test(s) && /function mergeDailyUsage\(model\)/.test(s)
-  && /function mergeRenderDiff\(\)/.test(s) && /function mergeItemScript\(model, q\)/.test(s)
+  && !/function mergeRenderDiff/.test(s) && /function mergeItemScript\(model, q\)/.test(s)
   && !/function mergeActivityScript/.test(s) && !/others\.activities/.test(s)
   && /data\.others/.test(s) && /others\.resource/.test(s) && /others\.meta/.test(s),
-  'MergeState 解析：diamond/gold/hp + others（resource 资源 / meta 元数据）两层字符串都剥开；带当日体力·钻石消耗与「资源 → 最后变动时间」（activities 不再解析）');
-ok(/当前数量：/.test(s) && /最后变动：/.test(s) && /今日体力消耗：/.test(s) && /今日钻石消耗：/.test(s)
-  && /棋盘镜像：棋盘上 /.test(s) && /玩家数据里没找到「/.test(s)
+  'MergeState 解析：diamond/gold/hp + others（resource 资源 / meta 元数据）两层字符串都剥开；（存档只解析不参与判断：页面不再展示资源明细 / 当日消耗；activities 也不再解析）');
+ok(/当前数量：/.test(s) && /流水最后余额/.test(s) && /棋盘镜像：棋盘上 /.test(s) && /数据里没找到「/.test(s)
+  && !/今日体力消耗：/.test(s) && !/最后变动：/.test(s)
   && /id="gdItemTime"/.test(s) && /id="gdItemVerdict"/.test(s)
   && /function mergeTimeToEpoch\(v\)/.test(s) && /function mergeConsumeHits\(id\)/.test(s)
-  && /function mergeSelfCheckLines\(model, id, rec\)/.test(s) && /function mergeItemVerdict\(model, id, rec, q\)/.test(s)
+  && /function mergeSelfCheckLines\(model, id\)/.test(s) && /function mergeItemVerdict\(model, id, rec, q\)/.test(s)
   && /orderDojoMap/.test(s) && /orderDojosStr/.test(s),
-  '资源核对话术：当前数量 / 最后变动时间 / （查体力·钻石时）当日消耗 / 棋盘镜像里的三处数量；查不到直说');
-ok(/—— 异常自查 ——/.test(s) && /早于玩家说的时间/.test(s) && /那之后它没再变过/.test(s)
-  && /订单消耗：/.test(s) && /最近一次操作：/.test(s) && /记录值 vs 当前值：/.test(s)
-  && /没有变动量和操作来源/.test(s)
-  && /那之后没变过：不是被吞/.test(s) && /那个时段变过，看消耗去向/.test(s),
-  '异常自查融进资源核对：时间点两个方向 / 订单消耗 / 最近一次操作（含奖励）/ 记录值对账 / 明写「定责要服务端流水」，并给判定芯片');
-ok(/function mergeRenderDiff\(\)/.test(s) && /跟棋盘镜像核对/.test(s) && /不一致：玩家数据 /.test(s)
-  && /一致 /.test(s) && /红宝石', '103'/.test(s) && /铜钱', '102'/.test(s) && /体力', '101'/.test(s),
-  '粘贴 MergeState 后自动跟棋盘镜像核对红宝石 / 铜钱 / 体力：一致标黄、不一致标橙（提示镜像不是最新）');
+  '资源核对话术：当前数量（取流水最后余额）/ 棋盘镜像三处数量 / 查不到直说；**不再输出存档的最后变动与当日消耗**');
+ok(/—— 异常自查 ——/.test(s) && /流水窗口：/.test(s) && /订单消耗：/.test(s) && /最近一次操作：/.test(s)
+  && /玩家说的时间（/.test(s) && !/记录值 vs 当前值/.test(s) && !/最后变动（/.test(s)
+  && /那之后没变过：不是被吞/.test(s) && /那个时段之后还动过它/.test(s) && /不使用存档数据/.test(s),
+  '异常自查融进资源核对：流水窗口 / 时间点（按流水行比）/ 订单消耗 / 最近一次操作（含奖励）/ 明写「不使用存档数据」，并给判定芯片');
 ok(!/saveData\('board/.test(s) && !/localStorage\.setItem\('boardMirror/.test(s),
   '游戏数据 / 棋盘镜像都只在本机内存里解析（不写 /api/data、也不塞 localStorage）');
 ok(/id="gdOpInput"/.test(s) && /id="gdOpBtn"/.test(s) && /id="gdOpClearBtn"/.test(s)
@@ -689,8 +685,9 @@ ok(/function gdFlowImport\(raw, fromLabel\)/.test(s) && /gdFlowImport\(raw, '智
 ok(/id="gdRecon"/.test(s) && /id="gdReconChips"/.test(s) && /id="gdReconTable"/.test(s)
   && /function gdReconParts\(id\)/.test(s) && /function gdReconDiffs\(p\)/.test(s)
   && /function gdReconRender\(id\)/.test(s) && /function gdReconLines\(id\)/.test(s)
-  && /存档 − 流水/.test(s) && /镜像 − 存档/.test(s) && /镜像 − 操作净/.test(s),
-  '三口径对账：资源流水（最后余额 / 窗口净变动）· 存档（MergeState 当前值）· 棋盘镜像（棋盘上+背包+仓库+货币）· 操作记录（获得−消耗）互相求差，对不上就写「差 ±n」');
+  && /镜像 − 流水/.test(s) && /镜像 − 操作净/.test(s)
+  && !/存档 − 流水/.test(s) && !/镜像 − 存档/.test(s) && !/p\.rec/.test(s),
+  '对账（不使用存档数据）：资源流水最后余额 / 棋盘镜像（棋盘上+背包+仓库+货币）/ 操作记录（获得−消耗）互相求差，对不上就写「差 ±n」');
 ok(/id="gdFlowBox"/.test(s) && /id="gdFlowChips"/.test(s) && /id="gdFlowTable"/.test(s)
   && /function gdLooksFlow\(raw\)/.test(s) && /function gdFlowParse\(raw\)/.test(s)
   && /function gdFlowPairs\(id\)/.test(s) && /function gdFlowRun\(raw\)/.test(s)
@@ -717,7 +714,7 @@ ok(/function gdJsonOf\(raw\)/.test(s) && /function gdDetectKind\(v\)/.test(s) &&
   && /认出来是棋盘镜像/.test(s) && /认出来是操作记录/.test(s) && /认出来是 MergeState/.test(s)
   && /\['mergeInput', 'boardInput', 'gdOpInput'\]\.forEach/.test(s) && /gdAutoTimer = setTimeout/.test(s),
   '万能粘贴：三个框任一贴任何一份数据都自动认（MergeState / 棋盘镜像 / 操作记录）并转给对应解析器，粘完 400ms 自动解析（不用点按钮）');
-ok(/记录覆盖不到的时段仍要研发拉服务端全量流水/.test(s)
+ok(/不使用存档数据/.test(s) && /要定责仍以服务端全量流水为准/.test(s)
   && /mergeOpLines\(id\)\.forEach\(l => out\.push\(l\)\);/.test(s),
   '有了操作记录就把「定责要服务端流水」那句改成「覆盖不到的时段仍要研发拉全量流水」，并接在异常自查后面');
 

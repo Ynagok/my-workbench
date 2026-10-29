@@ -4648,7 +4648,7 @@
 
             <div class="card">
                 <label>① 粘贴数据（这一个框就够）
-                    <span class="card-sub">资源流水 / MergeState / 棋盘镜像 / 操作记录 都行 —— 贴进来就自动认。<b>只判「有没有被吞」贴资源流水就够</b>；MergeState 是给存档值用的，棋盘镜像看棋盘 / 背包 / 仓库</span>
+                    <span class="card-sub">资源流水 / 棋盘镜像 / 操作记录 —— 贴进来就自动认。<b>判断只用这三份（不再用存档数据）</b>：流水看「+N 之后有没有 −N 棋盘上传」，镜像看棋盘 / 背包 / 仓库，操作记录看棋子层面</span>
                 </label>
                 <textarea id="mergeInput" rows="4" style="margin-top:10px;" placeholder='随便贴：{"diamond":911,…}（MergeState）/ {"chessboardDataList":[…]…}（棋盘镜像）/ [{"op":281,"sTime":…}]（操作记录）'></textarea>
                 <div class="flex-row" style="margin-top:10px;">
@@ -4657,7 +4657,6 @@
                     <span class="hint-text" id="mergeHint"></span>
                 </div>
                 <div class="stat-chips" id="mergeSummary"></div>
-                <div class="stat-chips" id="mergeDiff"></div>
             </div>
 
             <div class="seg-bar" data-for="tab-gamedata">
@@ -4691,10 +4690,6 @@
                 </div>
                 <div class="stat-chips" id="gdItemVerdict"></div>
                 <textarea id="gdItemOut" rows="8" readonly style="margin-top:10px;"></textarea>
-                <details class="stat-fold" style="margin-top:12px;">
-                    <summary>资源明细 <span class="card-sub" id="gdResCount">—</span></summary>
-                    <div class="career-scroll" style="margin-top:8px;"><table class="career-table" id="gdResTable"></table></div>
-                </details>
                 <details class="stat-fold" style="margin-top:10px;">
                     <summary>操作记录 <span class="card-sub" id="gdOpCount">可选：合并 / 订单消耗 / 产出都能对到时间</span></summary>
                     <div class="hint-text" style="margin-top:8px;">把 GM 那边的操作记录（带 op / sTime / consume / rewards 的数组）整段贴进来 —— 能直接看出「这个道具那次是被合成吃了、还是交了订单」；<b>贴到页头那个大框里也行，会自动转到这儿</b></div>
@@ -15587,29 +15582,6 @@
                                         };
                                     }
                                     // MergeState 解析后跟已解析的棋盘镜像对账（红宝石 103 / 铜钱 102 / 体力 101）
-                                    function mergeRenderDiff() {
-                                        const box = document.getElementById('mergeDiff');
-                                        if (!box) return;
-                                        if (!mergeModel || !mergeModel.ok) { box.innerHTML = ''; return; }
-                                        if (!boardModel) {
-                                            box.innerHTML = statChip('棋盘镜像还没解析 —— 切到「棋盘镜像」粘一份就能自动核对', 'k-plain');
-                                            return;
-                                        }
-                                        const mirrorOf = (id) => {
-                                            const hit = (boardModel.currencies || []).filter(c => String(c.id) === String(id))[0];
-                                            return hit ? hit.n : null;
-                                        };
-                                        const chips = [statChip('跟棋盘镜像核对', 'k-plain')];
-                                        [['红宝石', '103', mergeModel.diamond], ['铜钱', '102', mergeModel.gold], ['体力', '101', mergeModel.hp]]
-                                            .forEach(row => {
-                                                const mirror = mirrorOf(row[1]);
-                                                if (row[2] == null || mirror == null) { chips.push(statChip(row[0] + ' 镜像里没有', 'k-plain')); return; }
-                                                const same = Number(row[2]) === Number(mirror);
-                                                chips.push(statChip(row[0] + (same ? ' 一致 ' + mirror : ' 不一致：玩家数据 ' + row[2] + ' / 镜像 ' + mirror),
-                                                    same ? 'k-accent' : 'k-warn'));
-                                            });
-                                        box.innerHTML = chips.join('');
-                                    }
                                     function mergeRender(model) {
                                         const sum = document.getElementById('mergeSummary');
                                         const table = document.getElementById('gdResTable');
@@ -15621,8 +15593,7 @@
                                             if (sub) sub.textContent = '—';
                                             if (meta) meta.innerHTML = '';
                                             teaSetHint('gdResCount', '');
-                                            mergeRenderDiff();
-                                            return;
+                                                return;
                                         }
                                         const usage = mergeDailyUsage(model);
                                         if (sum) {
@@ -15636,8 +15607,7 @@
                                             sum.innerHTML = chips.join('');
                                         }
                                         if (sub) {
-                                            sub.textContent = '存档 ' + (model.metaId || '—') + '　·　资源 ' + model.resource.length + ' 项'
-                                                + (model.syncTime ? '　·　快照时间 ' + mergeTsText(model.syncTime) : '');
+                                            sub.textContent = '存档数据不参与判断（只用资源流水 / 棋盘镜像 / 操作记录）';   // 存档副标不再展示
                                         }
                                         if (meta) {
                                             meta.innerHTML = statChips([
@@ -15660,7 +15630,6 @@
                                                 : '<tr><td colspan="3" style="color:var(--ink-3);">这份存档里的资源数量都是 0</td></tr>';
                                             table.innerHTML = h + '</tbody>';
                                         }
-                                        mergeRenderDiff();
                                     }
                                     // 「玩家说的时间」→ 秒（datetime-local 是北京时间，减去 8 小时才是 unix 时间戳，跟数据同口径）
                                     function mergeTimeToEpoch(v) {
@@ -15930,7 +15899,7 @@
                                         teaSetHint('gdOpHint', '认出 ' + model.rows.length + ' 条操作（'
                                             + mergeTsText(model.from) + ' ~ ' + mergeTsText(model.to) + '）');
                                         const q = ((document.getElementById('gdItemInput') || {}).value || '').trim();
-                                        if (q && mergeModel) mergeItemRun();
+                                        if (q && (mergeModel || flowModel || boardModel)) mergeItemRun();
                                         return model;
                                     }
                                     function mergeOpClear() {
@@ -15940,7 +15909,13 @@
                                         mergeOpRender();
                                         teaSetHint('gdOpHint', '已清空操作记录');
                                         const q = ((document.getElementById('gdItemInput') || {}).value || '').trim();
-                                        if (q && mergeModel) mergeItemRun();
+                                        if (q && (mergeModel || flowModel || boardModel)) mergeItemRun();
+                                    }
+                                    // epoch → 「YYYY-MM-DD HH:MM:SS」北京时间（跟流水里的时间串同口径，直接按字符串比大小）
+                                    function mergeEpochText(sec) {
+                                        const n = +sec || 0;
+                                        if (!n) return '';
+                                        try { return new Date((n + 8 * 3600) * 1000).toISOString().replace('T', ' ').slice(0, 19); } catch (_) { return ''; }
                                     }
                                     // 这个道具在「订单消耗 / 最近一次操作」里出现过没有（数据来自棋盘镜像那份 JSON）
                                     function mergeConsumeHits(id) {
@@ -15964,18 +15939,27 @@
                                         }
                                         return out;
                                     }
-                                    // 异常自查那几行：时间点 / 订单消耗 / 最近一次操作 / 记录值 vs 当前值 / 能力边界
-                                    function mergeSelfCheckLines(model, id, rec) {
+                                    // 异常自查那几行：流水窗口 / 时间点（按流水行比）/ 订单消耗 / 最近一次操作 / 能力边界（不使用存档数据）
+                                    function mergeSelfCheckLines(model, id) {
                                         const out = ['—— 异常自查 ——'];
-                                        const tEl = document.getElementById('gdItemTime');
-                                        const claim = mergeTimeToEpoch(tEl && tEl.value);
-                                        if (claim) {
-                                            if (!rec) out.push('· 存档里没有这个道具的记录，玩家说的时间点无从比对。');
-                                            else if (+rec.ts < claim) out.push('· 最后变动（' + mergeTsText(rec.ts) + '）早于玩家说的时间 → 那之后它没再变过，不是那时候被吞的。');
-                                            else out.push('· 最后变动（' + mergeTsText(rec.ts) + '）不早于玩家说的时间 → 那个时段确实变过，继续看下面几条。');
+                                        const claim = mergeTimeToEpoch((document.getElementById('gdItemTime') || {}).value);
+                                        const rows = (flowModel && flowModel.ok) ? flowModel.rows.filter(r => gdFlowMatch(r, id)) : [];
+                                        if (!rows.length) {
+                                            out.push('· 没有资源流水：看不出「动过几次、被谁动的」—— 贴一份流水再判。');
+                                        } else {
+                                            const net = rows.reduce((a, r) => a + r.delta, 0);
+                                            out.push('· 流水窗口：' + rows[0].ts + ' ~ ' + rows[rows.length - 1].ts
+                                                + '（' + rows.length + ' 条，净 ' + (net > 0 ? '+' : '') + net + '）');
+                                            if (claim) {
+                                                const ck = mergeEpochText(claim);
+                                                const after = rows.filter(r => String(r.ts) >= ck);
+                                                out.push(after.length
+                                                    ? ('· 玩家说的时间之后动过它 ' + after.length + ' 次，最近一次 ' + after[after.length - 1].ts + '。')
+                                                    : ('· 玩家说的时间（' + ck + '）之后：流水里一条都没动过它。'));
+                                            }
                                         }
                                         if (!boardModel) {
-                                            out.push('· 订单消耗 / 最近一次操作：镜像还没解析 —— 切到「03 棋盘镜像」粘一份就能对。');
+                                            out.push('· 订单消耗 / 最近一次操作：镜像还没解析 —— 把棋盘镜像也贴进来就能对。');
                                         } else {
                                             const hits = mergeConsumeHits(id);
                                             const orderHits = hits.filter(h => h.from === '订单');
@@ -15985,24 +15969,12 @@
                                             const lastHits = hits.filter(h => h.from === '最近操作');
                                             if (lastHits.length) {
                                                 lastHits.forEach(h => out.push('· 最近一次操作：' + (h.time || '时间未知') + ' 消耗了它 ' + h.n + ' 个'
-                                                    + (h.rewards && h.rewards.length
-                                                        ? '，给了 ' + h.rewards.slice(0, 4).map(r => mergeNameOf(r.goodsId) + '×' + r.num).join('、')
-                                                        : '')));
+                                                    + (h.rewards && h.rewards.length ? '，给了 ' + h.rewards.slice(0, 4).map(r => mergeNameOf(r.goodsId) + '×' + r.num).join('、') : '')));
                                             } else if (boardModel.lastInstruction) {
                                                 out.push('· 最近一次操作：最近那批指令里没有消耗它');
                                             }
                                         }
-                                        const pairs = { '101': ['体力', model.hp, model.record && model.record.hp], '102': ['铜钱', model.gold, model.record && model.record.gold], '103': ['红宝石', model.diamond, model.record && model.record.diamond] };
-                                        const pair = pairs[id];
-                                        if (pair && pair[2] != null) {
-                                            const now = pair[1];
-                                            out.push('· 记录值 vs 当前值：' + (Number(now) === Number(pair[2])
-                                                ? ('一致（' + now + '）')
-                                                : ('不一致（记录 ' + pair[2] + ' / 当前 ' + now + '）—— 这种直接提研发查存档落库')));
-                                        }
-                                        out.push(opModel && opModel.ok
-                                            ? '· 注：存档只说「最后变动时间」，变动量 / 来源看下面这段操作记录；记录覆盖不到的时段仍要研发拉服务端全量流水。'
-                                            : '· 注：存档里只有「最后变动时间」，没有变动量和操作来源 —— 「被吞」要定责得让研发查服务端流水。');
+                                        out.push('· 注：判断只用上面这几份数据（不使用存档数据）；要定责仍以服务端全量流水为准。');
                                         return out;
                                     }
                                     // ==================== 🔁 万能粘贴（贴哪个框都行，自动认是哪份数据） ====================
@@ -16381,7 +16353,7 @@
                                         flowModel = model;
                                         gdFlowRender();
                                         const q = ((document.getElementById('gdItemInput') || {}).value || '').trim();
-                                        if (q && (mergeModel || flowModel)) mergeItemRun();
+                                        if (q && (mergeModel || flowModel || boardModel)) mergeItemRun();
                                         return model;
                                     }
                                     // CSV 上传：只把分隔符换成制表符（引号里的不动），内容一个字不改，交给游戏数据自己判断
@@ -16449,15 +16421,11 @@
                                     // 用户 2026-10：「能不能根据游戏数据某个道具或者棋子的增加和消耗的情况，和镜像棋盘的数据对比，看看对不对的上」
                                     // 三个口径本来就是三次不同时刻的抓数，对不上很常见 —— 所以不判「谁对谁错」，只把差额摆出来让人看。
                                     function gdReconParts(id) {
-                                        const out = { flow: null, rec: null, mirror: null, op: null };
+                                        const out = { flow: null, mirror: null, op: null };
                                         const fl = gdFlowLast(id);
                                         if (fl) {
                                             const rows = flowModel.rows.filter(r => gdFlowMatch(r, id));
                                             out.flow = { n: fl.after, ts: fl.ts, net: rows.reduce((a, r) => a + r.delta, 0) };
-                                        }
-                                        if (mergeModel && mergeModel.ok) {
-                                            const rec = mergeModel.resource.filter(r => String(r.id) === String(id))[0];
-                                            if (rec) out.rec = { n: rec.n, ts: mergeTsText(rec.ts) };
                                         }
                                         if (boardModel) {
                                             const c = (boardModel.counts || {})[id] || { onBoard: 0, inBackpack: 0, inWarehouse: 0 };
@@ -16478,8 +16446,7 @@
                                     // 差额清单（对得上 / 差多少）
                                     function gdReconDiffs(p) {
                                         const out = [];
-                                        if (p.flow && p.rec) out.push({ label: '存档 − 流水', d: p.rec.n - p.flow.n });
-                                        if (p.rec && p.mirror) out.push({ label: '镜像 − 存档', d: p.mirror.n - p.rec.n });
+                                        if (p.flow && p.mirror) out.push({ label: '镜像 − 流水', d: p.mirror.n - p.flow.n });
                                         if (p.op && p.mirror) out.push({ label: '镜像 − 操作净', d: p.mirror.n - (p.op.gained - p.op.used) });
                                         return out;
                                     }
@@ -16487,8 +16454,6 @@
                                         const rows = [];
                                         rows.push(['资源流水', p.flow ? String(p.flow.n) : '—',
                                             p.flow ? ('最后余额 · ' + p.flow.ts + ' · 窗口净变动 ' + (p.flow.net > 0 ? '+' : '') + p.flow.net) : '没贴流水']);
-                                        rows.push(['存档（MergeState）', p.rec ? String(p.rec.n) : '—',
-                                            p.rec ? ('最后变动 ' + p.rec.ts) : '没贴存档']);
                                         rows.push(['棋盘镜像', p.mirror ? String(p.mirror.n) : '—',
                                             p.mirror ? ('棋盘上 ' + p.mirror.board + ' / 背包 ' + p.mirror.bag + ' / 仓库 ' + p.mirror.ware
                                                 + (p.mirror.cur != null ? ' / 货币 ' + p.mirror.cur : '')) : '没贴镜像']);
@@ -16503,7 +16468,7 @@
                                         const table = document.getElementById('gdReconTable');
                                         if (!box) return;
                                         const p = id ? gdReconParts(id) : null;
-                                        const count = p ? [p.flow, p.rec, p.mirror].filter(Boolean).length : 0;
+                                        const count = p ? [p.flow, p.mirror].filter(Boolean).length : 0;
                                         if (!p || count < 2) {
                                             box.style.display = 'none';
                                             if (chips) chips.innerHTML = '';
@@ -16513,7 +16478,7 @@
                                         box.style.display = '';
                                         const diffs = gdReconDiffs(p);
                                         if (chips) {
-                                            const list = [statChip('对账口径 ' + count + '/3', 'k-plain')];
+                                            const list = [statChip('对账口径 ' + count + '/2', 'k-plain')];
                                             diffs.forEach(d => list.push(statChip(d.label + (d.d === 0 ? ' 对得上' : ' 差 ' + (d.d > 0 ? '+' : '') + d.d),
                                                 d.d === 0 ? 'k-accent' : 'k-warn')));
                                             if (!diffs.length) list.push(statChip('资料不足：至少贴两份才能对', 'k-plain'));
@@ -16530,7 +16495,7 @@
                                     function gdReconLines(id) {
                                         const p = id ? gdReconParts(id) : null;
                                         if (!p) return [];
-                                        const count = [p.flow, p.rec, p.mirror].filter(Boolean).length;
+                                        const count = [p.flow, p.mirror].filter(Boolean).length;
                                         if (count < 2) return [];
                                         const out = ['—— 三口径对账（' + mergeNameOf(id) + '）——'];
                                         gdReconRows(p).forEach(r => {
@@ -16547,15 +16512,15 @@
                                     // 判定芯片：先回答「那个时间之后到底有没有变过」，再说有没有找到消耗去向
                                     function mergeItemVerdict(model, id, rec, q) {
                                         const chips = [];
-                                        if (!model || !model.ok) return chips;
                                         const ids = boardIdsOfQuery(q);
-                                        if (!ids.length) { chips.push(statChip('存档里没这个名字', 'k-warn')); return chips; }
-                                        const tEl = document.getElementById('gdItemTime');
-                                        const claim = mergeTimeToEpoch(tEl && tEl.value);
-                                        if (claim) {
-                                            if (!rec) chips.push(statChip('存档里没有这个道具的记录', 'k-warn'));
-                                            else if (+rec.ts < claim) chips.push(statChip('那之后没变过：不是被吞', 'k-accent'));
-                                            else chips.push(statChip('那个时段变过，看消耗去向', 'k-warn'));
+                                        if (!ids.length) { chips.push(statChip('数据里没这个名字', 'k-warn')); return chips; }
+                                        const claim = mergeTimeToEpoch((document.getElementById('gdItemTime') || {}).value);
+                                        const rows = (flowModel && flowModel.ok) ? flowModel.rows.filter(r => gdFlowMatch(r, id)) : [];
+                                        if (!rows.length) chips.push(statChip('没贴资源流水', 'k-plain'));
+                                        else if (claim) {
+                                            const ck = mergeEpochText(claim);
+                                            const after = rows.filter(r => String(r.ts) >= ck);
+                                            chips.push(after.length ? statChip('那个时段之后还动过它', 'k-warn') : statChip('那之后没变过：不是被吞', 'k-accent'));
                                         }
                                         if (boardModel) {
                                             const hits = mergeConsumeHits(id);
@@ -16580,25 +16545,23 @@
                                     }
                                     // 资源核对话术（用户要的第 1 件）
                                     function mergeItemScript(model, q) {
-                                        if (!model || !model.ok) return '';
                                         const ids = boardIdsOfQuery(q);
-                                        if (!ids.length) return '玩家数据里没找到「' + q + '」这个道具 —— 换个名字或直接输 id。';
+                                        const t = String(q == null ? '' : q).trim();
+                                        if (!ids.length) return '数据里没找到「' + t + '」这个道具 —— 换个名字或直接输 id。';
                                         const id = ids[0];
-                                        const rec = model.resource.filter(r => r.id === id)[0] || null;
-                                        const usage = mergeDailyUsage(model);
                                         const out = ['【游戏数据 · ' + mergeNameOf(id) + '（' + id + '）】'];
-                                        out.push('当前数量：' + (rec ? rec.n : 0));
-                                        out.push('最后变动：' + (rec ? mergeTsText(rec.ts) : '这份存档里没有它'));
-                                        if (id === '101' && usage.energy != null) out.push('今日体力消耗：' + usage.energy);
-                                        if (id === '103' && usage.diamond != null) out.push('今日钻石消耗：' + usage.diamond);
+                                        // ⚠️ 用户 2026-10：「不使用存档数据」—— 当前值一律取「流水最后余额」，MergeState 不再参与判断
+                                        const fl = gdFlowLast(id);
+                                        out.push('当前数量：' + (fl ? (fl.after + '（流水最后余额 · ' + fl.ts + '）') : '流水里没有它（贴一份流水就能算余额）'));
                                         if (boardModel) {
                                             const c = (boardModel.counts || {})[id] || { onBoard: 0, inBackpack: 0, inWarehouse: 0 };
                                             out.push('棋盘镜像：棋盘上 ' + c.onBoard + ' 个、临时背包 ' + c.inBackpack + ' 个、仓库 ' + c.inWarehouse + ' 个。');
                                         }
-                                        mergeSelfCheckLines(model, id, rec).forEach(l => out.push(l));
+                                        mergeSelfCheckLines(model, id).forEach(l => out.push(l));
                                         mergeOpLines(id).forEach(l => out.push(l));
                                         gdFlowLines(id).forEach(l => out.push(l));
                                         gdReconLines(id).forEach(l => out.push(l));
+                                        out.push('· 注：这份话术只依据资源流水 / 棋盘镜像 / 操作记录（不使用存档数据）。');
                                         return out.join('\n');
                                     }
                                     function mergeRun(rawArg) {
@@ -16650,14 +16613,14 @@
                                         const out = document.getElementById('gdItemOut');
                                         const q = (input && input.value) || '';
                                         const hasFlow = !!(flowModel && flowModel.ok);
-                                        if (!mergeModel && !hasFlow) { teaSetHint('gdItemHint', '先在页头把数据贴进来（资源流水判被吞，玩家数据看存档值）'); if (out) out.value = ''; mergeItemMapRender('', null); return; }
+                                        if (!mergeModel && !hasFlow && !boardModel && !opModel) { teaSetHint('gdItemHint', '先在页头把资源流水 / 棋盘镜像贴进来'); if (out) out.value = ''; mergeItemMapRender('', null); return; }
                                         if (!q.trim()) { teaSetHint('gdItemHint', '输个道具名或 id'); if (out) out.value = ''; mergeItemMapRender('', null); return; }
-                                        const text = mergeModel ? mergeItemScript(mergeModel, q) : gdFlowOnlyScript(q);
+                                        const text = mergeItemScript(mergeModel, q);
                                         if (out) out.value = text;
                                         const ids = boardIdsOfQuery(q);
-                                        const rec = (mergeModel && ids.length) ? (mergeModel.resource.filter(r => r.id === ids[0])[0] || null) : null;
+                                        const rec = null;   // ⚠️ 不使用存档数据：判定芯片已改成看流水 / 镜像 / 操作记录
                                         const box = document.getElementById('gdItemVerdict');
-                                        if (box) box.innerHTML = mergeModel ? mergeItemVerdict(mergeModel, ids[0], rec, q).join('') : '';
+                                        if (box) box.innerHTML = mergeItemVerdict(mergeModel, ids[0], rec, q).join('');
                                         mergeItemMapRender(ids.length ? ids[0] : '', rec);
                                         gdReconRender(ids.length ? ids[0] : '');
                                         mergeOpRender();
@@ -16851,11 +16814,9 @@
                                             if (sum) sum.innerHTML = '';
                                             if (sub) sub.textContent = '—';
                                             if (meta) meta.innerHTML = '';
-                                            mergeRenderDiff();
-                                            return;
+                                                return;
                                         }
                                         show.forEach(el => { if (el) el.style.display = ''; });
-                                        mergeRenderDiff();
                                         const pieceN = model.boards.reduce((a, b) => a + (b.cells || []).filter(c => c && c.pieceData).length, 0);
                                         const cellN = model.boards.reduce((a, b) => a + b.w * b.h, 0);
                                         if (sum) {
@@ -18213,7 +18174,7 @@
                                         addEvent('gdItemInput', 'keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); mergeItemRun(); } });
                                         addEvent('gdItemTime', 'change', () => {
                                             const q = (document.getElementById('gdItemInput') || {}).value || '';
-                                            if (q.trim() && mergeModel) mergeItemRun();
+                                            if (q.trim() && (mergeModel || flowModel || boardModel)) mergeItemRun();
                                         });
                                         setClick('gdOpBtn', mergeOpRun);
                                         setClick('gdOpClearBtn', mergeOpClear);
