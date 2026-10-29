@@ -8089,14 +8089,21 @@
                                         if (typeSelect) renderMappingList(document.getElementById('mappingSearchInput')?.value || '');
                                     }
                                     // ==================== 解析：智能粘贴 ====================
-                                    function parseSmartLog(rawText) {
+                                    // opts.keepIgnored：连「棋盘上传」这种默认忽略行也解析（游戏数据排查「被吞」必须看它）
+                                    // opts.quiet：不往解析日志里刷字（给联动那条路用，免得同一份日志打两遍）
+                                    function parseSmartLog(rawText, opts) {
+                                        const keepIgnored = !!(opts && opts.keepIgnored);
+                                        const quiet = !!(opts && opts.quiet);
                                         const lines = rawText.split(/\r?\n/).filter(l => l.trim());
                                         const records = [];
 
                                         for (let line of lines) {
-                                            if (shouldIgnoreLine(line)) { appendDebug(`\n⏭️ 忽略行: ${line.substring(0, 60)}`); continue; }
+                                            if (shouldIgnoreLine(line)) {
+                                                if (keepIgnored) { /* 联动给游戏数据时保留：棋盘上传的扣除就是判「被吞」的那条 */ }
+                                                else { if (!quiet) appendDebug(`\n⏭️ 忽略行: ${line.substring(0, 60)}`); continue; }
+                                            }
                                             const rawTime = extractTime(line);
-                                            if (!rawTime) { appendDebug(`\n⚠️ 无时间: ${line.substring(0, 60)}`); continue; }
+                                            if (!rawTime) { if (!quiet) appendDebug(`\n⚠️ 无时间: ${line.substring(0, 60)}`); continue; }
                                             const time = formatTimeToStandard(rawTime);
                                             const parts = line.split('\t');
                                             if (parts.length < 6) continue;
@@ -8151,7 +8158,7 @@
                                             }
 
                                             const change = parseInt(changeRaw, 10);
-                                            if (isNaN(change) || change === 0) { appendDebug(` | 变化量为0或无效，跳过`); continue; }
+                                            if (isNaN(change) || change === 0) { if (!quiet) appendDebug(` | 变化量为0或无效，跳过`); continue; }
                                             const before = parseFloat(beforeRaw) || 0;
                                             const after = parseFloat(afterRaw) || 0;
                                             sourceRaw = (sourceRaw || '').trim().replace(/^["']|["']$/g, '');
@@ -8438,6 +8445,12 @@
                                         catch (e) { debugConsole.textContent += `\n❌ 解析错误: ${e.message}`; return; }
                                         if (!records.length) { debugConsole.textContent += '\n❌ 无记录（请确认粘贴内容为资源流水格式）'; return; }
                                         debugConsole.textContent += `\n📌 原始记录数: ${records.length}`;
+                                        // 🔗 先按「原始全量」同步给游戏数据（下面的类型 / 关键词筛选只影响话术，不影响体检）
+                                        //    ⚠️ 必须 keepIgnored：默认忽略的「棋盘上传」正是判「被吞」的那一条
+                                        const allRecords = parseSmartLog(raw, { keepIgnored: true, quiet: true });
+                                        if (typeof gdFlowImport === 'function' && gdFlowImport(allRecords, '智能解析')) {
+                                            debugConsole.textContent += `\n🎮 已同步 ${allRecords.length} 条到「游戏数据 → 01 资源核对」，去那里输道具名 / 看全量体检`;
+                                        }
 
                                         if (resourceType !== '道具' && resourceType !== '活动奖励') {
                                             const matched = records.filter(r =>
@@ -8669,6 +8682,9 @@
                                         }
                                         let records = parseFlowCSV(text);
                                         if (!records.length) { appendDebug('\n❌ 无有效记录'); return; }
+                                        if (typeof gdFlowImport === 'function' && gdFlowImport(records, 'CSV 上传')) {
+                                            appendDebug(`\n🎮 已同步 ${records.length} 条到「游戏数据 → 01 资源核对」，去那里输道具名 / 看全量体检`);
+                                        }
                                         const itemKeywordRaw = document.getElementById('itemKeywordInput').value.trim();
                                         const includeSourcesRaw = document.getElementById('includeSourcesInput').value.trim();
                                         let filtered = records;
@@ -16378,6 +16394,7 @@
                                         if (scan) {
                                             const sr = gdFlowScan();
                                             const head = [statChip('扫了 ' + sr.items + ' 个道具 · ' + flowModel.rows.length + ' 条流水', 'k-plain')];
+                                            if (flowModel.origin) head.push(statChip('来自「' + flowModel.origin + '」', 'k-plain'));
                                             if (sr.pairs.length) head.push(statChip('疑似被吞 ' + sr.pairs.length + ' 组', 'k-warn'));
                                             else head.push(statChip('没有「+N → 棋盘上传 −N」的可疑配对', 'k-accent'));
                                             let list = '';
@@ -16448,6 +16465,34 @@
                                         teaSetHint('mergeHint', '认出 ' + model.rows.length + ' 条资源流水（' + model.rows[0].ts + ' ~ '
                                             + model.rows[model.rows.length - 1].ts + '）');
                                         return model;
+                                    }
+                                    // 🔗 和「资源 & 活动奖励流水」解析联动（2026-10 用户：「点击解析或者上传解析，可以将日志数据同步更新给游戏数据这里」）
+                                    //   智能解析（smartParseAndFill）/ CSV 上传（processFlowCsv）解析出来的 records 直接灌进来，
+                                    //   不用再复制一遍粘到页头那个大框；灌完就能在「01 资源核对」里输道具名排查。
+                                    function gdFlowImport(records, fromLabel) {
+                                        if (!Array.isArray(records) || !records.length) return null;
+                                        const rows = [];
+                                        records.forEach(r => {
+                                            if (!r) return;
+                                            const delta = +r['数量'] || 0;
+                                            const ts = String(r['时间'] == null ? '' : r['时间']).trim();
+                                            if (!delta || !ts) return;
+                                            rows.push({
+                                                ts: ts, delta: delta,
+                                                before: +r['之前'] || 0, after: +r['之后'] || 0,
+                                                name: String(r['道具名称'] || r['_资源类型'] || '').replace(/\s/g, ''),
+                                                id: String(r['道具ID'] || ''),
+                                                source: String(r['来源'] || ''), sourceRaw: String(r['来源'] || '')
+                                            });
+                                        });
+                                        if (!rows.length) return null;
+                                        rows.sort((a, b) => String(a.ts).localeCompare(String(b.ts)));
+                                        flowModel = { ok: true, error: '', rows: rows, origin: fromLabel || '' };
+                                        gdFlowRender();
+                                        // 之前已经查过道具就顺手把话术 / 导图刷新一遍（别的标签页里也不影响）
+                                        const q = ((document.getElementById('gdItemInput') || {}).value || '').trim();
+                                        if (q && (mergeModel || flowModel)) mergeItemRun();
+                                        return flowModel;
                                     }
                                     // 流水中该道具的最后一条（余额 = 当前值）—— 没贴 MergeState 时用它顶上
                                     function gdFlowLast(id) {

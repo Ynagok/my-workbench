@@ -3503,6 +3503,37 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
       '「清空」连流水对账一起收掉', $('gdFlowTable').innerHTML);
   }
 
+  console.log('--- 8z-7. 游戏数据 · 跟「资源流水」解析联动（点解析 / 上传解析就同步过来）---');
+  {
+    const postsSync = posts.length;
+    doc.querySelector('input[name="parseMode"][value="resource"]').checked = true;
+    const syncLog = [
+      '2026-11-01 09:00:00\tX1\t体力\t+100\t0\t100\t每日任务奖励\t0-货币',
+      '2026-11-01 09:01:00\tX2\t体力\t-100\t100\t0\t棋盘上传\t0-货币'
+    ].join('\n');
+    $('flowResourceSelect').value = '体力';
+    $('smartPasteInput').value = syncLog;
+    $('smartParseBtn').click();
+    await sleep(140);
+    check(/已同步 2 条到「游戏数据 → 01 资源核对」/.test($('flowDebugConsole').textContent),
+      '点「智能解析」时顺手把日志同步给游戏数据（解析日志里会写一行）',
+      $('flowDebugConsole').textContent.slice(-160));
+    check(/扫了 1 个道具 · 2 条流水/.test($('gdFlowScan').textContent)
+      && /来自「智能解析」/.test($('gdFlowScan').textContent)
+      && /疑似被吞 1 组/.test($('gdFlowScan').textContent),
+      '游戏数据那边的「全量体检」直接被点亮（还标了来源是智能解析）',
+      $('gdFlowScan').textContent.replace(/\s+/g, ' ').slice(0, 140));
+    $('gdItemInput').value = '体力';
+    $('gdItemBtn').click();
+    await sleep(80);
+    check(/—— 资源流水对账（体力）——/.test($('gdItemOut').value)
+      && /棋盘上传」扣了 -100/.test($('gdItemOut').value),
+      '不用再粘一次：直接输道具名就能出「被吞」话术',
+      $('gdItemOut').value.replace(/\n/g, ' | ').slice(-200));
+    check(posts.slice(postsSync).filter(p => /careerData|dailyData|gamedata|merge|flow/i.test(p.url)).length === 0,
+      '联动全程只在本机（0 请求）', posts.slice(postsSync).map(p => p.url).join(' | '));
+  }
+
   console.log('--- 9. 无未捕获异常 ---');
   check(!warns.some(w => w.startsWith('ERROR')), 'console.error 未被调用：' + warns.filter(w => w.startsWith('ERROR')).join(' | '));
   check(jsdomErrors.length === 0, '页面无未捕获异常（jsdomError）', jsdomErrors.slice(0, 3));
