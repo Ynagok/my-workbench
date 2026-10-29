@@ -3455,6 +3455,30 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     check(/没贴存档 · 流水最后余额 200/.test($('gdItemMap').textContent) && /余额 200 个/.test($('gdItemMap').textContent),
       '导图的「存档」那片退成「流水最后余额」，不谎称没记录', $('gdItemMap').textContent.slice(0, 120));
 
+    // 2026-10 第三轮快照新增的来源 / 道具，也要在排查界面上认得
+    $('gdItemInput').value = '体力';
+    $('mergeInput').value = [
+      '2026-11-02 10:00:00\tN1\t体力\t+100\t0\t100\t264\t0-货币',
+      '2026-11-02 10:01:00\tN2\t体力\t-100\t100\t0\t16\t0-货币'
+    ].join('\n');
+    $('mergeParseBtn').click();
+    await sleep(90);
+    check(/活动pass卡领取/.test($('gdFlowTable').textContent) && /对上 1 组/.test($('gdFlowChips').textContent),
+      '新来源 id 264 也翻成中文（活动pass卡领取），配对照样成立',
+      $('gdFlowTable').textContent.replace(/\s+/g, ' ').slice(0, 140));
+    // 新道具：贴一份带 840042 的存档再查（上一步「只贴流水」已经把存档清掉了）
+    $('mergeInput').value = JSON.stringify({
+      diamond: 1, gold: 1, hpData: 1, recordID: 2, syncTime: 1793248480,
+      others: JSON.stringify({ resource: [{ num: 3, timestamp: 1793248480, id: '840042' }], meta: [] })
+    });
+    $('mergeParseBtn').click();
+    await sleep(90);
+    $('gdItemInput').value = '840042';
+    $('gdItemBtn').click();
+    await sleep(60);
+    check(/【游戏数据 · 勋章77棋盘图鉴补发道具（840042）】/.test($('gdItemOut').value),
+      '新道具 id 840042 也有中文名（勋章77棋盘图鉴补发道具）', $('gdItemOut').value.slice(0, 80));
+
     // 清空 → 流水块收起
     $('mergeClearBtn').click();
     await sleep(70);
