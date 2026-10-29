@@ -48,7 +48,7 @@ npm run verify     # 改完代码、push 前的完整自检
 
 | 命令 | 内容 |
 |---|---|
-| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 540 项 + 「接口挂起时界面仍可用」+ 服务端冒烟 42 项 |
+| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 562 项 + 「接口挂起时界面仍可用」+ 服务端冒烟 42 项 |
 | `npm run verify:static` | 只要静态校验 + 语法检查（最快） |
 | `npm run report` | 打印一份真实生成的日报，肉眼确认排版（含 ⑥伙伴弹途 / ⑦异世界勇者） |
 | `npm run build:data` | 从 GM 玩家页快照提取 4 张权威映射表 + 与硬编码常量的**差异报告**（见下「游戏数据管线」） |
@@ -58,7 +58,7 @@ npm run verify     # 改完代码、push 前的完整自检
 | `npm run smoke:pmc` | **生管物料订单工作台**（`public/pmc.html`）自检，123 项（含加工周期工作日推算 + 在途锁定/调整建议 + 真实 8.5MB xlsx 端到端导入）；**不在 verify 里**，见下「生管物料订单工作台」一节 |
 | `npm test` | = `npm run verify` |
 
-`npm run verify` 失败就不要提交。它一共 5 段：静态结构 → 语法 → jsdom 集成冒烟 **540 项** → 接口挂起时界面仍可用 → 服务端冒烟 **42 项**。
+`npm run verify` 失败就不要提交。它一共 5 段：静态结构 → 语法 → jsdom 集成冒烟 **562 项** → 接口挂起时界面仍可用 → 服务端冒烟 **42 项**。
 
 - jsdom 未安装时前端冒烟会自动回落到本机 DSH 自带的那份。
 - `tools/smoke-server.cjs` 用 `PORT` + `DATA_FILE` 环境变量把服务端指到随机端口和 `tools/out/` 里的临时文件，**不会碰真实 `data.json`**；子进程 stdio 必须用 `ignore`/`inherit`（沙箱禁管道，`pipe` 会 EPERM）。
@@ -415,11 +415,45 @@ npm run verify     # 改完代码、push 前的完整自检
 - **只在本机**：纯前端解析，**不写 `/api/data`、也不改 `teaShops` / `teaPoll_*`**（跟别的粘贴解析一个规矩）；页面上不持久化，清空就没了。
 - **测试**：`tools/smoke.cjs` 第 **8y** 节 **14 条**（第三段按钮在、切过去只有这段亮 / **下午茶投票页里没有这块** / 卡片与按钮齐全 / 粘一整块认出档位·当前层·次数·大奖·层数 / 当前层那格高亮 / 升层奖励单独标 / **道具代码按映射换人话（2000049 → 随机奖励宝箱）+ 数量照数据走** / **话术就是用户模板那两句、且不含价格** / 纯文本里的「已抽取」标灰并写进「抽到了第 X 层的…」 / **大奖已抽取 → 换成「已获得最终大奖」** / **贴源码认 is-drawn 不串到下一条** / 没进度时改「没查到记录」/ 空输入只提示 / 清空全清 / 全程 0 请求）；`tools/verify.mjs` 3g-2（6 条）+ 3l（分段条现在三段）有静态断言。
 
-## 🧩 棋盘镜像（`data-tab="board"` · 粘 GM 镜像 JSON，2026-10）
+## 🎮 玩家游戏数据（`data-tab="gamedata"` · 粘 MergeState，2026-10）
+
+用户：「1 和 2 弄成玩家游戏数据功能，将棋盘镜像作为独立的标签页加在这个功能里，粘贴后同步核对镜像」——把 MergeState 的两件刚需（**资源核对**、**活动进度**）做成一个页面，棋盘镜像当它的**第 03 段**放进来。
+
+- **位置**：侧边栏 **「梦幻消除站」组**里的第三个子项 **「玩家游戏数据」**（`data-tab="gamedata"` / `#tab-gamedata`，`tab-btn-sub`，**不带图标**），排在 `话术生成` / `集卡分析` 后面。页内三段：`01 资源核对`（默认）/ `02 活动进度` / `03 棋盘镜像`（`.seg-bar[data-for="tab-gamedata"]` + `data-seg-card="resource|activity|mirror"`；`bindSegBar` 末尾 `statsSetSeg('tab-gamedata', 'resource')` 初始化）。
+- **① 粘贴 MergeState**（`#mergeInput` + `#mergeParseBtn` / `#mergeClearBtn`，提示 `#mergeHint`）：就是 GM 玩家页那块**存档快照**，整段贴。汇总芯片 `#mergeSummary`（红宝石 / 铜钱 / 体力 / 存档 ID / 今日体力消耗 / 今日钻石消耗 / 资源项数 / 活动数）+ 对账行 `#mergeDiff`；抬头 `#gdReportSub` / `#gdReportMeta` 也跟着填。
+  - **解析**（`mergeParse`）：`diamond|recordDiamond` / `gold|recordGold` / `hpData|recordHp` / `recordID` / `syncTime` / `others`。⚠️ **`others` 是「字符串套字符串」，个别还三层**（`resource` / `meta` / `activities[].extra` / `activity_task_progress[].tasks` / `completeGuides` / `gifts`），统一用 `mergeJson(v, dflt)` 一层层剥。
+  - **`resource[]`**（`id / num / timestamp`）= **每个道具的当前数量 + 最后一次变动时间**，按数量降序，`mergeTsText()` 把时间戳格式化成 `YYYY-MM-DD HH:MM`（UTC，跟快照里的服务器时间一致）。
+  - **`meta[]`**（`name / value / extra`）里取两条做「当日消耗」：`daily_board_energy_stat.extra` = **今日体力消耗**、`daily_diamond_consume_stat.extra` = **今日钻石消耗**（`mergeDailyUsage`）。
+  - **`activities[]`**（`name` + `extra` 里套 JSON）= 60+ 个活动的 `id` / `State_Recorded_*` / 进度值；**`MERGE_ACTIVITY_LABELS`** 把英文名换成中文（七日任务 / 通行证（本期）/ 签到奖励 / 限购补给 / 体力排行榜 / 茶楼竞速 / 大亨赛 / 集卡 / 怪棋挑战 / 风筝 / 花园… 认不出显示原名）。
+  - `activity_task_progress[]` = 活动任务进度（`taskId / status / progress`，**status=2 算已完成**，跟七日任务那套口径一致）。
+- **② 资源核对**（`.card[data-seg-card="resource"]`，`#gdResTable` 表格 + 查询）：表格三列「道具 / 数量 / 最后变动」；查询区 `#gdItemInput`（道具名或 id，回车也行）+ `#gdItemBtn` / `#gdItemCopyBtn` + `#gdItemOut`。
+  - 话术（`mergeItemScript`）：
+    ```
+    【玩家游戏数据 · 红宝石（103）】
+    当前数量：911
+    最后变动：2026-10-29 02:50
+    今日钻石消耗：10
+    棋盘镜像：棋盘上 0 个、临时背包 0 个、仓库 0 个。
+    ```
+    查 `101` 时写「今日体力消耗」（298），查 `103` 时写「今日钻石消耗」；棋盘镜像那行只在镜像已解析时才有；查不到直说 `玩家数据里没找到「…」这个道具`。
+- **③ 活动进度**（`.card[data-seg-card="activity"]`，`#gdActChips` 芯片 + 查询）：芯片是这份存档里出现过的活动（**点芯片 = 自动填进 `#gdActInput` 并直接生成**，`data-gd-act` 属性）；查询 `#gdActInput` + `#gdActBtn` / `#gdActCopyBtn` + `#gdActOut`。
+  - 话术（`mergeActivityScript`）：
+    ```
+    【玩家游戏数据 · 七日任务（seven_task）】
+    活动 id：35
+    关键进度：seven_task_35_102 = 14326；State_Recorded_2 = 1
+    状态记录：1 项
+    ```
+    查活动任务 id（如 `6735`）时换成 `【玩家游戏数据 · 活动任务（6735）】` + 「任务共 N 个，已完成（status=2）M 个」+ 前 8 条进度；查不到直说。
+- **🔁 粘贴后同步核对镜像**（`mergeRenderDiff`）：MergeState 解析完、或棋盘镜像解析完，都会重算 `#mergeDiff`：拿玩家数据的红宝石/铜钱/体力跟镜像的 `currencies`（103/102/101）比 —— **一致标黄（`k-accent`）写「一致 86130」，不一致标橙（`k-warn`）写「不一致：玩家数据 X / 镜像 Y」**（说明镜像不是同一时刻抓的）；镜像还没解析时提示「去第 03 段粘一份」。⚠️ 两边的 `syncTime` 一致时才是同一份快照（实测都是 1793248480）。
+- **只在本机**：`mergeModel` 只在内存里，不写 `/api/data`、不落 localStorage（刷新就没了）。`stats`（客户端网关测速，含内部域名）解析出来但**没上界面**，别外发；`energy_rank.robotStates` / `teahouse_race.playerDatas` 里有其他玩家昵称，也只在数据里、不上界面。
+- **测试**：`tools/smoke.cjs` 第 **8z-2** 节 **20 条**（默认空表 / MergeState 解析出货币·体力·存档 ID·当日消耗·资源数·活动数 / 资源表三列 / 镜像没解析时对账行提示 / 活动芯片中文名 / **解析镜像后对账「一致」** / **改数后「不一致」** / 资源话术（含当日钻石消耗 + 镜像三处）/ 体力话术带当日消耗 / 输 id 查 / 查不到直说 / 活动话术（别名 + id + 关键进度）/ 活动任务进度 / 活动查不到 / 点芯片自动生成 / 坏 JSON 只提示 / 清空全清 / 清空后再查会提示先解析 / 全程 0 请求）；`tools/verify.mjs` 3g-3 另有 **6 条**静态断言（页面结构、解析函数、两套话术、对账、只在本机）。
+
+## 🧩 棋盘镜像（`#tab-gamedata` 的第 03 段 · 粘 GM 镜像 JSON，2026-10）
 
 用户要求：「增加一个棋盘镜像功能，可以粘贴棋盘镜像数据生成类似展示主棋盘，背包，仓库的页面，还可以输入道具名称或者 id，来生成有几个 xx 在棋盘上，几个 xx 在临时背包，几个 xx 在仓库这样的确认道具棋子的状态的话术」。
 
-- **位置**：侧边栏 **「梦幻消除站」那一组**里（`data-tab="board"` / `#tab-board`），跟 `话术生成` / `集卡分析` 一样是**子项**（`class="tab-btn tab-btn-sub"`），排在它们后面；**标签上就叫「棋盘镜像」，不带 🧩 之类的图标**（用户 2026-10：「这三个都是梦幻消除站的，镜像前面绿色的图标不要」）。**跟「下午茶投票」「吉运节节高」都无关**。
+- **位置**：它是 **「🎮 玩家游戏数据」页的第 03 段**（`#tab-gamedata` 里的 `[data-seg-card="mirror"]`），不再是独立标签页（用户 2026-10：「将棋盘镜像作为独立的标签页加在这个功能里」）。侧边栏那一项叫 **「玩家游戏数据」**（`data-tab="gamedata"`，`tab-btn-sub`，在「梦幻消除站」组里、`话术生成` / `集卡分析` 后面，**不带图标**）。**跟「下午茶投票」「吉运节节高」都无关**。
 - **五块**（id 都别改）：
   1. `#boardInput` 粘贴框 + `#boardParseBtn`（🔍 解析并展示）/ `#boardClearBtn`（🧹 清空）+ 提示 `#boardHint` + 汇总芯片 `#boardSummary`。
   2. `#boardMainCard`：主棋盘 `#boardMainGrid`（`.board-grid`，`--bw` 控制列数）+ 其它棋盘 `#boardOtherGrids`。
@@ -443,7 +477,7 @@ npm run verify     # 改完代码、push 前的完整自检
   - 名字对不上时话术直接说 `镜像里没找到「…」这个道具 / 棋子`，提示里也写「换个写法或直接输 id」。
 - ⚠️ **只在本机内存里**（`boardModel` 变量）：不写 `/api/data`、不塞 localStorage，刷新就没了（想留就重新贴）。
 - ⚠️ 活动棋盘的 `activityPieceIdMap` 里那批 id（826xx / 827xx / 610xx…）**物品名表里没有**，会显示成 `#82601` 这种原 id —— 想显示真名就去「映射管理」里补 `itemNameMap`，补完刷新即可（`boardNameOf()` 读的就是它）。
-- **测试**：`tools/smoke.cjs` 第 **8z** 节 **17 条**（是「梦幻消除站」组的子项 / 标签上没有图标 / 三块默认收起 / 解析出主棋盘 3×2 + 棋盘数 + 棋子 4·格 8 + 背包 1 项 + 仓库 2 件 + 货币 / 三块都显示 / 主棋盘 6 格含 3 棋子·1 未解锁·1 产出棋 / 名字换成「相思鸟」「云栖茶壶」且带 80/80 库存 / 其它棋盘单独画 / 背包「×3」/ 仓库认识换名·不认识写 id 带库存 / 输名字出话术（棋盘 2·背包 0·仓库 0）/ 输 id 出话术（棋盘 1·背包 0·仓库 1）/ 查不到就说没找到 / 坏 JSON 只提示不炸 / 清空全收 / 全程 0 请求）；`tools/verify.mjs` 3g-3 有 **7 条**静态断言（含「三张子项排在一起、棋盘镜像不带图标」）。
+- **测试**：`tools/smoke.cjs` 第 **8z** 节 **19 条**（是「梦幻消除站」组的子项 / 标签上没有图标 / 三段与默认段 / 切到第 03 段 / 三块默认收起 / 解析出主棋盘 3×2 + 棋盘数 + 棋子 4·格 8 + 背包 1 项 + 仓库 2 件 + 货币 / 三块都显示 / 主棋盘 6 格含 3 棋子·1 未解锁·1 产出棋 / 名字换成「相思鸟」「云栖茶壶」且带 80/80 库存 / 其它棋盘单独画 / 背包「×3」/ 仓库认识换名·不认识写 id 带库存 / 输名字出话术（棋盘 2·背包 0·仓库 0）/ 输 id 出话术（棋盘 1·背包 0·仓库 1）/ 查不到就说没找到 / 坏 JSON 只提示不炸 / 清空全收 / 全程 0 请求）；`tools/verify.mjs` 3g-3 有 **12 条**静态断言（含「三张子项排在一起、都不带图标」和「棋盘镜像整块收进 `data-seg-card="mirror"`」）。
 
 ## SOP 助手（**已删除** · 2026-10，用户要求）
 

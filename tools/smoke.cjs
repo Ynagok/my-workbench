@@ -2832,19 +2832,27 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
       '吉运节节高解析全程只在本机（不碰服务端）', posts.slice(posts8y).map(p => p.url).join(' | '));
   }
 
-  console.log('--- 8z. 🧩 棋盘镜像（镜像 JSON → 主棋盘 / 背包 / 仓库 + 在哪几个话术）---');
+  console.log('--- 8z. 玩家游戏数据 · 03 棋盘镜像（镜像 JSON → 主棋盘 / 背包 / 仓库 + 在哪几个话术）---');
   {
     const posts8z = posts.length;
-    const boardTab = doc.querySelector('.tab-btn[data-tab="board"]');
-    check(!!boardTab && boardTab.classList.contains('tab-btn-sub')
-      && /梦幻消除站/.test((boardTab.parentElement.querySelector('.tab-group-title') || {}).textContent || ''),
-      '「棋盘镜像」是「梦幻消除站」那组的子项（跟话术生成 / 集卡分析 同级）');
-    check(boardTab.textContent.trim() === '棋盘镜像',
-      '标签上就是「棋盘镜像」，不挂 🧩 那个绿图标', JSON.stringify(boardTab.textContent));
-    doc.querySelector('.tab-btn[data-tab="board"]').click();
+    const gdTab = doc.querySelector('.tab-btn[data-tab="gamedata"]');
+    check(!!gdTab && gdTab.classList.contains('tab-btn-sub')
+      && /梦幻消除站/.test((gdTab.parentElement.querySelector('.tab-group-title') || {}).textContent || ''),
+      '「玩家游戏数据」是「梦幻消除站」那组的子项（跟话术生成 / 集卡分析 同级）');
+    check(gdTab.textContent.trim() === '玩家游戏数据',
+      '标签上就是「玩家游戏数据」，不挂图标', JSON.stringify(gdTab.textContent));
+    gdTab.click();
     await sleep(60);
-    check(!!$('tab-board') && $('tab-board').classList.contains('active'),
-      '点进去就是棋盘镜像页（不碰服务端能力，纯前端）');
+    check(!!$('tab-gamedata') && $('tab-gamedata').classList.contains('active'),
+      '点进去就是玩家游戏数据页（纯前端，不碰服务端）');
+    check(doc.querySelectorAll('#tab-gamedata .seg-btn').length === 3
+      && $('tab-gamedata').dataset.seg === 'resource',
+      '页内三段（01 资源核对 / 02 活动进度 / 03 棋盘镜像），默认停在资源核对',
+      doc.querySelectorAll('#tab-gamedata .seg-btn').length + ' 段');
+    doc.querySelector('#tab-gamedata .seg-btn[data-seg="mirror"]').click();
+    await sleep(60);
+    check($('tab-gamedata').dataset.seg === 'mirror',
+      '切到「03 棋盘镜像」这一段（棋盘那几块都收在这一段里）');
     check($('boardMainCard').style.display === 'none' && $('boardBagCard').style.display === 'none'
       && $('boardAskCard').style.display === 'none',
       '还没解析时「棋盘 / 背包仓库 / 查询」三块都收着');
@@ -2942,6 +2950,163 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
 
     check(posts.slice(posts8z).filter(p => /careerData|board|dailyData/.test(p.url) || /board/i.test(p.url)).length === 0,
       '镜像解析全程只在本机（0 请求）', posts.slice(posts8z).map(p => p.url).join(' | '));
+  }
+
+  console.log('--- 8z-2. 玩家游戏数据 · 01 资源核对 / 02 活动进度（MergeState + 跟镜像对账）---');
+  {
+    const postsGd = posts.length;
+    doc.querySelector('#tab-gamedata .seg-btn[data-seg="resource"]').click();
+    await sleep(60);
+    check($('tab-gamedata').dataset.seg === 'resource' && $('gdResTable').innerHTML === ''
+      && $('mergeSummary').innerHTML === '',
+      '还没粘 MergeState 时资源表 / 芯片都是空的');
+    check($('mergeDiff').textContent === '',
+      '镜像没解析过、玩家数据也没解析 → 对账行先空着', $('mergeDiff').textContent);
+
+    const mergePayload = {
+      diamond: 911, recordDiamond: 911, gold: 86130, recordGold: 86130, hpData: 16, recordHp: 16,
+      recordID: 178288, syncTime: 1793248480,
+      stats: '{"bestHost":"eo-api-mhcl.ouo7.com"}',
+      others: JSON.stringify({
+        resource: [
+          { num: 16, timestamp: 1793248480, id: '101' },
+          { num: 86130, timestamp: 1793247170, id: '102' },
+          { num: 911, timestamp: 1793247056, id: '103' },
+          { num: 4417, timestamp: 1790471672, id: '3000006' },
+          { num: 0, timestamp: 1790535505, id: '3000004' }
+        ],
+        meta: [
+          { name: 'daily_board_energy_stat', value: 20755, extra: '298' },
+          { name: 'daily_diamond_consume_stat', value: 20755, extra: '10' },
+          { name: 'metaID', value: 178288, extra: '' }
+        ],
+        activities: [
+          { name: 'seven_task', extra: JSON.stringify({ id: { value: 35 }, seven_task_35_102: { value: 14326 }, State_Recorded_2: { value: 1 } }) },
+          { name: 'sign_rewards', extra: JSON.stringify({ id: { value: 999999 }, CumulativeNum: { value: 20 }, ContinuousNum: { value: 3 } }) }
+        ],
+        activity_task_progress: [{
+          id: '6735',
+          tasks: JSON.stringify([{ taskId: 2689, status: 1, progress: 14326 }, { taskId: 2674, status: 2, progress: 11000 }])
+        }],
+        completeGuides: JSON.stringify([{ guideId: '16', val: 0, extraIds: '7;8;9' }]),
+        gifts: JSON.stringify([{ giftType: '17', giftId: '', nextPopTime: 0 }])
+      })
+    };
+    $('mergeInput').value = JSON.stringify(mergePayload);
+    $('mergeParseBtn').click();
+    await sleep(100);
+    const sumGd = $('mergeSummary').textContent;
+    check(/红宝石 911/.test(sumGd) && /铜钱 86130/.test(sumGd) && /体力 16/.test(sumGd)
+      && /存档 ID 178288/.test(sumGd) && /今日体力消耗 298/.test(sumGd) && /今日钻石消耗 10/.test(sumGd)
+      && /资源 5 项/.test(sumGd) && /活动 2 个/.test(sumGd),
+      'MergeState 解析出货币 / 体力 / 存档 ID / 当日消耗 / 资源项数 / 活动数', sumGd.slice(0, 200));
+    check($('gdResTable').querySelectorAll('tbody tr').length === 5
+      && /4417/.test($('gdResTable').textContent) && /\d{4}-\d{2}-\d{2} \d{2}:\d{2}/.test($('gdResTable').textContent),
+      '资源表：每项「道具 / 数量 / 最后变动时间」都列出来', $('gdResTable').textContent.replace(/\s+/g, ' ').slice(0, 120));
+    check(/棋盘镜像还没解析/.test($('mergeDiff').textContent),
+      '镜像还没解析时，对账行提示去棋盘镜像那一段粘一份', $('mergeDiff').textContent.slice(0, 80));
+    check($('gdActChips').querySelectorAll('[data-gd-act]').length === 2
+      && /七日任务/.test($('gdActChips').textContent) && /签到奖励/.test($('gdActChips').textContent),
+      '活动段列出活动芯片（英文名换成中文）', $('gdActChips').textContent.slice(0, 80));
+
+    // 跟棋盘镜像对账：先解析一份镜像（体力 16 / 铜钱 86130），应该「一致」
+    $('boardInput').value = JSON.stringify({
+      chessboardDataList: [{
+        cellTotalNum: 2, chessboardId: 1, cellNumH: 1, cellNumW: 2,
+        cells: [{ cellIdx: 0, lockState: 2, pieceData: { pieceType: 2, goodsId: 21108, itemCodeStr: 21108 } }, { cellIdx: 1, lockState: 2 }]
+      }],
+      warehouseData: { pieceDataList: [] },
+      backpack: {},
+      currencies: { '102': 86130, '101': 16 }
+    });
+    $('boardParseBtn').click();
+    await sleep(100);
+    check(/铜钱 一致 86130/.test($('mergeDiff').textContent) && /体力 一致 16/.test($('mergeDiff').textContent)
+      && /红宝石 镜像里没有/.test($('mergeDiff').textContent),
+      '粘完两边后自动核对：一致标黄、镜像里没有的直说', $('mergeDiff').textContent.slice(0, 140));
+
+    const badGold = JSON.parse(JSON.stringify(mergePayload));
+    badGold.gold = 1;
+    $('mergeInput').value = JSON.stringify(badGold);
+    $('mergeParseBtn').click();
+    await sleep(100);
+    check(/铜钱 不一致：玩家数据 1 \/ 镜像 86130/.test($('mergeDiff').textContent),
+      '对不上时明确写「不一致：玩家数据 X / 镜像 Y」（镜像不是最新）', $('mergeDiff').textContent.slice(0, 140));
+
+    // 资源核对话术
+    $('mergeInput').value = JSON.stringify(mergePayload);
+    $('mergeParseBtn').click();
+    await sleep(80);
+    $('gdItemInput').value = '红宝石';
+    $('gdItemBtn').click();
+    await sleep(60);
+    check(/【玩家游戏数据 · 红宝石（103）】/.test($('gdItemOut').value)
+      && /当前数量：911/.test($('gdItemOut').value) && /最后变动：\d{4}-\d{2}-\d{2} \d{2}:\d{2}/.test($('gdItemOut').value)
+      && /今日钻石消耗：10/.test($('gdItemOut').value) && /棋盘镜像：棋盘上 0 个、临时背包 0 个、仓库 0 个。/.test($('gdItemOut').value),
+      '资源话术：当前数量 / 最后变动 / 当日钻石消耗 / 棋盘镜像三处数量', $('gdItemOut').value.replace(/\n/g, ' | ').slice(0, 160));
+    $('gdItemInput').value = '101';
+    $('gdItemBtn').click();
+    await sleep(60);
+    check(/【玩家游戏数据 · 体力（101）】/.test($('gdItemOut').value) && /今日体力消耗：298/.test($('gdItemOut').value),
+      '查体力时带上当日体力消耗 298', $('gdItemOut').value.replace(/\n/g, ' | ').slice(0, 140));
+    $('gdItemInput').value = '3000006';
+    $('gdItemBtn').click();
+    await sleep(60);
+    check(/当前数量：4417/.test($('gdItemOut').value),
+      '输 id 也能查（3000006 → 4417）', $('gdItemOut').value.replace(/\n/g, ' | ').slice(0, 120));
+    $('gdItemInput').value = '不存在的道具';
+    $('gdItemBtn').click();
+    await sleep(60);
+    check(/玩家数据里没找到「不存在的道具」/.test($('gdItemOut').value),
+      '查不到的道具直说没找到', $('gdItemOut').value.slice(0, 60));
+
+    // 活动进度话术
+    $('gdActInput').value = '七日任务';
+    $('gdActBtn').click();
+    await sleep(60);
+    check(/【玩家游戏数据 · 七日任务（seven_task）】/.test($('gdActOut').value)
+      && /活动 id：35/.test($('gdActOut').value) && /seven_task_35_102 = 14326/.test($('gdActOut').value),
+      '活动话术：中文别名 + 活动 id + 关键进度', $('gdActOut').value.replace(/\n/g, ' | ').slice(0, 140));
+    $('gdActInput').value = '6735';
+    $('gdActBtn').click();
+    await sleep(60);
+    check(/【玩家游戏数据 · 活动任务（6735）】/.test($('gdActOut').value)
+      && /任务共 2 个，已完成（status=2）1 个。/.test($('gdActOut').value)
+      && /2689=14326/.test($('gdActOut').value),
+      '活动任务进度也能查（status=2 算已完成）', $('gdActOut').value.replace(/\n/g, ' | ').slice(0, 140));
+    $('gdActInput').value = '压根没有的活动';
+    $('gdActBtn').click();
+    await sleep(60);
+    check(/玩家数据里没找到「压根没有的活动」这个活动/.test($('gdActOut').value),
+      '查不到的活动直说没找到', $('gdActOut').value.slice(0, 60));
+    $('gdActInput').value = '';
+    $('gdActChips').querySelector('[data-gd-act="sign_rewards"]').click();
+    await sleep(60);
+    check($('gdActInput').value === 'sign_rewards' && /签到奖励/.test($('gdActOut').value),
+      '点活动芯片：填进输入框并直接生成话术', $('gdActOut').value.replace(/\n/g, ' | ').slice(0, 80));
+
+    // 坏 JSON / 清空
+    $('mergeInput').value = '{ 这不是 JSON }';
+    $('mergeParseBtn').click();
+    await sleep(60);
+    check(/JSON 解析失败/.test($('mergeHint').textContent) && $('mergeSummary').innerHTML === '',
+      '贴的不是 JSON → 只提示解析失败，页面不炸', $('mergeHint').textContent.slice(0, 60));
+    $('mergeInput').value = JSON.stringify(mergePayload);
+    $('mergeParseBtn').click();
+    await sleep(80);
+    $('mergeClearBtn').click();
+    await sleep(60);
+    check($('mergeInput').value === '' && $('mergeSummary').innerHTML === '' && $('gdResTable').innerHTML === ''
+      && $('gdActChips').innerHTML === '' && $('mergeDiff').textContent === '',
+      '「清空」把 MergeState / 资源表 / 活动芯片 / 对账行一起清掉');
+    $('gdItemInput').value = '红宝石';
+    $('gdItemBtn').click();
+    await sleep(40);
+    check(/先在上面把 MergeState 解析出来/.test($('gdItemHint').textContent),
+      '清空后查道具会提示先解析 MergeState', $('gdItemHint').textContent);
+
+    check(posts.slice(postsGd).filter(p => /careerData|dailyData|gamedata|merge/i.test(p.url)).length === 0,
+      '资源核对 / 活动进度全程只在本机（0 请求）', posts.slice(postsGd).map(p => p.url).join(' | '));
   }
 
   console.log('--- 9. 无未捕获异常 ---');

@@ -592,17 +592,18 @@ ok(/const TEA_ITEM_ALIAS = \{ '2000049': '随机奖励宝箱' \};/.test(s) && /T
   '奖励名按映射换人话（2000049 先写「随机奖励宝箱」）；话术里不出现价格（内部价）；数量一律用粘进来的数据');
 
 // ---- 3g-3. 🧩 棋盘镜像（粘镜像 JSON → 主棋盘 / 背包 / 仓库 + 「在哪几个」话术）----
-ok(/class="tab-btn tab-btn-sub" data-tab="board"> 棋盘镜像</.test(s) && /id="tab-board"/.test(s)
+ok(/class="tab-btn tab-btn-sub" data-tab="gamedata"> 玩家游戏数据</.test(s) && /id="tab-gamedata"/.test(s)
+  && !/data-tab="board"/.test(s) && !/id="tab-board"/.test(s)
   && /id="boardInput"/.test(s) && /id="boardParseBtn"/.test(s) && /id="boardClearBtn"/.test(s)
   && /id="boardSummary"/.test(s) && /id="boardMainGrid"/.test(s) && /id="boardOtherGrids"/.test(s)
   && /id="boardBagList"/.test(s) && /id="boardWareList"/.test(s)
   && /id="boardAskInput"/.test(s) && /id="boardAskBtn"/.test(s) && /id="boardAskCopyBtn"/.test(s) && /id="boardAskOut"/.test(s)
   && /setClick\('boardParseBtn', boardRun\)/.test(s) && /setClick\('boardAskBtn', boardAskRun\)/.test(s)
   && /setClick\('boardAskCopyBtn', boardAskCopy\)/.test(s) && /setClick\('boardClearBtn', boardClear\)/.test(s),
-  '「棋盘镜像」是「梦幻消除站」那组的子项（跟话术生成 / 集卡分析 同级、不带图标）：粘镜像 JSON + 主棋盘 / 其它棋盘 / 临时背包 / 仓库 / 道具查询五块都在，按钮都挂上了');
-ok(/data-tab="gen"> 话术生成<\/button>\s*<button class="tab-btn tab-btn-sub" data-tab="card"> 集卡分析<\/button>\s*<button class="tab-btn tab-btn-sub" data-tab="board"> 棋盘镜像<\/button>/.test(s)
-  && !/data-tab="board">🧩/.test(s),
-  '「梦幻消除站」那一组现在是三张：话术生成 / 集卡分析 / 棋盘镜像（棋盘镜像不再挂 🧩 图标）');
+  '「玩家游戏数据」是「梦幻消除站」那组的子项（跟话术生成 / 集卡分析 同级、不带图标）：MergeState 粘贴 + 资源核对 / 活动进度 / 棋盘镜像 三段 + 主棋盘、背包仓库、道具查询都在，按钮都挂上了');
+ok(/data-tab="gen"> 话术生成<\/button>\s*<button class="tab-btn tab-btn-sub" data-tab="card"> 集卡分析<\/button>\s*<button class="tab-btn tab-btn-sub" data-tab="gamedata"> 玩家游戏数据<\/button>/.test(s)
+  && !/data-tab="\w+">🧩/.test(s) && !/data-tab="board"/.test(s),
+  '「梦幻消除站」那一组现在是三张：话术生成 / 集卡分析 / 玩家游戏数据（都不带图标）');
 ok(/const BOARD_JSON_MAX = 4000000;/.test(s) && /function boardJsonText\(raw\)/.test(s)
   && /function boardParse\(raw\)/.test(s) && /function boardRender\(model\)/.test(s)
   && /function boardGridHtml\(board\)/.test(s) && /function boardCellHtml\(c\)/.test(s)
@@ -621,8 +622,30 @@ ok(/model\.counts\[k\] = \{ onBoard: 0, inBackpack: 0, inWarehouse: 0 \}/.test(s
 ok(/棋盘上有 ' \+ onBoard \+ ' 个，临时背包有 ' \+ inBag \+ ' 个，仓库有 ' \+ inWare \+ ' 个。/.test(s)
   && /镜像里没找到「'/.test(s) && /【棋盘镜像 · '/.test(s),
   '确认话术就是用户要的三段式：棋盘上有 X 个，临时背包有 Y 个，仓库有 Z 个；查不到时直说没找到');
+ok(/class="seg-bar" data-for="tab-gamedata"/.test(s) && /data-seg="resource" data-n="01">资源核对</.test(s)
+  && /data-seg="activity" data-n="02">活动进度</.test(s) && /data-seg="mirror" data-n="03">棋盘镜像</.test(s)
+  && /<div data-seg-card="mirror">/.test(s) && /statsSetSeg\('tab-gamedata', 'resource'\)/.test(s)
+  && /id="mergeInput"/.test(s) && /id="mergeParseBtn"/.test(s) && /id="mergeClearBtn"/.test(s)
+  && /id="mergeSummary"/.test(s) && /id="mergeDiff"/.test(s)
+  && /id="gdResTable"/.test(s) && /id="gdItemInput"/.test(s) && /id="gdItemBtn"/.test(s) && /id="gdItemOut"/.test(s)
+  && /id="gdActChips"/.test(s) && /id="gdActInput"/.test(s) && /id="gdActBtn"/.test(s) && /id="gdActOut"/.test(s),
+  '「玩家游戏数据」页：MergeState 粘贴 + 三段（01 资源核对 / 02 活动进度 / 03 棋盘镜像），棋盘镜像原来的卡整块挪进第三段');
+ok(/function mergeParse\(raw\)/.test(s) && /function mergeJson\(v, dflt\)/.test(s) && /function mergeDailyUsage\(model\)/.test(s)
+  && /function mergeRenderDiff\(\)/.test(s) && /function mergeItemScript\(model, q\)/.test(s) && /function mergeActivityScript\(model, q\)/.test(s)
+  && /data\.others/.test(s) && /others\.resource/.test(s) && /others\.activities/.test(s) && /others\.meta/.test(s),
+  'MergeState 解析：diamond/gold/hp + others（resource 资源 / activities 活动 / meta 元数据）两层字符串都剥开；带当日体力·钻石消耗与「资源 → 最后变动时间」');
+ok(/当前数量：/.test(s) && /最后变动：/.test(s) && /今日体力消耗：/.test(s) && /今日钻石消耗：/.test(s)
+  && /棋盘镜像：棋盘上 /.test(s) && /玩家数据里没找到「/.test(s),
+  '资源核对话术：当前数量 / 最后变动时间 / （查体力·钻石时）当日消耗 / 棋盘镜像里的三处数量；查不到直说');
+ok(/【玩家游戏数据 · ' \+ mergeActivityLabel\(a\.name\)/.test(s) && /关键进度：/.test(s)
+  && /活动任务（/.test(s) && /已完成（status=2）/.test(s) && /没找到「' \+ t \+ '」这个活动/.test(s)
+  && /const MERGE_ACTIVITY_LABELS = \{/.test(s) && /seven_task: '七日任务'/.test(s),
+  '活动进度话术：活动中文别名 + id + 关键进度；活动任务进度（status=2 算已完成）也能查；查不到直说');
+ok(/function mergeRenderDiff\(\)/.test(s) && /跟棋盘镜像核对/.test(s) && /不一致：玩家数据 /.test(s)
+  && /一致 /.test(s) && /红宝石', '103'/.test(s) && /铜钱', '102'/.test(s) && /体力', '101'/.test(s),
+  '粘贴 MergeState 后自动跟棋盘镜像核对红宝石 / 铜钱 / 体力：一致标黄、不一致标橙（提示镜像不是最新）');
 ok(!/saveData\('board/.test(s) && !/localStorage\.setItem\('boardMirror/.test(s),
-  '棋盘镜像只在本机内存里解析（不写 /api/data、也不塞 localStorage）');
+  '玩家游戏数据 / 棋盘镜像都只在本机内存里解析（不写 /api/data、也不塞 localStorage）');
 
 // ---- 3h. SOP 助手已整块删除（2026-10，用户要求）；服务端的 sop 口令关与 seed 工具保留 ----
 ok(!/sop/i.test(s),

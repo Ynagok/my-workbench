@@ -3756,7 +3756,7 @@
             <div class="tab-group-title">梦幻消除站</div>
             <button class="tab-btn tab-btn-sub active" data-tab="gen"> 话术生成</button>
             <button class="tab-btn tab-btn-sub" data-tab="card"> 集卡分析</button>
-            <button class="tab-btn tab-btn-sub" data-tab="board"> 棋盘镜像</button>
+            <button class="tab-btn tab-btn-sub" data-tab="gamedata"> 玩家游戏数据</button>
 
             <button class="tab-btn" data-tab="reply"> 工单回复</button>
             <button class="tab-btn" data-tab="feedback"> 反馈模板</button>
@@ -4598,16 +4598,62 @@
                 </div>
             </div><!-- /sub-panel-fry -->
         </div><!-- /tab-script -->
-        <!-- ==================== 🧩 棋盘镜像 ==================== -->
-        <div id="tab-board" class="tab-content">
-            <div class="career-report-head" id="boardReportHead">
+        <!-- ==================== 🎮 玩家游戏数据（MergeState 资源核对 / 活动进度 + 棋盘镜像） ==================== -->
+        <div id="tab-gamedata" class="tab-content">
+            <div class="career-report-head" id="gdReportHead">
                 <div>
-                    <div class="crh-kicker">BOARD MIRROR / 棋盘镜像</div>
-                    <div class="crh-title">棋盘镜像</div>
-                    <div class="crh-sub" id="boardReportSub">—</div>
+                    <div class="crh-kicker">PLAYER DATA / 玩家游戏数据</div>
+                    <div class="crh-title">玩家游戏数据</div>
+                    <div class="crh-sub" id="gdReportSub">—</div>
                 </div>
-                <div class="crh-meta" id="boardReportMeta"></div>
+                <div class="crh-meta" id="gdReportMeta"></div>
             </div>
+
+            <div class="card">
+                <label>① 粘贴 MergeState（玩家存档快照）
+                    <span class="card-sub">GM 玩家页那块 MergeState JSON 整段贴进来 —— 资源核对 / 活动进度都用这一份；解析后会自动跟棋盘镜像核对</span>
+                </label>
+                <textarea id="mergeInput" rows="6" style="margin-top:10px;" placeholder='直接贴 JSON：{"diamond":911,"gold":86130,"hpData":16,"others":"{…}","syncTime":1793248480}'></textarea>
+                <div class="flex-row" style="margin-top:10px;">
+                    <button id="mergeParseBtn">🔍 解析玩家数据</button>
+                    <button id="mergeClearBtn" class="reset-btn">🧹 清空</button>
+                    <span class="hint-text" id="mergeHint"></span>
+                </div>
+                <div class="stat-chips" id="mergeSummary"></div>
+                <div class="stat-chips" id="mergeDiff"></div>
+            </div>
+
+            <div class="seg-bar" data-for="tab-gamedata">
+                <button type="button" class="seg-btn active" data-seg="resource" data-n="01">资源核对</button>
+                <button type="button" class="seg-btn" data-seg="activity" data-n="02">活动进度</button>
+                <button type="button" class="seg-btn" data-seg="mirror" data-n="03">棋盘镜像</button>
+            </div>
+
+            <div class="card" data-seg-card="resource">
+                <label>② 资源核对 <span class="card-sub">货币 / 体力 / 每个道具「当前数量 + 最后一次变动时间」</span></label>
+                <div class="career-scroll" style="margin-top:10px;"><table class="career-table" id="gdResTable"></table></div>
+                <div class="flex-row" style="margin-top:10px;">
+                    <input id="gdItemInput" placeholder="道具名或 id，如：红宝石 / 103 / 赤铁矿" style="max-width:280px;">
+                    <button id="gdItemBtn">✅ 生成核对话术</button>
+                    <button id="gdItemCopyBtn" class="secondary">📋 复制</button>
+                    <span class="hint-text" id="gdItemHint"></span>
+                </div>
+                <textarea id="gdItemOut" rows="6" readonly style="margin-top:10px;"></textarea>
+            </div>
+
+            <div class="card" data-seg-card="activity">
+                <label>③ 活动进度 <span class="card-sub">这份存档里参与过的活动（点芯片名字可快速填）</span></label>
+                <div class="board-list" id="gdActChips"></div>
+                <div class="flex-row" style="margin-top:10px;">
+                    <input id="gdActInput" placeholder="活动名或 id，如：七日任务 / seven_task / 35" style="max-width:300px;">
+                    <button id="gdActBtn">✅ 生成进度话术</button>
+                    <button id="gdActCopyBtn" class="secondary">📋 复制</button>
+                    <span class="hint-text" id="gdActHint"></span>
+                </div>
+                <textarea id="gdActOut" rows="8" readonly style="margin-top:10px;"></textarea>
+            </div>
+
+            <div data-seg-card="mirror">
 
             <div class="card">
                 <label>① 粘贴镜像数据
@@ -4647,6 +4693,7 @@
                 </div>
                 <textarea id="boardAskOut" rows="6" readonly style="margin-top:10px;"></textarea>
             </div>
+            </div><!-- /mirror 段（棋盘镜像） -->
         </div>
 
     </div><!-- /container -->
@@ -15375,6 +15422,297 @@
                                         const totalVotes = list.reduce((a, v) => a + v.shopIds.length, 0);
                                         return { devices: list.length, totalVotes: totalVotes, rows: rows };
                                     }
+                                    // ==================== 🎮 玩家游戏数据（MergeState：资源核对 / 活动进度）====================
+                                    // 用户：「1和2弄成玩家游戏数据功能，将棋盘镜像作为独立的标签页加在这个功能里，粘贴后同步核对镜像」
+                                    // MergeState = GM 玩家页那块「玩家存档快照」：红宝石 / 铜钱 / 体力、每个资源最后一次变动时间、
+                                    //   当日体力·钻石消耗、60+ 活动的状态与进度、礼包弹窗、新手引导…
+                                    // ⚠️ others 是「字符串套字符串」（个别还三层），统一用 mergeJson() 一层层剥。
+                                    // ⚠️ 只在本机内存解析（跟棋盘镜像一个规矩），不进 /api/data、不落 localStorage。
+                                    let mergeModel = null;
+                                    function mergeJson(v, dflt) {
+                                        if (v == null) return dflt;
+                                        if (typeof v === 'object') return v;
+                                        try { return JSON.parse(v); } catch (_) { return dflt; }
+                                    }
+                                    // 活动英文名 → 中文（认不出就显示原名）
+                                    const MERGE_ACTIVITY_LABELS = {
+                                        seven_task: '七日任务', sign_rewards: '签到奖励', pass_card_now: '通行证（本期）', pass_card_old: '通行证（旧）',
+                                        limit_supply: '限购补给', limit_task: '限时任务', energy_rank: '体力排行榜', energy_revelry: '体力狂欢',
+                                        teahouse_race: '茶楼竞速', tycoon_race: '大亨赛', road_race: '竞速赛', upward_race: '爬塔',
+                                        collect_card: '集卡', chess_map: '棋盘地图', chess_monster: '怪棋挑战', chess_monster_main: '怪棋主盘',
+                                        chess_monster_main_item: '怪棋棋盘快照', activity_chess77: '活动棋盘 77', activity_chess55: '活动棋盘 55',
+                                        activity_chess53: '活动棋盘 53', activity_chess49: '活动棋盘 49', activity_chess_pass: '活动棋盘通行证',
+                                        kite: '风筝', garden: '花园', suit_score: '套装积分', suitSkin: '套装皮肤', bingo: '宾果',
+                                        pray_tree: '祈愿树', draw_lots: '抽奖', roulette: '转盘', lollipop: '棒棒糖', coinDash: '金币冲刺',
+                                        cat_jenga: '猫咪叠叠乐', jigsaw_puzzle: '拼图', tile_match: '连连看', under_sea: '海底',
+                                        paint_put: '涂色', hand_puppet: '手偶', kirin: '麒麟', weaving_contest: '织布大赛',
+                                        cookingBuff: '烹饪加成', raccoon_order: '浣熊订单', double_cardbook: '双倍卡册',
+                                        extra_score: '额外积分', limited_rank: '限时排行', recharge: '充值', link_share: '分享',
+                                        letter: '信件', energy_gift: '体力礼包', bubble_discount: '泡泡折扣', pocket: '口袋',
+                                        question: '问卷', survey: '问卷（旧）', custom_house_new_product_preview: '自宅新品预览'
+                                    };
+                                    function mergeActivityLabel(name) { return MERGE_ACTIVITY_LABELS[name] || name; }
+                                    // 时间戳 → 「YYYY-MM-DD HH:MM」（UTC，跟快照里的服务器时间一致）
+                                    function mergeTsText(ts) {
+                                        const n = +ts || 0;
+                                        if (!n) return '—';
+                                        try { return new Date(n * 1000).toISOString().replace('T', ' ').slice(0, 16); } catch (_) { return String(n); }
+                                    }
+                                    function mergeNameOf(id) { return boardNameOf(id) || ('道具 ' + id); }
+                                    // 解析成 { ok, diamond, gold, hp, metaId, syncTime, resource[], activities[], taskActs[], meta{}, guides[], gifts[] }
+                                    function mergeParse(raw) {
+                                        const model = {
+                                            ok: false, error: '', diamond: null, gold: null, hp: null, metaId: '', syncTime: 0,
+                                            resource: [], activities: [], taskActs: [], meta: {}, guides: [], gifts: [], stats: null
+                                        };
+                                        const txt = boardJsonText(raw);
+                                        if (!txt) return model;
+                                        let data = null;
+                                        try { data = JSON.parse(txt); } catch (e) {
+                                            model.error = 'JSON 解析失败：' + String((e && e.message) || e);
+                                            return model;
+                                        }
+                                        if (!data || typeof data !== 'object') { model.error = '贴进来的不是 JSON 对象'; return model; }
+                                        const num = (a, b) => (a != null ? +a : (b != null ? +b : null));
+                                        model.diamond = num(data.diamond, data.recordDiamond);
+                                        model.gold = num(data.gold, data.recordGold);
+                                        model.hp = num(data.hpData, data.recordHp);
+                                        model.metaId = data.recordID != null ? String(data.recordID) : '';
+                                        model.syncTime = +data.syncTime || 0;
+                                        model.stats = mergeJson(data.stats, null);
+                                        const others = mergeJson(data.others, null);
+                                        if (!others || typeof others !== 'object') { model.ok = model.diamond != null; return model; }
+                                        model.resource = (mergeJson(others.resource, []) || []).map(r => ({
+                                            id: String((r && r.id) || ''), n: +((r && r.num) || 0), ts: +((r && r.timestamp) || 0)
+                                        })).filter(r => r.id);
+                                        model.resource.sort((a, b) => (b.n - a.n) || (b.ts - a.ts));
+                                        (mergeJson(others.meta, []) || []).forEach(m => { if (m && m.name) model.meta[String(m.name)] = m; });
+                                        model.activities = (mergeJson(others.activities, []) || []).map(a => {
+                                            const extra = mergeJson(a && a.extra, {}) || {};
+                                            const info = { name: String((a && a.name) || ''), id: '', nums: [], states: 0 };
+                                            Object.keys(extra).forEach(k => {
+                                                const cell = extra[k];
+                                                const v = cell && typeof cell === 'object' && 'value' in cell ? cell.value : cell;
+                                                if (k === 'id') info.id = String(v == null ? '' : v);
+                                                else if (/^State_Recorded/.test(k)) info.states += 1;
+                                                else if (typeof v === 'number' || (typeof v === 'string' && /^-?\d+$/.test(v))) info.nums.push([k, v]);
+                                            });
+                                            return info;
+                                        }).filter(a => a.name);
+                                        model.taskActs = (mergeJson(others.activity_task_progress, []) || []).map(a => {
+                                            const tasks = mergeJson(a && a.tasks, []) || [];
+                                            return {
+                                                id: String((a && a.id) || ''),
+                                                done: tasks.filter(t => String(t && t.status) === '2').length,
+                                                tasks: tasks.map(t => ({ id: t && t.taskId, st: t && t.status, p: t && t.progress }))
+                                            };
+                                        });
+                                        model.guides = (mergeJson(others.completeGuides, []) || []).map(g => ({
+                                            id: String((g && g.guideId) || ''), val: g && g.val
+                                        }));
+                                        model.gifts = (mergeJson(others.gifts, []) || []).map(g => ({
+                                            type: String((g && g.giftType) || ''), id: String((g && g.giftId) || ''), pop: +((g && g.nextPopTime) || 0)
+                                        }));
+                                        model.ok = true;
+                                        return model;
+                                    }
+                                    // 当日消耗（体力 / 钻石）—— meta 里那两条 extra 就是消耗量
+                                    function mergeDailyUsage(model) {
+                                        const e = model && model.meta ? model.meta['daily_board_energy_stat'] : null;
+                                        const d = model && model.meta ? model.meta['daily_diamond_consume_stat'] : null;
+                                        return {
+                                            energy: e && e.extra != null && e.extra !== '' ? +e.extra : null,
+                                            diamond: d && d.extra != null && d.extra !== '' ? +d.extra : null
+                                        };
+                                    }
+                                    // MergeState 解析后跟已解析的棋盘镜像对账（红宝石 103 / 铜钱 102 / 体力 101）
+                                    function mergeRenderDiff() {
+                                        const box = document.getElementById('mergeDiff');
+                                        if (!box) return;
+                                        if (!mergeModel || !mergeModel.ok) { box.innerHTML = ''; return; }
+                                        if (!boardModel) {
+                                            box.innerHTML = statChip('棋盘镜像还没解析 —— 切到「棋盘镜像」粘一份就能自动核对', 'k-plain');
+                                            return;
+                                        }
+                                        const mirrorOf = (id) => {
+                                            const hit = (boardModel.currencies || []).filter(c => String(c.id) === String(id))[0];
+                                            return hit ? hit.n : null;
+                                        };
+                                        const chips = [statChip('跟棋盘镜像核对', 'k-plain')];
+                                        [['红宝石', '103', mergeModel.diamond], ['铜钱', '102', mergeModel.gold], ['体力', '101', mergeModel.hp]]
+                                            .forEach(row => {
+                                                const mirror = mirrorOf(row[1]);
+                                                if (row[2] == null || mirror == null) { chips.push(statChip(row[0] + ' 镜像里没有', 'k-plain')); return; }
+                                                const same = Number(row[2]) === Number(mirror);
+                                                chips.push(statChip(row[0] + (same ? ' 一致 ' + mirror : ' 不一致：玩家数据 ' + row[2] + ' / 镜像 ' + mirror),
+                                                    same ? 'k-accent' : 'k-warn'));
+                                            });
+                                        box.innerHTML = chips.join('');
+                                    }
+                                    function mergeRender(model) {
+                                        const sum = document.getElementById('mergeSummary');
+                                        const table = document.getElementById('gdResTable');
+                                        const chipsAct = document.getElementById('gdActChips');
+                                        const sub = document.getElementById('gdReportSub');
+                                        const meta = document.getElementById('gdReportMeta');
+                                        if (!model || !model.ok) {
+                                            if (sum) sum.innerHTML = '';
+                                            if (table) table.innerHTML = '';
+                                            if (chipsAct) chipsAct.innerHTML = '';
+                                            if (sub) sub.textContent = '—';
+                                            if (meta) meta.innerHTML = '';
+                                            mergeRenderDiff();
+                                            return;
+                                        }
+                                        const usage = mergeDailyUsage(model);
+                                        if (sum) {
+                                            const chips = [];
+                                            if (model.diamond != null) chips.push(statChip('红宝石 ' + model.diamond, 'k-accent'));
+                                            if (model.gold != null) chips.push(statChip('铜钱 ' + model.gold));
+                                            if (model.hp != null) chips.push(statChip('体力 ' + model.hp));
+                                            if (model.metaId) chips.push(statChip('存档 ID ' + model.metaId));
+                                            if (usage.energy != null) chips.push(statChip('今日体力消耗 ' + usage.energy, 'k-plain'));
+                                            if (usage.diamond != null) chips.push(statChip('今日钻石消耗 ' + usage.diamond, 'k-plain'));
+                                            chips.push(statChip('资源 ' + model.resource.length + ' 项'));
+                                            chips.push(statChip('活动 ' + model.activities.length + ' 个'));
+                                            sum.innerHTML = chips.join('');
+                                        }
+                                        if (sub) {
+                                            sub.textContent = '存档 ' + (model.metaId || '—') + '　·　资源 ' + model.resource.length + ' 项　·　活动 '
+                                                + model.activities.length + ' 个' + (model.syncTime ? '　·　快照时间 ' + mergeTsText(model.syncTime) : '');
+                                        }
+                                        if (meta) {
+                                            meta.innerHTML = statChips([
+                                                ['红宝石', model.diamond == null ? '—' : model.diamond],
+                                                ['铜钱', model.gold == null ? '—' : model.gold],
+                                                ['体力', model.hp == null ? '—' : model.hp]
+                                            ]);
+                                        }
+                                        if (table) {
+                                            const rows = model.resource.slice(0, 200);
+                                            let h = '<thead><tr><th>道具</th><th class="num">数量</th><th>最后变动</th></tr></thead><tbody>';
+                                            h += rows.length ? rows.map(r => '<tr><td>' + escapeHtml(mergeNameOf(r.id))
+                                                + ' <span class="hint-text">' + escapeHtml(r.id) + '</span></td><td class="num">' + r.n
+                                                + '</td><td>' + escapeHtml(mergeTsText(r.ts)) + '</td></tr>').join('')
+                                                : '<tr><td colspan="3" style="color:var(--ink-3);">这份数据里没有 resource 列表</td></tr>';
+                                            table.innerHTML = h + '</tbody>';
+                                        }
+                                        if (chipsAct) {
+                                            chipsAct.innerHTML = model.activities.length
+                                                ? model.activities.map(a => '<button type="button" class="board-chip" data-gd-act="'
+                                                    + escapeHtml(a.name) + '" title="点一下填进右边输入框"><b>' + escapeHtml(mergeActivityLabel(a.name))
+                                                    + '</b>' + (a.id ? '<em>id ' + escapeHtml(a.id) + '</em>' : '') + '</button>').join('')
+                                                : '<span class="hint-text">这份数据里没有活动列表</span>';
+                                        }
+                                        mergeRenderDiff();
+                                    }
+                                    // 资源核对话术（用户要的第 1 件）
+                                    function mergeItemScript(model, q) {
+                                        if (!model || !model.ok) return '';
+                                        const ids = boardIdsOfQuery(q);
+                                        if (!ids.length) return '玩家数据里没找到「' + q + '」这个道具 —— 换个名字或直接输 id。';
+                                        const id = ids[0];
+                                        const rec = model.resource.filter(r => r.id === id)[0] || null;
+                                        const usage = mergeDailyUsage(model);
+                                        const out = ['【玩家游戏数据 · ' + mergeNameOf(id) + '（' + id + '）】'];
+                                        out.push('当前数量：' + (rec ? rec.n : 0));
+                                        out.push('最后变动：' + (rec ? mergeTsText(rec.ts) : '这份存档里没有它'));
+                                        if (id === '101' && usage.energy != null) out.push('今日体力消耗：' + usage.energy);
+                                        if (id === '103' && usage.diamond != null) out.push('今日钻石消耗：' + usage.diamond);
+                                        if (boardModel) {
+                                            const c = (boardModel.counts || {})[id] || { onBoard: 0, inBackpack: 0, inWarehouse: 0 };
+                                            out.push('棋盘镜像：棋盘上 ' + c.onBoard + ' 个、临时背包 ' + c.inBackpack + ' 个、仓库 ' + c.inWarehouse + ' 个。');
+                                        }
+                                        return out.join('\n');
+                                    }
+                                    // 活动进度话术（用户要的第 2 件）
+                                    function mergeActivityScript(model, q) {
+                                        if (!model || !model.ok) return '';
+                                        const t = String(q == null ? '' : q).trim();
+                                        if (!t) return '';
+                                        const hits = model.activities.filter(a => a.name === t || a.id === t || mergeActivityLabel(a.name) === t
+                                            || (t.length > 1 && (a.name.indexOf(t) !== -1 || mergeActivityLabel(a.name).indexOf(t) !== -1)));
+                                        if (hits.length) {
+                                            const out = [];
+                                            hits.slice(0, 3).forEach(a => {
+                                                out.push('【玩家游戏数据 · ' + mergeActivityLabel(a.name) + '（' + a.name + '）】');
+                                                if (a.id) out.push('活动 id：' + a.id);
+                                                if (a.nums.length) out.push('关键进度：' + a.nums.slice(0, 6).map(x => x[0] + ' = ' + x[1]).join('；'));
+                                                if (a.states) out.push('状态记录：' + a.states + ' 项');
+                                            });
+                                            return out.join('\n');
+                                        }
+                                        const tk = model.taskActs.filter(a => a.id === t)[0];
+                                        if (tk) {
+                                            const out = ['【玩家游戏数据 · 活动任务（' + tk.id + '）】'];
+                                            out.push('任务共 ' + tk.tasks.length + ' 个，已完成（status=2）' + tk.done + ' 个。');
+                                            out.push('进度：' + tk.tasks.slice(0, 8).map(x => x.id + '=' + x.p + (String(x.st) === '2' ? '✓' : '')).join('；'));
+                                            return out.join('\n');
+                                        }
+                                        return '玩家数据里没找到「' + t + '」这个活动 —— 换个名字（如 七日任务 / 通行证 / 签到）或输活动 id。';
+                                    }
+                                    function mergeRun() {
+                                        const input = document.getElementById('mergeInput');
+                                        const raw = (input && input.value) || '';
+                                        if (!raw.trim()) {
+                                            mergeModel = null;
+                                            mergeRender(null);
+                                            teaSetHint('mergeHint', '先把 MergeState JSON 整段贴到上面');
+                                            return null;
+                                        }
+                                        const model = mergeParse(raw);
+                                        if (model.error) {
+                                            mergeModel = null;
+                                            mergeRender(null);
+                                            teaSetHint('mergeHint', model.error);
+                                            return null;
+                                        }
+                                        mergeModel = model;
+                                        mergeRender(model);
+                                        teaSetHint('mergeHint', model.ok
+                                            ? ('认出资源 ' + model.resource.length + ' 项 · 活动 ' + model.activities.length + ' 个'
+                                                + (model.syncTime ? ' · 快照 ' + mergeTsText(model.syncTime) : ''))
+                                            : '认出来了，但里面没有 others（资源 / 活动那块）');
+                                        return model;
+                                    }
+                                    function mergeItemRun() {
+                                        const input = document.getElementById('gdItemInput');
+                                        const out = document.getElementById('gdItemOut');
+                                        const q = (input && input.value) || '';
+                                        if (!mergeModel) { teaSetHint('gdItemHint', '先在上面把 MergeState 解析出来'); if (out) out.value = ''; return; }
+                                        if (!q.trim()) { teaSetHint('gdItemHint', '输个道具名或 id'); if (out) out.value = ''; return; }
+                                        const text = mergeItemScript(mergeModel, q);
+                                        if (out) out.value = text;
+                                        teaSetHint('gdItemHint', /没找到/.test(text) ? '这份存档里没有这个名字，换个写法或直接输 id' : '话术已生成');
+                                    }
+                                    function mergeActRun() {
+                                        const input = document.getElementById('gdActInput');
+                                        const out = document.getElementById('gdActOut');
+                                        const q = (input && input.value) || '';
+                                        if (!mergeModel) { teaSetHint('gdActHint', '先在上面把 MergeState 解析出来'); if (out) out.value = ''; return; }
+                                        if (!q.trim()) { teaSetHint('gdActHint', '输个活动名或 id'); if (out) out.value = ''; return; }
+                                        const text = mergeActivityScript(mergeModel, q);
+                                        if (out) out.value = text;
+                                        teaSetHint('gdActHint', /没找到/.test(text) ? '这份存档里没有这个活动，换个名字或输活动 id' : '话术已生成');
+                                    }
+                                    function mergeCopy(id, hintId) {
+                                        const out = document.getElementById(id);
+                                        const t = (out && out.value) || '';
+                                        if (!t.trim()) { teaSetHint(hintId, '还没生成话术'); return; }
+                                        safeCopy(t);
+                                        teaSetHint(hintId, '话术已复制');
+                                    }
+                                    function mergeClear() {
+                                        ['mergeInput', 'gdItemOut', 'gdActOut'].forEach(id => {
+                                            const el = document.getElementById(id);
+                                            if (el) el.value = '';
+                                        });
+                                        ['gdItemHint', 'gdActHint'].forEach(id => teaSetHint(id, ''));
+                                        mergeModel = null;
+                                        mergeRender(null);
+                                        teaSetHint('mergeHint', '已清空');
+                                    }
+
                                     // ==================== 🧩 棋盘镜像（GM 镜像 JSON → 主棋盘 / 背包 / 仓库 + 位置话术）====================
                                     // 用户：「增加一个棋盘镜像功能，可以粘贴棋盘镜像数据生成类似展示主棋盘，背包，仓库的页面，
                                     //   还可以输入道具名称或者id，来生成有几个xx在棋盘上，几个xx在临时背包，几个xx在仓库这样的话术」
@@ -15523,9 +15861,11 @@
                                             if (sum) sum.innerHTML = '';
                                             if (sub) sub.textContent = '—';
                                             if (meta) meta.innerHTML = '';
+                                            mergeRenderDiff();
                                             return;
                                         }
                                         show.forEach(el => { if (el) el.style.display = ''; });
+                                        mergeRenderDiff();
                                         const pieceN = model.boards.reduce((a, b) => a + (b.cells || []).filter(c => c && c.pieceData).length, 0);
                                         const cellN = model.boards.reduce((a, b) => a + b.w * b.h, 0);
                                         if (sum) {
@@ -16566,6 +16906,7 @@
                                             statsSetSeg('tab-career', 'overview');
                                             statsSetSeg('tab-overseas', 'overview');
                                             statsSetSeg('tab-gen', 'reply');   // 话术生成页也分两段：话术生成 / 七日任务进度
+                                            statsSetSeg('tab-gamedata', 'resource');   // 玩家游戏数据页三段：资源核对 / 活动进度 / 棋盘镜像
                                         })();
 
                                         // 规则搜索
@@ -16848,6 +17189,26 @@
                                         setClick('teaInfoParseBtn', teaInfoRun);
                                         setClick('teaInfoCopyBtn', teaInfoCopy);
                                         setClick('teaInfoClearBtn', teaInfoClear);
+                                        // 🎮 玩家游戏数据（MergeState → 资源核对 / 活动进度；棋盘镜像在第三段）
+                                        setClick('mergeParseBtn', mergeRun);
+                                        setClick('mergeClearBtn', mergeClear);
+                                        setClick('gdItemBtn', mergeItemRun);
+                                        setClick('gdItemCopyBtn', () => mergeCopy('gdItemOut', 'gdItemHint'));
+                                        setClick('gdActBtn', mergeActRun);
+                                        setClick('gdActCopyBtn', () => mergeCopy('gdActOut', 'gdActHint'));
+                                        addEvent('gdItemInput', 'keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); mergeItemRun(); } });
+                                        addEvent('gdActInput', 'keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); mergeActRun(); } });
+                                        const gdActChips = document.getElementById('gdActChips');
+                                        if (gdActChips) {
+                                            gdActChips.addEventListener('click', (e) => {
+                                                const b = e.target.closest('[data-gd-act]');
+                                                if (!b) return;
+                                                const input = document.getElementById('gdActInput');
+                                                if (input) input.value = b.dataset.gdAct;
+                                                mergeActRun();
+                                            });
+                                        }
+
                                         // 🧩 棋盘镜像（粘镜像 JSON → 主棋盘 / 背包 / 仓库 + 「在哪几个」话术）
                                         setClick('boardParseBtn', boardRun);
                                         setClick('boardClearBtn', boardClear);
