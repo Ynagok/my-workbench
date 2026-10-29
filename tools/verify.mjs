@@ -688,6 +688,8 @@ ok(/id="gdFlowBox"/.test(s) && /id="gdFlowChips"/.test(s) && /id="gdFlowTable"/.
   && /function gdLooksFlow\(raw\)/.test(s) && /function gdFlowParse\(raw\)/.test(s)
   && /function gdFlowPairs\(id\)/.test(s) && /function gdFlowRun\(raw\)/.test(s)
   && /function gdFlowLines\(id\)/.test(s) && /function gdRoute\(raw\)/.test(s)
+  && /function gdFlowOnlyScript\(q\)/.test(s) && /function gdFlowLast\(id\)/.test(s)
+  && /没贴存档 · 流水最后余额/.test(s) && /只依据资源流水/.test(s)
   && /#gdFlowTable tr\.is-loss/.test(s),
   '资源核对多一块「资源流水对账」：流水（制表符 + 时间 + 带符号变化量）贴进页头大框就自动认，配上道具名直接出「时间 / 变动 / 余额 / 来源」表，配对的两行高亮');
 ok(/n === g\.delta \|\| n === g\.delta - 1/.test(s) && /function gdFlowIsUpload\(row\)/.test(s)

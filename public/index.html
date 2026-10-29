@@ -4648,7 +4648,7 @@
 
             <div class="card">
                 <label>① 粘贴数据（这一个框就够）
-                    <span class="card-sub">MergeState / 棋盘镜像 / 操作记录 都行 —— 贴进来就自动认、自动解析，不用再挑地方</span>
+                    <span class="card-sub">资源流水 / MergeState / 棋盘镜像 / 操作记录 都行 —— 贴进来就自动认。<b>只判「有没有被吞」贴资源流水就够</b>；MergeState 是给活动进度和存档值用的，棋盘镜像看棋盘 / 背包 / 仓库</span>
                 </label>
                 <textarea id="mergeInput" rows="4" style="margin-top:10px;" placeholder='随便贴：{"diamond":911,…}（MergeState）/ {"chessboardDataList":[…]…}（棋盘镜像）/ [{"op":281,"sTime":…}]（操作记录）'></textarea>
                 <div class="flex-row" style="margin-top:10px;">
@@ -16173,10 +16173,11 @@
                                     function mergeItemMap(id, rec) {
                                         if (!id) return '';
                                         const nodes = [];
-                                        // ① 存档（MergeState）
-                                        nodes.push(rec
-                                            ? gdMapNodeHtml('is-ok', '存档', '当前 ' + rec.n + ' 个 · 最后变动 ' + mergeTsText(rec.ts))
-                                            : gdMapNodeHtml('is-warn', '存档', '这份 MergeState 里没有它的记录'));
+                                        // ① 存档（MergeState）；没贴存档就退成「流水最后余额」
+                                        const fl = gdFlowLast(id);
+                                        if (rec) nodes.push(gdMapNodeHtml('is-ok', '存档', '当前 ' + rec.n + ' 个 · 最后变动 ' + mergeTsText(rec.ts)));
+                                        else if (fl) nodes.push(gdMapNodeHtml('is-ok', '存档', '没贴存档 · 流水最后余额 ' + fl.after + '（' + fl.ts + '）'));
+                                        else nodes.push(gdMapNodeHtml('is-warn', '存档', mergeModel ? '这份存档里没有它的记录' : '没贴存档（只贴了流水就用流水余额）'));
                                         // ② 棋盘镜像三处
                                         if (boardModel) {
                                             const c = (boardModel.counts || {})[id] || { onBoard: 0, inBackpack: 0, inWarehouse: 0 };
@@ -16215,7 +16216,9 @@
                                         const c2 = mergeItemConclusion(id, rec);
                                         nodes.push(gdMapNodeHtml(c2.cls, '结论', c2.text));
                                         return '<div class="gd-map-root"><b>' + escapeHtml(boardNameOf(id) || ('道具 ' + id)) + '</b>'
-                                            + '<i>' + escapeHtml(id) + '</i><span>' + (rec ? ('存档 ' + rec.n + ' 个') : '存档里没有') + '</span></div>'
+                                            + '<i>' + escapeHtml(id) + '</i><span>'
+                                            + (rec ? ('存档 ' + rec.n + ' 个') : (gdFlowLast(id) ? ('余额 ' + gdFlowLast(id).after + ' 个') : '没有记录'))
+                                            + '</span></div>'
                                             + '<div class="gd-map-branches">' + nodes.join('') + '</div>';
                                     }
                                     function mergeItemMapRender(id, rec) {
@@ -16382,10 +16385,31 @@
                                         }
                                         flowModel = model;
                                         const q = ((document.getElementById('gdItemInput') || {}).value || '').trim();
-                                        if (q.trim() && mergeModel) mergeItemRun(); else gdFlowRender();
+                                        if (q.trim() && (mergeModel || flowModel)) mergeItemRun(); else gdFlowRender();
                                         teaSetHint('mergeHint', '认出 ' + model.rows.length + ' 条资源流水（' + model.rows[0].ts + ' ~ '
                                             + model.rows[model.rows.length - 1].ts + '）');
                                         return model;
+                                    }
+                                    // 流水中该道具的最后一条（余额 = 当前值）—— 没贴 MergeState 时用它顶上
+                                    function gdFlowLast(id) {
+                                        if (!flowModel || !flowModel.ok) return null;
+                                        const rows = flowModel.rows.filter(r => gdFlowMatch(r, id));
+                                        return rows.length ? rows[rows.length - 1] : null;
+                                    }
+                                    // 只贴了流水、没贴 MergeState 时的话术（够回答「有没有被吞」）
+                                    function gdFlowOnlyScript(q) {
+                                        const ids = boardIdsOfQuery(q);
+                                        const t = String(q == null ? '' : q).trim();
+                                        if (!ids.length) return '流水里没找到「' + t + '」这个道具 —— 换个名字或直接输 id。';
+                                        const id = ids[0];
+                                        const rows = flowModel.rows.filter(r => gdFlowMatch(r, id));
+                                        if (!rows.length) return '流水里没找到「' + mergeNameOf(id) + '」的记录 —— 确认一下贴的流水时间范围。';
+                                        const last = rows[rows.length - 1];
+                                        const out = ['【游戏数据 · ' + mergeNameOf(id) + '（' + id + '）】'];
+                                        out.push('流水最后余额：' + last.after + '（' + last.ts + '）');
+                                        gdFlowLines(id).forEach(l => out.push(l));
+                                        out.push('· 注：这份话术只依据资源流水；要看活动进度 / 存档记录值，再把玩家数据（MergeState）贴进来。');
+                                        return out.join('\n');
                                     }
                                     // 流水有没有「+N 之后被棋盘上传扣掉」的证据（导图 / 结论 / 话术共用）
                                     function gdFlowLines(id) {
@@ -16542,14 +16566,15 @@
                                         const input = document.getElementById('gdItemInput');
                                         const out = document.getElementById('gdItemOut');
                                         const q = (input && input.value) || '';
-                                        if (!mergeModel) { teaSetHint('gdItemHint', '先在页头把数据贴进来（会自动解析）'); if (out) out.value = ''; mergeItemMapRender('', null); return; }
+                                        const hasFlow = !!(flowModel && flowModel.ok);
+                                        if (!mergeModel && !hasFlow) { teaSetHint('gdItemHint', '先在页头把数据贴进来（资源流水判被吞，玩家数据看存档值）'); if (out) out.value = ''; mergeItemMapRender('', null); return; }
                                         if (!q.trim()) { teaSetHint('gdItemHint', '输个道具名或 id'); if (out) out.value = ''; mergeItemMapRender('', null); return; }
-                                        const text = mergeItemScript(mergeModel, q);
+                                        const text = mergeModel ? mergeItemScript(mergeModel, q) : gdFlowOnlyScript(q);
                                         if (out) out.value = text;
                                         const ids = boardIdsOfQuery(q);
-                                        const rec = ids.length ? (mergeModel.resource.filter(r => r.id === ids[0])[0] || null) : null;
+                                        const rec = (mergeModel && ids.length) ? (mergeModel.resource.filter(r => r.id === ids[0])[0] || null) : null;
                                         const box = document.getElementById('gdItemVerdict');
-                                        if (box) box.innerHTML = mergeItemVerdict(mergeModel, ids[0], rec, q).join('');
+                                        if (box) box.innerHTML = mergeModel ? mergeItemVerdict(mergeModel, ids[0], rec, q).join('') : '';
                                         mergeItemMapRender(ids.length ? ids[0] : '', rec);
                                         mergeOpRender();
                                         gdFlowRender();

@@ -3471,6 +3471,21 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     check(posts.slice(postsFlow).filter(p => /careerData|dailyData|gamedata|merge|flow/i.test(p.url)).length === 0,
       '流水对账全程只在本机（0 请求）', posts.slice(postsFlow).map(p => p.url).join(' | '));
 
+    // 只贴流水、不贴存档也能查（同事只想判「有没有被吞」时不用折腾 MergeState）
+    $('mergeClearBtn').click();
+    await sleep(60);
+    $('gdItemInput').value = '体力';
+    $('mergeInput').value = flowOf('-100', '棋盘上传');
+    $('mergeParseBtn').click();
+    await sleep(90);
+    check(/流水最后余额：200（2026-10-29 10:06:00）/.test($('gdItemOut').value)
+      && /—— 资源流水对账（体力）——/.test($('gdItemOut').value)
+      && /只依据资源流水/.test($('gdItemOut').value),
+      '不贴 MergeState 也能查：当前值用「流水最后余额」顶上，照样出被吞结论',
+      $('gdItemOut').value.replace(/\n/g, ' | ').slice(0, 200));
+    check(/没贴存档 · 流水最后余额 200/.test($('gdItemMap').textContent) && /余额 200 个/.test($('gdItemMap').textContent),
+      '导图的「存档」那片退成「流水最后余额」，不谎称没记录', $('gdItemMap').textContent.slice(0, 120));
+
     // 清空 → 流水块收起
     $('mergeClearBtn').click();
     await sleep(70);
