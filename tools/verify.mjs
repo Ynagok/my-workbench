@@ -592,14 +592,17 @@ ok(/const TEA_ITEM_ALIAS = \{ '2000049': '随机奖励宝箱' \};/.test(s) && /T
   '奖励名按映射换人话（2000049 先写「随机奖励宝箱」）；话术里不出现价格（内部价）；数量一律用粘进来的数据');
 
 // ---- 3g-3. 🧩 棋盘镜像（粘镜像 JSON → 主棋盘 / 背包 / 仓库 + 「在哪几个」话术）----
-ok(/data-tab="board"[^>]*>🧩 棋盘镜像/.test(s) && /id="tab-board"/.test(s)
+ok(/class="tab-btn tab-btn-sub" data-tab="board"> 棋盘镜像</.test(s) && /id="tab-board"/.test(s)
   && /id="boardInput"/.test(s) && /id="boardParseBtn"/.test(s) && /id="boardClearBtn"/.test(s)
   && /id="boardSummary"/.test(s) && /id="boardMainGrid"/.test(s) && /id="boardOtherGrids"/.test(s)
   && /id="boardBagList"/.test(s) && /id="boardWareList"/.test(s)
   && /id="boardAskInput"/.test(s) && /id="boardAskBtn"/.test(s) && /id="boardAskCopyBtn"/.test(s) && /id="boardAskOut"/.test(s)
   && /setClick\('boardParseBtn', boardRun\)/.test(s) && /setClick\('boardAskBtn', boardAskRun\)/.test(s)
   && /setClick\('boardAskCopyBtn', boardAskCopy\)/.test(s) && /setClick\('boardClearBtn', boardClear\)/.test(s),
-  '「🧩 棋盘镜像」标签页：粘镜像 JSON + 主棋盘 / 其它棋盘 / 临时背包 / 仓库 / 道具查询五块都在，按钮都挂上了');
+  '「棋盘镜像」是「梦幻消除站」那组的子项（跟话术生成 / 集卡分析 同级、不带图标）：粘镜像 JSON + 主棋盘 / 其它棋盘 / 临时背包 / 仓库 / 道具查询五块都在，按钮都挂上了');
+ok(/data-tab="gen"> 话术生成<\/button>\s*<button class="tab-btn tab-btn-sub" data-tab="card"> 集卡分析<\/button>\s*<button class="tab-btn tab-btn-sub" data-tab="board"> 棋盘镜像<\/button>/.test(s)
+  && !/data-tab="board">🧩/.test(s),
+  '「梦幻消除站」那一组现在是三张：话术生成 / 集卡分析 / 棋盘镜像（棋盘镜像不再挂 🧩 图标）');
 ok(/const BOARD_JSON_MAX = 4000000;/.test(s) && /function boardJsonText\(raw\)/.test(s)
   && /function boardParse\(raw\)/.test(s) && /function boardRender\(model\)/.test(s)
   && /function boardGridHtml\(board\)/.test(s) && /function boardCellHtml\(c\)/.test(s)

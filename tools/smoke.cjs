@@ -2835,8 +2835,12 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
   console.log('--- 8z. 🧩 棋盘镜像（镜像 JSON → 主棋盘 / 背包 / 仓库 + 在哪几个话术）---');
   {
     const posts8z = posts.length;
-    check(!!doc.querySelector('.tab-btn[data-tab="board"]'),
-      '侧边栏多了「🧩 棋盘镜像」标签页');
+    const boardTab = doc.querySelector('.tab-btn[data-tab="board"]');
+    check(!!boardTab && boardTab.classList.contains('tab-btn-sub')
+      && /梦幻消除站/.test((boardTab.parentElement.querySelector('.tab-group-title') || {}).textContent || ''),
+      '「棋盘镜像」是「梦幻消除站」那组的子项（跟话术生成 / 集卡分析 同级）');
+    check(boardTab.textContent.trim() === '棋盘镜像',
+      '标签上就是「棋盘镜像」，不挂 🧩 那个绿图标', JSON.stringify(boardTab.textContent));
     doc.querySelector('.tab-btn[data-tab="board"]').click();
     await sleep(60);
     check(!!$('tab-board') && $('tab-board').classList.contains('active'),
