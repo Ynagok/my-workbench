@@ -15502,7 +15502,50 @@
                                         letter: '信件', energy_gift: '体力礼包', bubble_discount: '泡泡折扣', pocket: '口袋',
                                         question: '问卷', survey: '问卷（旧）', custom_house_new_product_preview: '自宅新品预览'
                                     };
-                                    function mergeActivityLabel(name) { return MERGE_ACTIVITY_LABELS[name] || name; }
+                                    // 活动英文名 → 中文（用户 2026-10：「解析出来的代码或者英文是否可以转化成对应的中文名称」）
+                                    //   ① 手写表 MERGE_ACTIVITY_LABELS（常见的那些）
+                                    //   ② 活动类型表 DEFAULT_ACTIVITY_TYPE_MAP（页面官方中文，按 extra.id 认）
+                                    //   ③ 都对不上：把下划线 / 驼峰拆成空格，至少不再是连在一起的一串代码
+                                    function mergeActivityLabel(name, id) {
+                                        const k = String(name == null ? '' : name);
+                                        if (!k) return '';
+                                        if (MERGE_ACTIVITY_LABELS[k]) return MERGE_ACTIVITY_LABELS[k];
+                                        if (id != null && id !== '') {
+                                            const official = DEFAULT_ACTIVITY_TYPE_MAP[String(id)];
+                                            if (official) return official;
+                                        }
+                                        const pretty = k.replace(/[_-]+/g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2').trim();
+                                        return pretty || k;
+                                    }
+                                    // 进度 key 里的中文：seven_task_35_102 → 七日任务·35·102；CumulativeNum → 累计数
+                                    const MERGE_PROGRESS_WORDS = {
+                                        CumulativeNum: '累计数', ContinuousNum: '连续数', Num: '数量', Cnt: '次数',
+                                        level: '等级', Level: '等级', score: '积分', Score: '积分',
+                                        state: '状态', State: '状态', count: '次数', Count: '次数',
+                                        day: '天', Day: '天', time: '时间', Time: '时间', id: 'ID'
+                                    };
+                                    function mergeProgressWord(w) {
+                                        if (!w) return '';
+                                        if (MERGE_PROGRESS_WORDS[w]) return MERGE_PROGRESS_WORDS[w];
+                                        const tail = /([A-Z][a-z]+)$/.exec(w);
+                                        if (tail && tail.index > 0 && MERGE_PROGRESS_WORDS[tail[1]]) {
+                                            return w.slice(0, tail.index) + MERGE_PROGRESS_WORDS[tail[1]];
+                                        }
+                                        return w;
+                                    }
+                                    function mergeProgressLabel(key) {
+                                        const k = String(key == null ? '' : key);
+                                        if (!k) return '';
+                                        const names = Object.keys(MERGE_ACTIVITY_LABELS).sort((a, b) => b.length - a.length);
+                                        for (let i = 0; i < names.length; i++) {
+                                            const nm = names[i];
+                                            if (k === nm) return MERGE_ACTIVITY_LABELS[nm];
+                                            if (k.indexOf(nm + '_') === 0) {
+                                                return MERGE_ACTIVITY_LABELS[nm] + '·' + k.slice(nm.length + 1).split('_').map(mergeProgressWord).join('·');
+                                            }
+                                        }
+                                        return k.split('_').map(mergeProgressWord).join('·');
+                                    }
                                     // 时间戳（秒）→ 「YYYY-MM-DD HH:MM」北京时间
                                     // ⚠️ 2026-10 用真实数据核过：操作记录里 sTime=1793241739 对应的订单 createTime 就是「2026-10-29 10:42:19」，
                                     //   说明服务器时间串是 UTC+8，所以这里统一 +8 显示（原来的 UTC 显示会比 GM 页早 8 小时）。
@@ -15664,8 +15707,8 @@
                                         teaSetHint('gdActCount', model.activities.length ? ('这份存档里有 ' + model.activities.length + ' 个活动') : '');
                                         if (chipsAct) {
                                             const chipOf = (a) => '<button type="button" class="board-chip" data-gd-act="' + escapeHtml(a.name)
-                                                + '" title="' + escapeHtml(a.name + (a.id ? ' · id ' + a.id : '') + '（点一下出话术）')
-                                                + '"><b>' + escapeHtml(mergeActivityLabel(a.name)) + '</b></button>';
+                                                + '" title="' + escapeHtml(a.name + (a.id ? ' · id ' + a.id : '') + (mergeActivityLabel(a.name, a.id) !== a.name ? ' → ' + mergeActivityLabel(a.name, a.id) : '') + '（点一下出话术）')
+                                                + '"><b>' + escapeHtml(mergeActivityLabel(a.name, a.id)) + '</b></button>';
                                             if (!model.activities.length) chipsAct.innerHTML = '<span class="hint-text">这份数据里没有活动列表</span>';
                                             else {
                                                 const head = model.activities.slice(0, 12);
@@ -15878,7 +15921,7 @@
                                                 rows = opModel.rows.filter(r => keep[r.i]);
                                             }
                                             rows = rows.slice(-100).reverse();
-                                            const pairs = (list) => list.map(x => (boardNameOf(x.id) || x.id) + '×' + x.n).join('、');
+                                            const pairs = (list) => list.map(x => mergeNameOf(x.id) + '×' + x.n).join('、');
                                             // 订单快照里的消耗 / 奖励也一起列（订单就是「最常把东西收走」的地方）
                                             const cellOf = (own, ords, label) => {
                                                 const a = pairs(own);
@@ -15889,7 +15932,7 @@
                                             h += rows.length ? rows.map(r => {
                                                 const cellTxt = r.cellIdies.length ? ('格 ' + r.cellIdies.join('/'))
                                                     : (r.cellIdx != null ? ('格 ' + r.cellIdx)
-                                                        : (r.momGoodsId ? ('母棋 ' + (boardNameOf(r.momGoodsId) || r.momGoodsId)) : '—'));
+                                                        : (r.momGoodsId ? ('母棋 ' + mergeNameOf(r.momGoodsId)) : '—'));
                                                 const ordUse = [], ordGain = [];
                                                 r.orders.forEach(o => {
                                                     (o && Array.isArray(o.consume) ? o.consume : []).forEach(x => ordUse.push({ id: String(x.goodsId), n: +x.num || 0 }));
@@ -15998,7 +16041,7 @@
                                             if (lastHits.length) {
                                                 lastHits.forEach(h => out.push('· 最近一次操作：' + (h.time || '时间未知') + ' 消耗了它 ' + h.n + ' 个'
                                                     + (h.rewards && h.rewards.length
-                                                        ? '，给了 ' + h.rewards.slice(0, 4).map(r => (boardNameOf(r.goodsId) || r.goodsId) + '×' + r.num).join('、')
+                                                        ? '，给了 ' + h.rewards.slice(0, 4).map(r => mergeNameOf(r.goodsId) + '×' + r.num).join('、')
                                                         : '')));
                                             } else if (boardModel.lastInstruction) {
                                                 out.push('· 最近一次操作：最近那批指令里没有消耗它');
@@ -16182,14 +16225,14 @@
                                         if (!model || !model.ok) return '';
                                         const t = String(q == null ? '' : q).trim();
                                         if (!t) return '';
-                                        const hits = model.activities.filter(a => a.name === t || a.id === t || mergeActivityLabel(a.name) === t
-                                            || (t.length > 1 && (a.name.indexOf(t) !== -1 || mergeActivityLabel(a.name).indexOf(t) !== -1)));
+                                        const hits = model.activities.filter(a => a.name === t || a.id === t || mergeActivityLabel(a.name, a.id) === t
+                                            || (t.length > 1 && (a.name.indexOf(t) !== -1 || mergeActivityLabel(a.name, a.id).indexOf(t) !== -1)));
                                         if (hits.length) {
                                             const out = [];
                                             hits.slice(0, 3).forEach(a => {
-                                                out.push('【玩家游戏数据 · ' + mergeActivityLabel(a.name) + '（' + a.name + '）】');
+                                                out.push('【玩家游戏数据 · ' + mergeActivityLabel(a.name, a.id) + '（' + a.name + '）】');
                                                 if (a.id) out.push('活动 id：' + a.id);
-                                                if (a.nums.length) out.push('关键进度：' + a.nums.slice(0, 6).map(x => x[0] + ' = ' + x[1]).join('；'));
+                                                if (a.nums.length) out.push('关键进度：' + a.nums.slice(0, 6).map(x => mergeProgressLabel(x[0]) + ' = ' + x[1]).join('；'));
                                                 if (a.states) out.push('状态记录：' + a.states + ' 项');
                                             });
                                             return out.join('\n');
@@ -16315,7 +16358,12 @@
                                     function boardNameOf(id) {
                                         const k = String(id == null ? '' : id);
                                         if (!k) return '';
-                                        try { return (itemNameMap && itemNameMap[k]) || ''; } catch (_) { return ''; }
+                                        try {
+                                            const nm = (itemNameMap && itemNameMap[k]) || '';
+                                            if (!nm) return '';
+                                            // 表里有 --货币 / --卡包 这种「分类占位」，直接当名字显示会带一横杠，退成「货币类」
+                                            return nm.indexOf('--') === 0 ? (nm.replace(/^--/, '').replace(/分类$/, '') + '类') : nm;
+                                        } catch (_) { return ''; }
                                     }
                                     // 名字 → id：先精确，再「包含 / 被包含」的模糊（道具名可能存在多个 id 上）
                                     function boardIdsOfQuery(q) {
@@ -16421,7 +16469,7 @@
                                         const stock = hasStock
                                             ? '<em>' + (p.inventory != null ? p.inventory : 0) + '/' + (p.capacity != null ? p.capacity : 0) + '</em>'
                                             : '<em>' + escapeHtml(String(id == null ? '' : id)) + '</em>';
-                                        const tip = (nm ? nm + '（' + id + '）' : String(id))
+                                        const tip = (nm ? nm + '（' + id + '）' : ('道具 ' + id + '（映射表里没这个名字）'))
                                             + (hasStock ? ' · 库存 ' + (p.inventory || 0) + '/' + (p.capacity || 0) : '')
                                             + ' · 类型 ' + (p.pieceType != null ? p.pieceType : '?')
                                             + ' · 第 ' + idx + ' 格';

@@ -646,7 +646,7 @@ ok(/—— 异常自查 ——/.test(s) && /早于玩家说的时间/.test(s) &&
   && /没有变动量和操作来源/.test(s)
   && /那之后没变过：不是被吞/.test(s) && /那个时段变过，看消耗去向/.test(s),
   '异常自查融进资源核对：时间点两个方向 / 订单消耗 / 最近一次操作（含奖励）/ 记录值对账 / 明写「定责要服务端流水」，并给判定芯片');
-ok(/【玩家游戏数据 · ' \+ mergeActivityLabel\(a\.name\)/.test(s) && /关键进度：/.test(s)
+ok(/【玩家游戏数据 · ' \+ mergeActivityLabel\(a\.name, a\.id\)/.test(s) && /关键进度：/.test(s)
   && /活动任务（/.test(s) && /已完成（status=2）/.test(s) && /没找到「' \+ t \+ '」这个活动/.test(s)
   && /const MERGE_ACTIVITY_LABELS = \{/.test(s) && /seven_task: '七日任务'/.test(s),
   '活动进度话术：活动中文别名 + id + 关键进度；活动任务进度（status=2 算已完成）也能查；查不到直说');
@@ -672,6 +672,15 @@ ok(/被消耗 ' \+ used\.length \+ ' 次、共 '/.test(s) && /获得 ' \+ got\.l
   && /操作记录里被订单收走 ' \+ oUsed \+ ' 个：不是被吞/.test(s)
   && /记录里订单奖励给过 ' \+ oGot \+ ' 个/.test(s),
   '资源话术接上操作记录：覆盖时间 / 被消耗 / 获得 / 合成出现 / 订单收走 / 订单奖励 / 跟玩家说的时间点对一遍；判定芯片直说「不是被吞」');
+ok(/function mergeActivityLabel\(name, id\)/.test(s) && /DEFAULT_ACTIVITY_TYPE_MAP\[String\(id\)\]/.test(s)
+  && /const MERGE_PROGRESS_WORDS = \{/.test(s) && /function mergeProgressLabel\(key\)/.test(s)
+  && /function mergeProgressWord\(w\)/.test(s) && /CumulativeNum: '累计数'/.test(s)
+  && /mergeProgressLabel\(x\[0\]\)/.test(s),
+  '英文 / 代号中文化：活动名三级回退（手写表 → 官方活动类型表按 extra.id → 拆词）；关键进度的 key 也换成中文（七日任务·35·102 / 累计数 / 连续数）；原始英文名收进 title 不丢');
+ok(/nm\.indexOf\('--'\) === 0/.test(s) && /\+ '类'\)/.test(s)
+  && /const pairs = \(list\) => list\.map\(x => mergeNameOf\(x\.id\)/.test(s)
+  && /'母棋 ' \+ mergeNameOf\(r\.momGoodsId\)/.test(s),
+  '物品名不吐代码：分类占位（--货币）显示成「货币类」，操作记录里的未知道具显示「道具 N」（不再直接是一串数字）');
 ok(/function mergeTsText\(ts\)/.test(s) && /\(n \+ 8 \* 3600\) \* 1000/.test(s) && /\) - 8 \* 3600;/.test(s),
   '时间统一按北京时间（UTC+8）显示与比较：真实数据里 sTime 与订单 createTime 差 8 小时，原来的 UTC 显示会比 GM 页早 8 小时');
 ok(/<div class="gd-map" id="gdItemMap" style="display:none;"><\/div>/.test(s) && /\.gd-map-root/.test(s)

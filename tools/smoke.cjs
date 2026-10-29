@@ -3116,7 +3116,7 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     $('gdActBtn').click();
     await sleep(60);
     check(/【玩家游戏数据 · 七日任务（seven_task）】/.test($('gdActOut').value)
-      && /活动 id：35/.test($('gdActOut').value) && /seven_task_35_102 = 14326/.test($('gdActOut').value),
+      && /活动 id：35/.test($('gdActOut').value) && /关键进度：七日任务·35·102 = 14326/.test($('gdActOut').value),
       '活动话术：中文别名 + 活动 id + 关键进度', $('gdActOut').value.replace(/\n/g, ' | ').slice(0, 140));
     $('gdActInput').value = '6735';
     $('gdActBtn').click();
@@ -3363,6 +3363,49 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
       '「清空」把思维导图一起收掉', $('gdItemMap').innerHTML);
     check(posts.slice(postsMap).filter(p => /careerData|dailyData|gamedata|merge/i.test(p.url)).length === 0,
       '导图 / 万能粘贴全程只在本机（0 请求）', posts.slice(postsMap).map(p => p.url).join(' | '));
+  }
+
+  console.log('--- 8z-5. 玩家游戏数据 · 英文 / 代号换成中文 ---');
+  {
+    const postsCn = posts.length;
+    const cnState = {
+      diamond: 1, gold: 1, hpData: 1, recordID: 1, syncTime: 1793248480,
+      others: JSON.stringify({
+        resource: [{ num: 1, timestamp: 1793247056, id: '103' }],
+        meta: [],
+        activities: [
+          { name: 'some_unknown_activity', extra: JSON.stringify({ id: { value: 67 } }) },
+          { name: 'unknown_flying_thing', extra: JSON.stringify({ id: { value: 900 } }) },
+          { name: 'sign_rewards', extra: JSON.stringify({ id: { value: 999999 }, CumulativeNum: { value: 20 }, ContinuousNum: { value: 3 } }) }
+        ]
+      })
+    };
+    $('mergeInput').value = JSON.stringify(cnState);
+    $('mergeParseBtn').click();
+    await sleep(90);
+    const chipTxt = $('gdActChips').textContent;
+    check(/茶楼七日任务/.test(chipTxt) && !/some_unknown_activity/.test(chipTxt),
+      '英文活动名：手写表查不到就按活动 id 查官方活动类型表（id 67 → 茶楼七日任务）', chipTxt.slice(0, 120));
+    check(/unknown flying thing/.test(chipTxt),
+      '两头都对不上时把下划线拆成空格（不再是连成一串的代码）', chipTxt.slice(0, 160));
+    check(/some_unknown_activity/.test($('gdActChips').querySelector('[data-gd-act="some_unknown_activity"]').title),
+      '原始英文名没丢：收进芯片 title，鼠标停上去还能看到原值');
+    $('gdActInput').value = '签到奖励';
+    $('gdActBtn').click();
+    await sleep(60);
+    check(/关键进度：累计数 = 20；连续数 = 3/.test($('gdActOut').value),
+      '关键进度的英文 key 也中文了（CumulativeNum → 累计数 / ContinuousNum → 连续数）',
+      $('gdActOut').value.replace(/\n/g, ' | ').slice(0, 120));
+    // 操作记录里不在映射表的道具 id → 「道具 N」
+    $('gdItemInput').value = '';
+    $('mergeInput').value = JSON.stringify([{ uid: 1, op: 30, sTime: 1793241739, opId: 1, cbId: 1, rewards: [{ goodsId: 99999999, num: 3 }] }]);
+    $('mergeParseBtn').click();
+    await sleep(90);
+    check(/道具 99999999×3/.test($('gdOpTable').textContent),
+      '操作记录里的未知道具 id 也不直接吐数字（显示「道具 99999999×3」）',
+      $('gdOpTable').textContent.replace(/\s+/g, ' ').slice(0, 120));
+    check(posts.slice(postsCn).filter(p => /careerData|dailyData|gamedata|merge/i.test(p.url)).length === 0,
+      '中文化全程只在本机（0 请求）', posts.slice(postsCn).map(p => p.url).join(' | '));
   }
 
   console.log('--- 9. 无未捕获异常 ---');
