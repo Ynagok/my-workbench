@@ -684,6 +684,18 @@ ok(/nm\.indexOf\('--'\) === 0/.test(s) && /\+ '类'\)/.test(s)
   '物品名不吐代码：分类占位（--货币）显示成「货币类」，操作记录里的未知道具显示「道具 N」（不再直接是一串数字）');
 ok(/function mergeTsText\(ts\)/.test(s) && /\(n \+ 8 \* 3600\) \* 1000/.test(s) && /\) - 8 \* 3600;/.test(s),
   '时间统一按北京时间（UTC+8）显示与比较：真实数据里 sTime 与订单 createTime 差 8 小时，原来的 UTC 显示会比 GM 页早 8 小时');
+ok(/id="gdFlowBox"/.test(s) && /id="gdFlowChips"/.test(s) && /id="gdFlowTable"/.test(s)
+  && /function gdLooksFlow\(raw\)/.test(s) && /function gdFlowParse\(raw\)/.test(s)
+  && /function gdFlowPairs\(id\)/.test(s) && /function gdFlowRun\(raw\)/.test(s)
+  && /function gdFlowLines\(id\)/.test(s) && /function gdRoute\(raw\)/.test(s)
+  && /#gdFlowTable tr\.is-loss/.test(s),
+  '资源核对多一块「资源流水对账」：流水（制表符 + 时间 + 带符号变化量）贴进页头大框就自动认，配上道具名直接出「时间 / 变动 / 余额 / 来源」表，配对的两行高亮');
+ok(/n === g\.delta \|\| n === g\.delta - 1/.test(s) && /function gdFlowIsUpload\(row\)/.test(s)
+  && /\/棋盘上传\//.test(s) && /这就是被吞的特征/.test(s) && /后面都没有棋盘上传扣除 → 不是被吞/.test(s),
+  '判定口径就是用户给的那条：+N 获得之后跟着 −N（或 −(N−1)）的「棋盘上传」扣除 → 被吞的特征；不是棋盘上传来源的扣除不算');
+ok(/gdFlowLines\(id\)\.forEach\(l => out\.push\(l\)\)/.test(s) && /gdFlowRender\(\);/.test(s)
+  && /'流水对账'/.test(s) && /被吞的扣除/.test(s),
+  '流水对账接进三方：话术里单独一段「资源流水对账」、导图多一片「流水对账」、出话术时自动重画表格');
 ok(/<div class="gd-map" id="gdItemMap" style="display:none;"><\/div>/.test(s) && /\.gd-map-root/.test(s)
   && /\.gd-map-branches::before/.test(s) && /\.gd-map-node::before/.test(s) && /function mergeItemMap\(id, rec\)/.test(s)
   && /function mergeItemMapRender\(id, rec\)/.test(s) && /function mergeItemConclusion\(id, rec\)/.test(s)

@@ -3679,6 +3679,14 @@
             .gd-map-node::before { left: -14px; width: 14px; }
         }
 
+        /* ===================== 💧 资源核对 · 流水对账（+获得 / −棋盘上传 对上号）===================== */
+        .gd-flow { margin-top: 12px; }
+        .gd-flow-hint { font-size: 12px; color: var(--ink-3); }
+        #gdFlowTable tr.is-pair td { background: var(--accent-dim); }
+        #gdFlowTable tr.is-pair td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
+        #gdFlowTable tr.is-loss td { background: var(--danger-dim, rgba(207, 59, 48, .10)); color: var(--danger); }
+        #gdFlowTable tr.is-loss td:first-child { box-shadow: inset 3px 0 0 var(--danger); }
+
         /* ===================== 圆润层（2026-10 用户：整体圆润一点 / 上下间距别太大 / 开关参考 iOS）===================== */
         /* 大圆角：令牌已经换成 --r-sm 6 / --r-md 10 / --r-lg 14 / --r-pill 999，这里把各层写死的直角盖回来 */
         .container { border-radius: var(--r-lg); }
@@ -4669,6 +4677,11 @@
                 <div class="flex-row" style="margin-top:8px;">
                     <span class="hint-text">玩家说的时间（可选）</span>
                     <input type="datetime-local" id="gdItemTime" style="max-width:220px;" title="填了就对一下「最后变动」早晚：判断玩家说的时间之后到底有没有变过">
+                </div>
+                <div class="gd-flow" id="gdFlowBox" style="display:none;">
+                    <div class="gd-flow-hint">资源流水对账：<b>+获得</b> 之后有没有跟着一条 <b>−棋盘上传</b>（数量相同或差 1）—— 这就是「被吞」的样子。流水贴到页头「① 粘贴数据」框里就行</div>
+                    <div class="stat-chips" id="gdFlowChips"></div>
+                    <div class="career-scroll" style="margin-top:8px;"><table class="career-table" id="gdFlowTable"></table></div>
                 </div>
                 <div class="gd-map" id="gdItemMap" style="display:none;"></div>
                 <div class="stat-chips" id="gdItemVerdict"></div>
@@ -15960,7 +15973,12 @@
                                     function mergeOpRun(rawArg) {
                                         const input = document.getElementById('gdOpInput');
                                         const raw = typeof rawArg === 'string' ? rawArg : ((input && input.value) || '');
-                                        const kind = gdDetectKind(gdJsonOf(raw));
+                                        const kind = gdRoute(raw);
+                                        if (kind === 'flow') {
+                                            gdFlowRun(raw);
+                                            teaSetHint('gdOpHint', '认出来是资源流水 → 已解析到「01 资源核对」的流水对账');
+                                            return opModel;
+                                        }
                                         if (kind === 'merge') {
                                             const el = document.getElementById('mergeInput');
                                             if (el) el.value = raw;
@@ -16082,7 +16100,15 @@
                                         };
                                         return pick('{', '}') || pick('[', ']');
                                     }
-                                    // merge / board / op（认不出返回空串）
+                                    // 资源流水：不算 JSON，是一行一行的制表符文本（时间 + 制表符 + 带正负号的变化量）
+                                    function gdLooksFlow(raw) {
+                                        const t = String(raw == null ? '' : raw);
+                                        if (t.indexOf('\t') < 0) return false;
+                                        const lines = t.split(/\r?\n/).filter(l => l.trim()).slice(0, 5);
+                                        if (!lines.length) return false;
+                                        return lines.every(l => /\d{4}-\d{2}-\d{2}/.test(l) && l.split('\t').length >= 6);
+                                    }
+                                    // merge / board / op / flow（认不出返回空串）
                                     function gdDetectKind(v) {
                                         if (Array.isArray(v)) {
                                             return v.some(x => x && typeof x === 'object' && ('op' in x || 'sTime' in x)) ? 'op' : '';
@@ -16094,15 +16120,22 @@
                                         if (mergeOpRowsOf(v)) return 'op';
                                         return '';
                                     }
+                                    // 一条路把「贴进来的是什么」认出来（JSON 三兄弟 + 资源流水）
+                                    function gdRoute(raw) {
+                                        const v = gdJsonOf(raw);
+                                        if (v != null) return gdDetectKind(v);
+                                        return gdLooksFlow(raw) ? 'flow' : '';
+                                    }
                                     // 粘完 400ms 自动解析（认不出就安静不动，不打扰）
                                     let gdAutoTimer = 0;
                                     function gdAutoFrom(id) {
                                         const el = document.getElementById(id);
                                         const raw = (el && el.value) || '';
                                         if (raw.trim().length < 12) return false;
-                                        const kind = gdDetectKind(gdJsonOf(raw));
+                                        const kind = gdRoute(raw);
                                         if (!kind) return false;
                                         if (kind === 'merge') return !!mergeRun(raw);
+                                        if (kind === 'flow') return !!gdFlowRun(raw);
                                         if (kind === 'board') {
                                             const b = document.getElementById('boardInput');
                                             if (b) b.value = raw;
@@ -16119,6 +16152,15 @@
                                     }
                                     // 一句话结论：芯片那排给细节，这里只给最该看的那句
                                     function mergeItemConclusion(id, rec) {
+                                        // 有资源流水时，第一优先是用户给的口径：+N 之后有没有 −N 棋盘上传
+                                        if (flowModel && flowModel.ok && flowModel.rows.some(r => gdFlowMatch(r, id))) {
+                                            const fr = gdFlowPairs(id);
+                                            if (fr.pairs.length) {
+                                                const p = fr.pairs[0];
+                                                return { text: '找到 ' + fr.pairs.length + ' 组「+' + p.gain.delta + ' → 棋盘上传 ' + p.loss.delta + '」→ 被吞的特征', cls: 'is-warn' };
+                                            }
+                                            if (fr.gains.length) return { text: '获得 ' + fr.gains.length + ' 次，后面没有棋盘上传扣除 → 不是被吞', cls: 'is-ok' };
+                                        }
                                         const claim = mergeTimeToEpoch((document.getElementById('gdItemTime') || {}).value);
                                         const usedN = mergeOpHits(id).filter(h => h.kind === 'consume').reduce((a, h) => a + h.n, 0)
                                             + mergeOpOrderHits(id).filter(h => h.kind === 'consume').reduce((a, h) => a + h.n, 0);
@@ -16151,7 +16193,17 @@
                                         nodes.push(parts.length
                                             ? gdMapNodeHtml('is-warn', '订单', parts.slice(0, 3).join('；'))
                                             : gdMapNodeHtml('is-mute', '订单', '订单 / 最近一次操作里都没动过它'));
-                                        // ④ 操作记录
+                                        // ④ 资源流水对账（+N 后面有没有 −N 棋盘上传）
+                                        if (flowModel && flowModel.ok && flowModel.rows.some(r => gdFlowMatch(r, id))) {
+                                            const fr = gdFlowPairs(id);
+                                            if (fr.pairs.length) {
+                                                const p = fr.pairs[0];
+                                                nodes.push(gdMapNodeHtml('is-warn', '流水对账', '对上 ' + fr.pairs.length + ' 组：'
+                                                    + p.gain.ts.slice(5) + ' +' + p.gain.delta + ' → ' + String(p.loss.ts).slice(5) + ' 棋盘上传 ' + p.loss.delta));
+                                            } else nodes.push(gdMapNodeHtml('is-ok', '流水对账',
+                                                '获得 ' + fr.gains.length + ' 次，后面都没有棋盘上传扣除 → 不是被吞'));
+                                        } else nodes.push(gdMapNodeHtml('is-mute', '流水对账', '还没贴资源流水 —— 贴了就能看「+N 后面有没有 −N 棋盘上传」'));
+                                        // ⑤ 操作记录
                                         if (opModel && opModel.ok) {
                                             const hits = mergeOpHits(id);
                                             const used = hits.filter(h => h.kind === 'consume').reduce((a, h) => a + h.n, 0);
@@ -16173,6 +16225,193 @@
                                         box.innerHTML = html;
                                         box.style.display = html ? '' : 'none';
                                     }
+                                    // ==================== 💧 资源流水对账（用户 2026-10 给的判定口径）====================
+                                    // 用户：「判断有没有被吞是根据玩家获得某个东西的 +数量的数据之后，有没有棋盘上传减掉相同东西的数量的情况，
+                                    //   比如 +100 体力的话，被吞的情况可能是 -100 棋盘上传或者 -99」
+                                    // 所以这里不再绕「最后变动时间 / 订单消耗」那一大圈：直接拿资源流水按时间排，
+                                    //   把「+N 获得」和它后面那条「−N（或 −（N−1））棋盘上传」对上号，对上了就是被吞的特征。
+                                    // 流水格式吃的是「智能解析」那份（制表符分隔，第 3~5 列是变化量/之前/之后，来源在后面第 3 列）：
+                                    //   2026-04-20 16:04:00⇥流水号⇥体力⇥-1⇥326⇥325⇥棋盘操作-临时母棋生产⇥0-货币
+                                    let flowModel = null;
+                                    // 来源 id → 中文（16 = 棋盘上传）
+                                    function gdFlowSource(raw, id) {
+                                        const t = String(raw == null ? '' : raw).trim().replace(/^["']|["']$/g, '');
+                                        if (/^\d+$/.test(t)) return (DEFAULT_SOURCE_ID_MAP[t] || t);
+                                        if (t) return t;
+                                        const k = String(id == null ? '' : id).trim();
+                                        return k ? (DEFAULT_SOURCE_ID_MAP[k] || k) : '';
+                                    }
+                                    // 行里认时间（流水第一列一般是 YYYY-MM-DD HH:MM:SS）
+                                    function gdFlowTimeOf(line) {
+                                        const m = /(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2}(?::\d{2})?)/.exec(line);
+                                        return m ? (m[1] + ' ' + (m[2].length === 5 ? m[2] + ':00' : m[2])) : '';
+                                    }
+                                    // 解析成 { ok, error, rows[] }；rows 按时间正序
+                                    function gdFlowParse(raw) {
+                                        const model = { ok: false, error: '', rows: [] };
+                                        const lines = String(raw == null ? '' : raw).split(/\r?\n/).filter(l => l.trim());
+                                        if (!lines.length) { model.error = '没看到内容'; return model; }
+                                        lines.forEach(line => {
+                                            const cols = line.split('\t').map(x => String(x == null ? '' : x).trim());
+                                            if (cols.length < 6) return;
+                                            // 变化量那列：从第 3 列起找「带正负号的整数」，后面紧跟两个数字（之前 / 之后）
+                                            let at = -1;
+                                            for (let i = 2; i <= 12 && i + 2 < cols.length; i++) {
+                                                if (/^[+-]?\d+$/.test(cols[i]) && /^-?\d+$/.test(cols[i + 1]) && /^-?\d+$/.test(cols[i + 2])) { at = i; break; }
+                                            }
+                                            if (at < 0) return;
+                                            const delta = parseInt(cols[at], 10);
+                                            if (!delta) return;
+                                            const before = parseFloat(cols[at + 1]) || 0;
+                                            const after = parseFloat(cols[at + 2]) || 0;
+                                            const sourceRaw = cols[at + 3] || '';
+                                            const sourceId = cols[at + 4] || '';
+                                            let id = '', name = '';
+                                            if (at === 2) { id = cols[6] || ''; name = cols[7] || cols[6] || ''; }
+                                            else if (at === 3) { name = cols[2] || ''; if (name === '道具' || name === '货币') name = cols[7] || cols[6] || name; }
+                                            else { id = cols[3] || ''; name = cols[4] || ''; if (!name || name === '道具' || name === '货币') name = cols[5] || id; }
+                                            model.rows.push({
+                                                ts: gdFlowTimeOf(line), delta: delta, before: before, after: after,
+                                                name: String(name || '').replace(/\s/g, ''), id: String(id || ''),
+                                                source: gdFlowSource(sourceRaw, sourceId), sourceRaw: String(sourceRaw || '')
+                                            });
+                                        });
+                                        if (!model.rows.length) { model.error = '这段里没认出资源流水（要有时间 + 制表符分列 + 带正负号的变化量）'; return model; }
+                                        model.rows.sort((a, b) => String(a.ts).localeCompare(String(b.ts)));
+                                        model.ok = true;
+                                        return model;
+                                    }
+                                    // 这条流水是不是这个道具的
+                                    function gdFlowMatch(row, id) {
+                                        if (!row) return false;
+                                        const nm = boardNameOf(id);
+                                        if (row.id && String(row.id) === String(id)) return true;
+                                        if (!row.name) return false;
+                                        if (nm && row.name === nm) return true;
+                                        return row.name === String(id);
+                                    }
+                                    function gdFlowIsUpload(row) {
+                                        return /棋盘上传/.test(row.source || '') || /棋盘上传/.test(row.sourceRaw || '')
+                                            || String(row.sourceRaw) === '16';
+                                    }
+                                    // 这个道具的流水 + 「+N 后面有没有 −N 棋盘上传」的配对结果
+                                    function gdFlowPairs(id) {
+                                        const out = { gains: [], losses: [], pairs: [] };
+                                        if (!flowModel || !flowModel.ok) return out;
+                                        flowModel.rows.forEach(r => {
+                                            if (!gdFlowMatch(r, id)) return;
+                                            if (r.delta > 0) out.gains.push(r);
+                                            else out.losses.push(r);
+                                        });
+                                        const used = {};
+                                        out.gains.forEach(g => {
+                                            // 只找「获得之后」、同数量（或差 1）的棋盘上传扣除，取最近的一条
+                                            const hit = out.losses.filter((l, i) => {
+                                                if (used[i]) return false;
+                                                if (String(l.ts) < String(g.ts)) return false;
+                                                if (!gdFlowIsUpload(l)) return false;
+                                                const n = Math.abs(l.delta);
+                                                return n === g.delta || n === g.delta - 1;
+                                            })[0];
+                                            if (!hit) return;
+                                            used[out.losses.indexOf(hit)] = 1;
+                                            out.pairs.push({ gain: g, loss: hit });
+                                        });
+                                        out.used = used;
+                                        return out;
+                                    }
+                                    // 表格 + 结论芯片（用户抱怨「数据太晕」→ 只列这个道具的行，配对的两行高亮）
+                                    function gdFlowRender() {
+                                        const box = document.getElementById('gdFlowBox');
+                                        const table = document.getElementById('gdFlowTable');
+                                        const chips = document.getElementById('gdFlowChips');
+                                        const q = ((document.getElementById('gdItemInput') || {}).value || '').trim();
+                                        const ids = q ? boardIdsOfQuery(q) : [];
+                                        const id = ids.length ? String(ids[0]) : '';
+                                        const hasFlow = !!(flowModel && flowModel.ok);
+                                        const rows = hasFlow && id ? flowModel.rows.filter(r => gdFlowMatch(r, id)) : [];
+                                        if (!hasFlow || !rows.length) {
+                                            if (box) box.style.display = 'none';
+                                            if (table) table.innerHTML = '';
+                                            if (chips) chips.innerHTML = '';
+                                            return;
+                                        }
+                                        const res = gdFlowPairs(id);
+                                        if (box) box.style.display = '';
+                                        if (chips) {
+                                            const list = [];
+                                            if (res.pairs.length) {
+                                                list.push(statChip('对上 ' + res.pairs.length + ' 组「+N → 棋盘上传 −N」', 'k-warn',
+                                                    '获得之后紧跟一条同数量的棋盘上传扣除 —— 这就是「被吞」的特征'));
+                                                const p = res.pairs[0].gain, l = res.pairs[0].loss;
+                                                list.push(statChip('例：' + p.ts.slice(5) + ' +' + p.delta + ' → ' + String(l.ts).slice(5) + ' 棋盘上传 ' + l.delta, 'k-warn'));
+                                            } else if (res.gains.length) {
+                                                list.push(statChip('获得 ' + res.gains.length + ' 次，后面都没有棋盘上传扣除', 'k-accent'));
+                                            } else {
+                                                list.push(statChip('这段时间没有获得记录', 'k-plain'));
+                                            }
+                                            list.push(statChip('共 ' + rows.length + ' 条流水'));
+                                            chips.innerHTML = list.join('');
+                                        }
+                                        if (table) {
+                                            const isPair = {}, isLoss = {};
+                                            res.pairs.forEach(p => {
+                                                isPair[p.gain.ts + '|' + p.gain.delta] = 1;
+                                                isLoss[p.loss.ts + '|' + p.loss.delta] = 1;
+                                            });
+                                            const show = rows.slice(-100).reverse();
+                                            let h = '<thead><tr><th>时间</th><th class="num">变动</th><th class="num">余额</th><th>来源</th><th>对账</th></tr></thead><tbody>';
+                                            h += show.map(r => {
+                                                const key = r.ts + '|' + r.delta;
+                                                const cls = isLoss[key] ? 'is-loss' : (isPair[key] ? 'is-pair' : '');
+                                                const mark = isLoss[key] ? '被吞的扣除' : (isPair[key] ? '获得' : '');
+                                                return '<tr class="' + cls + '"><td>' + escapeHtml(r.ts) + '</td><td class="num">'
+                                                    + (r.delta > 0 ? '+' : '') + r.delta + '</td><td class="num">' + r.after + '</td><td>'
+                                                    + escapeHtml(r.source || '—') + '</td><td>' + (mark ? '<b>' + mark + '</b>' : '') + '</td></tr>';
+                                            }).join('');
+                                            table.innerHTML = h + '</tbody>';
+                                        }
+                                    }
+                                    function gdFlowRun(raw) {
+                                        const model = gdFlowParse(raw);
+                                        if (model.error) {
+                                            flowModel = null;
+                                            gdFlowRender();
+                                            teaSetHint('mergeHint', model.error);
+                                            return null;
+                                        }
+                                        flowModel = model;
+                                        const q = ((document.getElementById('gdItemInput') || {}).value || '').trim();
+                                        if (q.trim() && mergeModel) mergeItemRun(); else gdFlowRender();
+                                        teaSetHint('mergeHint', '认出 ' + model.rows.length + ' 条资源流水（' + model.rows[0].ts + ' ~ '
+                                            + model.rows[model.rows.length - 1].ts + '）');
+                                        return model;
+                                    }
+                                    // 流水有没有「+N 之后被棋盘上传扣掉」的证据（导图 / 结论 / 话术共用）
+                                    function gdFlowLines(id) {
+                                        if (!flowModel || !flowModel.ok) return [];
+                                        const rows = flowModel.rows.filter(r => gdFlowMatch(r, id));
+                                        if (!rows.length) return [];
+                                        const res = gdFlowPairs(id);
+                                        const out = ['—— 资源流水对账（' + mergeNameOf(id) + '）——'];
+                                        if (!res.pairs.length) {
+                                            out.push('· 这段流水里没有「+N 之后被棋盘上传扣掉」的记录'
+                                                + (res.gains.length ? '（有 ' + res.gains.length + ' 次获得，后面都没跟着棋盘上传扣除）' : '')
+                                                + '。');
+                                        } else {
+                                            res.pairs.slice(0, 5).forEach(p => {
+                                                out.push('· ' + p.gain.ts + ' 获得 +' + p.gain.delta
+                                                    + (p.gain.source ? '（' + p.gain.source + '）' : '')
+                                                    + ' → ' + p.loss.ts + ' 「' + (p.loss.source || '棋盘上传') + '」扣了 ' + p.loss.delta
+                                                    + ' ← 数量对得上，这就是被吞的特征');
+                                            });
+                                            if (res.pairs.length > 5) out.push('· …另有 ' + (res.pairs.length - 5) + ' 组');
+                                            out.push('· 共 ' + res.pairs.length + ' 组「+N → 棋盘上传 −N」，建议按这 ' + res.pairs.length
+                                                + ' 条提研发核对服务端流水。');
+                                        }
+                                        return out;
+                                    }
+
                                     // 判定芯片：先回答「那个时间之后到底有没有变过」，再说有没有找到消耗去向
                                     function mergeItemVerdict(model, id, rec, q) {
                                         const chips = [];
@@ -16226,6 +16465,7 @@
                                         }
                                         mergeSelfCheckLines(model, id, rec).forEach(l => out.push(l));
                                         mergeOpLines(id).forEach(l => out.push(l));
+                                        gdFlowLines(id).forEach(l => out.push(l));
                                         return out.join('\n');
                                     }
                                     // 活动进度话术（用户要的第 2 件）
@@ -16258,7 +16498,11 @@
                                         const input = document.getElementById('mergeInput');
                                         const raw = typeof rawArg === 'string' ? rawArg : ((input && input.value) || '');
                                         // 🔁 贴的是棋盘镜像 / 操作记录也认，直接转给对应解析器（不用再找地方重贴一遍）
-                                        const kind = gdDetectKind(gdJsonOf(raw));
+                                        const kind = gdRoute(raw);
+                                        if (kind === 'flow') {
+                                            gdFlowRun(raw);
+                                            return mergeModel;
+                                        }
                                         if (kind === 'board') {
                                             const el = document.getElementById('boardInput');
                                             if (el) el.value = raw;
@@ -16308,6 +16552,7 @@
                                         if (box) box.innerHTML = mergeItemVerdict(mergeModel, ids[0], rec, q).join('');
                                         mergeItemMapRender(ids.length ? ids[0] : '', rec);
                                         mergeOpRender();
+                                        gdFlowRender();
                                         teaSetHint('gdItemHint', /没找到/.test(text) ? '这份存档里没有这个名字，换个写法或直接输 id' : '话术已生成（含异常自查）');
                                     }
                                     function mergeActRun() {
@@ -16336,6 +16581,8 @@
                                         const vBox = document.getElementById('gdItemVerdict');
                                         if (vBox) vBox.innerHTML = '';
                                         mergeItemMapRender('', null);
+                                        flowModel = null;
+                                        gdFlowRender();
                                         const tInput = document.getElementById('gdItemTime');
                                         if (tInput) tInput.value = '';
                                         mergeModel = null;
@@ -16573,7 +16820,12 @@
                                         const input = document.getElementById('boardInput');
                                         const out = document.getElementById('boardAskOut');
                                         const raw = typeof rawArg === 'string' ? rawArg : ((input && input.value) || '');
-                                        const kind = gdDetectKind(gdJsonOf(raw));
+                                        const kind = gdRoute(raw);
+                                        if (kind === 'flow') {
+                                            gdFlowRun(raw);
+                                            teaSetHint('boardHint', '认出来是资源流水 → 已解析到「01 资源核对」的流水对账');
+                                            return boardModel;
+                                        }
                                         if (kind === 'merge') {
                                             const el = document.getElementById('mergeInput');
                                             if (el) el.value = raw;

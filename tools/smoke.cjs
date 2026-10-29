@@ -3291,9 +3291,9 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     await sleep(80);
     const mapBox = $('gdItemMap');
     const rootTxt = mapBox.querySelector('.gd-map-root').textContent;
-    check(mapBox.style.display === '' && mapBox.querySelectorAll('.gd-map-node').length === 5
+    check(mapBox.style.display === '' && mapBox.querySelectorAll('.gd-map-node').length === 6
       && /红宝石/.test(rootTxt) && /103/.test(rootTxt) && /存档 911 个/.test(rootTxt),
-      '输道具 → 导图出来：根节点是「道具名 / id / 存档数量」，右边挂 5 个分支',
+      '输道具 → 导图出来：根节点是「道具名 / id / 存档数量」，右边挂 6 个分支（含「流水对账」）',
       rootTxt + ' / nodes=' + mapBox.querySelectorAll('.gd-map-node').length);
     const mapTxt = mapBox.textContent;
     check(/存档/.test(mapTxt) && /当前 911 个/.test(mapTxt) && /最后变动 \d{4}-\d{2}-\d{2} \d{2}:\d{2}/.test(mapTxt)
@@ -3406,6 +3406,76 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
       $('gdOpTable').textContent.replace(/\s+/g, ' ').slice(0, 120));
     check(posts.slice(postsCn).filter(p => /careerData|dailyData|gamedata|merge/i.test(p.url)).length === 0,
       '中文化全程只在本机（0 请求）', posts.slice(postsCn).map(p => p.url).join(' | '));
+  }
+
+  console.log('--- 8z-6. 游戏数据 · 资源流水对账（+获得 之后有没有 −棋盘上传）---');
+  {
+    const postsFlow = posts.length;
+    // 用户给的口径：+100 之后跟着 −100（或 −99）棋盘上传 = 被吞
+    const flowOf = (lossNum, lossSrc) => [
+      '2026-10-29 10:00:00\tF1\t体力\t+100\t200\t300\t每日任务奖励\t0-货币',
+      '2026-10-29 10:01:00\tF2\t体力\t' + lossNum + '\t300\t200\t' + lossSrc + '\t0-货币',
+      '2026-10-29 10:05:00\tF3\t体力\t+50\t200\t250\t活动奖励\t0-货币',
+      '2026-10-29 10:06:00\tF4\t体力\t-50\t250\t200\t棋盘操作-使用消耗棋子\t0-货币'
+    ].join('\n');
+    // 先把存档贴好（话术要读 resource），再贴流水
+    $('mergeInput').value = JSON.stringify({
+      diamond: 1, gold: 1, hpData: 200, recordID: 1, syncTime: 1793248480,
+      others: JSON.stringify({ resource: [{ num: 200, timestamp: 1793248480, id: '101' }], meta: [], activities: [] })
+    });
+    $('mergeParseBtn').click();
+    await sleep(70);
+    $('gdItemInput').value = '体力';
+    $('mergeInput').value = flowOf('-100', '棋盘上传');
+    $('mergeParseBtn').click();
+    await sleep(90);
+    check(/认出 4 条资源流水/.test($('mergeHint').textContent),
+      '流水贴到页头大框里就自动认（不用挑框）', $('mergeHint').textContent);
+    check($('gdFlowBox').style.display === '' && $('gdFlowTable').querySelectorAll('tbody tr').length === 4,
+      '一贴完流水 + 查道具 → 直接列出这个道具的流水（时间 / 变动 / 余额 / 来源）',
+      $('gdFlowTable').textContent.replace(/\s+/g, ' ').slice(0, 140));
+    check($('gdFlowTable').querySelectorAll('tr.is-pair').length === 1
+      && $('gdFlowTable').querySelectorAll('tr.is-loss').length === 1
+      && /被吞的扣除/.test($('gdFlowTable').textContent),
+      '配对的两行直接高亮：+100 那行标「获得」、−100 棋盘上传那行标「被吞的扣除」',
+      $('gdFlowTable').textContent.replace(/\s+/g, ' ').slice(0, 160));
+    check(/对上 1 组「\+N → 棋盘上传 −N」/.test($('gdFlowChips').textContent),
+      '结论芯片直说「对上 1 组」', $('gdFlowChips').textContent);
+    check(/—— 资源流水对账（体力）——/.test($('gdItemOut').value)
+      && /获得 \+100（每日任务奖励） → 2026-10-29 10:01:00 「棋盘上传」扣了 -100 ← 数量对得上，这就是被吞的特征/.test($('gdItemOut').value)
+      && /共 1 组/.test($('gdItemOut').value),
+      '话术里单起一段「资源流水对账」：+100 → 棋盘上传 −100 一行说清',
+      $('gdItemOut').value.replace(/\n/g, ' | ').slice(-240));
+    check(/找到 1 组「\+100 → 棋盘上传 -100」→ 被吞的特征/.test($('gdItemMap').textContent)
+      && /对上 1 组/.test($('gdItemMap').textContent),
+      '导图里也有「流水对账」这一片，结论直接指向被吞', $('gdItemMap').textContent.slice(-160));
+    check(/获得 \+50/.test($('gdItemOut').value) === false && /共 1 组/.test($('gdItemOut').value),
+      '只认「棋盘上传」的扣除：+50 后面那条「棋盘操作-使用消耗棋子」的 −50 不算被吞');
+
+    // −99 也认（差 1 个数）
+    $('mergeInput').value = flowOf('-99', '棋盘上传');
+    $('mergeParseBtn').click();
+    await sleep(90);
+    check(/对上 1 组/.test($('gdFlowChips').textContent),
+      '数量差 1 也算对上（+100 → −99 棋盘上传）', $('gdFlowChips').textContent);
+
+    // 换成非棋盘上传的扣除 → 不算被吞
+    $('mergeInput').value = flowOf('-100', '棋盘操作-使用消耗棋子');
+    $('mergeParseBtn').click();
+    await sleep(90);
+    check(/获得 \+100 之后没有棋盘上传扣除|后面都没有棋盘上传/.test($('gdFlowChips').textContent)
+      || /获得 2 次，后面都没有棋盘上传扣除/.test($('gdFlowChips').textContent),
+      '扣除不是「棋盘上传」的来源 → 不算被吞', $('gdFlowChips').textContent);
+    check(/后面都没有棋盘上传扣除 → 不是被吞/.test($('gdItemMap').textContent),
+      '导图结论跟着翻成「不是被吞」', $('gdItemMap').textContent.slice(-120));
+    check(posts.slice(postsFlow).filter(p => /careerData|dailyData|gamedata|merge|flow/i.test(p.url)).length === 0,
+      '流水对账全程只在本机（0 请求）', posts.slice(postsFlow).map(p => p.url).join(' | '));
+
+    // 清空 → 流水块收起
+    $('mergeClearBtn').click();
+    await sleep(70);
+    check($('gdFlowBox').style.display === 'none' && $('gdFlowTable').innerHTML === '',
+      '「清空」连流水对账一起收掉', $('gdFlowTable').innerHTML);
   }
 
   console.log('--- 9. 无未捕获异常 ---');
