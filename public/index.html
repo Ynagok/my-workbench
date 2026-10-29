@@ -3785,7 +3785,7 @@
             <div class="tab-group-title">梦幻消除站</div>
             <button class="tab-btn tab-btn-sub active" data-tab="gen"> 话术生成</button>
             <button class="tab-btn tab-btn-sub" data-tab="card"> 集卡分析</button>
-            <button class="tab-btn tab-btn-sub" data-tab="gamedata"> 玩家游戏数据</button>
+            <button class="tab-btn tab-btn-sub" data-tab="gamedata"> 游戏数据</button>
 
             <button class="tab-btn" data-tab="reply"> 工单回复</button>
             <button class="tab-btn" data-tab="feedback"> 反馈模板</button>
@@ -4627,12 +4627,12 @@
                 </div>
             </div><!-- /sub-panel-fry -->
         </div><!-- /tab-script -->
-        <!-- ==================== 🎮 玩家游戏数据（MergeState 资源核对 / 活动进度 + 棋盘镜像） ==================== -->
+        <!-- ==================== 🎮 游戏数据（MergeState 资源核对 / 活动进度 + 棋盘镜像） ==================== -->
         <div id="tab-gamedata" class="tab-content">
             <div class="career-report-head" id="gdReportHead">
                 <div>
-                    <div class="crh-kicker">PLAYER DATA / 玩家游戏数据</div>
-                    <div class="crh-title">玩家游戏数据</div>
+                    <div class="crh-kicker">GAME DATA / 游戏数据</div>
+                    <div class="crh-title">游戏数据</div>
                     <div class="crh-sub" id="gdReportSub">—</div>
                 </div>
                 <div class="crh-meta" id="gdReportMeta"></div>
@@ -15473,8 +15473,9 @@
                                         const totalVotes = list.reduce((a, v) => a + v.shopIds.length, 0);
                                         return { devices: list.length, totalVotes: totalVotes, rows: rows };
                                     }
-                                    // ==================== 🎮 玩家游戏数据（MergeState：资源核对 / 活动进度）====================
-                                    // 用户：「1和2弄成玩家游戏数据功能，将棋盘镜像作为独立的标签页加在这个功能里，粘贴后同步核对镜像」
+                                    // ==================== 🎮 游戏数据（MergeState：资源核对 / 活动进度）====================
+                                    // 用户原话：「1和2弄成玩家游戏数据功能，将棋盘镜像作为独立的标签页加在这个功能里，粘贴后同步核对镜像」
+                                    //   （2026-10 用户后来要求把功能名改成「游戏数据」，见 tab / 抬头 / 话术抬头）
                                     // MergeState = GM 玩家页那块「玩家存档快照」：红宝石 / 铜钱 / 体力、每个资源最后一次变动时间、
                                     //   当日体力·钻石消耗、60+ 活动的状态与进度、礼包弹窗、新手引导…
                                     // ⚠️ others 是「字符串套字符串」（个别还三层），统一用 mergeJson() 一层层剥。
@@ -16214,7 +16215,7 @@
                                         const id = ids[0];
                                         const rec = model.resource.filter(r => r.id === id)[0] || null;
                                         const usage = mergeDailyUsage(model);
-                                        const out = ['【玩家游戏数据 · ' + mergeNameOf(id) + '（' + id + '）】'];
+                                        const out = ['【游戏数据 · ' + mergeNameOf(id) + '（' + id + '）】'];
                                         out.push('当前数量：' + (rec ? rec.n : 0));
                                         out.push('最后变动：' + (rec ? mergeTsText(rec.ts) : '这份存档里没有它'));
                                         if (id === '101' && usage.energy != null) out.push('今日体力消耗：' + usage.energy);
@@ -16237,7 +16238,7 @@
                                         if (hits.length) {
                                             const out = [];
                                             hits.slice(0, 3).forEach(a => {
-                                                out.push('【玩家游戏数据 · ' + mergeActivityLabel(a.name, a.id) + '（' + a.name + '）】');
+                                                out.push('【游戏数据 · ' + mergeActivityLabel(a.name, a.id) + '（' + a.name + '）】');
                                                 if (a.id) out.push('活动 id：' + a.id);
                                                 if (a.nums.length) out.push('关键进度：' + a.nums.slice(0, 6).map(x => mergeProgressLabel(x[0]) + ' = ' + x[1]).join('；'));
                                                 if (a.states) out.push('状态记录：' + a.states + ' 项');
@@ -16246,7 +16247,7 @@
                                         }
                                         const tk = model.taskActs.filter(a => a.id === t)[0];
                                         if (tk) {
-                                            const out = ['【玩家游戏数据 · 活动任务（' + tk.id + '）】'];
+                                            const out = ['【游戏数据 · 活动任务（' + tk.id + '）】'];
                                             out.push('任务共 ' + tk.tasks.length + ' 个，已完成（status=2）' + tk.done + ' 个。');
                                             out.push('进度：' + tk.tasks.slice(0, 8).map(x => x.id + '=' + x.p + (String(x.st) === '2' ? '✓' : '')).join('；'));
                                             return out.join('\n');
@@ -17569,7 +17570,7 @@
                                             statsSetSeg('tab-career', 'overview');
                                             statsSetSeg('tab-overseas', 'overview');
                                             statsSetSeg('tab-gen', 'reply');   // 话术生成页也分两段：话术生成 / 七日任务进度
-                                            statsSetSeg('tab-gamedata', 'resource');   // 玩家游戏数据页三段：资源核对 / 活动进度 / 棋盘镜像
+                                            statsSetSeg('tab-gamedata', 'resource');   // 游戏数据页三段：资源核对 / 活动进度 / 棋盘镜像
                                         })();
 
                                         // 规则搜索
@@ -17852,7 +17853,7 @@
                                         setClick('teaInfoParseBtn', teaInfoRun);
                                         setClick('teaInfoCopyBtn', teaInfoCopy);
                                         setClick('teaInfoClearBtn', teaInfoClear);
-                                        // 🎮 玩家游戏数据（MergeState → 资源核对 / 活动进度；棋盘镜像在第三段）
+                                        // 🎮 游戏数据（MergeState → 资源核对 / 活动进度；棋盘镜像在第三段）
                                         setClick('mergeParseBtn', mergeRun);
                                         setClick('mergeClearBtn', mergeClear);
                                         setClick('gdItemBtn', mergeItemRun);

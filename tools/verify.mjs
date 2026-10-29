@@ -592,7 +592,7 @@ ok(/const TEA_ITEM_ALIAS = \{ '2000049': '随机奖励宝箱' \};/.test(s) && /T
   '奖励名按映射换人话（2000049 先写「随机奖励宝箱」）；话术里不出现价格（内部价）；数量一律用粘进来的数据');
 
 // ---- 3g-3. 🧩 棋盘镜像（粘镜像 JSON → 主棋盘 / 背包 / 仓库 + 「在哪几个」话术）----
-ok(/class="tab-btn tab-btn-sub" data-tab="gamedata"> 玩家游戏数据</.test(s) && /id="tab-gamedata"/.test(s)
+ok(/class="tab-btn tab-btn-sub" data-tab="gamedata"> 游戏数据</.test(s) && /id="tab-gamedata"/.test(s)
   && !/data-tab="board"/.test(s) && !/id="tab-board"/.test(s)
   && /id="boardInput"/.test(s) && /id="boardParseBtn"/.test(s) && /id="boardClearBtn"/.test(s)
   && /id="boardSummary"/.test(s) && /id="boardMainGrid"/.test(s) && /id="boardOtherGrids"/.test(s)
@@ -600,10 +600,10 @@ ok(/class="tab-btn tab-btn-sub" data-tab="gamedata"> 玩家游戏数据</.test(s
   && /id="boardAskInput"/.test(s) && /id="boardAskBtn"/.test(s) && /id="boardAskCopyBtn"/.test(s) && /id="boardAskOut"/.test(s)
   && /setClick\('boardParseBtn', boardRun\)/.test(s) && /setClick\('boardAskBtn', boardAskRun\)/.test(s)
   && /setClick\('boardAskCopyBtn', boardAskCopy\)/.test(s) && /setClick\('boardClearBtn', boardClear\)/.test(s),
-  '「玩家游戏数据」是「梦幻消除站」那组的子项（跟话术生成 / 集卡分析 同级、不带图标）：MergeState 粘贴 + 资源核对 / 活动进度 / 棋盘镜像 三段 + 主棋盘、背包仓库、道具查询都在，按钮都挂上了');
-ok(/data-tab="gen"> 话术生成<\/button>\s*<button class="tab-btn tab-btn-sub" data-tab="card"> 集卡分析<\/button>\s*<button class="tab-btn tab-btn-sub" data-tab="gamedata"> 玩家游戏数据<\/button>/.test(s)
+  '「游戏数据」是「梦幻消除站」那组的子项（跟话术生成 / 集卡分析 同级、不带图标）：MergeState 粘贴 + 资源核对 / 活动进度 / 棋盘镜像 三段 + 主棋盘、背包仓库、道具查询都在，按钮都挂上了');
+ok(/data-tab="gen"> 话术生成<\/button>\s*<button class="tab-btn tab-btn-sub" data-tab="card"> 集卡分析<\/button>\s*<button class="tab-btn tab-btn-sub" data-tab="gamedata"> 游戏数据<\/button>/.test(s)
   && !/data-tab="\w+">🧩/.test(s) && !/data-tab="board"/.test(s),
-  '「梦幻消除站」那一组现在是三张：话术生成 / 集卡分析 / 玩家游戏数据（都不带图标）');
+  '「梦幻消除站」那一组现在是三张：话术生成 / 集卡分析 / 游戏数据（都不带图标）');
 ok(/const BOARD_JSON_MAX = 4000000;/.test(s) && /function boardJsonText\(raw\)/.test(s)
   && /function boardParse\(raw\)/.test(s) && /function boardRender\(model\)/.test(s)
   && /function boardGridHtml\(board\)/.test(s) && /function boardCellHtml\(c\)/.test(s)
@@ -629,7 +629,7 @@ ok(/class="seg-bar" data-for="tab-gamedata"/.test(s) && /data-seg="resource" dat
   && /id="mergeSummary"/.test(s) && /id="mergeDiff"/.test(s)
   && /id="gdResTable"/.test(s) && /id="gdItemInput"/.test(s) && /id="gdItemBtn"/.test(s) && /id="gdItemOut"/.test(s)
   && /id="gdActChips"/.test(s) && /id="gdActInput"/.test(s) && /id="gdActBtn"/.test(s) && /id="gdActOut"/.test(s),
-  '「玩家游戏数据」页：MergeState 粘贴 + 三段（01 资源核对 / 02 活动进度 / 03 棋盘镜像），棋盘镜像原来的卡整块挪进第三段');
+  '「游戏数据」页：MergeState 粘贴 + 三段（01 资源核对 / 02 活动进度 / 03 棋盘镜像），棋盘镜像原来的卡整块挪进第三段');
 ok(/function mergeParse\(raw\)/.test(s) && /function mergeJson\(v, dflt\)/.test(s) && /function mergeDailyUsage\(model\)/.test(s)
   && /function mergeRenderDiff\(\)/.test(s) && /function mergeItemScript\(model, q\)/.test(s) && /function mergeActivityScript\(model, q\)/.test(s)
   && /data\.others/.test(s) && /others\.resource/.test(s) && /others\.activities/.test(s) && /others\.meta/.test(s),
@@ -646,7 +646,7 @@ ok(/—— 异常自查 ——/.test(s) && /早于玩家说的时间/.test(s) &&
   && /没有变动量和操作来源/.test(s)
   && /那之后没变过：不是被吞/.test(s) && /那个时段变过，看消耗去向/.test(s),
   '异常自查融进资源核对：时间点两个方向 / 订单消耗 / 最近一次操作（含奖励）/ 记录值对账 / 明写「定责要服务端流水」，并给判定芯片');
-ok(/【玩家游戏数据 · ' \+ mergeActivityLabel\(a\.name, a\.id\)/.test(s) && /关键进度：/.test(s)
+ok(/【游戏数据 · ' \+ mergeActivityLabel\(a\.name, a\.id\)/.test(s) && /关键进度：/.test(s)
   && /活动任务（/.test(s) && /已完成（status=2）/.test(s) && /没找到「' \+ t \+ '」这个活动/.test(s)
   && /const MERGE_ACTIVITY_LABELS = \{/.test(s) && /seven_task: '七日任务'/.test(s),
   '活动进度话术：活动中文别名 + id + 关键进度；活动任务进度（status=2 算已完成）也能查；查不到直说');
@@ -654,7 +654,7 @@ ok(/function mergeRenderDiff\(\)/.test(s) && /跟棋盘镜像核对/.test(s) && 
   && /一致 /.test(s) && /红宝石', '103'/.test(s) && /铜钱', '102'/.test(s) && /体力', '101'/.test(s),
   '粘贴 MergeState 后自动跟棋盘镜像核对红宝石 / 铜钱 / 体力：一致标黄、不一致标橙（提示镜像不是最新）');
 ok(!/saveData\('board/.test(s) && !/localStorage\.setItem\('boardMirror/.test(s),
-  '玩家游戏数据 / 棋盘镜像都只在本机内存里解析（不写 /api/data、也不塞 localStorage）');
+  '游戏数据 / 棋盘镜像都只在本机内存里解析（不写 /api/data、也不塞 localStorage）');
 ok(/id="gdOpInput"/.test(s) && /id="gdOpBtn"/.test(s) && /id="gdOpClearBtn"/.test(s)
   && /id="gdOpHint"/.test(s) && /id="gdOpSummary"/.test(s) && /id="gdOpTable"/.test(s)
   && /setClick\('gdOpBtn', mergeOpRun\)/.test(s) && /setClick\('gdOpClearBtn', mergeOpClear\)/.test(s),

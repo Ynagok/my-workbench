@@ -415,11 +415,11 @@ npm run verify     # 改完代码、push 前的完整自检
 - **只在本机**：纯前端解析，**不写 `/api/data`、也不改 `teaShops` / `teaPoll_*`**（跟别的粘贴解析一个规矩）；页面上不持久化，清空就没了。
 - **测试**：`tools/smoke.cjs` 第 **8y** 节 **14 条**（第三段按钮在、切过去只有这段亮 / **下午茶投票页里没有这块** / 卡片与按钮齐全 / 粘一整块认出档位·当前层·次数·大奖·层数 / 当前层那格高亮 / 升层奖励单独标 / **道具代码按映射换人话（2000049 → 随机奖励宝箱）+ 数量照数据走** / **话术就是用户模板那两句、且不含价格** / 纯文本里的「已抽取」标灰并写进「抽到了第 X 层的…」 / **大奖已抽取 → 换成「已获得最终大奖」** / **贴源码认 is-drawn 不串到下一条** / 没进度时改「没查到记录」/ 空输入只提示 / 清空全清 / 全程 0 请求）；`tools/verify.mjs` 3g-2（6 条）+ 3l（分段条现在三段）有静态断言。
 
-## 🎮 玩家游戏数据（`data-tab="gamedata"` · 粘 MergeState，2026-10）
+## 🎮 游戏数据（`data-tab="gamedata"` · 粘 MergeState，2026-10）
 
-用户：「1 和 2 弄成玩家游戏数据功能，将棋盘镜像作为独立的标签页加在这个功能里，粘贴后同步核对镜像」——把 MergeState 的两件刚需（**资源核对**、**活动进度**）做成一个页面，棋盘镜像当它的**第 03 段**放进来。
+用户：「1 和 2 弄成游戏数据功能，将棋盘镜像作为独立的标签页加在这个功能里，粘贴后同步核对镜像」——把 MergeState 的两件刚需（**资源核对**、**活动进度**）做成一个页面，棋盘镜像当它的**第 03 段**放进来。
 
-- **位置**：侧边栏 **「梦幻消除站」组**里的第三个子项 **「玩家游戏数据」**（`data-tab="gamedata"` / `#tab-gamedata`，`tab-btn-sub`，**不带图标**），排在 `话术生成` / `集卡分析` 后面。页内三段：`01 资源核对`（默认）/ `02 活动进度` / `03 棋盘镜像`（`.seg-bar[data-for="tab-gamedata"]` + `data-seg-card="resource|activity|mirror"`；`bindSegBar` 末尾 `statsSetSeg('tab-gamedata', 'resource')` 初始化）。
+- **位置**：侧边栏 **「梦幻消除站」组**里的第三个子项 **「游戏数据」**（`data-tab="gamedata"` / `#tab-gamedata`，`tab-btn-sub`，**不带图标**），排在 `话术生成` / `集卡分析` 后面。页内三段：`01 资源核对`（默认）/ `02 活动进度` / `03 棋盘镜像`（`.seg-bar[data-for="tab-gamedata"]` + `data-seg-card="resource|activity|mirror"`；`bindSegBar` 末尾 `statsSetSeg('tab-gamedata', 'resource')` 初始化）。
 - **🔁 万能粘贴 · 一个框就够（2026-10 用户：「操作过于复杂繁琐了，实际会影响工作效率」）**：原来要分别找三个框贴三种数据（页头 MergeState / 03 段的镜像 / 资源核对里的操作记录），现在**任一框贴任何一份都认** —— `gdJsonOf()` 先认 JSON（带前缀 / 只截了 `{…}` 或 `[…] ` 也认），`gdDetectKind()` 判是哪份（有 `others|hpData|diamond|gold` = MergeState；有 `chessboardDataList|warehouseData|backpack|currencies` = 棋盘镜像；数组里带 `op|sTime` = 操作记录），然后 `mergeRun` / `boardRun` / `mergeOpRun` **互相转交**（贴错框会自己跳到对的地方，并在提示里说一句「认出来是…→ 已解析到…」）。
   - **粘完自动解析**：三个框都挂了 `input` 监听，停手 400ms 就 `gdAutoFrom()` 跑一遍（认不出就安静不动），**不用点按钮**；按钮留着是给「想立刻跑一次」和测试用的。
   - ⚠️ 三个 `Run` 的签名是 `(rawArg)`，**只认字符串参数**：`setClick` 会把 click 事件当第一个参数传进来，写成 `String(rawArg)` 会把事件对象变成 `[object MouseEvent]` 导致整页解析全挂（踩过一次）。
@@ -432,7 +432,7 @@ npm run verify     # 改完代码、push 前的完整自检
 - **② 资源核对**（`.card[data-seg-card="resource"]`）：**查询区在最上面**（`#gdItemInput` 道具名或 id、回车也行 + `#gdItemBtn` / `#gdItemCopyBtn` + `#gdItemOut`），**明细表收进 `<details class="stat-fold">` 里默认收起**（`#gdResTable`，三列「道具 / 数量 / 最后变动」）。⚠️ **表里只列「数量 > 0」的**，0 的记录折成一行说明放在 `#gdResCount`（「有数量 4 项 · 其余 1 项是 0」）—— 真实存档里一半资源都是 0，全列出来很乱。
   - 话术（`mergeItemScript`）：
     ```
-    【玩家游戏数据 · 红宝石（103）】
+    【游戏数据 · 红宝石（103）】
     当前数量：911
     最后变动：2026-10-29 10:50
     今日钻石消耗：10
@@ -470,12 +470,12 @@ npm run verify     # 改完代码、push 前的完整自检
   - **③ 活动进度**（`.card[data-seg-card="activity"]`）：芯片是这份存档里出现过的活动（**点芯片 = 自动填进 `#gdActInput` 并直接生成**，`data-gd-act` 属性）；查询 `#gdActInput` + `#gdActBtn` / `#gdActCopyBtn` + `#gdActOut`。⚠️ **芯片只写中文名**（英文名/id 塞进 `title`），**前 12 个直接铺、其余折进 `<details>「还有 N 个活动」`**，上方 `#gdActCount` 写一行「这份存档里有 N 个活动」—— 60+ 个活动全铺开会糊一屏。
   - 话术（`mergeActivityScript`）：
     ```
-    【玩家游戏数据 · 七日任务（seven_task）】
+    【游戏数据 · 七日任务（seven_task）】
     活动 id：35
     关键进度：seven_task_35_102 = 14326；State_Recorded_2 = 1
     状态记录：1 项
     ```
-    查活动任务 id（如 `6735`）时换成 `【玩家游戏数据 · 活动任务（6735）】` + 「任务共 N 个，已完成（status=2）M 个」+ 前 8 条进度；查不到直说。
+    查活动任务 id（如 `6735`）时换成 `【游戏数据 · 活动任务（6735）】` + 「任务共 N 个，已完成（status=2）M 个」+ 前 8 条进度；查不到直说。
   - **🀄 中文化（2026-10 用户：「解析出来的代码或者英文是否可以转化成对应的中文名称」）**：活动名走**三级回退** —— ① 手写表 `MERGE_ACTIVITY_LABELS`（七日任务 / 通行证 / 签到奖励 …）② 官方活动类型表 `DEFAULT_ACTIVITY_TYPE_MAP`（按 `extra.id`，id 67 → 茶楼七日任务）③ 都对不上就把下划线 / 驼峰拆成空格（`unknown_flying_thing` → unknown flying thing）。**原始英文名不丢**，塞进芯片的 `title`（「原名 · id → 中文」）。
     - 关键进度的 key 也翻：`mergeProgressLabel` 把 `seven_task_35_102` 变成 `七日任务·35·102`，字段词走 `MERGE_PROGRESS_WORDS`（`CumulativeNum` → 累计数 / `ContinuousNum` → 连续数 / `Num` → 数量 …），认不出的词只把下划线换成中点。⚠️ **这张表是照英文字段名直译的、没有官方释义**（用户 2026-10 追问过「连续数是啥意思」），所以 `mergeProgressToken` 给**翻过的词一律带上原字段名**：`连续数（ContinuousNum）`——别让客服照着中文猜含义。
     - 物品不走这套：`boardNameOf` 把 `itemNameMap` 里 `--货币` 这种「分类占位」显示成「货币类」，查不到名字的统一用 `mergeNameOf` 显示「道具 N」/「棋子 N」（**操作记录表、棋盘镜像列表都别再直接吐一串 id**）；棋盘格里认不出的棋子仍显示 `#id`（格子窄），但 `title` 写「道具 N（映射表里没这个名字）」。
@@ -487,7 +487,7 @@ npm run verify     # 改完代码、push 前的完整自检
 
 用户要求：「增加一个棋盘镜像功能，可以粘贴棋盘镜像数据生成类似展示主棋盘，背包，仓库的页面，还可以输入道具名称或者 id，来生成有几个 xx 在棋盘上，几个 xx 在临时背包，几个 xx 在仓库这样的确认道具棋子的状态的话术」。
 
-- **位置**：它是 **「🎮 玩家游戏数据」页的第 03 段**（`#tab-gamedata` 里的 `[data-seg-card="mirror"]`），不再是独立标签页（用户 2026-10：「将棋盘镜像作为独立的标签页加在这个功能里」）。侧边栏那一项叫 **「玩家游戏数据」**（`data-tab="gamedata"`，`tab-btn-sub`，在「梦幻消除站」组里、`话术生成` / `集卡分析` 后面，**不带图标**）。**跟「下午茶投票」「吉运节节高」都无关**。
+- **位置**：它是 **「🎮 游戏数据」页的第 03 段**（`#tab-gamedata` 里的 `[data-seg-card="mirror"]`），不再是独立标签页（用户 2026-10：「将棋盘镜像作为独立的标签页加在这个功能里」）。侧边栏那一项叫 **「游戏数据」**（`data-tab="gamedata"`，`tab-btn-sub`，在「梦幻消除站」组里、`话术生成` / `集卡分析` 后面，**不带图标**）。**跟「下午茶投票」「吉运节节高」都无关**。
 - **五块**（id 都别改）：
   1. `#boardInput` 粘贴框 + `#boardParseBtn`（🔍 解析并展示）/ `#boardClearBtn`（🧹 清空）+ 提示 `#boardHint` + 汇总芯片 `#boardSummary`。
   2. `#boardMainCard`：主棋盘 `#boardMainGrid`（`.board-grid`，`--bw` 控制列数）+ 其它棋盘 `#boardOtherGrids`。
