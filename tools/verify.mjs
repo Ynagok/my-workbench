@@ -655,6 +655,28 @@ ok(/function mergeRenderDiff\(\)/.test(s) && /跟棋盘镜像核对/.test(s) && 
   '粘贴 MergeState 后自动跟棋盘镜像核对红宝石 / 铜钱 / 体力：一致标黄、不一致标橙（提示镜像不是最新）');
 ok(!/saveData\('board/.test(s) && !/localStorage\.setItem\('boardMirror/.test(s),
   '玩家游戏数据 / 棋盘镜像都只在本机内存里解析（不写 /api/data、也不塞 localStorage）');
+ok(/id="gdOpInput"/.test(s) && /id="gdOpBtn"/.test(s) && /id="gdOpClearBtn"/.test(s)
+  && /id="gdOpHint"/.test(s) && /id="gdOpSummary"/.test(s) && /id="gdOpTable"/.test(s)
+  && /setClick\('gdOpBtn', mergeOpRun\)/.test(s) && /setClick\('gdOpClearBtn', mergeOpClear\)/.test(s),
+  '资源核对里多一块「操作记录」（折进 details）：粘 GM 的操作记录 → 解析按钮挂上了');
+ok(/let opModel = null;/.test(s) && /const MERGE_OP_LABELS = \{/.test(s) && /281: '棋子合并'/.test(s)
+  && /function mergeOpLabel\(op\)/.test(s) && /function mergeOpRowsOf\(v\)/.test(s)
+  && /function mergeOpParse\(raw\)/.test(s) && /function mergeOpHits\(id\)/.test(s)
+  && /function mergeOpOrderHits\(id\)/.test(s) && /function mergeOpLines\(id\)/.test(s)
+  && /function mergeOpRender\(\)/.test(s) && /function mergeOpRun\(\)/.test(s) && /function mergeOpClear\(\)/.test(s),
+  '操作记录：纯数组 / 对象里套数组都认（递归找带 op·sTime 的那组），op 号 → 中文标签（合并 / 订单初始化 / 母体产出 …），命中分「消耗 / 获得 / 合成出现 / 订单收走」四类');
+ok(/被消耗 ' \+ used\.length \+ ' 次、共 '/.test(s) && /获得 ' \+ got\.length \+ ' 次、共 '/.test(s)
+  && /订单收走 ' \+ used2\.length \+ ' 单、共 '/.test(s) && /订单奖励里给过 ' \+ got2\.length \+ ' 次、共 '/.test(s)
+  && /玩家说的时间之后：这段记录里一条都没动过它/.test(s)
+  && /操作记录里被消耗 ' \+ usedN \+ ' 个：不是被吞/.test(s)
+  && /操作记录里被订单收走 ' \+ oUsed \+ ' 个：不是被吞/.test(s)
+  && /记录里订单奖励给过 ' \+ oGot \+ ' 个/.test(s),
+  '资源话术接上操作记录：覆盖时间 / 被消耗 / 获得 / 合成出现 / 订单收走 / 订单奖励 / 跟玩家说的时间点对一遍；判定芯片直说「不是被吞」');
+ok(/function mergeTsText\(ts\)/.test(s) && /\(n \+ 8 \* 3600\) \* 1000/.test(s) && /\) - 8 \* 3600;/.test(s),
+  '时间统一按北京时间（UTC+8）显示与比较：真实数据里 sTime 与订单 createTime 差 8 小时，原来的 UTC 显示会比 GM 页早 8 小时');
+ok(/记录覆盖不到的时段仍要研发拉服务端全量流水/.test(s)
+  && /mergeOpLines\(id\)\.forEach\(l => out\.push\(l\)\);/.test(s),
+  '有了操作记录就把「定责要服务端流水」那句改成「覆盖不到的时段仍要研发拉全量流水」，并接在异常自查后面');
 
 // ---- 3h. SOP 助手已整块删除（2026-10，用户要求）；服务端的 sop 口令关与 seed 工具保留 ----
 ok(!/sop/i.test(s),

@@ -48,7 +48,7 @@ npm run verify     # 改完代码、push 前的完整自检
 
 | 命令 | 内容 |
 |---|---|
-| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 566 项 + 「接口挂起时界面仍可用」+ 服务端冒烟 42 项 |
+| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 577 项 + 「接口挂起时界面仍可用」+ 服务端冒烟 42 项 |
 | `npm run verify:static` | 只要静态校验 + 语法检查（最快） |
 | `npm run report` | 打印一份真实生成的日报，肉眼确认排版（含 ⑥伙伴弹途 / ⑦异世界勇者） |
 | `npm run build:data` | 从 GM 玩家页快照提取 4 张权威映射表 + 与硬编码常量的**差异报告**（见下「游戏数据管线」） |
@@ -58,7 +58,7 @@ npm run verify     # 改完代码、push 前的完整自检
 | `npm run smoke:pmc` | **生管物料订单工作台**（`public/pmc.html`）自检，123 项（含加工周期工作日推算 + 在途锁定/调整建议 + 真实 8.5MB xlsx 端到端导入）；**不在 verify 里**，见下「生管物料订单工作台」一节 |
 | `npm test` | = `npm run verify` |
 
-`npm run verify` 失败就不要提交。它一共 5 段：静态结构 → 语法 → jsdom 集成冒烟 **566 项** → 接口挂起时界面仍可用 → 服务端冒烟 **42 项**。
+`npm run verify` 失败就不要提交。它一共 5 段：静态结构 → 语法 → jsdom 集成冒烟 **577 项** → 接口挂起时界面仍可用 → 服务端冒烟 **42 项**。
 
 - jsdom 未安装时前端冒烟会自动回落到本机 DSH 自带的那份。
 - `tools/smoke-server.cjs` 用 `PORT` + `DATA_FILE` 环境变量把服务端指到随机端口和 `tools/out/` 里的临时文件，**不会碰真实 `data.json`**；子进程 stdio 必须用 `ignore`/`inherit`（沙箱禁管道，`pipe` 会 EPERM）。
@@ -422,7 +422,7 @@ npm run verify     # 改完代码、push 前的完整自检
 - **位置**：侧边栏 **「梦幻消除站」组**里的第三个子项 **「玩家游戏数据」**（`data-tab="gamedata"` / `#tab-gamedata`，`tab-btn-sub`，**不带图标**），排在 `话术生成` / `集卡分析` 后面。页内三段：`01 资源核对`（默认）/ `02 活动进度` / `03 棋盘镜像`（`.seg-bar[data-for="tab-gamedata"]` + `data-seg-card="resource|activity|mirror"`；`bindSegBar` 末尾 `statsSetSeg('tab-gamedata', 'resource')` 初始化）。
 - **① 粘贴 MergeState**（`#mergeInput` + `#mergeParseBtn` / `#mergeClearBtn`，提示 `#mergeHint`）：就是 GM 玩家页那块**存档快照**，整段贴。汇总芯片 `#mergeSummary`（红宝石 / 铜钱 / 体力 / **今日体力 −N / 今日钻石 −N** / **资源 N · 活动 M**）+ 对账行 `#mergeDiff`；抬头 `#gdReportSub` / `#gdReportMeta` 也跟着填。⚠️ 2026-10 用户说「数据展示的有点乱，优化一下」之后：存档 ID 从芯片挪进抬头副标、芯片从 8 片精简到 6 片、粘贴框从 6 行收到 4 行。
   - **解析**（`mergeParse`）：`diamond|recordDiamond` / `gold|recordGold` / `hpData|recordHp` / `recordID` / `syncTime` / `others`。⚠️ **`others` 是「字符串套字符串」，个别还三层**（`resource` / `meta` / `activities[].extra` / `activity_task_progress[].tasks` / `completeGuides` / `gifts`），统一用 `mergeJson(v, dflt)` 一层层剥。
-  - **`resource[]`**（`id / num / timestamp`）= **每个道具的当前数量 + 最后一次变动时间**，按数量降序，`mergeTsText()` 把时间戳格式化成 `YYYY-MM-DD HH:MM`（UTC，跟快照里的服务器时间一致）。
+  - **`resource[]`**（`id / num / timestamp`）= **每个道具的当前数量 + 最后一次变动时间**，按数量降序，`mergeTsText()` 把时间戳格式化成 `YYYY-MM-DD HH:MM`（**北京时间 UTC+8**，见下「时间口径」）。
   - **`meta[]`**（`name / value / extra`）里取两条做「当日消耗」：`daily_board_energy_stat.extra` = **今日体力消耗**、`daily_diamond_consume_stat.extra` = **今日钻石消耗**（`mergeDailyUsage`）。
   - **`activities[]`**（`name` + `extra` 里套 JSON）= 60+ 个活动的 `id` / `State_Recorded_*` / 进度值；**`MERGE_ACTIVITY_LABELS`** 把英文名换成中文（七日任务 / 通行证（本期）/ 签到奖励 / 限购补给 / 体力排行榜 / 茶楼竞速 / 大亨赛 / 集卡 / 怪棋挑战 / 风筝 / 花园… 认不出显示原名）。
   - `activity_task_progress[]` = 活动任务进度（`taskId / status / progress`，**status=2 算已完成**，跟七日任务那套口径一致）。
@@ -431,19 +431,36 @@ npm run verify     # 改完代码、push 前的完整自检
     ```
     【玩家游戏数据 · 红宝石（103）】
     当前数量：911
-    最后变动：2026-10-29 02:50
+    最后变动：2026-10-29 10:50
     今日钻石消耗：10
     棋盘镜像：棋盘上 0 个、临时背包 0 个、仓库 0 个。
     ```
     查 `101` 时写「今日体力消耗」（298），查 `103` 时写「今日钻石消耗」；棋盘镜像那行只在镜像已解析时才有；查不到直说 `玩家数据里没找到「…」这个道具`。
   - **🔎 异常自查（「道具被系统吞了？」· 2026-10 融进这一张卡，不单开页面）**：话术末尾固定追加一段 `—— 异常自查 ——`（`mergeSelfCheckLines`），并且判定结果同时画成芯片 `#gdItemVerdict`（`mergeItemVerdict`）。四条证据链：
-    1. **时间点**：输入框 `#gdItemTime`（`type="datetime-local"`，可选，改了就自动重算）—— `mergeTimeToEpoch()` 按 UTC 解释（跟镜像时间戳同口径）后跟 `resource[id].timestamp` 比：**最后变动早于玩家说的时间 → 「那之后它没再变过，不是那时候被吞的」**（芯片 `k-accent`）；**不早于 → 「那个时段确实变过，继续看下面」**（`k-warn`）。
+    1. **时间点**：输入框 `#gdItemTime`（`type="datetime-local"`，可选，改了就自动重算）—— `mergeTimeToEpoch()` 按**北京时间**解释（`Date.UTC(...) - 8*3600`）后跟 `resource[id].timestamp` 比：**最后变动早于玩家说的时间 → 「那之后它没再变过，不是那时候被吞的」**（芯片 `k-accent`）；**不早于 → 「那个时段确实变过，继续看下面」**（`k-warn`）。
     2. **订单消耗**：`mergeConsumeHits(id)` 查**棋盘镜像那份 JSON** 里的 `orderData.orderDojoMap[].consume` 和 `lastInstruction.orderDojosStr[].consume` —— 命中就写「在 N 个当前订单的消耗里（订单 id 收 M 个）」，`lastInstruction` 里命中还会带上**时间 + 消耗量 + 对方给了什么奖励**（`rewards`，名字查物品名表）。
     3. **记录值 vs 当前值**：货币（101 体力 / 102 铜钱 / 103 红宝石）比对 `recordGold|recordHp|recordDiamond` 与当前值，**不一致就写「直接提研发查存档落库」**。
-    4. **能力边界**：固定写一句「存档里只有最后变动时间、没有变动量和操作来源 —— 被吞要定责得让研发查服务端流水」，**别在话术里替玩家下「系统吞了」的结论**。
+    4. **能力边界**：没贴操作记录时写「存档里只有最后变动时间、没有变动量和操作来源 —— 被吞要定责得让研发查服务端流水」；**贴了操作记录就改成「覆盖不到的时段仍要研发拉全量流水」**（见下「🔎 操作记录」）。**无论哪种，都别在话术里替玩家下「系统吞了」的结论**。
     - ⚠️ 镜像没解析时第 2 条退化成「切到「03 棋盘镜像」粘一份就能对」；道具在镜像里还有（棋盘/背包/仓库）时芯片会多一片「镜像里还在 N 个」。
-    - ⚠️ **时间口径**：页面 `mergeTsText()` 与 `#gdItemTime` 都按 **UTC** 处理（`Date.UTC` 构造 / `toISOString`），跟数据里的时间戳一致；**给玩家报时间时记得 +8 换成北京时间**。
-- **③ 活动进度**（`.card[data-seg-card="activity"]`）：芯片是这份存档里出现过的活动（**点芯片 = 自动填进 `#gdActInput` 并直接生成**，`data-gd-act` 属性）；查询 `#gdActInput` + `#gdActBtn` / `#gdActCopyBtn` + `#gdActOut`。⚠️ **芯片只写中文名**（英文名/id 塞进 `title`），**前 12 个直接铺、其余折进 `<details>「还有 N 个活动」`**，上方 `#gdActCount` 写一行「这份存档里有 N 个活动」—— 60+ 个活动全铺开会糊一屏。
+    - ⚠️ **时间口径：一律北京时间（UTC+8）**。数据里的 `sTime` / `timestamp` / `syncTime` 是**秒级 unix 时间戳**，但游戏服务器写出来的时间串（订单 `createTime`、GM 玩家页上看到的）是 **UTC+8** —— 2026-10 用真实数据核过：`sTime=1793241739` 那条记录，对应订单的 `createTime` 正好是「2026-10-29 10:42:19」。所以 `mergeTsText()` 显示时 **+8 小时**，`#gdItemTime` 用 `Date.UTC(...)-8*3600` 还原成时间戳后再比。**原来按 UTC 显示会整体早 8 小时**（2026-10 已修，`verify.mjs` 锁着 `(n + 8 * 3600) * 1000` 与 `- 8 * 3600` 两处，别再改回去）。
+- **🔎 操作记录（opRecord → 「那次变动到底干了什么」，2026-10 用户贴了一份真实数组：「如果加上这个数据呢」）**：
+  - **它补的是另一半**：MergeState 的 `resource[].timestamp` 只说「最后一次变动是什么时候」，操作记录说「那次变动是**合并 / 交订单 / 母体产出 / 解锁格子**」—— 这是把「被吞」定责往前提一步的**唯一本机证据**。
+  - **入口**：仍挂在 `01 资源核对` 这张卡里，明细表下面一块 `<details class="stat-fold">操作记录`（`#gdOpInput` + `#gdOpBtn` / `#gdOpClearBtn` + `#gdOpHint` / `#gdOpSummary` / `#gdOpTable`）；**用户贴的是纯数组，也接受「某个对象里套着这个数组」**（`mergeOpRowsOf()` 递归找带 `op`/`sTime` 的那组）。
+  - **字段口径（照真实数据认的，不是官方文档）**：`op` 操作码 / `opId` 序号 / `sTime` **秒级 unix 时间戳** / `cbId` 棋盘 / `cellIdx` `cellIdies[]` 格子 / `goodsId` `momGoodsId` `childNum` 棋子 / `consume[]` `rewards[]`（`{goodsId, num}`）/ `orderDojosStr` 订单快照（`from: "ChessboardInitialize"`）。
+  - **op 码 → 中文（`MERGE_OP_LABELS`，按「这条记录带了哪些字段」推断，别当官方定义写进对外话术）**：`30` 棋盘操作 / `201` 母体产出（`momGoodsId` + `childNum`）/ `281` 棋子合并（`cellIdies` 两格 → 一个结果）/ `701` 格子解锁（`cellIdx` + `isByBuy` + `diamondAdd`）/ `1030` 订单初始化（带 `orderDojosStr`）。认不出的写「操作 N」，**绝不猜**。
+  - **命中分四类**：`mergeOpHits(id)` 管行内（① 被消耗 = `consume` 里有它 ② 被获得 = `rewards` 里有它 ③ 作为棋子出现 = `goodsId`/`momGoodsId`），`mergeOpOrderHits(id)` 管订单里（④ 订单收走 / 订单奖励给过，带订单号 + `createTime`）。
+  - **话术里那一段**（`mergeOpLines`，接在 `—— 异常自查 ——` 后面）：
+    ```
+      —— 操作记录（5 条）——
+      · 覆盖时间：2026-10-29 10:42 ~ 2026-10-29 10:42
+      · 被消耗 1 次、共 1 个：2026-10-29 10:42 订单初始化（op 1030） 收 1 个
+      · 订单收走 1 单、共 1 个：订单 5126362062 收 1 个（2026-10-26 10:37:09）
+    ```
+    另有三条按需出现：`获得 N 次、共 X 个` / `作为棋子参与合成 / 被产出 N 次（格 a/b）` / `订单奖励里给过`；填了 `#gdItemTime` 还会写「玩家说的时间之后动过它 N 次 / 一条都没动过它」。
+  - **判定芯片**多两片：「操作记录里被消耗 X 个：不是被吞」（行内没有但订单有 → 「操作记录里被订单收走 X 个：不是被吞」）、「记录里订单奖励给过 X 个」。**有流水就能直接答「不是被吞，是交订单 / 合成吃了」**，不用让玩家等研发。
+  - **表格**（`#gdOpTable`）：时间 / 操作 / 消耗 / 获得 / 格子；订单里的数量也并进「消耗 / 获得」两列（前缀「订单」）；**有查询词时只列跟那个道具有关的行**，否则按时间倒序列最近 100 条；类型芯片按 op 归类（前 5 种，带 `op` 号）。
+  - ⚠️ **只在本机内存**（`opModel`），不写 `/api/data`、不落 localStorage；`#mergeClearBtn` 的「清空」会把操作记录一起复位。
+  - **③ 活动进度**（`.card[data-seg-card="activity"]`）：芯片是这份存档里出现过的活动（**点芯片 = 自动填进 `#gdActInput` 并直接生成**，`data-gd-act` 属性）；查询 `#gdActInput` + `#gdActBtn` / `#gdActCopyBtn` + `#gdActOut`。⚠️ **芯片只写中文名**（英文名/id 塞进 `title`），**前 12 个直接铺、其余折进 `<details>「还有 N 个活动」`**，上方 `#gdActCount` 写一行「这份存档里有 N 个活动」—— 60+ 个活动全铺开会糊一屏。
   - 话术（`mergeActivityScript`）：
     ```
     【玩家游戏数据 · 七日任务（seven_task）】
@@ -454,7 +471,7 @@ npm run verify     # 改完代码、push 前的完整自检
     查活动任务 id（如 `6735`）时换成 `【玩家游戏数据 · 活动任务（6735）】` + 「任务共 N 个，已完成（status=2）M 个」+ 前 8 条进度；查不到直说。
 - **🔁 粘贴后同步核对镜像**（`mergeRenderDiff`）：MergeState 解析完、或棋盘镜像解析完，都会重算 `#mergeDiff`：拿玩家数据的红宝石/铜钱/体力跟镜像的 `currencies`（103/102/101）比 —— **一致标黄（`k-accent`）写「一致 86130」，不一致标橙（`k-warn`）写「不一致：玩家数据 X / 镜像 Y」**（说明镜像不是同一时刻抓的）；镜像还没解析时提示「去第 03 段粘一份」。⚠️ 两边的 `syncTime` 一致时才是同一份快照（实测都是 1793248480）。
 - **只在本机**：`mergeModel` 只在内存里，不写 `/api/data`、不落 localStorage（刷新就没了）。`stats`（客户端网关测速，含内部域名）解析出来但**没上界面**，别外发；`energy_rank.robotStates` / `teahouse_race.playerDatas` 里有其他玩家昵称，也只在数据里、不上界面。
-- **测试**：`tools/smoke.cjs` 第 **8z-2** 节 **24 条**（默认空表 / MergeState 解析出货币·体力·存档 ID·当日消耗·资源数·活动数 / 资源表三列 / 镜像没解析时对账行提示 / 活动芯片中文名 / **解析镜像后对账「一致」** / **改数后「不一致」** / 资源话术（含当日钻石消耗 + 镜像三处）/ 体力话术带当日消耗 / 输 id 查 / 查不到直说 / 活动话术（别名 + id + 关键进度）/ 活动任务进度 / 活动查不到 / 点芯片自动生成 / **异常自查四段（订单消耗 · 最近一次操作带奖励 · 记录值对账 · 能力边界）** / **时间点两个方向（晚于最后变动 → 不是被吞；早于 → 那个时段变过）** / 判定芯片 / 坏 JSON 只提示 / 清空（连时间点与判定芯片一起清） / 清空后再查会提示先解析 / 全程 0 请求）；`tools/verify.mjs` 3g-3 另有 **6 条**静态断言（页面结构、解析函数、两套话术、对账、只在本机）。
+- **测试**：`tools/smoke.cjs` 第 **8z-2** 节 **24 条**（默认空表 / MergeState 解析出货币·体力·存档 ID·当日消耗·资源数·活动数 / 资源表三列 / 镜像没解析时对账行提示 / 活动芯片中文名 / **解析镜像后对账「一致」** / **改数后「不一致」** / 资源话术（含当日钻石消耗 + 镜像三处）/ 体力话术带当日消耗 / 输 id 查 / 查不到直说 / 活动话术（别名 + id + 关键进度）/ 活动任务进度 / 活动查不到 / 点芯片自动生成 / **异常自查四段（订单消耗 · 最近一次操作带奖励 · 记录值对账 · 能力边界）** / **时间点两个方向（晚于最后变动 → 不是被吞；早于 → 那个时段变过）** / 判定芯片 / 坏 JSON 只提示 / 清空（连时间点与判定芯片一起清） / 清空后再查会提示先解析 / 全程 0 请求）；第 **8z-3** 节 **11 条**（操作记录：认出 5 条 + 时间范围 / 类型芯片按 op 归类 / 流水表五列 + 订单快照 / 查红宝石「订单奖励里给过 1 次、共 25 个」/ 表跟着查询词过滤成 1 行 / 查 21510「订单收走 1 单、共 1 个（订单号 + 时间）」/ 判定芯片「被订单收走 N 个：不是被吞」/ 玩家说的时间之后一条都没动过它 / 「清空记录」连话术里那段一起收掉 / 坏 JSON 只提示 / 全程 0 请求）；`tools/verify.mjs` 3g-3 另有 **11 条**静态断言（页面结构、解析函数、两套话术、对账、只在本机、操作记录入口与函数、四类命中、话术段与芯片、北京时间口径）。
 
 ## 🧩 棋盘镜像（`#tab-gamedata` 的第 03 段 · 粘 GM 镜像 JSON，2026-10）
 

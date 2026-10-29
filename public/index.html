@@ -4647,6 +4647,18 @@
                     <summary>资源明细 <span class="card-sub" id="gdResCount">—</span></summary>
                     <div class="career-scroll" style="margin-top:8px;"><table class="career-table" id="gdResTable"></table></div>
                 </details>
+                <details class="stat-fold" style="margin-top:10px;">
+                    <summary>操作记录 <span class="card-sub" id="gdOpCount">可选：合并 / 订单消耗 / 产出都能对到时间</span></summary>
+                    <div class="hint-text" style="margin-top:8px;">把 GM 那边的操作记录（带 op / sTime / consume / rewards 的数组）整段贴进来 —— 能直接看出「这个道具那次是被合成吃了、还是交了订单」</div>
+                    <textarea id="gdOpInput" rows="4" style="margin-top:8px;" placeholder='[{"uid":46926873,"op":281,"sTime":1793241739,"opId":173334,"cellIdies":[2,9],"momGoodsId":10606,"goodsId":20801}]'></textarea>
+                    <div class="flex-row" style="margin-top:8px;">
+                        <button id="gdOpBtn">🔍 解析操作记录</button>
+                        <button id="gdOpClearBtn" class="reset-btn">🧹 清空记录</button>
+                        <span class="hint-text" id="gdOpHint"></span>
+                    </div>
+                    <div class="stat-chips" id="gdOpSummary"></div>
+                    <div class="career-scroll" style="margin-top:8px;"><table class="career-table" id="gdOpTable"></table></div>
+                </details>
             </div>
 
             <div class="card" data-seg-card="activity">
@@ -15461,11 +15473,13 @@
                                         question: '问卷', survey: '问卷（旧）', custom_house_new_product_preview: '自宅新品预览'
                                     };
                                     function mergeActivityLabel(name) { return MERGE_ACTIVITY_LABELS[name] || name; }
-                                    // 时间戳 → 「YYYY-MM-DD HH:MM」（UTC，跟快照里的服务器时间一致）
+                                    // 时间戳（秒）→ 「YYYY-MM-DD HH:MM」北京时间
+                                    // ⚠️ 2026-10 用真实数据核过：操作记录里 sTime=1793241739 对应的订单 createTime 就是「2026-10-29 10:42:19」，
+                                    //   说明服务器时间串是 UTC+8，所以这里统一 +8 显示（原来的 UTC 显示会比 GM 页早 8 小时）。
                                     function mergeTsText(ts) {
                                         const n = +ts || 0;
                                         if (!n) return '—';
-                                        try { return new Date(n * 1000).toISOString().replace('T', ' ').slice(0, 16); } catch (_) { return String(n); }
+                                        try { return new Date((n + 8 * 3600) * 1000).toISOString().replace('T', ' ').slice(0, 16); } catch (_) { return String(n); }
                                     }
                                     function mergeNameOf(id) { return boardNameOf(id) || ('道具 ' + id); }
                                     // 解析成 { ok, diamond, gold, hp, metaId, syncTime, resource[], activities[], taskActs[], meta{}, guides[], gifts[] }
@@ -15635,11 +15649,265 @@
                                         }
                                         mergeRenderDiff();
                                     }
-                                    // 「玩家说的时间」→ 秒（datetime-local 按 UTC 解释，跟镜像里的时间戳同口径）
+                                    // 「玩家说的时间」→ 秒（datetime-local 是北京时间，减去 8 小时才是 unix 时间戳，跟数据同口径）
                                     function mergeTimeToEpoch(v) {
                                         const m = /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/.exec(String(v == null ? '' : v));
                                         if (!m) return 0;
-                                        return Math.floor(Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]) / 1000);
+                                        return Math.floor(Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]) / 1000) - 8 * 3600;
+                                    }
+                                    // ==================== 🧾 操作记录（opRecord → 道具到底被谁拿走 / 被合成吃掉）====================
+                                    // 用户：「如果加上这个数据呢」—— MergeState 只说「资源最后一次变动是什么时候」，这份操作记录说的是
+                                    //   「那次变动干了什么」：合成 / 母体产出 / 订单消耗 / 格子解锁，都带 sTime 与涉及格子。
+                                    //   ⚠️ op 号没有官方文档，标签是按「这条记录带了哪些字段」推断的，别当官方定义写进对外话术。
+                                    //   ⚠️ 跟 MergeState / 棋盘镜像一个规矩：只在本机内存里解析，不进 /api/data、也不落 localStorage。
+                                    let opModel = null;
+                                    const MERGE_OP_LABELS = {
+                                        30: '棋盘操作', 201: '母体产出', 281: '棋子合并', 701: '格子解锁', 1030: '订单初始化'
+                                    };
+                                    function mergeOpLabel(op) {
+                                        const n = +op || 0;
+                                        return MERGE_OP_LABELS[n] ? (MERGE_OP_LABELS[n] + '（op ' + n + '）') : ('操作 ' + n);
+                                    }
+                                    // 贴进来的可能是纯数组，也可能是一整块对象里套着数组 → 递归找出「像操作记录」的那个数组
+                                    function mergeOpRowsOf(v) {
+                                        if (Array.isArray(v)) return v;
+                                        if (!v || typeof v !== 'object') return null;
+                                        const keys = Object.keys(v);
+                                        for (let i = 0; i < keys.length; i++) {
+                                            const child = v[keys[i]];
+                                            if (Array.isArray(child) && child.some(x => x && typeof x === 'object'
+                                                && ('op' in x || 'opId' in x || 'sTime' in x))) return child;
+                                            if (child && typeof child === 'object' && !Array.isArray(child)) {
+                                                const deep = mergeOpRowsOf(child);
+                                                if (deep) return deep;
+                                            }
+                                        }
+                                        return null;
+                                    }
+                                    // 解析成 { ok, error, rows[], from, to, ops{} }；rows 按时间正序
+                                    function mergeOpParse(raw) {
+                                        const model = { ok: false, error: '', rows: [], from: 0, to: 0, ops: {} };
+                                        const txt = String(raw == null ? '' : raw).trim();
+                                        if (!txt) return model;
+                                        let data = null;
+                                        try { data = JSON.parse(txt); } catch (e) {
+                                            model.error = 'JSON 解析失败：' + String((e && e.message) || e);
+                                            return model;
+                                        }
+                                        const arr = mergeOpRowsOf(data);
+                                        if (!arr || !arr.length) {
+                                            model.error = '这段里没认出操作记录（应该是带 op / sTime / consume 的对象数组）';
+                                            return model;
+                                        }
+                                        const pair = (list) => (Array.isArray(list) ? list : []).map(x => ({
+                                            id: String(x && x.goodsId != null ? x.goodsId : ''), n: +((x && x.num) || 0)
+                                        })).filter(x => x.id);
+                                        model.rows = arr.map((o, i) => {
+                                            const r = (o && typeof o === 'object') ? o : {};
+                                            const orders = mergeJson(r.orderDojosStr, null);
+                                            return {
+                                                i: i, op: +r.op || 0, opId: +r.opId || 0, ts: +r.sTime || 0,
+                                                cbId: r.cbId != null ? +r.cbId : null,
+                                                cellIdx: r.cellIdx != null ? +r.cellIdx : null,
+                                                cellIdies: Array.isArray(r.cellIdies) ? r.cellIdies.map(x => +x) : [],
+                                                goodsId: r.goodsId != null ? String(r.goodsId) : '',
+                                                momGoodsId: r.momGoodsId != null ? String(r.momGoodsId) : '',
+                                                childNum: +r.childNum || 0,
+                                                consume: pair(r.consume), rewards: pair(r.rewards),
+                                                orders: Array.isArray(orders) ? orders : []
+                                            };
+                                        }).filter(r => r.op || r.opId);
+                                        model.rows.sort((a, b) => (a.ts - b.ts) || (a.opId - b.opId));
+                                        model.rows.forEach(r => { model.ops[r.op] = (model.ops[r.op] || 0) + 1; });
+                                        const stamps = model.rows.map(r => r.ts).filter(Boolean);
+                                        model.from = stamps.length ? Math.min.apply(null, stamps) : 0;
+                                        model.to = stamps.length ? Math.max.apply(null, stamps) : 0;
+                                        model.ok = model.rows.length > 0;
+                                        return model;
+                                    }
+                                    // 这个道具在这段操作记录里出现过几次：被消耗 / 被获得 / 作为合成目标（母子棋）出现
+                                    function mergeOpHits(id) {
+                                        const out = [];
+                                        if (!opModel || !opModel.ok) return out;
+                                        const k = String(id);
+                                        opModel.rows.forEach(r => {
+                                            const c = r.consume.filter(x => x.id === k)[0];
+                                            const g = r.rewards.filter(x => x.id === k)[0];
+                                            if (c) out.push({ kind: 'consume', n: c.n, ts: r.ts, op: r.op, row: r });
+                                            else if (g) out.push({ kind: 'gain', n: g.n, ts: r.ts, op: r.op, row: r });
+                                            else if (r.goodsId === k || r.momGoodsId === k) {
+                                                out.push({ kind: 'touch', n: r.childNum || 1, ts: r.ts, op: r.op, row: r });
+                                            }
+                                        });
+                                        return out;
+                                    }
+                                    // 操作记录里那些订单快照（op 1030 的 orderDojosStr）：这个道具被订单收走（consume）/ 被订单奖励给过（rewards）
+                                    function mergeOpOrderHits(id) {
+                                        const out = [];
+                                        if (!opModel || !opModel.ok) return out;
+                                        const k = String(id);
+                                        const seen = {};
+                                        const take = (list, kind, o, r) => {
+                                            (Array.isArray(list) ? list : []).forEach(x => {
+                                                if (!x || String(x.goodsId) !== k) return;
+                                                const key = kind + '|' + String((o && o.id) || '') + '|' + String(x.num);
+                                                if (seen[key]) return;
+                                                seen[key] = 1;
+                                                out.push({
+                                                    kind: kind, id: String((o && o.id) || ''), n: +x.num || 0,
+                                                    time: String((o && o.createTime) || ''), ts: r.ts, row: r
+                                                });
+                                            });
+                                        };
+                                        opModel.rows.forEach(r => {
+                                            r.orders.forEach(o => {
+                                                take(o && o.consume, 'consume', o, r);
+                                                take(o && o.rewards, 'gain', o, r);
+                                            });
+                                        });
+                                        return out;
+                                    }
+                                    // 话术里那几条：覆盖时间 / 被消耗 / 被获得 / 合成出现 / 订单收走 / 跟时间点对一下
+                                    function mergeOpLines(id) {
+                                        const out = [];
+                                        if (!opModel || !opModel.ok) return out;
+                                        out.push('—— 操作记录（' + opModel.rows.length + ' 条）——');
+                                        out.push('· 覆盖时间：' + mergeTsText(opModel.from) + ' ~ ' + mergeTsText(opModel.to));
+                                        const hits = mergeOpHits(id);
+                                        const used = hits.filter(h => h.kind === 'consume');
+                                        const got = hits.filter(h => h.kind === 'gain');
+                                        const touch = hits.filter(h => h.kind === 'touch');
+                                        const oh = mergeOpOrderHits(id);
+                                        const sum = (list) => list.reduce((a, h) => a + h.n, 0);
+                                        if (!hits.length && !oh.length) {
+                                            out.push('· 这段记录里没有「' + mergeNameOf(id) + '」：既没被消耗、也没产出 —— 只能说这段时间它没动过，要追责得让研发拉完整流水。');
+                                        }
+                                        if (used.length) {
+                                            out.push('· 被消耗 ' + used.length + ' 次、共 ' + sum(used) + ' 个：'
+                                                + used.slice(-3).map(h => mergeTsText(h.ts) + ' ' + mergeOpLabel(h.op) + ' 收 ' + h.n + ' 个').join('；'));
+                                        }
+                                        if (got.length) {
+                                            out.push('· 获得 ' + got.length + ' 次、共 ' + sum(got) + ' 个：'
+                                                + got.slice(-3).map(h => mergeTsText(h.ts) + ' ' + mergeOpLabel(h.op) + ' 给 ' + h.n + ' 个').join('；'));
+                                        }
+                                        if (touch.length) {
+                                            out.push('· 作为棋子参与合成 / 被产出 ' + touch.length + ' 次：'
+                                                + touch.slice(-3).map(h => mergeTsText(h.ts) + ' ' + mergeOpLabel(h.op)
+                                                    + (h.row.cellIdies.length ? '（格 ' + h.row.cellIdies.join('/') + '）' : '')).join('；'));
+                                        }
+                                        const used2 = oh.filter(h => h.kind === 'consume');
+                                        const got2 = oh.filter(h => h.kind === 'gain');
+                                        if (used2.length) {
+                                            out.push('· 订单收走 ' + used2.length + ' 单、共 ' + sum(used2) + ' 个：'
+                                                + used2.slice(0, 4).map(o => '订单 ' + (o.id || '?') + ' 收 ' + o.n + ' 个' + (o.time ? '（' + o.time + '）' : '')).join('、'));
+                                        }
+                                        if (got2.length) {
+                                            out.push('· 订单奖励里给过 ' + got2.length + ' 次、共 ' + sum(got2) + ' 个：'
+                                                + got2.slice(0, 4).map(o => '订单 ' + (o.id || '?') + ' 给 ' + o.n + ' 个' + (o.time ? '（' + o.time + '）' : '')).join('、'));
+                                        }
+                                        const claim = mergeTimeToEpoch((document.getElementById('gdItemTime') || {}).value);
+                                        if (claim) {
+                                            const after = hits.concat(oh).filter(h => h.ts >= claim);
+                                            if (!after.length) out.push('· 玩家说的时间之后：这段记录里一条都没动过它。');
+                                            else {
+                                                const last = after[after.length - 1];
+                                                out.push('· 玩家说的时间之后动过它 ' + after.length + ' 次，最近一次 ' + mergeTsText(last.ts)
+                                                    + (last.op ? '（' + mergeOpLabel(last.op) + '）' : '（订单）'));
+                                            }
+                                        }
+                                        return out;
+                                    }
+                                    // 操作记录表：有查询词就只列跟它有关的，没有就按时间倒序列最近 100 条
+                                    function mergeOpRender() {
+                                        const sum = document.getElementById('gdOpSummary');
+                                        const table = document.getElementById('gdOpTable');
+                                        const cnt = document.getElementById('gdOpCount');
+                                        if (!opModel || !opModel.ok) {
+                                            if (sum) sum.innerHTML = '';
+                                            if (table) table.innerHTML = '';
+                                            if (cnt) cnt.textContent = '可选：合并 / 订单消耗 / 产出都能对到时间';
+                                            return;
+                                        }
+                                        if (cnt) cnt.textContent = opModel.rows.length + ' 条 · ' + mergeTsText(opModel.from) + ' ~ ' + mergeTsText(opModel.to);
+                                        if (sum) {
+                                            const chips = [statChip('操作 ' + opModel.rows.length + ' 条', 'k-accent'),
+                                                statChip('时间 ' + mergeTsText(opModel.from) + ' ~ ' + mergeTsText(opModel.to))];
+                                            Object.keys(opModel.ops).sort((a, b) => opModel.ops[b] - opModel.ops[a]).slice(0, 5)
+                                                .forEach(k => chips.push(statChip(mergeOpLabel(k) + ' × ' + opModel.ops[k])));
+                                            sum.innerHTML = chips.join('');
+                                        }
+                                        if (table) {
+                                            const q = ((document.getElementById('gdItemInput') || {}).value || '').trim();
+                                            const ids = q ? boardIdsOfQuery(q) : [];
+                                            const want = ids.length ? String(ids[0]) : '';
+                                            let rows = opModel.rows;
+                                            if (want) {
+                                                const keep = {};
+                                                mergeOpHits(want).forEach(h => { keep[h.row.i] = 1; });
+                                                mergeOpOrderHits(want).forEach(h => { keep[h.row.i] = 1; });
+                                                rows = opModel.rows.filter(r => keep[r.i]);
+                                            }
+                                            rows = rows.slice(-100).reverse();
+                                            const pairs = (list) => list.map(x => (boardNameOf(x.id) || x.id) + '×' + x.n).join('、');
+                                            // 订单快照里的消耗 / 奖励也一起列（订单就是「最常把东西收走」的地方）
+                                            const cellOf = (own, ords, label) => {
+                                                const a = pairs(own);
+                                                const b = ords.length ? (label + ' ' + pairs(ords)) : '';
+                                                return [a, b].filter(Boolean).join(' ｜ ') || '—';
+                                            };
+                                            let h = '<thead><tr><th>时间</th><th>操作</th><th>消耗</th><th>获得</th><th>格子</th></tr></thead><tbody>';
+                                            h += rows.length ? rows.map(r => {
+                                                const cellTxt = r.cellIdies.length ? ('格 ' + r.cellIdies.join('/'))
+                                                    : (r.cellIdx != null ? ('格 ' + r.cellIdx)
+                                                        : (r.momGoodsId ? ('母棋 ' + (boardNameOf(r.momGoodsId) || r.momGoodsId)) : '—'));
+                                                const ordUse = [], ordGain = [];
+                                                r.orders.forEach(o => {
+                                                    (o && Array.isArray(o.consume) ? o.consume : []).forEach(x => ordUse.push({ id: String(x.goodsId), n: +x.num || 0 }));
+                                                    (o && Array.isArray(o.rewards) ? o.rewards : []).forEach(x => ordGain.push({ id: String(x.goodsId), n: +x.num || 0 }));
+                                                });
+                                                return '<tr><td>' + escapeHtml(mergeTsText(r.ts)) + '</td><td>' + escapeHtml(mergeOpLabel(r.op))
+                                                    + (r.orders.length ? ' <span class="hint-text">订单 ' + r.orders.length + ' 个</span>' : '')
+                                                    + '</td><td>' + escapeHtml(cellOf(r.consume, ordUse, '订单'))
+                                                    + '</td><td>' + escapeHtml(cellOf(r.rewards, ordGain, '订单'))
+                                                    + '</td><td>' + escapeHtml(cellTxt) + '</td></tr>';
+                                            }).join('')
+                                                : '<tr><td colspan="5" style="color:var(--ink-3);">'
+                                                    + (want ? ('这段记录里没有「' + escapeHtml(mergeNameOf(want)) + '」') : '这份记录里没有可展示的操作') + '</td></tr>';
+                                            table.innerHTML = h + '</tbody>';
+                                        }
+                                    }
+                                    function mergeOpRun() {
+                                        const input = document.getElementById('gdOpInput');
+                                        const raw = (input && input.value) || '';
+                                        if (!raw.trim()) {
+                                            opModel = null;
+                                            mergeOpRender();
+                                            teaSetHint('gdOpHint', '先把操作记录整段贴到上面');
+                                            return null;
+                                        }
+                                        const model = mergeOpParse(raw);
+                                        if (model.error) {
+                                            opModel = null;
+                                            mergeOpRender();
+                                            teaSetHint('gdOpHint', model.error);
+                                            return null;
+                                        }
+                                        opModel = model;
+                                        mergeOpRender();
+                                        teaSetHint('gdOpHint', '认出 ' + model.rows.length + ' 条操作（'
+                                            + mergeTsText(model.from) + ' ~ ' + mergeTsText(model.to) + '）');
+                                        const q = ((document.getElementById('gdItemInput') || {}).value || '').trim();
+                                        if (q && mergeModel) mergeItemRun();
+                                        return model;
+                                    }
+                                    function mergeOpClear() {
+                                        const el = document.getElementById('gdOpInput');
+                                        if (el) el.value = '';
+                                        opModel = null;
+                                        mergeOpRender();
+                                        teaSetHint('gdOpHint', '已清空操作记录');
+                                        const q = ((document.getElementById('gdItemInput') || {}).value || '').trim();
+                                        if (q && mergeModel) mergeItemRun();
                                     }
                                     // 这个道具在「订单消耗 / 最近一次操作」里出现过没有（数据来自棋盘镜像那份 JSON）
                                     function mergeConsumeHits(id) {
@@ -15699,7 +15967,9 @@
                                                 ? ('一致（' + now + '）')
                                                 : ('不一致（记录 ' + pair[2] + ' / 当前 ' + now + '）—— 这种直接提研发查存档落库')));
                                         }
-                                        out.push('· 注：存档里只有「最后变动时间」，没有变动量和操作来源 —— 「被吞」要定责得让研发查服务端流水。');
+                                        out.push(opModel && opModel.ok
+                                            ? '· 注：存档只说「最后变动时间」，变动量 / 来源看下面这段操作记录；记录覆盖不到的时段仍要研发拉服务端全量流水。'
+                                            : '· 注：存档里只有「最后变动时间」，没有变动量和操作来源 —— 「被吞」要定责得让研发查服务端流水。');
                                         return out;
                                     }
                                     // 判定芯片：先回答「那个时间之后到底有没有变过」，再说有没有找到消耗去向
@@ -15720,6 +15990,16 @@
                                             if (hits.some(h => h.from === '最近操作')) chips.push(statChip('最近一次操作消耗过它', 'k-warn'));
                                             else if (hits.length) chips.push(statChip('在当前订单的消耗里', 'k-warn'));
                                             else chips.push(statChip('订单 / 最近操作里都没消耗它', 'k-plain'));
+                                        }
+                                        if (opModel && opModel.ok) {
+                                            const usedN = mergeOpHits(id).filter(h => h.kind === 'consume').reduce((a, h) => a + h.n, 0);
+                                            const oh = mergeOpOrderHits(id);
+                                            const oUsed = oh.filter(h => h.kind === 'consume').reduce((a, h) => a + h.n, 0);
+                                            const oGot = oh.filter(h => h.kind === 'gain').reduce((a, h) => a + h.n, 0);
+                                            if (usedN > 0) chips.push(statChip('操作记录里被消耗 ' + usedN + ' 个：不是被吞', 'k-accent'));
+                                            else if (oUsed > 0) chips.push(statChip('操作记录里被订单收走 ' + oUsed + ' 个：不是被吞', 'k-accent'));
+                                            else chips.push(statChip('操作记录里没消耗过它', 'k-plain'));
+                                            if (oGot > 0) chips.push(statChip('记录里订单奖励给过 ' + oGot + ' 个', 'k-plain'));
                                         }
                                         const c = boardModel ? ((boardModel.counts || {})[id] || { onBoard: 0, inBackpack: 0, inWarehouse: 0 }) : null;
                                         if (c && (c.onBoard + c.inBackpack + c.inWarehouse) > 0) chips.push(statChip('镜像里还在 ' + (c.onBoard + c.inBackpack + c.inWarehouse) + ' 个', 'k-accent'));
@@ -15744,6 +16024,7 @@
                                             out.push('棋盘镜像：棋盘上 ' + c.onBoard + ' 个、临时背包 ' + c.inBackpack + ' 个、仓库 ' + c.inWarehouse + ' 个。');
                                         }
                                         mergeSelfCheckLines(model, id, rec).forEach(l => out.push(l));
+                                        mergeOpLines(id).forEach(l => out.push(l));
                                         return out.join('\n');
                                     }
                                     // 活动进度话术（用户要的第 2 件）
@@ -15808,6 +16089,7 @@
                                         const rec = ids.length ? (mergeModel.resource.filter(r => r.id === ids[0])[0] || null) : null;
                                         const box = document.getElementById('gdItemVerdict');
                                         if (box) box.innerHTML = mergeItemVerdict(mergeModel, ids[0], rec, q).join('');
+                                        mergeOpRender();
                                         teaSetHint('gdItemHint', /没找到/.test(text) ? '这份存档里没有这个名字，换个写法或直接输 id' : '话术已生成（含异常自查）');
                                     }
                                     function mergeActRun() {
@@ -15839,6 +16121,10 @@
                                         if (tInput) tInput.value = '';
                                         mergeModel = null;
                                         mergeRender(null);
+                                        opModel = null;
+                                        const opEl = document.getElementById('gdOpInput');
+                                        if (opEl) opEl.value = '';
+                                        mergeOpRender();
                                         teaSetHint('mergeHint', '已清空');
                                     }
 
@@ -17341,6 +17627,8 @@
                                             if (q.trim() && mergeModel) mergeItemRun();
                                         });
                                         addEvent('gdActInput', 'keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); mergeActRun(); } });
+                                        setClick('gdOpBtn', mergeOpRun);
+                                        setClick('gdOpClearBtn', mergeOpClear);
                                         const gdActChips = document.getElementById('gdActChips');
                                         if (gdActChips) {
                                             gdActChips.addEventListener('click', (e) => {

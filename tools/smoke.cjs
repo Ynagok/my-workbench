@@ -3078,8 +3078,8 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     check($('gdItemVerdict').textContent.indexOf('最近一次操作消耗过它') !== -1,
       '判定芯片直接点名「最近一次操作消耗过它」', $('gdItemVerdict').textContent);
 
-    // 时间点：比最后变动晚 → 那之后没变过（不是被吞）
-    $('gdItemTime').value = '2026-10-29T05:30';
+    // 时间点：比最后变动晚 → 那之后没变过（不是被吞）—— 「最后变动」北京 12:10，这里填 13:00
+    $('gdItemTime').value = '2026-10-29T13:00';
     $('gdItemBtn').click();
     await sleep(60);
     check(/早于玩家说的时间 → 那之后它没再变过/.test($('gdItemOut').value)
@@ -3159,6 +3159,106 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
 
     check(posts.slice(postsGd).filter(p => /careerData|dailyData|gamedata|merge/i.test(p.url)).length === 0,
       '资源核对 / 活动进度全程只在本机（0 请求）', posts.slice(postsGd).map(p => p.url).join(' | '));
+  }
+
+  console.log('--- 8z-3. 玩家游戏数据 · 操作记录（合并 / 订单消耗 / 产出 → 道具到底被谁拿走）---');
+  {
+    const postsOp = posts.length;
+    $('gdItemInput').value = '';
+    // 用户给的真实操作记录（截 5 条代表：棋盘操作 / 格子解锁 / 订单初始化 / 母体产出 / 棋子合并）
+    const opPayload = [
+      { uid: 46926873, op: 30, sTime: 1793241739, opId: 173329, cbId: 1 },
+      { diamondAdd: 0, opId: 173330, uid: 46926873, op: 701, isByBuy: 0, sTime: 1793241739, cellIdx: 1, cbId: 1 },
+      {
+        orderDojosStr: JSON.stringify([{
+          rewards: [{ goodsId: 103, num: 25, from: 0 }, { goodsId: 101, num: 200, from: 0 }],
+          rookieId: 505, type: 5, createTime: '2026-10-26 10:37:09', slotId: 8, id: 5126362062,
+          consume: [{ num: 1, goodsId: 21510 }], chessboardId: 1
+        }]),
+        from: 'ChessboardInitialize', op: 1030, uid: 46926873, sTime: 1793241739, opId: 173332, cbId: 1
+      },
+      { childNum: 2, momUniqueId: 1793241739540052, sTime: 1793241739, cbId: 1, op: 201, uid: 46926873, momCellIdx: 1, opId: 173333, momGoodsId: 10606 },
+      { momCellIdx: 1, momGoodsId: 10606, goodsId: 20801, cbId: 1, uid: 46926873, op: 281, opId: 173334, cellIdies: [2, 9], sTime: 1793241739 }
+    ];
+    $('gdOpInput').value = JSON.stringify(opPayload);
+    $('gdOpBtn').click();
+    await sleep(80);
+    check(/认出 5 条操作/.test($('gdOpHint').textContent) && /5 条 · 2026-10-29 10:42/.test($('gdOpCount').textContent),
+      '操作记录解析：认出 5 条 + 时间范围（sTime 是秒，跟存档同一套 UTC 口径）',
+      $('gdOpHint').textContent + ' / ' + $('gdOpCount').textContent);
+    check(/操作 5 条/.test($('gdOpSummary').textContent) && /棋子合并（op 281） × 1/.test($('gdOpSummary').textContent)
+      && /格子解锁（op 701） × 1/.test($('gdOpSummary').textContent),
+      '类型芯片按 op 归类（合并 / 母体产出 / 格子解锁 …），op 号一起写出来', $('gdOpSummary').textContent.slice(0, 160));
+    check($('gdOpTable').querySelectorAll('tbody tr').length === 5
+      && /格 2\/9/.test($('gdOpTable').textContent) && /订单 1 个/.test($('gdOpTable').textContent)
+      && /订单 .+×25/.test($('gdOpTable').textContent),
+      '流水表：时间 / 操作 / 消耗 / 获得 / 格子，订单快照另标「订单 N 个」',
+      $('gdOpTable').textContent.replace(/\s+/g, ' ').slice(0, 160));
+
+    // 重新贴一份 MergeState（上一段末尾清空过），让话术能跑
+    const opState = {
+      diamond: 911, recordDiamond: 911, gold: 86130, recordGold: 86130, hpData: 16, recordHp: 16,
+      recordID: 178288, syncTime: 1793248480,
+      others: JSON.stringify({
+        resource: [{ num: 911, timestamp: 1793247056, id: '103' }, { num: 16, timestamp: 1793248480, id: '101' }],
+        meta: [], activities: []
+      })
+    };
+    $('mergeInput').value = JSON.stringify(opState);
+    $('mergeParseBtn').click();
+    await sleep(80);
+
+    // 查红宝石（103）：订单奖励里给过它
+    $('gdItemInput').value = '103';
+    $('gdItemBtn').click();
+    await sleep(60);
+    check(/—— 操作记录（5 条）——/.test($('gdItemOut').value)
+      && /覆盖时间：2026-10-29 10:42 ~ 2026-10-29 10:42/.test($('gdItemOut').value)
+      && /订单奖励里给过 1 次、共 25 个/.test($('gdItemOut').value)
+      && /记录覆盖不到的时段仍要研发拉服务端全量流水/.test($('gdItemOut').value),
+      '资源话术自动接上「操作记录」：覆盖时间 / 获得次数与数量；能力边界改成「覆盖不到的时段仍要拉全量流水」',
+      $('gdItemOut').value.replace(/\n/g, ' | ').slice(-220));
+    check($('gdOpTable').querySelectorAll('tbody tr').length === 1,
+      '表跟着查询词过滤：只留跟「红宝石」有关的操作（1 条）',
+      $('gdOpTable').querySelectorAll('tbody tr').length);
+
+    // 查 21510：被订单消耗 → 直说「不是被吞」
+    $('gdItemInput').value = '21510';
+    $('gdItemBtn').click();
+    await sleep(60);
+    check(/订单收走 1 单、共 1 个/.test($('gdItemOut').value)
+      && /订单 5126362062 收 1 个（2026-10-26 10:37:09）/.test($('gdItemOut').value),
+      '被订单收走的道具：记录里写清「订单收走 N 单、共 X 个（订单号 + 时间）」',
+      $('gdItemOut').value.replace(/\n/g, ' | ').slice(-220));
+    check(/操作记录里被订单收走 1 个：不是被吞/.test($('gdItemVerdict').textContent),
+      '判定芯片：记录里被订单收走 → 直接判「不是被吞」',
+      $('gdItemVerdict').textContent);
+
+    // 时间点比对：比流水晚 → 那之后一条都没动过它
+    $('gdItemTime').value = '2026-10-30T00:00';
+    $('gdItemBtn').click();
+    await sleep(60);
+    check(/玩家说的时间之后：这段记录里一条都没动过它。/.test($('gdItemOut').value),
+      '玩家说的时间比流水晚 → 直说「那之后一段记录里一次都没动过它」',
+      $('gdItemOut').value.replace(/\n/g, ' | ').slice(-160));
+
+    // 清空记录：话术里那条流水跟着没了
+    $('gdOpClearBtn').click();
+    await sleep(60);
+    check($('gdOpInput').value === '' && $('gdOpTable').innerHTML === '' && $('gdOpSummary').innerHTML === ''
+      && /已清空操作记录/.test($('gdOpHint').textContent)
+      && !/操作记录（/.test($('gdItemOut').value),
+      '「清空记录」把流水框 / 表 / 芯片清掉，重生成的话术里也不再有那一段',
+      $('gdOpHint').textContent);
+
+    // 坏 JSON
+    $('gdOpInput').value = '{ 这不还是 JSON }';
+    $('gdOpBtn').click();
+    await sleep(60);
+    check(/JSON 解析失败/.test($('gdOpHint').textContent) && $('gdOpTable').innerHTML === '',
+      '贴的不是 JSON → 只提示解析失败，页面不炸', $('gdOpHint').textContent.slice(0, 60));
+    check(posts.slice(postsOp).filter(p => /careerData|dailyData|op|merge/i.test(p.url)).length === 0,
+      '操作记录全程只在本机（0 请求）', posts.slice(postsOp).map(p => p.url).join(' | '));
   }
 
   console.log('--- 9. 无未捕获异常 ---');
