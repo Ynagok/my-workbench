@@ -663,7 +663,7 @@ ok(/let opModel = null;/.test(s) && /const MERGE_OP_LABELS = \{/.test(s) && /281
   && /function mergeOpLabel\(op\)/.test(s) && /function mergeOpRowsOf\(v\)/.test(s)
   && /function mergeOpParse\(raw\)/.test(s) && /function mergeOpHits\(id\)/.test(s)
   && /function mergeOpOrderHits\(id\)/.test(s) && /function mergeOpLines\(id\)/.test(s)
-  && /function mergeOpRender\(\)/.test(s) && /function mergeOpRun\(\)/.test(s) && /function mergeOpClear\(\)/.test(s),
+  && /function mergeOpRender\(\)/.test(s) && /function mergeOpRun\(rawArg\)/.test(s) && /function mergeOpClear\(\)/.test(s),
   '操作记录：纯数组 / 对象里套数组都认（递归找带 op·sTime 的那组），op 号 → 中文标签（合并 / 订单初始化 / 母体产出 …），命中分「消耗 / 获得 / 合成出现 / 订单收走」四类');
 ok(/被消耗 ' \+ used\.length \+ ' 次、共 '/.test(s) && /获得 ' \+ got\.length \+ ' 次、共 '/.test(s)
   && /订单收走 ' \+ used2\.length \+ ' 单、共 '/.test(s) && /订单奖励里给过 ' \+ got2\.length \+ ' 次、共 '/.test(s)
@@ -674,6 +674,16 @@ ok(/被消耗 ' \+ used\.length \+ ' 次、共 '/.test(s) && /获得 ' \+ got\.l
   '资源话术接上操作记录：覆盖时间 / 被消耗 / 获得 / 合成出现 / 订单收走 / 订单奖励 / 跟玩家说的时间点对一遍；判定芯片直说「不是被吞」');
 ok(/function mergeTsText\(ts\)/.test(s) && /\(n \+ 8 \* 3600\) \* 1000/.test(s) && /\) - 8 \* 3600;/.test(s),
   '时间统一按北京时间（UTC+8）显示与比较：真实数据里 sTime 与订单 createTime 差 8 小时，原来的 UTC 显示会比 GM 页早 8 小时');
+ok(/<div class="gd-map" id="gdItemMap" style="display:none;"><\/div>/.test(s) && /\.gd-map-root/.test(s)
+  && /\.gd-map-branches::before/.test(s) && /\.gd-map-node::before/.test(s) && /function mergeItemMap\(id, rec\)/.test(s)
+  && /function mergeItemMapRender\(id, rec\)/.test(s) && /function mergeItemConclusion\(id, rec\)/.test(s)
+  && /function gdMapNodeHtml\(cls, title, text, tip\)/.test(s),
+  '资源核对多了「思维导图」：左边道具根节点、右边一条干线挂 存档 / 棋盘镜像 / 订单 / 操作记录 / 结论，连接线是 ::before 画的（不用 SVG），窄屏自动竖排');
+ok(/function gdJsonOf\(raw\)/.test(s) && /function gdDetectKind\(v\)/.test(s) && /function gdAutoFrom\(id\)/.test(s)
+  && /function mergeRun\(rawArg\)/.test(s) && /function boardRun\(rawArg\)/.test(s)
+  && /认出来是棋盘镜像/.test(s) && /认出来是操作记录/.test(s) && /认出来是 MergeState/.test(s)
+  && /\['mergeInput', 'boardInput', 'gdOpInput'\]\.forEach/.test(s) && /gdAutoTimer = setTimeout/.test(s),
+  '万能粘贴：三个框任一贴任何一份数据都自动认（MergeState / 棋盘镜像 / 操作记录）并转给对应解析器，粘完 400ms 自动解析（不用点按钮）');
 ok(/记录覆盖不到的时段仍要研发拉服务端全量流水/.test(s)
   && /mergeOpLines\(id\)\.forEach\(l => out\.push\(l\)\);/.test(s),
   '有了操作记录就把「定责要服务端流水」那句改成「覆盖不到的时段仍要研发拉全量流水」，并接在异常自查后面');

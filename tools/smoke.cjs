@@ -3154,8 +3154,8 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     $('gdItemInput').value = '红宝石';
     $('gdItemBtn').click();
     await sleep(40);
-    check(/先在上面把 MergeState 解析出来/.test($('gdItemHint').textContent),
-      '清空后查道具会提示先解析 MergeState', $('gdItemHint').textContent);
+    check(/先在页头把数据贴进来/.test($('gdItemHint').textContent),
+      '清空后查道具会提示先在页头贴数据', $('gdItemHint').textContent);
 
     check(posts.slice(postsGd).filter(p => /careerData|dailyData|gamedata|merge/i.test(p.url)).length === 0,
       '资源核对 / 活动进度全程只在本机（0 请求）', posts.slice(postsGd).map(p => p.url).join(' | '));
@@ -3259,6 +3259,110 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
       '贴的不是 JSON → 只提示解析失败，页面不炸', $('gdOpHint').textContent.slice(0, 60));
     check(posts.slice(postsOp).filter(p => /careerData|dailyData|op|merge/i.test(p.url)).length === 0,
       '操作记录全程只在本机（0 请求）', posts.slice(postsOp).map(p => p.url).join(' | '));
+  }
+
+  console.log('--- 8z-4. 玩家游戏数据 · 资源核对思维导图 + 万能粘贴 ---');
+  {
+    const postsMap = posts.length;
+    // 先把上面留下的东西理一遍：清掉操作记录、时间点，重新贴一份 MergeState
+    $('gdOpInput').value = '';
+    $('gdOpClearBtn').click();
+    await sleep(60);
+    $('gdItemInput').value = '';
+    $('gdItemBtn').click();
+    await sleep(60);
+    const mapState = {
+      diamond: 911, recordDiamond: 911, gold: 86130, recordGold: 86130, hpData: 16, recordHp: 16,
+      recordID: 178288, syncTime: 1793248480,
+      others: JSON.stringify({
+        resource: [{ num: 911, timestamp: 1793247056, id: '103' }, { num: 16, timestamp: 1793248480, id: '101' }],
+        meta: [], activities: []
+      })
+    };
+    $('mergeInput').value = JSON.stringify(mapState);
+    $('mergeParseBtn').click();
+    await sleep(80);
+    check($('gdItemMap').style.display === 'none' && $('gdItemMap').innerHTML === '',
+      '还没查道具时没有导图（不占版面）', $('gdItemMap').innerHTML);
+
+    $('gdItemInput').value = '103';
+    $('gdItemTime').value = '2026-10-30T00:00';
+    $('gdItemBtn').click();
+    await sleep(80);
+    const mapBox = $('gdItemMap');
+    const rootTxt = mapBox.querySelector('.gd-map-root').textContent;
+    check(mapBox.style.display === '' && mapBox.querySelectorAll('.gd-map-node').length === 5
+      && /红宝石/.test(rootTxt) && /103/.test(rootTxt) && /存档 911 个/.test(rootTxt),
+      '输道具 → 导图出来：根节点是「道具名 / id / 存档数量」，右边挂 5 个分支',
+      rootTxt + ' / nodes=' + mapBox.querySelectorAll('.gd-map-node').length);
+    const mapTxt = mapBox.textContent;
+    check(/存档/.test(mapTxt) && /当前 911 个/.test(mapTxt) && /最后变动 \d{4}-\d{2}-\d{2} \d{2}:\d{2}/.test(mapTxt)
+      && /棋盘镜像/.test(mapTxt) && /棋盘上 0 · 临时背包 0 · 仓库 0/.test(mapTxt),
+      '前两个分支：存档数量 / 最后变动 + 棋盘镜像三处数量', mapTxt.replace(/\s+/g, ' ').slice(0, 140));
+    check(/当前订单 1001 收 1 个/.test(mapTxt) && /最近一次操作 收 5 个/.test(mapTxt),
+      '订单分支把「当前订单收走 / 最近一次操作收走」都列出来', mapTxt.replace(/\s+/g, ' ').slice(0, 160));
+    check(/还没贴 —— 贴上能看出是被合成吃了还是交了订单/.test(mapTxt),
+      '没贴操作记录时那一片直说「还没贴」，不装懂', mapTxt.slice(0, 200));
+    check(/玩家说的时间之后它没再变过 → 不是被吞/.test(mapTxt),
+      '结论分支一句话给判断（时间点晚于最后变动 → 不是被吞）', mapTxt.slice(-80));
+
+    // 清掉时间点 → 结论退化成「最后变动 + 要研发拉流水」
+    $('gdItemTime').value = '';
+    $('gdItemBtn').click();
+    await sleep(60);
+    check(/要定责得让研发拉服务端流水/.test($('gdItemMap').textContent),
+      '没填时间点 → 结论只写最后变动 + 能力边界', $('gdItemMap').textContent.slice(-90));
+
+    // 万能粘贴 1：把操作记录贴到页头那个大框 → 自动转到「操作记录」
+    $('gdItemInput').value = '';
+    $('mergeInput').value = JSON.stringify([
+      { uid: 1, op: 30, sTime: 1793241739, opId: 1, cbId: 1 },
+      { momCellIdx: 1, momGoodsId: 10606, goodsId: 20801, cbId: 1, uid: 1, op: 281, opId: 2, cellIdies: [2, 9], sTime: 1793241739 }
+    ]);
+    $('mergeParseBtn').click();
+    await sleep(80);
+    check(/认出来是操作记录/.test($('mergeHint').textContent)
+      && $('gdOpTable').querySelectorAll('tbody tr').length === 2
+      && $('gdOpInput').value.indexOf('"op":281') !== -1,
+      '大框里贴操作记录 → 自动转到「操作记录」并解析（2 条），不用换框重贴',
+      $('mergeHint').textContent);
+    $('gdItemInput').value = '103';
+    $('gdItemBtn').click();
+    await sleep(60);
+    check(/2 条 · 没动过它/.test($('gdItemMap').textContent),
+      '导图的「操作记录」分支跟着更新（2 条、没动过红宝石）', $('gdItemMap').textContent.slice(0, 200));
+
+    // 万能粘贴 2：把棋盘镜像贴到页头大框 → 自动转到「03 棋盘镜像」
+    $('mergeInput').value = JSON.stringify({
+      chessboardDataList: [{
+        cellTotalNum: 2, chessboardId: 1, cellNumH: 1, cellNumW: 2,
+        cells: [{ cellIdx: 0, lockState: 2, pieceData: { pieceType: 2, goodsId: 21108, itemCodeStr: 21108 } }, { cellIdx: 1, lockState: 2 }]
+      }],
+      warehouseData: { pieceDataList: [] }, backpack: {}, currencies: { '103': 911 }
+    });
+    $('mergeParseBtn').click();
+    await sleep(80);
+    check(/认出来是棋盘镜像/.test($('mergeHint').textContent) && $('boardMainCard').style.display === ''
+      && /主棋盘 2×1/.test($('boardSummary').textContent),
+      '大框里贴棋盘镜像 → 自动转到「03 棋盘镜像」并把主棋盘画出来', $('mergeHint').textContent);
+
+    // 粘完自动解析（不点按钮）：派发 input 事件，等去抖过去
+    $('mergeInput').value = JSON.stringify({
+      diamond: 5, gold: 6, hpData: 7, recordID: 999,
+      others: JSON.stringify({ resource: [{ num: 5, timestamp: 1793247056, id: '103' }], meta: [], activities: [] })
+    });
+    fire($('mergeInput'), 'input');
+    await sleep(700);
+    check(/认出资源 1 项/.test($('mergeHint').textContent) && /红宝石 5/.test($('mergeSummary').textContent),
+      '不用点按钮：粘完 400ms 自动解析（输入框派发 input 就生效）', $('mergeHint').textContent);
+
+    // 清空 → 导图收起
+    $('mergeClearBtn').click();
+    await sleep(60);
+    check($('gdItemMap').style.display === 'none' && $('gdItemMap').innerHTML === '',
+      '「清空」把思维导图一起收掉', $('gdItemMap').innerHTML);
+    check(posts.slice(postsMap).filter(p => /careerData|dailyData|gamedata|merge/i.test(p.url)).length === 0,
+      '导图 / 万能粘贴全程只在本机（0 请求）', posts.slice(postsMap).map(p => p.url).join(' | '));
   }
 
   console.log('--- 9. 无未捕获异常 ---');

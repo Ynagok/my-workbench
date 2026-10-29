@@ -3650,6 +3650,35 @@
         .career-rest-day.is-today b { background: var(--accent); color: var(--dark); }
 
     
+        /* ===================== 🎮 资源核对 · 思维导图（2026-10 用户：资源核对不够直观，像思维导图会好点）===================== */
+        /* 左边一个「道具」根节点，右边一条竖干线挂「存档 / 棋盘镜像 / 订单 / 操作记录 / 结论」，靠 ::before 画连接线，不用 SVG */
+        .gd-map { display: flex; align-items: flex-start; margin-top: 12px; }
+        .gd-map-root { flex: 0 0 auto; min-width: 148px; padding: 11px 14px; border-radius: var(--r-md);
+            background: var(--accent-dim); border: 1px solid var(--accent-line); text-align: center; }
+        .gd-map-root b { display: block; font-size: 14.5px; color: var(--ink-0); letter-spacing: .04em; }
+        .gd-map-root i { display: block; margin-top: 3px; font-style: normal; font-size: 20px; font-weight: 700;
+            line-height: 1.15; color: var(--accent-ink); }
+        .gd-map-root span { display: block; margin-top: 3px; font-size: 11.5px; color: var(--ink-3); }
+        .gd-map-branches { position: relative; flex: 1 1 auto; min-width: 0; margin-left: 24px; padding-left: 24px;
+            display: flex; flex-direction: column; gap: 7px; }
+        .gd-map-branches::before { content: ''; position: absolute; left: 0; top: 13px; bottom: 13px; width: 2px;
+            border-radius: 2px; background: var(--line-1); }
+        .gd-map-node { position: relative; display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
+            padding: 6px 11px; border-radius: var(--r-sm); background: var(--surface); border: 1px solid var(--line-0); }
+        .gd-map-node::before { content: ''; position: absolute; left: -24px; top: 50%; width: 24px; height: 2px;
+            background: var(--line-1); }
+        .gd-map-node b { flex: 0 0 auto; font-size: 11.5px; letter-spacing: .08em; color: var(--ink-2); }
+        .gd-map-node span { flex: 1 1 auto; min-width: 0; font-size: 12.5px; color: var(--ink-0); word-break: break-all; }
+        .gd-map-node.is-ok { border-color: var(--accent-line); background: var(--accent-dim); }
+        .gd-map-node.is-ok b { color: var(--accent-ink); }
+        .gd-map-node.is-warn { border-color: var(--warn); }
+        .gd-map-node.is-mute, .gd-map-node.is-mute span { color: var(--ink-3); }
+        @media (max-width: 760px) {
+            .gd-map { flex-direction: column; }
+            .gd-map-branches { margin-left: 0; margin-top: 10px; padding-left: 14px; }
+            .gd-map-node::before { left: -14px; width: 14px; }
+        }
+
         /* ===================== 圆润层（2026-10 用户：整体圆润一点 / 上下间距别太大 / 开关参考 iOS）===================== */
         /* 大圆角：令牌已经换成 --r-sm 6 / --r-md 10 / --r-lg 14 / --r-pill 999，这里把各层写死的直角盖回来 */
         .container { border-radius: var(--r-lg); }
@@ -4610,12 +4639,12 @@
             </div>
 
             <div class="card">
-                <label>① 粘贴 MergeState（玩家存档快照）
-                    <span class="card-sub">GM 玩家页那块 MergeState JSON 整段贴进来 —— 资源核对 / 活动进度都用这一份；解析后会自动跟棋盘镜像核对</span>
+                <label>① 粘贴数据（这一个框就够）
+                    <span class="card-sub">MergeState / 棋盘镜像 / 操作记录 都行 —— 贴进来就自动认、自动解析，不用再挑地方</span>
                 </label>
-                <textarea id="mergeInput" rows="4" style="margin-top:10px;" placeholder='直接贴 JSON：{"diamond":911,"gold":86130,"hpData":16,"others":"{…}","syncTime":1793248480}'></textarea>
+                <textarea id="mergeInput" rows="4" style="margin-top:10px;" placeholder='随便贴：{"diamond":911,…}（MergeState）/ {"chessboardDataList":[…]…}（棋盘镜像）/ [{"op":281,"sTime":…}]（操作记录）'></textarea>
                 <div class="flex-row" style="margin-top:10px;">
-                    <button id="mergeParseBtn">🔍 解析玩家数据</button>
+                    <button id="mergeParseBtn">🔍 立即解析</button>
                     <button id="mergeClearBtn" class="reset-btn">🧹 清空</button>
                     <span class="hint-text" id="mergeHint"></span>
                 </div>
@@ -4630,7 +4659,7 @@
             </div>
 
             <div class="card" data-seg-card="resource">
-                <label>② 资源核对 <span class="card-sub">输道具名或 id → 出「当前数量 / 最后变动 / 当日消耗」话术</span></label>
+                <label>② 资源核对 <span class="card-sub">输道具名或 id → 左边是道具，右边一张图告诉你它去哪了</span></label>
                 <div class="flex-row" style="margin-top:10px;">
                     <input id="gdItemInput" placeholder="道具名或 id，如：红宝石 / 103" style="max-width:280px;">
                     <button id="gdItemBtn">✅ 生成核对话术</button>
@@ -4641,6 +4670,7 @@
                     <span class="hint-text">玩家说的时间（可选）</span>
                     <input type="datetime-local" id="gdItemTime" style="max-width:220px;" title="填了就对一下「最后变动」早晚：判断玩家说的时间之后到底有没有变过">
                 </div>
+                <div class="gd-map" id="gdItemMap" style="display:none;"></div>
                 <div class="stat-chips" id="gdItemVerdict"></div>
                 <textarea id="gdItemOut" rows="8" readonly style="margin-top:10px;"></textarea>
                 <details class="stat-fold" style="margin-top:12px;">
@@ -4649,7 +4679,7 @@
                 </details>
                 <details class="stat-fold" style="margin-top:10px;">
                     <summary>操作记录 <span class="card-sub" id="gdOpCount">可选：合并 / 订单消耗 / 产出都能对到时间</span></summary>
-                    <div class="hint-text" style="margin-top:8px;">把 GM 那边的操作记录（带 op / sTime / consume / rewards 的数组）整段贴进来 —— 能直接看出「这个道具那次是被合成吃了、还是交了订单」</div>
+                    <div class="hint-text" style="margin-top:8px;">把 GM 那边的操作记录（带 op / sTime / consume / rewards 的数组）整段贴进来 —— 能直接看出「这个道具那次是被合成吃了、还是交了订单」；<b>贴到页头那个大框里也行，会自动转到这儿</b></div>
                     <textarea id="gdOpInput" rows="4" style="margin-top:8px;" placeholder='[{"uid":46926873,"op":281,"sTime":1793241739,"opId":173334,"cellIdies":[2,9],"momGoodsId":10606,"goodsId":20801}]'></textarea>
                     <div class="flex-row" style="margin-top:8px;">
                         <button id="gdOpBtn">🔍 解析操作记录</button>
@@ -15876,9 +15906,24 @@
                                             table.innerHTML = h + '</tbody>';
                                         }
                                     }
-                                    function mergeOpRun() {
+                                    function mergeOpRun(rawArg) {
                                         const input = document.getElementById('gdOpInput');
-                                        const raw = (input && input.value) || '';
+                                        const raw = typeof rawArg === 'string' ? rawArg : ((input && input.value) || '');
+                                        const kind = gdDetectKind(gdJsonOf(raw));
+                                        if (kind === 'merge') {
+                                            const el = document.getElementById('mergeInput');
+                                            if (el) el.value = raw;
+                                            mergeRun(raw);
+                                            teaSetHint('gdOpHint', '认出来是 MergeState → 已解析到页头「① 粘贴数据」那块');
+                                            return opModel;
+                                        }
+                                        if (kind === 'board') {
+                                            const el = document.getElementById('boardInput');
+                                            if (el) el.value = raw;
+                                            boardRun(raw);
+                                            teaSetHint('gdOpHint', '认出来是棋盘镜像 → 已解析到「03 棋盘镜像」');
+                                            return opModel;
+                                        }
                                         if (!raw.trim()) {
                                             opModel = null;
                                             mergeOpRender();
@@ -15972,6 +16017,111 @@
                                             : '· 注：存档里只有「最后变动时间」，没有变动量和操作来源 —— 「被吞」要定责得让研发查服务端流水。');
                                         return out;
                                     }
+                                    // ==================== 🔁 万能粘贴（贴哪个框都行，自动认是哪份数据） ====================
+                                    // 用户 2026-10：「操作过于复杂繁琐了，实际会影响工作效率」—— 原来要分别找三个框贴三种数据，
+                                    //   现在任一框（页头大框 / 03 棋盘镜像 / 操作记录）贴任何一份，认出来就转给对应解析器。
+                                    function gdJsonOf(raw) {
+                                        const t = String(raw == null ? '' : raw).trim();
+                                        if (!t) return null;
+                                        try { return JSON.parse(t); } catch (_) { }
+                                        const pick = (a, b) => {
+                                            const i = t.indexOf(a), j = t.lastIndexOf(b);
+                                            if (i < 0 || j <= i) return null;
+                                            try { return JSON.parse(t.slice(i, j + 1)); } catch (_) { return null; }
+                                        };
+                                        return pick('{', '}') || pick('[', ']');
+                                    }
+                                    // merge / board / op（认不出返回空串）
+                                    function gdDetectKind(v) {
+                                        if (Array.isArray(v)) {
+                                            return v.some(x => x && typeof x === 'object' && ('op' in x || 'sTime' in x)) ? 'op' : '';
+                                        }
+                                        if (!v || typeof v !== 'object') return '';
+                                        if (v.others != null || v.hpData != null || v.recordDiamond != null || v.recordGold != null
+                                            || v.diamond != null || v.gold != null) return 'merge';
+                                        if (v.chessboardDataList || v.warehouseData || v.backpack || v.currencies || v.backpackGoodsIds) return 'board';
+                                        if (mergeOpRowsOf(v)) return 'op';
+                                        return '';
+                                    }
+                                    // 粘完 400ms 自动解析（认不出就安静不动，不打扰）
+                                    let gdAutoTimer = 0;
+                                    function gdAutoFrom(id) {
+                                        const el = document.getElementById(id);
+                                        const raw = (el && el.value) || '';
+                                        if (raw.trim().length < 12) return false;
+                                        const kind = gdDetectKind(gdJsonOf(raw));
+                                        if (!kind) return false;
+                                        if (kind === 'merge') return !!mergeRun(raw);
+                                        if (kind === 'board') {
+                                            const b = document.getElementById('boardInput');
+                                            if (b) b.value = raw;
+                                            return !!boardRun(raw);
+                                        }
+                                        const o = document.getElementById('gdOpInput');
+                                        if (o) o.value = raw;
+                                        return !!mergeOpRun(raw);
+                                    }
+                                    // ==================== 🧠 思维导图（道具 → 存档 / 镜像 / 订单 / 操作记录 / 结论） ====================
+                                    function gdMapNodeHtml(cls, title, text, tip) {
+                                        return '<div class="gd-map-node ' + cls + '"' + (tip ? ' title="' + escapeHtml(tip) + '"' : '') + '>'
+                                            + '<b>' + escapeHtml(title) + '</b><span>' + escapeHtml(String(text == null ? '' : text)) + '</span></div>';
+                                    }
+                                    // 一句话结论：芯片那排给细节，这里只给最该看的那句
+                                    function mergeItemConclusion(id, rec) {
+                                        const claim = mergeTimeToEpoch((document.getElementById('gdItemTime') || {}).value);
+                                        const usedN = mergeOpHits(id).filter(h => h.kind === 'consume').reduce((a, h) => a + h.n, 0)
+                                            + mergeOpOrderHits(id).filter(h => h.kind === 'consume').reduce((a, h) => a + h.n, 0);
+                                        if (usedN > 0) return { text: '有 ' + usedN + ' 个消耗记录 → 不是被吞，是消耗掉了', cls: 'is-ok' };
+                                        if (claim && rec && +rec.ts < claim) return { text: '玩家说的时间之后它没再变过 → 不是被吞', cls: 'is-ok' };
+                                        if (claim && rec) return { text: '那个时段确实变过 → 往上看消耗去向', cls: 'is-warn' };
+                                        if (rec) return { text: '最后变动 ' + mergeTsText(rec.ts) + '；要定责得让研发拉服务端流水', cls: 'is-mute' };
+                                        return { text: '这份数据里没有它的记录', cls: 'is-mute' };
+                                    }
+                                    function mergeItemMap(id, rec) {
+                                        if (!id) return '';
+                                        const nodes = [];
+                                        // ① 存档（MergeState）
+                                        nodes.push(rec
+                                            ? gdMapNodeHtml('is-ok', '存档', '当前 ' + rec.n + ' 个 · 最后变动 ' + mergeTsText(rec.ts))
+                                            : gdMapNodeHtml('is-warn', '存档', '这份 MergeState 里没有它的记录'));
+                                        // ② 棋盘镜像三处
+                                        if (boardModel) {
+                                            const c = (boardModel.counts || {})[id] || { onBoard: 0, inBackpack: 0, inWarehouse: 0 };
+                                            const tot = c.onBoard + c.inBackpack + c.inWarehouse;
+                                            nodes.push(gdMapNodeHtml(tot ? 'is-ok' : '', '棋盘镜像',
+                                                '棋盘上 ' + c.onBoard + ' · 临时背包 ' + c.inBackpack + ' · 仓库 ' + c.inWarehouse));
+                                        } else nodes.push(gdMapNodeHtml('is-mute', '棋盘镜像', '还没解析 —— 把镜像 JSON 也贴进来就行'));
+                                        // ③ 订单（镜像里的订单 + 操作记录里的订单快照）
+                                        const parts = [];
+                                        mergeConsumeHits(id).forEach(h => parts.push((h.from === '最近操作' ? '最近一次操作' : '当前订单 ' + h.id)
+                                            + ' 收 ' + h.n + ' 个' + (h.time ? '（' + h.time + '）' : '')));
+                                        mergeOpOrderHits(id).forEach(h => parts.push('订单 ' + (h.id || '?')
+                                            + (h.kind === 'gain' ? ' 给 ' : ' 收 ') + h.n + ' 个'));
+                                        nodes.push(parts.length
+                                            ? gdMapNodeHtml('is-warn', '订单', parts.slice(0, 3).join('；'))
+                                            : gdMapNodeHtml('is-mute', '订单', '订单 / 最近一次操作里都没动过它'));
+                                        // ④ 操作记录
+                                        if (opModel && opModel.ok) {
+                                            const hits = mergeOpHits(id);
+                                            const used = hits.filter(h => h.kind === 'consume').reduce((a, h) => a + h.n, 0);
+                                            const got = hits.filter(h => h.kind === 'gain').reduce((a, h) => a + h.n, 0);
+                                            nodes.push(gdMapNodeHtml(used ? 'is-ok' : '', '操作记录', opModel.rows.length + ' 条 · '
+                                                + (used ? ('被消耗 ' + used + ' 个') : (got ? ('获得 ' + got + ' 个') : '没动过它'))));
+                                        } else nodes.push(gdMapNodeHtml('is-mute', '操作记录', '还没贴 —— 贴上能看出是被合成吃了还是交了订单'));
+                                        // ⑤ 结论
+                                        const c2 = mergeItemConclusion(id, rec);
+                                        nodes.push(gdMapNodeHtml(c2.cls, '结论', c2.text));
+                                        return '<div class="gd-map-root"><b>' + escapeHtml(boardNameOf(id) || ('道具 ' + id)) + '</b>'
+                                            + '<i>' + escapeHtml(id) + '</i><span>' + (rec ? ('存档 ' + rec.n + ' 个') : '存档里没有') + '</span></div>'
+                                            + '<div class="gd-map-branches">' + nodes.join('') + '</div>';
+                                    }
+                                    function mergeItemMapRender(id, rec) {
+                                        const box = document.getElementById('gdItemMap');
+                                        if (!box) return;
+                                        const html = id ? mergeItemMap(id, rec) : '';
+                                        box.innerHTML = html;
+                                        box.style.display = html ? '' : 'none';
+                                    }
                                     // 判定芯片：先回答「那个时间之后到底有没有变过」，再说有没有找到消耗去向
                                     function mergeItemVerdict(model, id, rec, q) {
                                         const chips = [];
@@ -16053,9 +16203,25 @@
                                         }
                                         return '玩家数据里没找到「' + t + '」这个活动 —— 换个名字（如 七日任务 / 通行证 / 签到）或输活动 id。';
                                     }
-                                    function mergeRun() {
+                                    function mergeRun(rawArg) {
                                         const input = document.getElementById('mergeInput');
-                                        const raw = (input && input.value) || '';
+                                        const raw = typeof rawArg === 'string' ? rawArg : ((input && input.value) || '');
+                                        // 🔁 贴的是棋盘镜像 / 操作记录也认，直接转给对应解析器（不用再找地方重贴一遍）
+                                        const kind = gdDetectKind(gdJsonOf(raw));
+                                        if (kind === 'board') {
+                                            const el = document.getElementById('boardInput');
+                                            if (el) el.value = raw;
+                                            boardRun(raw);
+                                            teaSetHint('mergeHint', '认出来是棋盘镜像 → 已解析到「03 棋盘镜像」，对账行也刷新了');
+                                            return mergeModel;
+                                        }
+                                        if (kind === 'op') {
+                                            const el = document.getElementById('gdOpInput');
+                                            if (el) el.value = raw;
+                                            mergeOpRun(raw);
+                                            teaSetHint('mergeHint', '认出来是操作记录 → 已解析到「01 资源核对」下面的操作记录');
+                                            return mergeModel;
+                                        }
                                         if (!raw.trim()) {
                                             mergeModel = null;
                                             mergeRender(null);
@@ -16081,14 +16247,15 @@
                                         const input = document.getElementById('gdItemInput');
                                         const out = document.getElementById('gdItemOut');
                                         const q = (input && input.value) || '';
-                                        if (!mergeModel) { teaSetHint('gdItemHint', '先在上面把 MergeState 解析出来'); if (out) out.value = ''; return; }
-                                        if (!q.trim()) { teaSetHint('gdItemHint', '输个道具名或 id'); if (out) out.value = ''; return; }
+                                        if (!mergeModel) { teaSetHint('gdItemHint', '先在页头把数据贴进来（会自动解析）'); if (out) out.value = ''; mergeItemMapRender('', null); return; }
+                                        if (!q.trim()) { teaSetHint('gdItemHint', '输个道具名或 id'); if (out) out.value = ''; mergeItemMapRender('', null); return; }
                                         const text = mergeItemScript(mergeModel, q);
                                         if (out) out.value = text;
                                         const ids = boardIdsOfQuery(q);
                                         const rec = ids.length ? (mergeModel.resource.filter(r => r.id === ids[0])[0] || null) : null;
                                         const box = document.getElementById('gdItemVerdict');
                                         if (box) box.innerHTML = mergeItemVerdict(mergeModel, ids[0], rec, q).join('');
+                                        mergeItemMapRender(ids.length ? ids[0] : '', rec);
                                         mergeOpRender();
                                         teaSetHint('gdItemHint', /没找到/.test(text) ? '这份存档里没有这个名字，换个写法或直接输 id' : '话术已生成（含异常自查）');
                                     }
@@ -16117,6 +16284,7 @@
                                         ['gdItemHint', 'gdActHint'].forEach(id => teaSetHint(id, ''));
                                         const vBox = document.getElementById('gdItemVerdict');
                                         if (vBox) vBox.innerHTML = '';
+                                        mergeItemMapRender('', null);
                                         const tInput = document.getElementById('gdItemTime');
                                         if (tInput) tInput.value = '';
                                         mergeModel = null;
@@ -16345,10 +16513,25 @@
                                                 : '<span class="hint-text">仓库是空的</span>';
                                         }
                                     }
-                                    function boardRun() {
+                                    function boardRun(rawArg) {
                                         const input = document.getElementById('boardInput');
                                         const out = document.getElementById('boardAskOut');
-                                        const raw = (input && input.value) || '';
+                                        const raw = typeof rawArg === 'string' ? rawArg : ((input && input.value) || '');
+                                        const kind = gdDetectKind(gdJsonOf(raw));
+                                        if (kind === 'merge') {
+                                            const el = document.getElementById('mergeInput');
+                                            if (el) el.value = raw;
+                                            mergeRun(raw);
+                                            teaSetHint('boardHint', '认出来是 MergeState → 已解析到页头「① 粘贴数据」那块');
+                                            return boardModel;
+                                        }
+                                        if (kind === 'op') {
+                                            const el = document.getElementById('gdOpInput');
+                                            if (el) el.value = raw;
+                                            mergeOpRun(raw);
+                                            teaSetHint('boardHint', '认出来是操作记录 → 已解析到「01 资源核对」下面的操作记录');
+                                            return boardModel;
+                                        }
                                         if (!raw.trim()) {
                                             teaSetHint('boardHint', '先把棋盘镜像 JSON 整段贴到上面');
                                             boardModel = null;
@@ -17629,6 +17812,13 @@
                                         addEvent('gdActInput', 'keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); mergeActRun(); } });
                                         setClick('gdOpBtn', mergeOpRun);
                                         setClick('gdOpClearBtn', mergeOpClear);
+                                        // 粘完 400ms 自动解析（三个框都认，不用点按钮）
+                                        ['mergeInput', 'boardInput', 'gdOpInput'].forEach(function (bid) {
+                                            addEvent(bid, 'input', function () {
+                                                if (gdAutoTimer) clearTimeout(gdAutoTimer);
+                                                gdAutoTimer = setTimeout(function () { gdAutoFrom(bid); }, 400);
+                                            });
+                                        });
                                         const gdActChips = document.getElementById('gdActChips');
                                         if (gdActChips) {
                                             gdActChips.addEventListener('click', (e) => {
