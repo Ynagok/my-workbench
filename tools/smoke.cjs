@@ -2889,8 +2889,8 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     await sleep(100);
     const sum8z = $('boardSummary').textContent;
     check(/主棋盘 3×2/.test(sum8z) && /另有 1 块棋盘/.test(sum8z) && /棋子 4 \/ 格 8/.test(sum8z)
-      && /临时背包 1 项/.test(sum8z) && /仓库 2 件/.test(sum8z) && /铜钱 86130/.test(sum8z),
-      '解析出主棋盘 / 棋盘数 / 棋子数 / 背包 / 仓库 / 货币', sum8z.slice(0, 180));
+      && /临时背包 1 项/.test(sum8z) && /仓库 2 件/.test(sum8z) && !/铜钱/.test(sum8z),
+      '解析出主棋盘 / 棋盘数 / 棋子数 / 背包 / 仓库（货币不在这显示，交给「玩家数据」那边对账）', sum8z.slice(0, 180));
     check($('boardMainCard').style.display !== 'none' && $('boardBagCard').style.display !== 'none'
       && $('boardAskCard').style.display !== 'none',
       '三块都显示了（棋盘 / 背包仓库 / 查询）');
@@ -2907,11 +2907,12 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     check($('boardOtherGrids').querySelectorAll('.board-grid').length === 1,
       '另一块棋盘（活动棋盘 9）单独画在「其它棋盘」里',
       $('boardOtherGrids').querySelectorAll('.board-grid').length);
-    check(/打怪棋盘步数道具/.test($('boardBagList').textContent) && /×3/.test($('boardBagList').textContent),
-      '临时背包列出「道具 × 数量」', $('boardBagList').textContent.slice(0, 80));
+    check(/打怪棋盘步数道具/.test($('boardBagList').textContent) && /×3/.test($('boardBagList').textContent)
+      && /3000004/.test($('boardBagList').querySelector('.board-chip').getAttribute('title') || ''),
+      '临时背包列出「道具 × 数量」（id 收进 title）', $('boardBagList').textContent.slice(0, 80));
     check(/万能绒珠/.test($('boardWareList').textContent) && /3999999/.test($('boardWareList').textContent)
       && /1\/2/.test($('boardWareList').textContent),
-      '仓库列出棋子（认识的换成名字，不认识的写 id）', $('boardWareList').textContent.slice(0, 100));
+      '仓库列出棋子（认识的换成名字，不认识的写 id，带库存）', $('boardWareList').textContent.slice(0, 100));
 
     $('boardAskInput').value = '相思鸟';
     $('boardAskBtn').click();
@@ -2997,17 +2998,22 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     await sleep(100);
     const sumGd = $('mergeSummary').textContent;
     check(/红宝石 911/.test(sumGd) && /铜钱 86130/.test(sumGd) && /体力 16/.test(sumGd)
-      && /存档 ID 178288/.test(sumGd) && /今日体力消耗 298/.test(sumGd) && /今日钻石消耗 10/.test(sumGd)
-      && /资源 5 项/.test(sumGd) && /活动 2 个/.test(sumGd),
-      'MergeState 解析出货币 / 体力 / 存档 ID / 当日消耗 / 资源项数 / 活动数', sumGd.slice(0, 200));
-    check($('gdResTable').querySelectorAll('tbody tr').length === 5
-      && /4417/.test($('gdResTable').textContent) && /\d{4}-\d{2}-\d{2} \d{2}:\d{2}/.test($('gdResTable').textContent),
-      '资源表：每项「道具 / 数量 / 最后变动时间」都列出来', $('gdResTable').textContent.replace(/\s+/g, ' ').slice(0, 120));
+      && /今日体力 −298/.test(sumGd) && /今日钻石 −10/.test(sumGd) && /资源 5 · 活动 2/.test(sumGd)
+      && /存档 178288/.test($('gdReportSub').textContent),
+      'MergeState 解析出货币 / 体力 / 当日消耗（−N）/ 资源与活动数；存档 ID 收进抬头副标', sumGd.slice(0, 200));
+    check($('gdResTable').querySelectorAll('tbody tr').length === 4
+      && /4417/.test($('gdResTable').textContent) && /\d{4}-\d{2}-\d{2} \d{2}:\d{2}/.test($('gdResTable').textContent)
+      && !/3000004/.test($('gdResTable').textContent)
+      && /有数量 4 项 · 其余 1 项是 0/.test($('gdResCount').textContent),
+      '资源表只列有数量的（数量为 0 的折进副标），每项「道具 / 数量 / 最后变动时间」',
+      $('gdResTable').textContent.replace(/\s+/g, ' ').slice(0, 120));
     check(/棋盘镜像还没解析/.test($('mergeDiff').textContent),
       '镜像还没解析时，对账行提示去棋盘镜像那一段粘一份', $('mergeDiff').textContent.slice(0, 80));
     check($('gdActChips').querySelectorAll('[data-gd-act]').length === 2
-      && /七日任务/.test($('gdActChips').textContent) && /签到奖励/.test($('gdActChips').textContent),
-      '活动段列出活动芯片（英文名换成中文）', $('gdActChips').textContent.slice(0, 80));
+      && /七日任务/.test($('gdActChips').textContent) && /签到奖励/.test($('gdActChips').textContent)
+      && $('gdActChips').querySelector('[data-gd-act="seven_task"]').textContent.trim() === '七日任务'
+      && /这份存档里有 2 个活动/.test($('gdActCount').textContent),
+      '活动芯片只写中文名（id 收进 title），上方一行计数', $('gdActChips').textContent.slice(0, 80));
 
     // 跟棋盘镜像对账：先解析一份镜像（体力 16 / 铜钱 86130），应该「一致」
     $('boardInput').value = JSON.stringify({

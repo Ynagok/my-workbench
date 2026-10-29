@@ -4613,7 +4613,7 @@
                 <label>① 粘贴 MergeState（玩家存档快照）
                     <span class="card-sub">GM 玩家页那块 MergeState JSON 整段贴进来 —— 资源核对 / 活动进度都用这一份；解析后会自动跟棋盘镜像核对</span>
                 </label>
-                <textarea id="mergeInput" rows="6" style="margin-top:10px;" placeholder='直接贴 JSON：{"diamond":911,"gold":86130,"hpData":16,"others":"{…}","syncTime":1793248480}'></textarea>
+                <textarea id="mergeInput" rows="4" style="margin-top:10px;" placeholder='直接贴 JSON：{"diamond":911,"gold":86130,"hpData":16,"others":"{…}","syncTime":1793248480}'></textarea>
                 <div class="flex-row" style="margin-top:10px;">
                     <button id="mergeParseBtn">🔍 解析玩家数据</button>
                     <button id="mergeClearBtn" class="reset-btn">🧹 清空</button>
@@ -4630,19 +4630,23 @@
             </div>
 
             <div class="card" data-seg-card="resource">
-                <label>② 资源核对 <span class="card-sub">货币 / 体力 / 每个道具「当前数量 + 最后一次变动时间」</span></label>
-                <div class="career-scroll" style="margin-top:10px;"><table class="career-table" id="gdResTable"></table></div>
+                <label>② 资源核对 <span class="card-sub">输道具名或 id → 出「当前数量 / 最后变动 / 当日消耗」话术</span></label>
                 <div class="flex-row" style="margin-top:10px;">
-                    <input id="gdItemInput" placeholder="道具名或 id，如：红宝石 / 103 / 赤铁矿" style="max-width:280px;">
+                    <input id="gdItemInput" placeholder="道具名或 id，如：红宝石 / 103" style="max-width:280px;">
                     <button id="gdItemBtn">✅ 生成核对话术</button>
                     <button id="gdItemCopyBtn" class="secondary">📋 复制</button>
                     <span class="hint-text" id="gdItemHint"></span>
                 </div>
                 <textarea id="gdItemOut" rows="6" readonly style="margin-top:10px;"></textarea>
+                <details class="stat-fold" style="margin-top:12px;">
+                    <summary>资源明细 <span class="card-sub" id="gdResCount">—</span></summary>
+                    <div class="career-scroll" style="margin-top:8px;"><table class="career-table" id="gdResTable"></table></div>
+                </details>
             </div>
 
             <div class="card" data-seg-card="activity">
-                <label>③ 活动进度 <span class="card-sub">这份存档里参与过的活动（点芯片名字可快速填）</span></label>
+                <label>③ 活动进度 <span class="card-sub">点活动名直接出话术；也可以自己输名字或 id</span></label>
+                <div class="hint-text" id="gdActCount" style="margin-top:8px;"></div>
                 <div class="board-list" id="gdActChips"></div>
                 <div class="flex-row" style="margin-top:10px;">
                     <input id="gdActInput" placeholder="活动名或 id，如：七日任务 / seven_task / 35" style="max-width:300px;">
@@ -15561,6 +15565,8 @@
                                             if (chipsAct) chipsAct.innerHTML = '';
                                             if (sub) sub.textContent = '—';
                                             if (meta) meta.innerHTML = '';
+                                            teaSetHint('gdResCount', '');
+                                            teaSetHint('gdActCount', '');
                                             mergeRenderDiff();
                                             return;
                                         }
@@ -15570,11 +15576,9 @@
                                             if (model.diamond != null) chips.push(statChip('红宝石 ' + model.diamond, 'k-accent'));
                                             if (model.gold != null) chips.push(statChip('铜钱 ' + model.gold));
                                             if (model.hp != null) chips.push(statChip('体力 ' + model.hp));
-                                            if (model.metaId) chips.push(statChip('存档 ID ' + model.metaId));
-                                            if (usage.energy != null) chips.push(statChip('今日体力消耗 ' + usage.energy, 'k-plain'));
-                                            if (usage.diamond != null) chips.push(statChip('今日钻石消耗 ' + usage.diamond, 'k-plain'));
-                                            chips.push(statChip('资源 ' + model.resource.length + ' 项'));
-                                            chips.push(statChip('活动 ' + model.activities.length + ' 个'));
+                                            if (usage.energy != null) chips.push(statChip('今日体力 −' + usage.energy, 'k-plain'));
+                                            if (usage.diamond != null) chips.push(statChip('今日钻石 −' + usage.diamond, 'k-plain'));
+                                            chips.push(statChip('资源 ' + model.resource.length + ' · 活动 ' + model.activities.length));
                                             sum.innerHTML = chips.join('');
                                         }
                                         if (sub) {
@@ -15588,21 +15592,35 @@
                                                 ['体力', model.hp == null ? '—' : model.hp]
                                             ]);
                                         }
+                                        const hasN = model.resource.filter(r => r.n > 0);
+                                        const zeroN = model.resource.length - hasN.length;
+                                        teaSetHint('gdResCount', model.resource.length
+                                            ? ('有数量 ' + hasN.length + ' 项' + (zeroN ? ' · 其余 ' + zeroN + ' 项是 0' : ''))
+                                            : '这份数据里没有 resource 列表');
                                         if (table) {
-                                            const rows = model.resource.slice(0, 200);
+                                            const rows = hasN.slice(0, 200);
                                             let h = '<thead><tr><th>道具</th><th class="num">数量</th><th>最后变动</th></tr></thead><tbody>';
                                             h += rows.length ? rows.map(r => '<tr><td>' + escapeHtml(mergeNameOf(r.id))
                                                 + ' <span class="hint-text">' + escapeHtml(r.id) + '</span></td><td class="num">' + r.n
                                                 + '</td><td>' + escapeHtml(mergeTsText(r.ts)) + '</td></tr>').join('')
-                                                : '<tr><td colspan="3" style="color:var(--ink-3);">这份数据里没有 resource 列表</td></tr>';
+                                                : '<tr><td colspan="3" style="color:var(--ink-3);">这份存档里的资源数量都是 0</td></tr>';
                                             table.innerHTML = h + '</tbody>';
                                         }
+                                        teaSetHint('gdActCount', model.activities.length ? ('这份存档里有 ' + model.activities.length + ' 个活动') : '');
                                         if (chipsAct) {
-                                            chipsAct.innerHTML = model.activities.length
-                                                ? model.activities.map(a => '<button type="button" class="board-chip" data-gd-act="'
-                                                    + escapeHtml(a.name) + '" title="点一下填进右边输入框"><b>' + escapeHtml(mergeActivityLabel(a.name))
-                                                    + '</b>' + (a.id ? '<em>id ' + escapeHtml(a.id) + '</em>' : '') + '</button>').join('')
-                                                : '<span class="hint-text">这份数据里没有活动列表</span>';
+                                            const chipOf = (a) => '<button type="button" class="board-chip" data-gd-act="' + escapeHtml(a.name)
+                                                + '" title="' + escapeHtml(a.name + (a.id ? ' · id ' + a.id : '') + '（点一下出话术）')
+                                                + '"><b>' + escapeHtml(mergeActivityLabel(a.name)) + '</b></button>';
+                                            if (!model.activities.length) chipsAct.innerHTML = '<span class="hint-text">这份数据里没有活动列表</span>';
+                                            else {
+                                                const head = model.activities.slice(0, 12);
+                                                const rest = model.activities.slice(12);
+                                                chipsAct.innerHTML = head.map(chipOf).join('')
+                                                    + (rest.length
+                                                        ? '<details class="stat-fold" style="flex-basis:100%;"><summary>还有 ' + rest.length + ' 个活动</summary><div class="board-list">'
+                                                            + rest.map(chipOf).join('') + '</div></details>'
+                                                        : '');
+                                            }
                                         }
                                         mergeRenderDiff();
                                     }
@@ -15875,7 +15893,6 @@
                                             chips.push(statChip('棋子 ' + pieceN + ' / 格 ' + cellN));
                                             chips.push(statChip('临时背包 ' + model.backpack.length + ' 项'));
                                             chips.push(statChip('仓库 ' + (model.warehouse.length + model.activityWarehouse.length) + ' 件'));
-                                            model.currencies.forEach(c => chips.push(statChip((boardNameOf(c.id) || ('货币 ' + c.id)) + ' ' + c.n)));
                                             sum.innerHTML = chips.join('');
                                         }
                                         if (sub) {
@@ -15907,16 +15924,23 @@
                                         const bag = document.getElementById('boardBagList');
                                         if (bag) {
                                             bag.innerHTML = model.backpack.length
-                                                ? model.backpack.map(x => '<span class="board-chip"><b>' + escapeHtml(boardNameOf(x.id) || ('道具 ' + x.id))
-                                                    + '</b> ×' + x.n + '<em>' + escapeHtml(x.id) + '</em></span>').join('')
+                                                ? model.backpack.map(x => {
+                                                    const nm = boardNameOf(x.id);
+                                                    return '<span class="board-chip" title="' + escapeHtml('道具 ' + x.id + (nm ? '（' + nm + '）' : ''))
+                                                        + '"><b>' + escapeHtml(nm || ('道具 ' + x.id)) + '</b><em>×' + x.n + '</em></span>';
+                                                }).join('')
                                                 : '<span class="hint-text">临时背包是空的</span>';
                                         }
                                         const ware = document.getElementById('boardWareList');
                                         if (ware) {
                                             const all = model.warehouse.concat(model.activityWarehouse);
                                             ware.innerHTML = all.length
-                                                ? all.map(x => '<span class="board-chip"><b>' + escapeHtml(boardNameOf(x.id) || ('棋子 ' + x.id))
-                                                    + '</b><em>' + escapeHtml(String(x.id)) + (x.capacity != null ? ' · 库存 ' + (x.inventory || 0) + '/' + x.capacity : '') + '</em></span>').join('')
+                                                ? all.map(x => {
+                                                    const nm = boardNameOf(x.id);
+                                                    return '<span class="board-chip" title="' + escapeHtml('棋子 ' + x.id + (nm ? '（' + nm + '）' : ''))
+                                                        + '"><b>' + escapeHtml(nm || ('棋子 ' + x.id)) + '</b>'
+                                                        + (x.capacity != null ? '<em>库存 ' + (x.inventory || 0) + '/' + x.capacity + '</em>' : '') + '</span>';
+                                                }).join('')
                                                 : '<span class="hint-text">仓库是空的</span>';
                                         }
                                     }

@@ -420,13 +420,13 @@ npm run verify     # 改完代码、push 前的完整自检
 用户：「1 和 2 弄成玩家游戏数据功能，将棋盘镜像作为独立的标签页加在这个功能里，粘贴后同步核对镜像」——把 MergeState 的两件刚需（**资源核对**、**活动进度**）做成一个页面，棋盘镜像当它的**第 03 段**放进来。
 
 - **位置**：侧边栏 **「梦幻消除站」组**里的第三个子项 **「玩家游戏数据」**（`data-tab="gamedata"` / `#tab-gamedata`，`tab-btn-sub`，**不带图标**），排在 `话术生成` / `集卡分析` 后面。页内三段：`01 资源核对`（默认）/ `02 活动进度` / `03 棋盘镜像`（`.seg-bar[data-for="tab-gamedata"]` + `data-seg-card="resource|activity|mirror"`；`bindSegBar` 末尾 `statsSetSeg('tab-gamedata', 'resource')` 初始化）。
-- **① 粘贴 MergeState**（`#mergeInput` + `#mergeParseBtn` / `#mergeClearBtn`，提示 `#mergeHint`）：就是 GM 玩家页那块**存档快照**，整段贴。汇总芯片 `#mergeSummary`（红宝石 / 铜钱 / 体力 / 存档 ID / 今日体力消耗 / 今日钻石消耗 / 资源项数 / 活动数）+ 对账行 `#mergeDiff`；抬头 `#gdReportSub` / `#gdReportMeta` 也跟着填。
+- **① 粘贴 MergeState**（`#mergeInput` + `#mergeParseBtn` / `#mergeClearBtn`，提示 `#mergeHint`）：就是 GM 玩家页那块**存档快照**，整段贴。汇总芯片 `#mergeSummary`（红宝石 / 铜钱 / 体力 / **今日体力 −N / 今日钻石 −N** / **资源 N · 活动 M**）+ 对账行 `#mergeDiff`；抬头 `#gdReportSub` / `#gdReportMeta` 也跟着填。⚠️ 2026-10 用户说「数据展示的有点乱，优化一下」之后：存档 ID 从芯片挪进抬头副标、芯片从 8 片精简到 6 片、粘贴框从 6 行收到 4 行。
   - **解析**（`mergeParse`）：`diamond|recordDiamond` / `gold|recordGold` / `hpData|recordHp` / `recordID` / `syncTime` / `others`。⚠️ **`others` 是「字符串套字符串」，个别还三层**（`resource` / `meta` / `activities[].extra` / `activity_task_progress[].tasks` / `completeGuides` / `gifts`），统一用 `mergeJson(v, dflt)` 一层层剥。
   - **`resource[]`**（`id / num / timestamp`）= **每个道具的当前数量 + 最后一次变动时间**，按数量降序，`mergeTsText()` 把时间戳格式化成 `YYYY-MM-DD HH:MM`（UTC，跟快照里的服务器时间一致）。
   - **`meta[]`**（`name / value / extra`）里取两条做「当日消耗」：`daily_board_energy_stat.extra` = **今日体力消耗**、`daily_diamond_consume_stat.extra` = **今日钻石消耗**（`mergeDailyUsage`）。
   - **`activities[]`**（`name` + `extra` 里套 JSON）= 60+ 个活动的 `id` / `State_Recorded_*` / 进度值；**`MERGE_ACTIVITY_LABELS`** 把英文名换成中文（七日任务 / 通行证（本期）/ 签到奖励 / 限购补给 / 体力排行榜 / 茶楼竞速 / 大亨赛 / 集卡 / 怪棋挑战 / 风筝 / 花园… 认不出显示原名）。
   - `activity_task_progress[]` = 活动任务进度（`taskId / status / progress`，**status=2 算已完成**，跟七日任务那套口径一致）。
-- **② 资源核对**（`.card[data-seg-card="resource"]`，`#gdResTable` 表格 + 查询）：表格三列「道具 / 数量 / 最后变动」；查询区 `#gdItemInput`（道具名或 id，回车也行）+ `#gdItemBtn` / `#gdItemCopyBtn` + `#gdItemOut`。
+- **② 资源核对**（`.card[data-seg-card="resource"]`）：**查询区在最上面**（`#gdItemInput` 道具名或 id、回车也行 + `#gdItemBtn` / `#gdItemCopyBtn` + `#gdItemOut`），**明细表收进 `<details class="stat-fold">` 里默认收起**（`#gdResTable`，三列「道具 / 数量 / 最后变动」）。⚠️ **表里只列「数量 > 0」的**，0 的记录折成一行说明放在 `#gdResCount`（「有数量 4 项 · 其余 1 项是 0」）—— 真实存档里一半资源都是 0，全列出来很乱。
   - 话术（`mergeItemScript`）：
     ```
     【玩家游戏数据 · 红宝石（103）】
@@ -436,7 +436,7 @@ npm run verify     # 改完代码、push 前的完整自检
     棋盘镜像：棋盘上 0 个、临时背包 0 个、仓库 0 个。
     ```
     查 `101` 时写「今日体力消耗」（298），查 `103` 时写「今日钻石消耗」；棋盘镜像那行只在镜像已解析时才有；查不到直说 `玩家数据里没找到「…」这个道具`。
-- **③ 活动进度**（`.card[data-seg-card="activity"]`，`#gdActChips` 芯片 + 查询）：芯片是这份存档里出现过的活动（**点芯片 = 自动填进 `#gdActInput` 并直接生成**，`data-gd-act` 属性）；查询 `#gdActInput` + `#gdActBtn` / `#gdActCopyBtn` + `#gdActOut`。
+- **③ 活动进度**（`.card[data-seg-card="activity"]`）：芯片是这份存档里出现过的活动（**点芯片 = 自动填进 `#gdActInput` 并直接生成**，`data-gd-act` 属性）；查询 `#gdActInput` + `#gdActBtn` / `#gdActCopyBtn` + `#gdActOut`。⚠️ **芯片只写中文名**（英文名/id 塞进 `title`），**前 12 个直接铺、其余折进 `<details>「还有 N 个活动」`**，上方 `#gdActCount` 写一行「这份存档里有 N 个活动」—— 60+ 个活动全铺开会糊一屏。
   - 话术（`mergeActivityScript`）：
     ```
     【玩家游戏数据 · 七日任务（seven_task）】
@@ -465,6 +465,7 @@ npm run verify     # 改完代码、push 前的完整自检
   - `warehouseData.pieceDataList[]` = 仓库棋子；`activityChessBoardData.warehouse.pieces[]` = 活动仓库（有就一起算仓库）。
   - `backpack`（`{ goodsId: 数量 }`）= **临时背包**；`backpackGoodsIds` 里出现的空 key（`""`）要跳过。
   - `currencies`（`{ 101: 16, 102: 86130, … }`）= 货币芯片。
+- **汇总芯片**：只留「主棋盘 W×H / 另有 N 块 / 棋子 N / 格 M / 临时背包 N 项 / 仓库 N 件」—— **货币（101/102/103）不在这显示**（那是「玩家数据」那边的事，对账行会用）；背包 / 仓库的芯片**只写名字 + ×数量 / 库存**，id 收进 `title`（认不出名字的才把 id 写在脸上）。
 - **棋盘怎么画**：按 `cellNumW × cellNumH` 铺格子（7×9 = 63 格），按 `cellIdx` 定位；三种样子 —— 有 `pieceData` = 棋子（名字来自 `itemNameMap`，产出棋 `pieceType` 11/12/31/32 标黄底并显示 `库存/上限`）、`lockState !== 2` = 未解锁（虚线「锁」）、其余 = 空位（虚线「·」）。`title` 里有 id / 库存 / 类型 / 格号。
 - **查询 / 话术**（`boardIdsOfQuery` + `boardAskScript`）：
   - 全数字 → 直接当 id；否则用 `itemNameMap` 反查：**先精确匹配名字，再不精确到「真名里包含查询」**（⚠️ 反过来「查询里包含真名」不行 —— 会让「不存在的道具」命中名字叫「道具」的那几条）。
@@ -477,7 +478,7 @@ npm run verify     # 改完代码、push 前的完整自检
   - 名字对不上时话术直接说 `镜像里没找到「…」这个道具 / 棋子`，提示里也写「换个写法或直接输 id」。
 - ⚠️ **只在本机内存里**（`boardModel` 变量）：不写 `/api/data`、不塞 localStorage，刷新就没了（想留就重新贴）。
 - ⚠️ 活动棋盘的 `activityPieceIdMap` 里那批 id（826xx / 827xx / 610xx…）**物品名表里没有**，会显示成 `#82601` 这种原 id —— 想显示真名就去「映射管理」里补 `itemNameMap`，补完刷新即可（`boardNameOf()` 读的就是它）。
-- **测试**：`tools/smoke.cjs` 第 **8z** 节 **19 条**（是「梦幻消除站」组的子项 / 标签上没有图标 / 三段与默认段 / 切到第 03 段 / 三块默认收起 / 解析出主棋盘 3×2 + 棋盘数 + 棋子 4·格 8 + 背包 1 项 + 仓库 2 件 + 货币 / 三块都显示 / 主棋盘 6 格含 3 棋子·1 未解锁·1 产出棋 / 名字换成「相思鸟」「云栖茶壶」且带 80/80 库存 / 其它棋盘单独画 / 背包「×3」/ 仓库认识换名·不认识写 id 带库存 / 输名字出话术（棋盘 2·背包 0·仓库 0）/ 输 id 出话术（棋盘 1·背包 0·仓库 1）/ 查不到就说没找到 / 坏 JSON 只提示不炸 / 清空全收 / 全程 0 请求）；`tools/verify.mjs` 3g-3 有 **12 条**静态断言（含「三张子项排在一起、都不带图标」和「棋盘镜像整块收进 `data-seg-card="mirror"`」）。
+- **测试**：`tools/smoke.cjs` 第 **8z** 节 **19 条**（是「梦幻消除站」组的子项 / 标签上没有图标 / 三段与默认段 / 切到第 03 段 / 三块默认收起 / 汇总芯片不含货币、背包仓库 id 在 title / 解析出主棋盘 3×2 + 棋盘数 + 棋子 4·格 8 + 背包 1 项 + 仓库 2 件 + 货币 / 三块都显示 / 主棋盘 6 格含 3 棋子·1 未解锁·1 产出棋 / 名字换成「相思鸟」「云栖茶壶」且带 80/80 库存 / 其它棋盘单独画 / 背包「×3」/ 仓库认识换名·不认识写 id 带库存 / 输名字出话术（棋盘 2·背包 0·仓库 0）/ 输 id 出话术（棋盘 1·背包 0·仓库 1）/ 查不到就说没找到 / 坏 JSON 只提示不炸 / 清空全收 / 全程 0 请求）；`tools/verify.mjs` 3g-3 有 **12 条**静态断言（含「三张子项排在一起、都不带图标」和「棋盘镜像整块收进 `data-seg-card="mirror"`」）。
 
 ## SOP 助手（**已删除** · 2026-10，用户要求）
 
