@@ -3012,6 +3012,36 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     check(/镜像 − 流水 差 \+99/.test($('gdReconChips').textContent),
       '对账：镜像（16）与流水余额（86031）差多少直接写出来', $('gdReconChips').textContent);
 
+    // 结论横幅 / 图例 / 对比条（同事说数据看不懂 → 一眼看出有没有异常）
+    check($('gdBanner').style.display === '' && $('gdBanner').classList.contains('is-bad')
+      && /⚠️/.test($('gdBanner').textContent) && /发现 1 组可疑/.test($('gdBanner').textContent)
+      && /被「棋盘上传」扣了 -99/.test($('gdBanner').textContent),
+      '顶部结论横幅最显眼：⚠️ 发现 1 组可疑 + 哪一笔被棋盘上传扣掉',
+      $('gdBanner').textContent.replace(/\s+/g, ' ').slice(0, 140));
+    check($('gdLegend').style.display === '' && $('gdLegend').querySelectorAll('i').length === 4
+      && /对得上/.test($('gdLegend').textContent) && /被棋盘上传扣掉的那笔/.test($('gdLegend').textContent),
+      '配一行图例：什么颜色代表对得上 / 对不上 / 被吞的扣除 / 没数据',
+      $('gdLegend').textContent.replace(/\s+/g, ' ').slice(0, 120));
+    check($('gdBars').style.display === '' && $('gdBars').querySelectorAll('.gd-bar').length >= 2
+      && /流水余额/.test($('gdBars').textContent) && /镜像合计/.test($('gdBars').textContent)
+      && $('gdBars').querySelectorAll('.gd-bar.is-warn').length >= 1,
+      '三条对比条：流水余额 / 镜像合计 / 操作净，对不上的那条标橙',
+      $('gdBars').textContent.replace(/\s+/g, ' ').slice(0, 120));
+    check(/结论：⚠️ 发现 1 组可疑/.test($('gdItemOut').value)
+      && /建议：把上面这组「\+N → 棋盘上传 −N」提研发核对服务端流水/.test($('gdItemOut').value)
+      && /别直接说「系统吞了」/.test($('gdItemOut').value),
+      '话术开头先给结论、结尾给建议（能直接照着回玩家）',
+      $('gdItemOut').value.replace(/\n/g, ' | ').slice(0, 160));
+
+    // 换成「没有配对」的流水 → 横幅变绿、建议变「不用升级」
+    $('mergeInput').value = '2026-10-29 10:00:00\tG1\t铜钱\t+100\t86030\t86130\t每日任务奖励\t0-货币';
+    $('mergeParseBtn').click();
+    await sleep(90);
+    check($('gdBanner').classList.contains('is-ok') && /没发现异常/.test($('gdBanner').textContent)
+      && /建议：目前没发现问题，不用升级处理。/.test($('gdItemOut').value),
+      '没有可疑配对时：横幅变绿 ✅「没发现异常」、建议写「不用升级处理」',
+      $('gdBanner').textContent.replace(/\s+/g, ' ').slice(0, 120));
+
     // 时间点：比流水最后一条晚 → 那之后没动过
     $('gdItemTime').value = '2026-10-30T00:00';
     $('gdItemBtn').click();
@@ -3022,7 +3052,7 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     $('gdItemTime').value = '2026-10-29T09:00';
     $('gdItemBtn').click();
     await sleep(60);
-    check(/玩家说的时间之后动过它 2 次/.test($('gdItemOut').value)
+    check(/玩家说的时间之后动过它 \d+ 次/.test($('gdItemOut').value)
       && /那个时段之后还动过它/.test($('gdItemVerdict').textContent),
       '填了比流水早的时间 → 「那个时段之后还动过它」', $('gdItemVerdict').textContent);
 

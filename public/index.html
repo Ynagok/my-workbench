@@ -3650,6 +3650,30 @@
         .career-rest-day.is-today b { background: var(--accent); color: var(--dark); }
 
     
+        /* ===================== 🚦 资源核对 · 结论横幅 / 图例 / 对比条（2026-10：同事说数据看不懂，要「一眼看出异常」）===================== */
+        .gd-banner { margin-top: 12px; display: flex; gap: 10px; align-items: flex-start; padding: 11px 14px;
+            border-radius: var(--r-md); border: 1px solid var(--line-0); background: var(--surface); }
+        .gd-banner .ic { font-size: 20px; line-height: 1.1; }
+        .gd-banner b { display: block; font-size: 14.5px; color: var(--ink-0); }
+        .gd-banner span { display: block; margin-top: 3px; font-size: 12.5px; color: var(--ink-2); }
+        .gd-banner.is-ok { border-color: var(--accent-line); background: var(--accent-dim); }
+        .gd-banner.is-warn { border-color: var(--warn); }
+        .gd-banner.is-bad { border-color: var(--danger); }
+        .gd-legend { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 14px; font-size: 11.5px; color: var(--ink-3); }
+        .gd-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+        .gd-legend i.sw-ok { background: var(--accent); }
+        .gd-legend i.sw-warn { background: var(--warn); }
+        .gd-legend i.sw-bad { background: var(--danger); }
+        .gd-legend i.sw-mute { background: var(--line-2); }
+        .gdBars { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; }
+        .gdBars .gd-bar { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+        .gdBars .gd-bar > b { flex: 0 0 76px; font-weight: 400; color: var(--ink-2); }
+        .gdBars .gd-bar .track { flex: 1 1 auto; height: 12px; background: var(--surface-2); border-radius: var(--r-pill); overflow: hidden; }
+        .gdBars .gd-bar .fill { display: block; height: 100%; border-radius: var(--r-pill); background: var(--accent); }
+        .gdBars .gd-bar.is-bad .fill { background: var(--danger); }
+        .gdBars .gd-bar.is-warn .fill { background: var(--warn); }
+        .gdBars .gd-bar em { flex: 0 0 60px; text-align: right; font-style: normal; color: var(--ink-0); }
+
         /* ===================== 🎮 资源核对 · 思维导图（2026-10 用户：资源核对不够直观，像思维导图会好点）===================== */
         /* 左边一个「道具」根节点，右边一条竖干线挂「存档 / 棋盘镜像 / 订单 / 操作记录 / 结论」，靠 ::before 画连接线，不用 SVG */
         .gd-map { display: flex; align-items: flex-start; margin-top: 12px; }
@@ -4682,6 +4706,14 @@
                     <div class="stat-chips" id="gdFlowChips"></div>
                     <div class="career-scroll" style="margin-top:8px;"><table class="career-table" id="gdFlowTable"></table></div>
                 </div>
+                <div class="gd-banner" id="gdBanner" style="display:none;"></div>
+                <div class="gd-legend" id="gdLegend" style="display:none;">
+                    <span><i class="sw-ok"></i>对得上 / 没异常</span>
+                    <span><i class="sw-warn"></i>差一点 / 对不上</span>
+                    <span><i class="sw-bad"></i>被棋盘上传扣掉的那笔</span>
+                    <span><i class="sw-mute"></i>这份数据没贴</span>
+                </div>
+                <div class="gdBars" id="gdBars" style="display:none;"></div>
                 <div class="gd-map" id="gdItemMap" style="display:none;"></div>
                 <div id="gdRecon" style="display:none; margin-top:12px;">
                     <div class="gd-flow-hint">三口径对账：<b>资源流水</b>（变动明细）/ <b>存档</b>（MergeState 当前值）/ <b>棋盘镜像</b>（棋盘+背包+仓库+货币）三者能不能对上；贴了操作记录还会拿「获得 − 消耗」跟镜像比</div>
@@ -16417,6 +16449,76 @@
                                         return out;
                                     }
 
+                                    // ==================== 🚦 一句话结论（横幅 / 对比条 / 话术共用）====================
+                                    // 用户 2026-10：「同事说数据呈现看不懂，想要一眼就明白有没有异常，结尾文本再清楚点」
+                                    // 所以先给一句人话结论（✅ 没异常 / ⚠️ 可疑 / ❕ 对不上 / ❔ 资料不足），再给可视化，最后才是明细。
+                                    function gdVerdict(id) {
+                                        const p = gdReconParts(id);
+                                        const rows = (flowModel && flowModel.ok) ? flowModel.rows.filter(r => gdFlowMatch(r, id)) : [];
+                                        const pairs = gdFlowPairs(id).pairs;
+                                        const name = mergeNameOf(id);
+                                        if (!rows.length && !p.mirror) {
+                                            return { level: 'mute', icon: '❔', title: '资料不足：贴一份资源流水再看', desc: '有棋盘镜像的话会一起对' };
+                                        }
+                                        if (pairs.length) {
+                                            const x = pairs[0];
+                                            return {
+                                                level: 'bad', icon: '⚠️',
+                                                title: '发现 ' + pairs.length + ' 组可疑：东西到手后又被「棋盘上传」扣掉了',
+                                                desc: String(x.gain.ts).slice(5) + ' 获得 +' + x.gain.delta + ' → ' + String(x.loss.ts).slice(5) + ' 被「棋盘上传」扣了 ' + x.loss.delta
+                                            };
+                                        }
+                                        const bad = gdReconDiffs(p).filter(d => d.d !== 0);
+                                        if (bad.length) {
+                                            return {
+                                                level: 'warn', icon: '❕',
+                                                title: '数据对不上：' + bad.map(d => d.label + ' 差 ' + (d.d > 0 ? '+' : '') + d.d).join('；'),
+                                                desc: '几份数据不是同一时刻抓的，或者中间有没记录到的变动'
+                                            };
+                                        }
+                                        if (rows.length) {
+                                            return {
+                                                level: 'ok', icon: '✅',
+                                                title: '没发现异常：没有「+N 之后被棋盘上传扣掉」的记录',
+                                                desc: '流水最后余额 ' + p.flow.n + '（' + p.flow.ts + '）' + (p.mirror ? '，和棋盘镜像对得上（' + p.mirror.n + '）' : '')
+                                            };
+                                        }
+                                        return { level: 'ok', icon: '✅', title: '没发现异常', desc: '流水里没有它的记录，镜像里有 ' + p.mirror.n };
+                                    }
+                                    // 横幅 + 图例 + 三条对比条（流水 / 镜像 / 操作净）
+                                    function gdRenderVerdict(id) {
+                                        const box = document.getElementById('gdBanner');
+                                        const legend = document.getElementById('gdLegend');
+                                        const bars = document.getElementById('gdBars');
+                                        if (!box) return;
+                                        if (!id) {
+                                            box.style.display = 'none';
+                                            if (legend) legend.style.display = 'none';
+                                            if (bars) bars.style.display = 'none';
+                                            return;
+                                        }
+                                        const v = gdVerdict(id);
+                                        box.className = 'gd-banner'; box.classList.add('is-' + v.level);
+                                        box.innerHTML = '<span class="ic">' + v.icon + '</span><div><b>' + escapeHtml(v.title) + '</b>'
+                                            + (v.desc ? '<span>' + escapeHtml(v.desc) + '</span>' : '') + '</div>';
+                                        box.style.display = '';
+                                        if (legend) legend.style.display = '';
+                                        const p = gdReconParts(id);
+                                        const items = [];
+                                        if (p.flow) items.push({ label: '流水余额', n: p.flow.n, cls: 'is-ok' });
+                                        if (p.mirror) items.push({ label: '镜像合计', n: p.mirror.n, cls: (p.flow && p.mirror.n !== p.flow.n) ? 'is-warn' : 'is-ok' });
+                                        if (p.op) items.push({ label: '操作净变动', n: p.op.gained - p.op.used, cls: 'is-ok' });
+                                        if (bars) {
+                                            if (items.length < 2) { bars.style.display = 'none'; bars.innerHTML = ''; }
+                                            else {
+                                                const max = Math.max.apply(null, items.map(x => Math.abs(x.n)).concat([1]));
+                                                bars.innerHTML = items.map(x => '<div class="gd-bar ' + x.cls + '"><b>' + escapeHtml(x.label) + '</b>'
+                                                    + '<span class="track"><i class="fill" style="width:' + Math.max(2, Math.round(Math.abs(x.n) / max * 100)) + '%;"></i></span>'
+                                                    + '<em>' + x.n + '</em></div>').join('');
+                                                bars.style.display = '';
+                                            }
+                                        }
+                                    }
                                     // ==================== 🧾 三口径对账（流水 / 存档 / 镜像 / 操作记录）====================
                                     // 用户 2026-10：「能不能根据游戏数据某个道具或者棋子的增加和消耗的情况，和镜像棋盘的数据对比，看看对不对的上」
                                     // 三个口径本来就是三次不同时刻的抓数，对不上很常见 —— 所以不判「谁对谁错」，只把差额摆出来让人看。
@@ -16552,6 +16654,9 @@
                                         const out = ['【游戏数据 · ' + mergeNameOf(id) + '（' + id + '）】'];
                                         // ⚠️ 用户 2026-10：「不使用存档数据」—— 当前值一律取「流水最后余额」，MergeState 不再参与判断
                                         const fl = gdFlowLast(id);
+                                        const v = gdVerdict(id);
+                                        out.push('结论：' + v.icon + ' ' + v.title);
+                                        if (v.desc) out.push('　　　' + v.desc);
                                         out.push('当前数量：' + (fl ? (fl.after + '（流水最后余额 · ' + fl.ts + '）') : '流水里没有它（贴一份流水就能算余额）'));
                                         if (boardModel) {
                                             const c = (boardModel.counts || {})[id] || { onBoard: 0, inBackpack: 0, inWarehouse: 0 };
@@ -16562,6 +16667,12 @@
                                         gdFlowLines(id).forEach(l => out.push(l));
                                         gdReconLines(id).forEach(l => out.push(l));
                                         out.push('· 注：这份话术只依据资源流水 / 棋盘镜像 / 操作记录（不使用存档数据）。');
+                                        const vv = gdVerdict(id);
+                                        out.push('建议：' + (vv.level === 'bad'
+                                            ? '把上面这组「+N → 棋盘上传 −N」提研发核对服务端流水；跟玩家沟通时别直接说「系统吞了」，说「这边帮您核实一下」。'
+                                            : (vv.level === 'warn'
+                                                ? '先确认几份数据是不是同一时刻抓的，再提研发核对。'
+                                                : '目前没发现问题，不用升级处理。')));
                                         return out.join('\n');
                                     }
                                     function mergeRun(rawArg) {
@@ -16622,6 +16733,7 @@
                                         const box = document.getElementById('gdItemVerdict');
                                         if (box) box.innerHTML = mergeItemVerdict(mergeModel, ids[0], rec, q).join('');
                                         mergeItemMapRender(ids.length ? ids[0] : '', rec);
+                                        gdRenderVerdict(ids.length ? ids[0] : '');
                                         gdReconRender(ids.length ? ids[0] : '');
                                         mergeOpRender();
                                         gdFlowRender();
@@ -16643,6 +16755,7 @@
                                         const vBox = document.getElementById('gdItemVerdict');
                                         if (vBox) vBox.innerHTML = '';
                                         mergeItemMapRender('', null);
+                                        gdRenderVerdict('');
                                         gdReconRender('');
                                         flowModel = null;
                                         gdFlowRender();

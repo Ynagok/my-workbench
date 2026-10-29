@@ -682,6 +682,11 @@ ok(/function gdFlowImport\(raw, fromLabel\)/.test(s) && /gdFlowImport\(raw, '智
   && /gdFlowImport\(gdCsvToTabs\(text\), 'CSV 上传'\)/.test(s) && /function gdCsvToTabs\(text\)/.test(s)
   && /已把原始流水（\$\{synced\.rows\.length\} 行）同步给/.test(s) && !/parseSmartLog\(raw, \{ keepIgnored/.test(s),
   '流水解析联动：同步给游戏数据的是**原始日志文本**（CSV 上传只把分隔符换成制表符），由游戏数据用自己的严格解析判断，不套话术那套忽略 / 筛选 / 类型覆盖');
+ok(/id="gdBanner"/.test(s) && /id="gdLegend"/.test(s) && /id="gdBars"/.test(s)
+  && /function gdVerdict\(id\)/.test(s) && /function gdRenderVerdict\(id\)/.test(s)
+  && /\.gd-banner\.is-bad/.test(s) && /\.gdBars \.gd-bar \.fill/.test(s) && /\.gd-legend i\.sw-bad/.test(s)
+  && /结论：' \+ v\.icon/.test(s) && /建议：' \+ \(vv\.level/.test(s),
+  '资源核对多了「一眼看异常」的三件套：顶部结论横幅（✅/❕/⚠️/❔ 一句话）/ 颜色图例 / 流水余额 vs 镜像合计 vs 操作净 三条对比条；话术开头先给结论、结尾给建议');
 ok(/id="gdRecon"/.test(s) && /id="gdReconChips"/.test(s) && /id="gdReconTable"/.test(s)
   && /function gdReconParts\(id\)/.test(s) && /function gdReconDiffs\(p\)/.test(s)
   && /function gdReconRender\(id\)/.test(s) && /function gdReconLines\(id\)/.test(s)
