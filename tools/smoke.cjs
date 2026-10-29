@@ -2845,14 +2845,15 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     await sleep(60);
     check(!!$('tab-gamedata') && $('tab-gamedata').classList.contains('active'),
       '点进去就是游戏数据页（纯前端，不碰服务端）');
-    check(doc.querySelectorAll('#tab-gamedata .seg-btn').length === 3
+    check(doc.querySelectorAll('#tab-gamedata .seg-btn').length === 2
+      && !doc.querySelector('#tab-gamedata .seg-btn[data-seg="activity"]')
       && $('tab-gamedata').dataset.seg === 'resource',
-      '页内三段（01 资源核对 / 02 活动进度 / 03 棋盘镜像），默认停在资源核对',
+      '页内两段（01 资源核对 / 02 棋盘镜像），默认停在资源核对；活动进度已删',
       doc.querySelectorAll('#tab-gamedata .seg-btn').length + ' 段');
     doc.querySelector('#tab-gamedata .seg-btn[data-seg="mirror"]').click();
     await sleep(60);
     check($('tab-gamedata').dataset.seg === 'mirror',
-      '切到「03 棋盘镜像」这一段（棋盘那几块都收在这一段里）');
+      '切到「02 棋盘镜像」这一段（棋盘那几块都收在这一段里）');
     check($('boardMainCard').style.display === 'none' && $('boardBagCard').style.display === 'none'
       && $('boardAskCard').style.display === 'none',
       '还没解析时「棋盘 / 背包仓库 / 查询」三块都收着');
@@ -2953,7 +2954,7 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
       '镜像解析全程只在本机（0 请求）', posts.slice(posts8z).map(p => p.url).join(' | '));
   }
 
-  console.log('--- 8z-2. 游戏数据 · 01 资源核对 / 02 活动进度（MergeState + 跟镜像对账）---');
+  console.log('--- 8z-2. 游戏数据 · 01 资源核对（MergeState + 跟镜像对账）---');
   {
     const postsGd = posts.length;
     doc.querySelector('#tab-gamedata .seg-btn[data-seg="resource"]').click();
@@ -2998,9 +2999,9 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     await sleep(100);
     const sumGd = $('mergeSummary').textContent;
     check(/红宝石 911/.test(sumGd) && /铜钱 86130/.test(sumGd) && /体力 16/.test(sumGd)
-      && /今日体力 −298/.test(sumGd) && /今日钻石 −10/.test(sumGd) && /资源 5 · 活动 2/.test(sumGd)
+      && /今日体力 −298/.test(sumGd) && /今日钻石 −10/.test(sumGd) && /资源 5 项/.test(sumGd)
       && /存档 178288/.test($('gdReportSub').textContent),
-      'MergeState 解析出货币 / 体力 / 当日消耗（−N）/ 资源与活动数；存档 ID 收进抬头副标', sumGd.slice(0, 200));
+      'MergeState 解析出货币 / 体力 / 当日消耗（−N）/ 资源项数；存档 ID 收进抬头副标（活动进度已删）', sumGd.slice(0, 200));
     check($('gdResTable').querySelectorAll('tbody tr').length === 4
       && /4417/.test($('gdResTable').textContent) && /\d{4}-\d{2}-\d{2} \d{2}:\d{2}/.test($('gdResTable').textContent)
       && !/3000004/.test($('gdResTable').textContent)
@@ -3009,11 +3010,6 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
       $('gdResTable').textContent.replace(/\s+/g, ' ').slice(0, 120));
     check(/棋盘镜像还没解析/.test($('mergeDiff').textContent),
       '镜像还没解析时，对账行提示去棋盘镜像那一段粘一份', $('mergeDiff').textContent.slice(0, 80));
-    check($('gdActChips').querySelectorAll('[data-gd-act]').length === 2
-      && /七日任务/.test($('gdActChips').textContent) && /签到奖励/.test($('gdActChips').textContent)
-      && $('gdActChips').querySelector('[data-gd-act="seven_task"]').textContent.trim() === '七日任务'
-      && /这份存档里有 2 个活动/.test($('gdActCount').textContent),
-      '活动芯片只写中文名（id 收进 title），上方一行计数', $('gdActChips').textContent.slice(0, 80));
 
     // 跟棋盘镜像对账：先解析一份镜像（体力 16 / 铜钱 86130），应该「一致」
     $('boardInput').value = JSON.stringify({
@@ -3111,30 +3107,6 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     check(/玩家数据里没找到「不存在的道具」/.test($('gdItemOut').value),
       '查不到的道具直说没找到', $('gdItemOut').value.slice(0, 60));
 
-    // 活动进度话术
-    $('gdActInput').value = '七日任务';
-    $('gdActBtn').click();
-    await sleep(60);
-    check(/【游戏数据 · 七日任务（seven_task）】/.test($('gdActOut').value)
-      && /活动 id：35/.test($('gdActOut').value) && /关键进度：七日任务·35·102 = 14326/.test($('gdActOut').value),
-      '活动话术：中文别名 + 活动 id + 关键进度', $('gdActOut').value.replace(/\n/g, ' | ').slice(0, 140));
-    $('gdActInput').value = '6735';
-    $('gdActBtn').click();
-    await sleep(60);
-    check(/【游戏数据 · 活动任务（6735）】/.test($('gdActOut').value)
-      && /任务共 2 个，已完成（status=2）1 个。/.test($('gdActOut').value)
-      && /2689=14326/.test($('gdActOut').value),
-      '活动任务进度也能查（status=2 算已完成）', $('gdActOut').value.replace(/\n/g, ' | ').slice(0, 140));
-    $('gdActInput').value = '压根没有的活动';
-    $('gdActBtn').click();
-    await sleep(60);
-    check(/玩家数据里没找到「压根没有的活动」这个活动/.test($('gdActOut').value),
-      '查不到的活动直说没找到', $('gdActOut').value.slice(0, 60));
-    $('gdActInput').value = '';
-    $('gdActChips').querySelector('[data-gd-act="sign_rewards"]').click();
-    await sleep(60);
-    check($('gdActInput').value === 'sign_rewards' && /签到奖励/.test($('gdActOut').value),
-      '点活动芯片：填进输入框并直接生成话术', $('gdActOut').value.replace(/\n/g, ' | ').slice(0, 80));
 
     // 坏 JSON / 清空
     $('mergeInput').value = '{ 这不是 JSON }';
@@ -3148,9 +3120,9 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     $('mergeClearBtn').click();
     await sleep(60);
     check($('mergeInput').value === '' && $('mergeSummary').innerHTML === '' && $('gdResTable').innerHTML === ''
-      && $('gdActChips').innerHTML === '' && $('mergeDiff').textContent === ''
+      && $('mergeDiff').textContent === ''
       && $('gdItemTime').value === '' && $('gdItemVerdict').innerHTML === '',
-      '「清空」把 MergeState / 资源表 / 活动芯片 / 对账行 / 判定芯片 / 时间点一起清掉');
+      '「清空」把 MergeState / 资源表 / 对账行 / 判定芯片 / 时间点 / 流水对账一起清掉');
     $('gdItemInput').value = '红宝石';
     $('gdItemBtn').click();
     await sleep(40);
@@ -3158,7 +3130,7 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
       '清空后查道具会提示先在页头贴数据', $('gdItemHint').textContent);
 
     check(posts.slice(postsGd).filter(p => /careerData|dailyData|gamedata|merge/i.test(p.url)).length === 0,
-      '资源核对 / 活动进度全程只在本机（0 请求）', posts.slice(postsGd).map(p => p.url).join(' | '));
+      '资源核对全程只在本机（0 请求）', posts.slice(postsGd).map(p => p.url).join(' | '));
   }
 
   console.log('--- 8z-3. 游戏数据 · 操作记录（合并 / 订单消耗 / 产出 → 道具到底被谁拿走）---');
@@ -3365,7 +3337,7 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
       '导图 / 万能粘贴全程只在本机（0 请求）', posts.slice(postsMap).map(p => p.url).join(' | '));
   }
 
-  console.log('--- 8z-5. 游戏数据 · 英文 / 代号换成中文 ---');
+  console.log('--- 8z-5. 游戏数据 · 英文 / 代号换成中文（物品名）---');
   {
     const postsCn = posts.length;
     const cnState = {
@@ -3383,19 +3355,6 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     $('mergeInput').value = JSON.stringify(cnState);
     $('mergeParseBtn').click();
     await sleep(90);
-    const chipTxt = $('gdActChips').textContent;
-    check(/茶楼七日任务/.test(chipTxt) && !/some_unknown_activity/.test(chipTxt),
-      '英文活动名：手写表查不到就按活动 id 查官方活动类型表（id 67 → 茶楼七日任务）', chipTxt.slice(0, 120));
-    check(/unknown flying thing/.test(chipTxt),
-      '两头都对不上时把下划线拆成空格（不再是连成一串的代码）', chipTxt.slice(0, 160));
-    check(/some_unknown_activity/.test($('gdActChips').querySelector('[data-gd-act="some_unknown_activity"]').title),
-      '原始英文名没丢：收进芯片 title，鼠标停上去还能看到原值');
-    $('gdActInput').value = '签到奖励';
-    $('gdActBtn').click();
-    await sleep(60);
-    check(/关键进度：累计数（CumulativeNum） = 20；连续数（ContinuousNum） = 3/.test($('gdActOut').value),
-      '关键进度的英文 key 也中文了，并带上原字段名（累计数（CumulativeNum）/ 连续数（ContinuousNum））',
-      $('gdActOut').value.replace(/\n/g, ' | ').slice(0, 120));
     // 操作记录里不在映射表的道具 id → 「道具 N」
     $('gdItemInput').value = '';
     $('mergeInput').value = JSON.stringify([{ uid: 1, op: 30, sTime: 1793241739, opId: 1, cbId: 1, rewards: [{ goodsId: 99999999, num: 3 }] }]);

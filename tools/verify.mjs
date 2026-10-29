@@ -623,17 +623,19 @@ ok(/棋盘上有 ' \+ onBoard \+ ' 个，临时背包有 ' \+ inBag \+ ' 个，�
   && /镜像里没找到「'/.test(s) && /【棋盘镜像 · '/.test(s),
   '确认话术就是用户要的三段式：棋盘上有 X 个，临时背包有 Y 个，仓库有 Z 个；查不到时直说没找到');
 ok(/class="seg-bar" data-for="tab-gamedata"/.test(s) && /data-seg="resource" data-n="01">资源核对</.test(s)
-  && /data-seg="activity" data-n="02">活动进度</.test(s) && /data-seg="mirror" data-n="03">棋盘镜像</.test(s)
+  && /data-seg="mirror" data-n="02">棋盘镜像</.test(s)
+  && !/data-seg="activity"/.test(s) && !/data-seg-card="activity"/.test(s)
   && /<div data-seg-card="mirror">/.test(s) && /statsSetSeg\('tab-gamedata', 'resource'\)/.test(s)
   && /id="mergeInput"/.test(s) && /id="mergeParseBtn"/.test(s) && /id="mergeClearBtn"/.test(s)
   && /id="mergeSummary"/.test(s) && /id="mergeDiff"/.test(s)
   && /id="gdResTable"/.test(s) && /id="gdItemInput"/.test(s) && /id="gdItemBtn"/.test(s) && /id="gdItemOut"/.test(s)
-  && /id="gdActChips"/.test(s) && /id="gdActInput"/.test(s) && /id="gdActBtn"/.test(s) && /id="gdActOut"/.test(s),
-  '「游戏数据」页：MergeState 粘贴 + 三段（01 资源核对 / 02 活动进度 / 03 棋盘镜像），棋盘镜像原来的卡整块挪进第三段');
+  && !/gdActChips/.test(s) && !/id="gdActInput"/.test(s) && !/id="gdActOut"/.test(s),
+  '「游戏数据」页：MergeState 粘贴 + 两段（01 资源核对 / 02 棋盘镜像）；活动进度 2026-10 按用户要求整块删掉（含反向断言）');
 ok(/function mergeParse\(raw\)/.test(s) && /function mergeJson\(v, dflt\)/.test(s) && /function mergeDailyUsage\(model\)/.test(s)
-  && /function mergeRenderDiff\(\)/.test(s) && /function mergeItemScript\(model, q\)/.test(s) && /function mergeActivityScript\(model, q\)/.test(s)
-  && /data\.others/.test(s) && /others\.resource/.test(s) && /others\.activities/.test(s) && /others\.meta/.test(s),
-  'MergeState 解析：diamond/gold/hp + others（resource 资源 / activities 活动 / meta 元数据）两层字符串都剥开；带当日体力·钻石消耗与「资源 → 最后变动时间」');
+  && /function mergeRenderDiff\(\)/.test(s) && /function mergeItemScript\(model, q\)/.test(s)
+  && !/function mergeActivityScript/.test(s) && !/others\.activities/.test(s)
+  && /data\.others/.test(s) && /others\.resource/.test(s) && /others\.meta/.test(s),
+  'MergeState 解析：diamond/gold/hp + others（resource 资源 / meta 元数据）两层字符串都剥开；带当日体力·钻石消耗与「资源 → 最后变动时间」（activities 不再解析）');
 ok(/当前数量：/.test(s) && /最后变动：/.test(s) && /今日体力消耗：/.test(s) && /今日钻石消耗：/.test(s)
   && /棋盘镜像：棋盘上 /.test(s) && /玩家数据里没找到「/.test(s)
   && /id="gdItemTime"/.test(s) && /id="gdItemVerdict"/.test(s)
@@ -646,10 +648,6 @@ ok(/—— 异常自查 ——/.test(s) && /早于玩家说的时间/.test(s) &&
   && /没有变动量和操作来源/.test(s)
   && /那之后没变过：不是被吞/.test(s) && /那个时段变过，看消耗去向/.test(s),
   '异常自查融进资源核对：时间点两个方向 / 订单消耗 / 最近一次操作（含奖励）/ 记录值对账 / 明写「定责要服务端流水」，并给判定芯片');
-ok(/【游戏数据 · ' \+ mergeActivityLabel\(a\.name, a\.id\)/.test(s) && /关键进度：/.test(s)
-  && /活动任务（/.test(s) && /已完成（status=2）/.test(s) && /没找到「' \+ t \+ '」这个活动/.test(s)
-  && /const MERGE_ACTIVITY_LABELS = \{/.test(s) && /seven_task: '七日任务'/.test(s),
-  '活动进度话术：活动中文别名 + id + 关键进度；活动任务进度（status=2 算已完成）也能查；查不到直说');
 ok(/function mergeRenderDiff\(\)/.test(s) && /跟棋盘镜像核对/.test(s) && /不一致：玩家数据 /.test(s)
   && /一致 /.test(s) && /红宝石', '103'/.test(s) && /铜钱', '102'/.test(s) && /体力', '101'/.test(s),
   '粘贴 MergeState 后自动跟棋盘镜像核对红宝石 / 铜钱 / 体力：一致标黄、不一致标橙（提示镜像不是最新）');
@@ -672,12 +670,6 @@ ok(/被消耗 ' \+ used\.length \+ ' 次、共 '/.test(s) && /获得 ' \+ got\.l
   && /操作记录里被订单收走 ' \+ oUsed \+ ' 个：不是被吞/.test(s)
   && /记录里订单奖励给过 ' \+ oGot \+ ' 个/.test(s),
   '资源话术接上操作记录：覆盖时间 / 被消耗 / 获得 / 合成出现 / 订单收走 / 订单奖励 / 跟玩家说的时间点对一遍；判定芯片直说「不是被吞」');
-ok(/function mergeActivityLabel\(name, id\)/.test(s) && /DEFAULT_ACTIVITY_TYPE_MAP\[String\(id\)\]/.test(s)
-  && /const MERGE_PROGRESS_WORDS = \{/.test(s) && /function mergeProgressLabel\(key\)/.test(s)
-  && /function mergeProgressWord\(w\)/.test(s) && /CumulativeNum: '累计数'/.test(s) && /function mergeProgressToken\(w\)/.test(s)
-  && /cn \+ '（' \+ w \+ '）'/.test(s)
-  && /mergeProgressLabel\(x\[0\]\)/.test(s),
-  '英文 / 代号中文化：活动名三级回退（手写表 → 官方活动类型表按 extra.id → 拆词）；关键进度的 key 也换成中文（七日任务·35·102 / 累计数 / 连续数）；原始英文名收进 title 不丢');
 ok(/nm\.indexOf\('--'\) === 0/.test(s) && /\+ '类'\)/.test(s)
   && /const pairs = \(list\) => list\.map\(x => mergeNameOf\(x\.id\)/.test(s)
   && /'母棋 ' \+ mergeNameOf\(r\.momGoodsId\)/.test(s),
