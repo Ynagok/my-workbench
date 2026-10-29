@@ -4684,6 +4684,11 @@
                     <div class="career-scroll" style="margin-top:8px;"><table class="career-table" id="gdFlowTable"></table></div>
                 </div>
                 <div class="gd-map" id="gdItemMap" style="display:none;"></div>
+                <div id="gdRecon" style="display:none; margin-top:12px;">
+                    <div class="gd-flow-hint">三口径对账：<b>资源流水</b>（变动明细）/ <b>存档</b>（MergeState 当前值）/ <b>棋盘镜像</b>（棋盘+背包+仓库+货币）三者能不能对上；贴了操作记录还会拿「获得 − 消耗」跟镜像比</div>
+                    <div class="stat-chips" id="gdReconChips"></div>
+                    <div class="career-scroll" style="margin-top:8px;"><table class="career-table" id="gdReconTable"></table></div>
+                </div>
                 <div class="stat-chips" id="gdItemVerdict"></div>
                 <textarea id="gdItemOut" rows="8" readonly style="margin-top:10px;"></textarea>
                 <details class="stat-fold" style="margin-top:12px;">
@@ -16411,6 +16416,7 @@
                                         const out = ['【游戏数据 · ' + mergeNameOf(id) + '（' + id + '）】'];
                                         out.push('流水最后余额：' + last.after + '（' + last.ts + '）');
                                         gdFlowLines(id).forEach(l => out.push(l));
+                                        gdReconLines(id).forEach(l => out.push(l));
                                         out.push('· 注：这份话术只依据资源流水；要看存档记录值，再把玩家数据（MergeState）贴进来。');
                                         return out.join('\n');
                                     }
@@ -16436,6 +16442,105 @@
                                             out.push('· 共 ' + res.pairs.length + ' 组「+N → 棋盘上传 −N」，建议按这 ' + res.pairs.length
                                                 + ' 条提研发核对服务端流水。');
                                         }
+                                        return out;
+                                    }
+
+                                    // ==================== 🧾 三口径对账（流水 / 存档 / 镜像 / 操作记录）====================
+                                    // 用户 2026-10：「能不能根据游戏数据某个道具或者棋子的增加和消耗的情况，和镜像棋盘的数据对比，看看对不对的上」
+                                    // 三个口径本来就是三次不同时刻的抓数，对不上很常见 —— 所以不判「谁对谁错」，只把差额摆出来让人看。
+                                    function gdReconParts(id) {
+                                        const out = { flow: null, rec: null, mirror: null, op: null };
+                                        const fl = gdFlowLast(id);
+                                        if (fl) {
+                                            const rows = flowModel.rows.filter(r => gdFlowMatch(r, id));
+                                            out.flow = { n: fl.after, ts: fl.ts, net: rows.reduce((a, r) => a + r.delta, 0) };
+                                        }
+                                        if (mergeModel && mergeModel.ok) {
+                                            const rec = mergeModel.resource.filter(r => String(r.id) === String(id))[0];
+                                            if (rec) out.rec = { n: rec.n, ts: mergeTsText(rec.ts) };
+                                        }
+                                        if (boardModel) {
+                                            const c = (boardModel.counts || {})[id] || { onBoard: 0, inBackpack: 0, inWarehouse: 0 };
+                                            const cur = (boardModel.currencies || []).filter(x => String(x.id) === String(id))[0];
+                                            const total = c.onBoard + c.inBackpack + c.inWarehouse + (cur ? cur.n : 0);
+                                            out.mirror = { n: total, board: c.onBoard, bag: c.inBackpack, ware: c.inWarehouse, cur: cur ? cur.n : null };
+                                        }
+                                        if (opModel && opModel.ok) {
+                                            const hits = mergeOpHits(id), oh = mergeOpOrderHits(id);
+                                            const sum = (list) => list.reduce((a, h) => a + h.n, 0);
+                                            out.op = {
+                                                gained: sum(hits.filter(h => h.kind === 'gain')) + sum(oh.filter(h => h.kind === 'gain')),
+                                                used: sum(hits.filter(h => h.kind === 'consume')) + sum(oh.filter(h => h.kind === 'consume'))
+                                            };
+                                        }
+                                        return out;
+                                    }
+                                    // 差额清单（对得上 / 差多少）
+                                    function gdReconDiffs(p) {
+                                        const out = [];
+                                        if (p.flow && p.rec) out.push({ label: '存档 − 流水', d: p.rec.n - p.flow.n });
+                                        if (p.rec && p.mirror) out.push({ label: '镜像 − 存档', d: p.mirror.n - p.rec.n });
+                                        if (p.op && p.mirror) out.push({ label: '镜像 − 操作净', d: p.mirror.n - (p.op.gained - p.op.used) });
+                                        return out;
+                                    }
+                                    function gdReconRows(p) {
+                                        const rows = [];
+                                        rows.push(['资源流水', p.flow ? String(p.flow.n) : '—',
+                                            p.flow ? ('最后余额 · ' + p.flow.ts + ' · 窗口净变动 ' + (p.flow.net > 0 ? '+' : '') + p.flow.net) : '没贴流水']);
+                                        rows.push(['存档（MergeState）', p.rec ? String(p.rec.n) : '—',
+                                            p.rec ? ('最后变动 ' + p.rec.ts) : '没贴存档']);
+                                        rows.push(['棋盘镜像', p.mirror ? String(p.mirror.n) : '—',
+                                            p.mirror ? ('棋盘上 ' + p.mirror.board + ' / 背包 ' + p.mirror.bag + ' / 仓库 ' + p.mirror.ware
+                                                + (p.mirror.cur != null ? ' / 货币 ' + p.mirror.cur : '')) : '没贴镜像']);
+                                        if (p.op) rows.push(['操作记录（窗口内）', (p.op.gained - p.op.used > 0 ? '+' : '') + (p.op.gained - p.op.used),
+                                            '获得 ' + p.op.gained + ' · 消耗 ' + p.op.used]);
+                                        gdReconDiffs(p).forEach(d => rows.push(['差额', (d.d > 0 ? '+' : '') + d.d, d.label + (d.d === 0 ? ' 对得上' : ' 对不上')]));
+                                        return rows;
+                                    }
+                                    function gdReconRender(id) {
+                                        const box = document.getElementById('gdRecon');
+                                        const chips = document.getElementById('gdReconChips');
+                                        const table = document.getElementById('gdReconTable');
+                                        if (!box) return;
+                                        const p = id ? gdReconParts(id) : null;
+                                        const count = p ? [p.flow, p.rec, p.mirror].filter(Boolean).length : 0;
+                                        if (!p || count < 2) {
+                                            box.style.display = 'none';
+                                            if (chips) chips.innerHTML = '';
+                                            if (table) table.innerHTML = '';
+                                            return;
+                                        }
+                                        box.style.display = '';
+                                        const diffs = gdReconDiffs(p);
+                                        if (chips) {
+                                            const list = [statChip('对账口径 ' + count + '/3', 'k-plain')];
+                                            diffs.forEach(d => list.push(statChip(d.label + (d.d === 0 ? ' 对得上' : ' 差 ' + (d.d > 0 ? '+' : '') + d.d),
+                                                d.d === 0 ? 'k-accent' : 'k-warn')));
+                                            if (!diffs.length) list.push(statChip('资料不足：至少贴两份才能对', 'k-plain'));
+                                            chips.innerHTML = list.join('');
+                                        }
+                                        if (table) {
+                                            let h = '<thead><tr><th>口径</th><th class="num">数量</th><th>说明</th></tr></thead><tbody>';
+                                            h += gdReconRows(p).map(r => '<tr><td>' + escapeHtml(r[0]) + '</td><td class="num">'
+                                                + escapeHtml(r[1]) + '</td><td>' + escapeHtml(r[2]) + '</td></tr>').join('');
+                                            table.innerHTML = h + '</tbody>';
+                                        }
+                                    }
+                                    // 话术里那一段
+                                    function gdReconLines(id) {
+                                        const p = id ? gdReconParts(id) : null;
+                                        if (!p) return [];
+                                        const count = [p.flow, p.rec, p.mirror].filter(Boolean).length;
+                                        if (count < 2) return [];
+                                        const out = ['—— 三口径对账（' + mergeNameOf(id) + '）——'];
+                                        gdReconRows(p).forEach(r => {
+                                            if (r[0] === '差额') out.push('· ' + r[2] + '（' + r[1] + '）');
+                                            else out.push('· ' + r[0] + '：' + r[1] + (r[2] && r[2] !== '—' ? '（' + r[2] + '）' : ''));
+                                        });
+                                        const bad = gdReconDiffs(p).filter(d => d.d !== 0);
+                                        out.push(bad.length
+                                            ? '· 结论：有 ' + bad.length + ' 个口径对不上 —— 三份数据不是同一时刻抓的，或者中间有没记录到的变动；要定责仍以服务端流水为准。'
+                                            : '· 结论：都对得上（差异 0）。');
                                         return out;
                                     }
 
@@ -16493,6 +16598,7 @@
                                         mergeSelfCheckLines(model, id, rec).forEach(l => out.push(l));
                                         mergeOpLines(id).forEach(l => out.push(l));
                                         gdFlowLines(id).forEach(l => out.push(l));
+                                        gdReconLines(id).forEach(l => out.push(l));
                                         return out.join('\n');
                                     }
                                     function mergeRun(rawArg) {
@@ -16553,6 +16659,7 @@
                                         const box = document.getElementById('gdItemVerdict');
                                         if (box) box.innerHTML = mergeModel ? mergeItemVerdict(mergeModel, ids[0], rec, q).join('') : '';
                                         mergeItemMapRender(ids.length ? ids[0] : '', rec);
+                                        gdReconRender(ids.length ? ids[0] : '');
                                         mergeOpRender();
                                         gdFlowRender();
                                         teaSetHint('gdItemHint', /没找到/.test(text) ? '这份存档里没有这个名字，换个写法或直接输 id' : '话术已生成（含异常自查）');
@@ -16573,6 +16680,7 @@
                                         const vBox = document.getElementById('gdItemVerdict');
                                         if (vBox) vBox.innerHTML = '';
                                         mergeItemMapRender('', null);
+                                        gdReconRender('');
                                         flowModel = null;
                                         gdFlowRender();
                                         const tInput = document.getElementById('gdItemTime');

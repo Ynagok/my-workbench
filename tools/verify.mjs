@@ -686,6 +686,11 @@ ok(/function gdFlowImport\(raw, fromLabel\)/.test(s) && /gdFlowImport\(raw, '智
   && /gdFlowImport\(gdCsvToTabs\(text\), 'CSV 上传'\)/.test(s) && /function gdCsvToTabs\(text\)/.test(s)
   && /已把原始流水（\$\{synced\.rows\.length\} 行）同步给/.test(s) && !/parseSmartLog\(raw, \{ keepIgnored/.test(s),
   '流水解析联动：同步给游戏数据的是**原始日志文本**（CSV 上传只把分隔符换成制表符），由游戏数据用自己的严格解析判断，不套话术那套忽略 / 筛选 / 类型覆盖');
+ok(/id="gdRecon"/.test(s) && /id="gdReconChips"/.test(s) && /id="gdReconTable"/.test(s)
+  && /function gdReconParts\(id\)/.test(s) && /function gdReconDiffs\(p\)/.test(s)
+  && /function gdReconRender\(id\)/.test(s) && /function gdReconLines\(id\)/.test(s)
+  && /存档 − 流水/.test(s) && /镜像 − 存档/.test(s) && /镜像 − 操作净/.test(s),
+  '三口径对账：资源流水（最后余额 / 窗口净变动）· 存档（MergeState 当前值）· 棋盘镜像（棋盘上+背包+仓库+货币）· 操作记录（获得−消耗）互相求差，对不上就写「差 ±n」');
 ok(/id="gdFlowBox"/.test(s) && /id="gdFlowChips"/.test(s) && /id="gdFlowTable"/.test(s)
   && /function gdLooksFlow\(raw\)/.test(s) && /function gdFlowParse\(raw\)/.test(s)
   && /function gdFlowPairs\(id\)/.test(s) && /function gdFlowRun\(raw\)/.test(s)

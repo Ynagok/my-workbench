@@ -3518,6 +3518,69 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
       '联动全程只在本机（0 请求）', posts.slice(postsSync).map(p => p.url).join(' | '));
   }
 
+  console.log('--- 8z-8. 游戏数据 · 三口径对账（流水 / 存档 / 镜像 / 操作记录 对不对得上）---');
+  {
+    const postsRecon = posts.length;
+    // 三份都指向体力 16
+    $('mergeInput').value = JSON.stringify({
+      diamond: 1, gold: 1, hpData: 16, recordID: 3, syncTime: 1793248480,
+      others: JSON.stringify({ resource: [{ num: 16, timestamp: 1793248480, id: '101' }], meta: [] })
+    });
+    $('mergeParseBtn').click();
+    await sleep(80);
+    $('boardInput').value = JSON.stringify({
+      chessboardDataList: [{ cellTotalNum: 1, chessboardId: 1, cellNumH: 1, cellNumW: 1, cells: [{ cellIdx: 0, lockState: 2 }] }],
+      warehouseData: { pieceDataList: [] }, backpack: {}, currencies: { '101': 16 }
+    });
+    $('boardParseBtn').click();
+    await sleep(80);
+    $('mergeInput').value = '2026-11-03 10:00:00\tR1\t体力\t+16\t0\t16\t每日任务奖励\t0-货币';
+    $('mergeParseBtn').click();
+    await sleep(90);
+    $('gdItemInput').value = '体力';
+    $('gdItemBtn').click();
+    await sleep(80);
+    check($('gdRecon').style.display === '' && $('gdReconTable').querySelectorAll('tbody tr').length === 5,
+      '三份数据齐了才出对账表（流水 / 存档 / 镜像 + 2 个差额行）',
+      $('gdReconTable').textContent.replace(/\s+/g, ' ').slice(0, 160));
+    check(/对账口径 3\/3/.test($('gdReconChips').textContent)
+      && /存档 − 流水 对得上/.test($('gdReconChips').textContent)
+      && /镜像 − 存档 对得上/.test($('gdReconChips').textContent),
+      '三份都是 16 → 「对得上」', $('gdReconChips').textContent);
+    check(/—— 三口径对账（体力）——/.test($('gdItemOut').value)
+      && /结论：都对得上（差异 0）。/.test($('gdItemOut').value),
+      '话术里也出一段三口径对账，结论写「都对得上」',
+      $('gdItemOut').value.replace(/\n/g, ' | ').slice(-200));
+
+    // 把流水改成 +20（余额 20）→ 存档 − 流水 差 -4
+    $('mergeInput').value = '2026-11-03 10:00:00\tR1\t体力\t+20\t0\t20\t每日任务奖励\t0-货币';
+    $('mergeParseBtn').click();
+    await sleep(90);
+    check(/存档 − 流水 差 -4/.test($('gdReconChips').textContent)
+      && /结论：有 1 个口径对不上/.test($('gdItemOut').value),
+      '流水余额和存档差 4 → 明写「差 -4」+ 结论「有 1 个口径对不上」',
+      $('gdReconChips').textContent);
+
+    // 贴操作记录（获得 16）→ 镜像 − 操作净 也对得上
+    $('gdItemInput').value = '体力';
+    $('mergeInput').value = JSON.stringify([
+      { uid: 1, op: 30, sTime: 1793241739, opId: 1, cbId: 1, rewards: [{ goodsId: 101, num: 16 }] }
+    ]);
+    $('mergeParseBtn').click();
+    await sleep(90);
+    check(/操作记录（窗口内）/.test($('gdReconTable').textContent)
+      && /镜像 − 操作净 对得上/.test($('gdReconChips').textContent),
+      '贴了操作记录还会拿「获得 − 消耗」跟镜像比（本例 16 = 16 对得上）',
+      $('gdReconChips').textContent);
+    check(posts.slice(postsRecon).filter(p => /careerData|dailyData|gamedata|merge|flow/i.test(p.url)).length === 0,
+      '三口径对账全程只在本机（0 请求）', posts.slice(postsRecon).map(p => p.url).join(' | '));
+
+    $('mergeClearBtn').click();
+    await sleep(70);
+    check($('gdRecon').style.display === 'none' && $('gdReconTable').innerHTML === '',
+      '「清空」把对账块一起收掉', $('gdReconTable').innerHTML);
+  }
+
   console.log('--- 9. 无未捕获异常 ---');
   check(!warns.some(w => w.startsWith('ERROR')), 'console.error 未被调用：' + warns.filter(w => w.startsWith('ERROR')).join(' | '));
   check(jsdomErrors.length === 0, '页面无未捕获异常（jsdomError）', jsdomErrors.slice(0, 3));
