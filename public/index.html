@@ -15517,12 +15517,14 @@
                                         const pretty = k.replace(/[_-]+/g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2').trim();
                                         return pretty || k;
                                     }
-                                    // 进度 key 里的中文：seven_task_35_102 → 七日任务·35·102；CumulativeNum → 累计数
+                                    // 进度 key 里的中文：seven_task_35_102 → 七日任务·35·102；CumulativeNum → 累计数（CumulativeNum）
+                                    // ⚠️ 这张表是**照英文字段名直译**的（没有官方释义），所以翻出来的词后面一律带上原字段名，
+                                    //   别让客服照着「连续数」猜（用户 2026-10 追问「连续数是啥意思」）—— 现在显示成「连续数（ContinuousNum）」。
                                     const MERGE_PROGRESS_WORDS = {
                                         CumulativeNum: '累计数', ContinuousNum: '连续数', Num: '数量', Cnt: '次数',
                                         level: '等级', Level: '等级', score: '积分', Score: '积分',
                                         state: '状态', State: '状态', count: '次数', Count: '次数',
-                                        day: '天', Day: '天', time: '时间', Time: '时间', id: 'ID'
+                                        day: '天', Day: '天', time: '时间', Time: '时间'
                                     };
                                     function mergeProgressWord(w) {
                                         if (!w) return '';
@@ -15533,6 +15535,11 @@
                                         }
                                         return w;
                                     }
+                                    // 翻成中文的词后面跟上原字段名，保留可追溯性
+                                    function mergeProgressToken(w) {
+                                        const cn = mergeProgressWord(w);
+                                        return cn && cn !== w ? (cn + '（' + w + '）') : w;
+                                    }
                                     function mergeProgressLabel(key) {
                                         const k = String(key == null ? '' : key);
                                         if (!k) return '';
@@ -15541,10 +15548,10 @@
                                             const nm = names[i];
                                             if (k === nm) return MERGE_ACTIVITY_LABELS[nm];
                                             if (k.indexOf(nm + '_') === 0) {
-                                                return MERGE_ACTIVITY_LABELS[nm] + '·' + k.slice(nm.length + 1).split('_').map(mergeProgressWord).join('·');
+                                                return MERGE_ACTIVITY_LABELS[nm] + '·' + k.slice(nm.length + 1).split('_').map(mergeProgressToken).join('·');
                                             }
                                         }
-                                        return k.split('_').map(mergeProgressWord).join('·');
+                                        return k.split('_').map(mergeProgressToken).join('·');
                                     }
                                     // 时间戳（秒）→ 「YYYY-MM-DD HH:MM」北京时间
                                     // ⚠️ 2026-10 用真实数据核过：操作记录里 sTime=1793241739 对应的订单 createTime 就是「2026-10-29 10:42:19」，

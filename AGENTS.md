@@ -477,7 +477,7 @@ npm run verify     # 改完代码、push 前的完整自检
     ```
     查活动任务 id（如 `6735`）时换成 `【玩家游戏数据 · 活动任务（6735）】` + 「任务共 N 个，已完成（status=2）M 个」+ 前 8 条进度；查不到直说。
   - **🀄 中文化（2026-10 用户：「解析出来的代码或者英文是否可以转化成对应的中文名称」）**：活动名走**三级回退** —— ① 手写表 `MERGE_ACTIVITY_LABELS`（七日任务 / 通行证 / 签到奖励 …）② 官方活动类型表 `DEFAULT_ACTIVITY_TYPE_MAP`（按 `extra.id`，id 67 → 茶楼七日任务）③ 都对不上就把下划线 / 驼峰拆成空格（`unknown_flying_thing` → unknown flying thing）。**原始英文名不丢**，塞进芯片的 `title`（「原名 · id → 中文」）。
-    - 关键进度的 key 也翻：`mergeProgressLabel` 把 `seven_task_35_102` 变成 `七日任务·35·102`，字段词走 `MERGE_PROGRESS_WORDS`（`CumulativeNum` → 累计数 / `ContinuousNum` → 连续数 / `Num` → 数量 …），认不出的词只把下划线换成中点。
+    - 关键进度的 key 也翻：`mergeProgressLabel` 把 `seven_task_35_102` 变成 `七日任务·35·102`，字段词走 `MERGE_PROGRESS_WORDS`（`CumulativeNum` → 累计数 / `ContinuousNum` → 连续数 / `Num` → 数量 …），认不出的词只把下划线换成中点。⚠️ **这张表是照英文字段名直译的、没有官方释义**（用户 2026-10 追问过「连续数是啥意思」），所以 `mergeProgressToken` 给**翻过的词一律带上原字段名**：`连续数（ContinuousNum）`——别让客服照着中文猜含义。
     - 物品不走这套：`boardNameOf` 把 `itemNameMap` 里 `--货币` 这种「分类占位」显示成「货币类」，查不到名字的统一用 `mergeNameOf` 显示「道具 N」/「棋子 N」（**操作记录表、棋盘镜像列表都别再直接吐一串 id**）；棋盘格里认不出的棋子仍显示 `#id`（格子窄），但 `title` 写「道具 N（映射表里没这个名字）」。
 - **🔁 粘贴后同步核对镜像**（`mergeRenderDiff`）：MergeState 解析完、或棋盘镜像解析完，都会重算 `#mergeDiff`：拿玩家数据的红宝石/铜钱/体力跟镜像的 `currencies`（103/102/101）比 —— **一致标黄（`k-accent`）写「一致 86130」，不一致标橙（`k-warn`）写「不一致：玩家数据 X / 镜像 Y」**（说明镜像不是同一时刻抓的）；镜像还没解析时提示「去第 03 段粘一份」。⚠️ 两边的 `syncTime` 一致时才是同一份快照（实测都是 1793248480）。
 - **只在本机**：`mergeModel` 只在内存里，不写 `/api/data`、不落 localStorage（刷新就没了）。`stats`（客户端网关测速，含内部域名）解析出来但**没上界面**，别外发；`energy_rank.robotStates` / `teahouse_race.playerDatas` 里有其他玩家昵称，也只在数据里、不上界面。

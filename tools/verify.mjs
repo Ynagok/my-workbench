@@ -674,7 +674,8 @@ ok(/被消耗 ' \+ used\.length \+ ' 次、共 '/.test(s) && /获得 ' \+ got\.l
   '资源话术接上操作记录：覆盖时间 / 被消耗 / 获得 / 合成出现 / 订单收走 / 订单奖励 / 跟玩家说的时间点对一遍；判定芯片直说「不是被吞」');
 ok(/function mergeActivityLabel\(name, id\)/.test(s) && /DEFAULT_ACTIVITY_TYPE_MAP\[String\(id\)\]/.test(s)
   && /const MERGE_PROGRESS_WORDS = \{/.test(s) && /function mergeProgressLabel\(key\)/.test(s)
-  && /function mergeProgressWord\(w\)/.test(s) && /CumulativeNum: '累计数'/.test(s)
+  && /function mergeProgressWord\(w\)/.test(s) && /CumulativeNum: '累计数'/.test(s) && /function mergeProgressToken\(w\)/.test(s)
+  && /cn \+ '（' \+ w \+ '）'/.test(s)
   && /mergeProgressLabel\(x\[0\]\)/.test(s),
   '英文 / 代号中文化：活动名三级回退（手写表 → 官方活动类型表按 extra.id → 拆词）；关键进度的 key 也换成中文（七日任务·35·102 / 累计数 / 连续数）；原始英文名收进 title 不丢');
 ok(/nm\.indexOf\('--'\) === 0/.test(s) && /\+ '类'\)/.test(s)

@@ -3393,8 +3393,8 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     $('gdActInput').value = '签到奖励';
     $('gdActBtn').click();
     await sleep(60);
-    check(/关键进度：累计数 = 20；连续数 = 3/.test($('gdActOut').value),
-      '关键进度的英文 key 也中文了（CumulativeNum → 累计数 / ContinuousNum → 连续数）',
+    check(/关键进度：累计数（CumulativeNum） = 20；连续数（ContinuousNum） = 3/.test($('gdActOut').value),
+      '关键进度的英文 key 也中文了，并带上原字段名（累计数（CumulativeNum）/ 连续数（ContinuousNum））',
       $('gdActOut').value.replace(/\n/g, ' | ').slice(0, 120));
     // 操作记录里不在映射表的道具 id → 「道具 N」
     $('gdItemInput').value = '';
