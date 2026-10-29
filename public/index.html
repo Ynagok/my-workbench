@@ -4680,6 +4680,7 @@
                 </div>
                 <div class="gd-flow" id="gdFlowBox" style="display:none;">
                     <div class="gd-flow-hint">资源流水对账：<b>+获得</b> 之后有没有跟着一条 <b>−棋盘上传</b>（数量相同或差 1）—— 这就是「被吞」的样子。流水贴到页头「① 粘贴数据」框里就行</div>
+                    <div class="stat-chips" id="gdFlowScan"></div>
                     <div class="stat-chips" id="gdFlowChips"></div>
                     <div class="career-scroll" style="margin-top:8px;"><table class="career-table" id="gdFlowTable"></table></div>
                 </div>
@@ -16323,6 +16324,39 @@
                                         out.used = used;
                                         return out;
                                     }
+                                    // 全量体检：一次扫完这份流水里**所有**道具的「+N → 棋盘上传 −N」（后台日志里人眼要一行行找）
+                                    function gdFlowScan() {
+                                        const res = { items: 0, pairs: [] };
+                                        if (!flowModel || !flowModel.ok) return res;
+                                        const byItem = {};
+                                        flowModel.rows.forEach(r => {
+                                            const key = r.id ? ('id:' + r.id) : ('nm:' + r.name);
+                                            (byItem[key] = byItem[key] || []).push(r);
+                                        });
+                                        res.items = Object.keys(byItem).length;
+                                        Object.keys(byItem).forEach(k => {
+                                            const rows = byItem[k];
+                                            const gains = rows.filter(r => r.delta > 0);
+                                            const losses = rows.filter(r => r.delta < 0 && gdFlowIsUpload(r));
+                                            if (!gains.length || !losses.length) return;
+                                            const used = {};
+                                            gains.forEach(g => {
+                                                let at = -1;
+                                                for (let i = 0; i < losses.length; i++) {
+                                                    if (used[i]) continue;
+                                                    const l = losses[i];
+                                                    if (String(l.ts) < String(g.ts)) continue;
+                                                    const n = Math.abs(l.delta);
+                                                    if (n !== g.delta && n !== g.delta - 1) continue;
+                                                    at = i; break;
+                                                }
+                                                if (at < 0) return;
+                                                used[at] = 1;
+                                                res.pairs.push({ name: rows[0].name || '', id: rows[0].id || '', gain: g, loss: losses[at] });
+                                            });
+                                        });
+                                        return res;
+                                    }
                                     // 表格 + 结论芯片（用户抱怨「数据太晕」→ 只列这个道具的行，配对的两行高亮）
                                     function gdFlowRender() {
                                         const box = document.getElementById('gdFlowBox');
@@ -16331,10 +16365,35 @@
                                         const q = ((document.getElementById('gdItemInput') || {}).value || '').trim();
                                         const ids = q ? boardIdsOfQuery(q) : [];
                                         const id = ids.length ? String(ids[0]) : '';
+                                        const scan = document.getElementById('gdFlowScan');
                                         const hasFlow = !!(flowModel && flowModel.ok);
-                                        const rows = hasFlow && id ? flowModel.rows.filter(r => gdFlowMatch(r, id)) : [];
-                                        if (!hasFlow || !rows.length) {
+                                        if (!hasFlow) {
                                             if (box) box.style.display = 'none';
+                                            if (table) table.innerHTML = '';
+                                            if (chips) chips.innerHTML = '';
+                                            if (scan) scan.innerHTML = '';
+                                            return;
+                                        }
+                                        // 全量体检永远先摆出来：贴完流水就能看到「整份日志里有几组可疑」
+                                        if (scan) {
+                                            const sr = gdFlowScan();
+                                            const head = [statChip('扫了 ' + sr.items + ' 个道具 · ' + flowModel.rows.length + ' 条流水', 'k-plain')];
+                                            if (sr.pairs.length) head.push(statChip('疑似被吞 ' + sr.pairs.length + ' 组', 'k-warn'));
+                                            else head.push(statChip('没有「+N → 棋盘上传 −N」的可疑配对', 'k-accent'));
+                                            let list = '';
+                                            if (sr.pairs.length) {
+                                                list = '<details class="stat-fold" style="flex-basis:100%; margin-top:8px;"><summary>看这 ' + sr.pairs.length + ' 组</summary>'
+                                                    + '<div class="career-scroll" style="margin-top:8px;"><table class="career-table"><thead><tr><th>道具</th><th>获得</th><th>棋盘上传扣除</th><th class="num">差</th></tr></thead><tbody>'
+                                                    + sr.pairs.slice(0, 100).map(p => '<tr><td>' + escapeHtml(p.name || ('道具 ' + p.id)) + '</td><td>'
+                                                        + escapeHtml(p.gain.ts) + ' +' + p.gain.delta + '</td><td>' + escapeHtml(p.loss.ts) + ' '
+                                                        + p.loss.delta + '</td><td class="num">' + (p.gain.delta - Math.abs(p.loss.delta)) + '</td></tr>').join('')
+                                                    + '</tbody></table></div></details>';
+                                            }
+                                            scan.innerHTML = head.join('') + list;
+                                        }
+                                        const rows = id ? flowModel.rows.filter(r => gdFlowMatch(r, id)) : [];
+                                        if (!rows.length) {
+                                            if (box) box.style.display = '';
                                             if (table) table.innerHTML = '';
                                             if (chips) chips.innerHTML = '';
                                             return;

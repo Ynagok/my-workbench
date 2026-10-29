@@ -688,6 +688,8 @@ ok(/id="gdFlowBox"/.test(s) && /id="gdFlowChips"/.test(s) && /id="gdFlowTable"/.
   && /function gdLooksFlow\(raw\)/.test(s) && /function gdFlowParse\(raw\)/.test(s)
   && /function gdFlowPairs\(id\)/.test(s) && /function gdFlowRun\(raw\)/.test(s)
   && /function gdFlowLines\(id\)/.test(s) && /function gdRoute\(raw\)/.test(s)
+  && /function gdFlowScan\(\)/.test(s) && /id="gdFlowScan"/.test(s)
+  && /疑似被吞 ' \+ sr\.pairs\.length \+ ' 组/.test(s)
   && /function gdFlowOnlyScript\(q\)/.test(s) && /function gdFlowLast\(id\)/.test(s)
   && /没贴存档 · 流水最后余额/.test(s) && /只依据资源流水/.test(s)
   && /#gdFlowTable tr\.is-loss/.test(s),

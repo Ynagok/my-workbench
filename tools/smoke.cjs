@@ -3431,6 +3431,14 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     await sleep(90);
     check(/认出 4 条资源流水/.test($('mergeHint').textContent),
       '流水贴到页头大框里就自动认（不用挑框）', $('mergeHint').textContent);
+    check(/扫了 1 个道具 · 4 条流水/.test($('gdFlowScan').textContent)
+      && /疑似被吞 1 组/.test($('gdFlowScan').textContent),
+      '贴完流水先做「全量体检」：整份日志一次扫完，直接说有几组可疑（不用一个个道具去查）',
+      $('gdFlowScan').textContent.replace(/\s+/g, ' ').slice(0, 120));
+    check(/体力/.test($('gdFlowScan').textContent) && /\+100/.test($('gdFlowScan').textContent)
+      && /-100/.test($('gdFlowScan').textContent),
+      '体检明细写清：哪个道具 / 什么时候 +N / 什么时候被棋盘上传扣掉',
+      $('gdFlowScan').textContent.replace(/\s+/g, ' ').slice(0, 160));
     check($('gdFlowBox').style.display === '' && $('gdFlowTable').querySelectorAll('tbody tr').length === 4,
       '一贴完流水 + 查道具 → 直接列出这个道具的流水（时间 / 变动 / 余额 / 来源）',
       $('gdFlowTable').textContent.replace(/\s+/g, ' ').slice(0, 140));
@@ -3466,6 +3474,8 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     check(/获得 \+100 之后没有棋盘上传扣除|后面都没有棋盘上传/.test($('gdFlowChips').textContent)
       || /获得 2 次，后面都没有棋盘上传扣除/.test($('gdFlowChips').textContent),
       '扣除不是「棋盘上传」的来源 → 不算被吞', $('gdFlowChips').textContent);
+    check(/没有「\+N → 棋盘上传 −N」的可疑配对/.test($('gdFlowScan').textContent),
+      '全量体检也跟着翻成「没有可疑配对」', $('gdFlowScan').textContent.slice(0, 120));
     check(/后面都没有棋盘上传扣除 → 不是被吞/.test($('gdItemMap').textContent),
       '导图结论跟着翻成「不是被吞」', $('gdItemMap').textContent.slice(-120));
     check(posts.slice(postsFlow).filter(p => /careerData|dailyData|gamedata|merge|flow/i.test(p.url)).length === 0,
