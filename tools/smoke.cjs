@@ -3468,19 +3468,20 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     doc.querySelector('input[name="parseMode"][value="resource"]').checked = true;
     const syncLog = [
       '2026-11-01 09:00:00\tX1\t体力\t+100\t0\t100\t每日任务奖励\t0-货币',
-      '2026-11-01 09:01:00\tX2\t体力\t-100\t100\t0\t棋盘上传\t0-货币'
+      '2026-11-01 09:01:00\tX2\t体力\t-100\t100\t0\t棋盘上传\t0-货币',
+      '2026-11-01 09:02:00\tX3\t红宝石\t+50\t10\t60\t活动奖励\t0-货币'
     ].join('\n');
     $('flowResourceSelect').value = '体力';
     $('smartPasteInput').value = syncLog;
     $('smartParseBtn').click();
     await sleep(140);
-    check(/已同步 2 条到「游戏数据 → 01 资源核对」/.test($('flowDebugConsole').textContent),
-      '点「智能解析」时顺手把日志同步给游戏数据（解析日志里会写一行）',
+    check(/已把原始流水（3 行）同步给「游戏数据 → 01 资源核对」/.test($('flowDebugConsole').textContent),
+      '点「智能解析」时把**原始日志**同步给游戏数据（同步的是原文，不是筛选后的结果）',
       $('flowDebugConsole').textContent.slice(-160));
-    check(/扫了 1 个道具 · 2 条流水/.test($('gdFlowScan').textContent)
+    check(/扫了 2 个道具 · 3 条流水/.test($('gdFlowScan').textContent)
       && /来自「智能解析」/.test($('gdFlowScan').textContent)
       && /疑似被吞 1 组/.test($('gdFlowScan').textContent),
-      '游戏数据那边的「全量体检」直接被点亮（还标了来源是智能解析）',
+      '游戏数据按**原始数据**判断：话术那边按「资源类型＝体力」筛过、还忽略了棋盘上传，这里照样 2 个道具 3 行、并认出被吞那一组',
       $('gdFlowScan').textContent.replace(/\s+/g, ' ').slice(0, 140));
     $('gdItemInput').value = '体力';
     $('gdItemBtn').click();

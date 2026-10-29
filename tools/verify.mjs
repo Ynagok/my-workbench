@@ -676,13 +676,10 @@ ok(/nm\.indexOf\('--'\) === 0/.test(s) && /\+ '类'\)/.test(s)
   '物品名不吐代码：分类占位（--货币）显示成「货币类」，操作记录里的未知道具显示「道具 N」（不再直接是一串数字）');
 ok(/function mergeTsText\(ts\)/.test(s) && /\(n \+ 8 \* 3600\) \* 1000/.test(s) && /\) - 8 \* 3600;/.test(s),
   '时间统一按北京时间（UTC+8）显示与比较：真实数据里 sTime 与订单 createTime 差 8 小时，原来的 UTC 显示会比 GM 页早 8 小时');
-ok(/function gdFlowImport\(records, fromLabel\)/.test(s) && /gdFlowImport\(allRecords, '智能解析'\)/.test(s)
-  && /gdFlowImport\(records, 'CSV 上传'\)/.test(s) && /已同步 \$\{allRecords\.length\} 条到/.test(s)
-  && /来自「' \+ flowModel\.origin \+ '」/.test(s),
-  '流水解析联动：「智能解析」/ CSV 上传 解析完把 records 直接灌进游戏数据的流水模型（不用再复制一遍），体检芯片标出来源');
-ok(/function parseSmartLog\(rawText, opts\)/.test(s) && /keepIgnored/.test(s) && /quiet/.test(s)
-  && /parseSmartLog\(raw, \{ keepIgnored: true, quiet: true \}\)/.test(s),
-  '默认忽略的「棋盘上传」在联动里必须解析出来（keepIgnored）—— 判「被吞」靠的就是这条；quiet 避免同一份日志刷两遍解析日志');
+ok(/function gdFlowImport\(raw, fromLabel\)/.test(s) && /gdFlowImport\(raw, '智能解析'\)/.test(s)
+  && /gdFlowImport\(gdCsvToTabs\(text\), 'CSV 上传'\)/.test(s) && /function gdCsvToTabs\(text\)/.test(s)
+  && /已把原始流水（\$\{synced\.rows\.length\} 行）同步给/.test(s) && !/parseSmartLog\(raw, \{ keepIgnored/.test(s),
+  '流水解析联动：同步给游戏数据的是**原始日志文本**（CSV 上传只把分隔符换成制表符），由游戏数据用自己的严格解析判断，不套话术那套忽略 / 筛选 / 类型覆盖');
 ok(/id="gdFlowBox"/.test(s) && /id="gdFlowChips"/.test(s) && /id="gdFlowTable"/.test(s)
   && /function gdLooksFlow\(raw\)/.test(s) && /function gdFlowParse\(raw\)/.test(s)
   && /function gdFlowPairs\(id\)/.test(s) && /function gdFlowRun\(raw\)/.test(s)
