@@ -4637,7 +4637,12 @@
                     <button id="gdItemCopyBtn" class="secondary">📋 复制</button>
                     <span class="hint-text" id="gdItemHint"></span>
                 </div>
-                <textarea id="gdItemOut" rows="6" readonly style="margin-top:10px;"></textarea>
+                <div class="flex-row" style="margin-top:8px;">
+                    <span class="hint-text">玩家说的时间（可选）</span>
+                    <input type="datetime-local" id="gdItemTime" style="max-width:220px;" title="填了就对一下「最后变动」早晚：判断玩家说的时间之后到底有没有变过">
+                </div>
+                <div class="stat-chips" id="gdItemVerdict"></div>
+                <textarea id="gdItemOut" rows="8" readonly style="margin-top:10px;"></textarea>
                 <details class="stat-fold" style="margin-top:12px;">
                     <summary>资源明细 <span class="card-sub" id="gdResCount">—</span></summary>
                     <div class="career-scroll" style="margin-top:8px;"><table class="career-table" id="gdResTable"></table></div>
@@ -15467,7 +15472,8 @@
                                     function mergeParse(raw) {
                                         const model = {
                                             ok: false, error: '', diamond: null, gold: null, hp: null, metaId: '', syncTime: 0,
-                                            resource: [], activities: [], taskActs: [], meta: {}, guides: [], gifts: [], stats: null
+                                            resource: [], activities: [], taskActs: [], meta: {}, guides: [], gifts: [], stats: null,
+                                            record: { diamond: null, gold: null, hp: null }
                                         };
                                         const txt = boardJsonText(raw);
                                         if (!txt) return model;
@@ -15483,6 +15489,11 @@
                                         model.hp = num(data.hpData, data.recordHp);
                                         model.metaId = data.recordID != null ? String(data.recordID) : '';
                                         model.syncTime = +data.syncTime || 0;
+                                        model.record = {
+                                            diamond: data.recordDiamond != null ? +data.recordDiamond : null,
+                                            gold: data.recordGold != null ? +data.recordGold : null,
+                                            hp: data.recordHp != null ? +data.recordHp : null
+                                        };
                                         model.stats = mergeJson(data.stats, null);
                                         const others = mergeJson(data.others, null);
                                         if (!others || typeof others !== 'object') { model.ok = model.diamond != null; return model; }
@@ -15624,6 +15635,97 @@
                                         }
                                         mergeRenderDiff();
                                     }
+                                    // 「玩家说的时间」→ 秒（datetime-local 按 UTC 解释，跟镜像里的时间戳同口径）
+                                    function mergeTimeToEpoch(v) {
+                                        const m = /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/.exec(String(v == null ? '' : v));
+                                        if (!m) return 0;
+                                        return Math.floor(Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]) / 1000);
+                                    }
+                                    // 这个道具在「订单消耗 / 最近一次操作」里出现过没有（数据来自棋盘镜像那份 JSON）
+                                    function mergeConsumeHits(id) {
+                                        const out = [];
+                                        const board = boardModel;
+                                        if (!board) return out;
+                                        const od = board.orderData;
+                                        if (od && od.orderDojoMap && typeof od.orderDojoMap === 'object') {
+                                            Object.keys(od.orderDojoMap).forEach(k => {
+                                                const o = od.orderDojoMap[k] || {};
+                                                const hit = (o.consume || []).filter(c => String(c && c.goodsId) === String(id))[0];
+                                                if (hit) out.push({ from: '订单', id: k, n: +hit.num || 0, time: '' });
+                                            });
+                                        }
+                                        const ins = board.lastInstruction;
+                                        if (ins) {
+                                            (mergeJson(ins.orderDojosStr, []) || []).forEach(o => {
+                                                const hit = (o.consume || []).filter(c => String(c && c.goodsId) === String(id))[0];
+                                                if (hit) out.push({ from: '最近操作', id: String(o.id || ''), n: +hit.num || 0, time: String(o.createTime || ''), rewards: o.rewards || [] });
+                                            });
+                                        }
+                                        return out;
+                                    }
+                                    // 异常自查那几行：时间点 / 订单消耗 / 最近一次操作 / 记录值 vs 当前值 / 能力边界
+                                    function mergeSelfCheckLines(model, id, rec) {
+                                        const out = ['—— 异常自查 ——'];
+                                        const tEl = document.getElementById('gdItemTime');
+                                        const claim = mergeTimeToEpoch(tEl && tEl.value);
+                                        if (claim) {
+                                            if (!rec) out.push('· 存档里没有这个道具的记录，玩家说的时间点无从比对。');
+                                            else if (+rec.ts < claim) out.push('· 最后变动（' + mergeTsText(rec.ts) + '）早于玩家说的时间 → 那之后它没再变过，不是那时候被吞的。');
+                                            else out.push('· 最后变动（' + mergeTsText(rec.ts) + '）不早于玩家说的时间 → 那个时段确实变过，继续看下面几条。');
+                                        }
+                                        if (!boardModel) {
+                                            out.push('· 订单消耗 / 最近一次操作：镜像还没解析 —— 切到「03 棋盘镜像」粘一份就能对。');
+                                        } else {
+                                            const hits = mergeConsumeHits(id);
+                                            const orderHits = hits.filter(h => h.from === '订单');
+                                            out.push('· 订单消耗：' + (orderHits.length
+                                                ? ('在 ' + orderHits.length + ' 个当前订单的消耗里（' + orderHits.map(h => '订单 ' + h.id + ' 收 ' + h.n + ' 个').join('、') + '）')
+                                                : '当前订单的消耗清单里没有它'));
+                                            const lastHits = hits.filter(h => h.from === '最近操作');
+                                            if (lastHits.length) {
+                                                lastHits.forEach(h => out.push('· 最近一次操作：' + (h.time || '时间未知') + ' 消耗了它 ' + h.n + ' 个'
+                                                    + (h.rewards && h.rewards.length
+                                                        ? '，给了 ' + h.rewards.slice(0, 4).map(r => (boardNameOf(r.goodsId) || r.goodsId) + '×' + r.num).join('、')
+                                                        : '')));
+                                            } else if (boardModel.lastInstruction) {
+                                                out.push('· 最近一次操作：最近那批指令里没有消耗它');
+                                            }
+                                        }
+                                        const pairs = { '101': ['体力', model.hp, model.record && model.record.hp], '102': ['铜钱', model.gold, model.record && model.record.gold], '103': ['红宝石', model.diamond, model.record && model.record.diamond] };
+                                        const pair = pairs[id];
+                                        if (pair && pair[2] != null) {
+                                            const now = pair[1];
+                                            out.push('· 记录值 vs 当前值：' + (Number(now) === Number(pair[2])
+                                                ? ('一致（' + now + '）')
+                                                : ('不一致（记录 ' + pair[2] + ' / 当前 ' + now + '）—— 这种直接提研发查存档落库')));
+                                        }
+                                        out.push('· 注：存档里只有「最后变动时间」，没有变动量和操作来源 —— 「被吞」要定责得让研发查服务端流水。');
+                                        return out;
+                                    }
+                                    // 判定芯片：先回答「那个时间之后到底有没有变过」，再说有没有找到消耗去向
+                                    function mergeItemVerdict(model, id, rec, q) {
+                                        const chips = [];
+                                        if (!model || !model.ok) return chips;
+                                        const ids = boardIdsOfQuery(q);
+                                        if (!ids.length) { chips.push(statChip('存档里没这个名字', 'k-warn')); return chips; }
+                                        const tEl = document.getElementById('gdItemTime');
+                                        const claim = mergeTimeToEpoch(tEl && tEl.value);
+                                        if (claim) {
+                                            if (!rec) chips.push(statChip('存档里没有这个道具的记录', 'k-warn'));
+                                            else if (+rec.ts < claim) chips.push(statChip('那之后没变过：不是被吞', 'k-accent'));
+                                            else chips.push(statChip('那个时段变过，看消耗去向', 'k-warn'));
+                                        }
+                                        if (boardModel) {
+                                            const hits = mergeConsumeHits(id);
+                                            if (hits.some(h => h.from === '最近操作')) chips.push(statChip('最近一次操作消耗过它', 'k-warn'));
+                                            else if (hits.length) chips.push(statChip('在当前订单的消耗里', 'k-warn'));
+                                            else chips.push(statChip('订单 / 最近操作里都没消耗它', 'k-plain'));
+                                        }
+                                        const c = boardModel ? ((boardModel.counts || {})[id] || { onBoard: 0, inBackpack: 0, inWarehouse: 0 }) : null;
+                                        if (c && (c.onBoard + c.inBackpack + c.inWarehouse) > 0) chips.push(statChip('镜像里还在 ' + (c.onBoard + c.inBackpack + c.inWarehouse) + ' 个', 'k-accent'));
+                                        if (!chips.length) chips.push(statChip('资料不足，需要服务端流水', 'k-plain'));
+                                        return chips;
+                                    }
                                     // 资源核对话术（用户要的第 1 件）
                                     function mergeItemScript(model, q) {
                                         if (!model || !model.ok) return '';
@@ -15641,6 +15743,7 @@
                                             const c = (boardModel.counts || {})[id] || { onBoard: 0, inBackpack: 0, inWarehouse: 0 };
                                             out.push('棋盘镜像：棋盘上 ' + c.onBoard + ' 个、临时背包 ' + c.inBackpack + ' 个、仓库 ' + c.inWarehouse + ' 个。');
                                         }
+                                        mergeSelfCheckLines(model, id, rec).forEach(l => out.push(l));
                                         return out.join('\n');
                                     }
                                     // 活动进度话术（用户要的第 2 件）
@@ -15701,7 +15804,11 @@
                                         if (!q.trim()) { teaSetHint('gdItemHint', '输个道具名或 id'); if (out) out.value = ''; return; }
                                         const text = mergeItemScript(mergeModel, q);
                                         if (out) out.value = text;
-                                        teaSetHint('gdItemHint', /没找到/.test(text) ? '这份存档里没有这个名字，换个写法或直接输 id' : '话术已生成');
+                                        const ids = boardIdsOfQuery(q);
+                                        const rec = ids.length ? (mergeModel.resource.filter(r => r.id === ids[0])[0] || null) : null;
+                                        const box = document.getElementById('gdItemVerdict');
+                                        if (box) box.innerHTML = mergeItemVerdict(mergeModel, ids[0], rec, q).join('');
+                                        teaSetHint('gdItemHint', /没找到/.test(text) ? '这份存档里没有这个名字，换个写法或直接输 id' : '话术已生成（含异常自查）');
                                     }
                                     function mergeActRun() {
                                         const input = document.getElementById('gdActInput');
@@ -15726,6 +15833,10 @@
                                             if (el) el.value = '';
                                         });
                                         ['gdItemHint', 'gdActHint'].forEach(id => teaSetHint(id, ''));
+                                        const vBox = document.getElementById('gdItemVerdict');
+                                        if (vBox) vBox.innerHTML = '';
+                                        const tInput = document.getElementById('gdItemTime');
+                                        if (tInput) tInput.value = '';
                                         mergeModel = null;
                                         mergeRender(null);
                                         teaSetHint('mergeHint', '已清空');
@@ -15771,7 +15882,8 @@
                                     function boardParse(raw) {
                                         const model = {
                                             boards: [], main: null, warehouse: [], activityWarehouse: [],
-                                            backpack: [], currencies: [], counts: {}, error: '', empty: true
+                                            backpack: [], currencies: [], counts: {}, error: '', empty: true,
+                                            orderData: null, lastInstruction: null
                                         };
                                         const txt = boardJsonText(raw);
                                         if (!txt) return model;
@@ -15833,6 +15945,9 @@
                                         model.activityWarehouse.forEach(x => { if (x.id != null) slot(x.id).inWarehouse += 1; });
                                         model.backpack.forEach(x => { slot(x.id).inBackpack = x.n; });
                                         model.empty = !model.boards.length && !model.warehouse.length && !model.backpack.length;
+                                        // 订单消耗 / 最近一次操作明细（异常自查用：道具到底是「被吞」还是「交订单/合成消耗」）
+                                        model.orderData = (data.orderData && typeof data.orderData === 'object') ? data.orderData : null;
+                                        model.lastInstruction = (data.lastInstruction && typeof data.lastInstruction === 'object') ? data.lastInstruction : null;
                                         return model;
                                     }
                                     function boardCellHtml(c) {
@@ -17221,6 +17336,10 @@
                                         setClick('gdActBtn', mergeActRun);
                                         setClick('gdActCopyBtn', () => mergeCopy('gdActOut', 'gdActHint'));
                                         addEvent('gdItemInput', 'keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); mergeItemRun(); } });
+                                        addEvent('gdItemTime', 'change', () => {
+                                            const q = (document.getElementById('gdItemInput') || {}).value || '';
+                                            if (q.trim() && mergeModel) mergeItemRun();
+                                        });
                                         addEvent('gdActInput', 'keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); mergeActRun(); } });
                                         const gdActChips = document.getElementById('gdActChips');
                                         if (gdActChips) {

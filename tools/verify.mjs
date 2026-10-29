@@ -635,8 +635,17 @@ ok(/function mergeParse\(raw\)/.test(s) && /function mergeJson\(v, dflt\)/.test(
   && /data\.others/.test(s) && /others\.resource/.test(s) && /others\.activities/.test(s) && /others\.meta/.test(s),
   'MergeState 解析：diamond/gold/hp + others（resource 资源 / activities 活动 / meta 元数据）两层字符串都剥开；带当日体力·钻石消耗与「资源 → 最后变动时间」');
 ok(/当前数量：/.test(s) && /最后变动：/.test(s) && /今日体力消耗：/.test(s) && /今日钻石消耗：/.test(s)
-  && /棋盘镜像：棋盘上 /.test(s) && /玩家数据里没找到「/.test(s),
+  && /棋盘镜像：棋盘上 /.test(s) && /玩家数据里没找到「/.test(s)
+  && /id="gdItemTime"/.test(s) && /id="gdItemVerdict"/.test(s)
+  && /function mergeTimeToEpoch\(v\)/.test(s) && /function mergeConsumeHits\(id\)/.test(s)
+  && /function mergeSelfCheckLines\(model, id, rec\)/.test(s) && /function mergeItemVerdict\(model, id, rec, q\)/.test(s)
+  && /orderDojoMap/.test(s) && /orderDojosStr/.test(s),
   '资源核对话术：当前数量 / 最后变动时间 / （查体力·钻石时）当日消耗 / 棋盘镜像里的三处数量；查不到直说');
+ok(/—— 异常自查 ——/.test(s) && /早于玩家说的时间/.test(s) && /那之后它没再变过/.test(s)
+  && /订单消耗：/.test(s) && /最近一次操作：/.test(s) && /记录值 vs 当前值：/.test(s)
+  && /没有变动量和操作来源/.test(s)
+  && /那之后没变过：不是被吞/.test(s) && /那个时段变过，看消耗去向/.test(s),
+  '异常自查融进资源核对：时间点两个方向 / 订单消耗 / 最近一次操作（含奖励）/ 记录值对账 / 明写「定责要服务端流水」，并给判定芯片');
 ok(/【玩家游戏数据 · ' \+ mergeActivityLabel\(a\.name\)/.test(s) && /关键进度：/.test(s)
   && /活动任务（/.test(s) && /已完成（status=2）/.test(s) && /没找到「' \+ t \+ '」这个活动/.test(s)
   && /const MERGE_ACTIVITY_LABELS = \{/.test(s) && /seven_task: '七日任务'/.test(s),

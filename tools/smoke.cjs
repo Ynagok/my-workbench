@@ -3023,7 +3023,24 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
       }],
       warehouseData: { pieceDataList: [] },
       backpack: {},
-      currencies: { '102': 86130, '101': 16 }
+      currencies: { '102': 86130, '101': 16 },
+      orderData: {
+        orderDojoMap: {
+          '1001': {
+            id: 1001, createTime: 1793247000, slotId: 3,
+            consume: [{ num: 1, goodsId: 103 }],
+            rewards: [{ num: 62, goodsId: 102 }]
+          }
+        }
+      },
+      lastInstruction: {
+        sTime: 1793247130,
+        orderDojosStr: JSON.stringify([{
+          id: 2002, createTime: '2026-10-29 04:12:10', type: 9,
+          consume: [{ num: 5, goodsId: 103 }, { num: 1, goodsId: 20206 }],
+          rewards: [{ num: 62, goodsId: 102 }, { num: 1, goodsId: 105 }]
+        }])
+      }
     });
     $('boardParseBtn').click();
     await sleep(100);
@@ -3050,6 +3067,34 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
       && /当前数量：911/.test($('gdItemOut').value) && /最后变动：\d{4}-\d{2}-\d{2} \d{2}:\d{2}/.test($('gdItemOut').value)
       && /今日钻石消耗：10/.test($('gdItemOut').value) && /棋盘镜像：棋盘上 0 个、临时背包 0 个、仓库 0 个。/.test($('gdItemOut').value),
       '资源话术：当前数量 / 最后变动 / 当日钻石消耗 / 棋盘镜像三处数量', $('gdItemOut').value.replace(/\n/g, ' | ').slice(0, 160));
+    check(/—— 异常自查 ——/.test($('gdItemOut').value)
+      && /订单消耗：在 1 个当前订单的消耗里（订单 1001 收 1 个）/.test($('gdItemOut').value)
+      && /最近一次操作：2026-10-29 04:12:10 消耗了它 5 个/.test($('gdItemOut').value)
+      && /给了 铜钱×62/.test($('gdItemOut').value)
+      && /记录值 vs 当前值：一致/.test($('gdItemOut').value)
+      && /没有变动量和操作来源/.test($('gdItemOut').value),
+      '资源话术自动带「异常自查」：订单消耗 / 最近一次操作（消耗+奖励）/ 记录值对账 / 能力边界',
+      $('gdItemOut').value.replace(/\n/g, ' | ').slice(0, 260));
+    check($('gdItemVerdict').textContent.indexOf('最近一次操作消耗过它') !== -1,
+      '判定芯片直接点名「最近一次操作消耗过它」', $('gdItemVerdict').textContent);
+
+    // 时间点：比最后变动晚 → 那之后没变过（不是被吞）
+    $('gdItemTime').value = '2026-10-29T05:30';
+    $('gdItemBtn').click();
+    await sleep(60);
+    check(/早于玩家说的时间 → 那之后它没再变过/.test($('gdItemOut').value)
+      && /那之后没变过：不是被吞/.test($('gdItemVerdict').textContent),
+      '填了比「最后变动」晚的时间 → 直接判「那之后没变过：不是被吞」',
+      $('gdItemVerdict').textContent);
+    // 时间点：比最后变动早 → 那个时段确实变过
+    $('gdItemTime').value = '2026-10-29T03:00';
+    $('gdItemBtn').click();
+    await sleep(60);
+    check(/不早于玩家说的时间 → 那个时段确实变过/.test($('gdItemOut').value)
+      && /那个时段变过，看消耗去向/.test($('gdItemVerdict').textContent),
+      '填了比「最后变动」早的时间 → 判「那个时段变过，看消耗去向」',
+      $('gdItemVerdict').textContent);
+
     $('gdItemInput').value = '101';
     $('gdItemBtn').click();
     await sleep(60);
@@ -3103,8 +3148,9 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     $('mergeClearBtn').click();
     await sleep(60);
     check($('mergeInput').value === '' && $('mergeSummary').innerHTML === '' && $('gdResTable').innerHTML === ''
-      && $('gdActChips').innerHTML === '' && $('mergeDiff').textContent === '',
-      '「清空」把 MergeState / 资源表 / 活动芯片 / 对账行一起清掉');
+      && $('gdActChips').innerHTML === '' && $('mergeDiff').textContent === ''
+      && $('gdItemTime').value === '' && $('gdItemVerdict').innerHTML === '',
+      '「清空」把 MergeState / 资源表 / 活动芯片 / 对账行 / 判定芯片 / 时间点一起清掉');
     $('gdItemInput').value = '红宝石';
     $('gdItemBtn').click();
     await sleep(40);
