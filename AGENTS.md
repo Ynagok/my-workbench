@@ -48,7 +48,7 @@ npm run verify     # 改完代码、push 前的完整自检
 
 | 命令 | 内容 |
 |---|---|
-| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 523 项 + 「接口挂起时界面仍可用」+ 服务端冒烟 42 项 |
+| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 539 项 + 「接口挂起时界面仍可用」+ 服务端冒烟 42 项 |
 | `npm run verify:static` | 只要静态校验 + 语法检查（最快） |
 | `npm run report` | 打印一份真实生成的日报，肉眼确认排版（含 ⑥伙伴弹途 / ⑦异世界勇者） |
 | `npm run build:data` | 从 GM 玩家页快照提取 4 张权威映射表 + 与硬编码常量的**差异报告**（见下「游戏数据管线」） |
@@ -58,7 +58,7 @@ npm run verify     # 改完代码、push 前的完整自检
 | `npm run smoke:pmc` | **生管物料订单工作台**（`public/pmc.html`）自检，123 项（含加工周期工作日推算 + 在途锁定/调整建议 + 真实 8.5MB xlsx 端到端导入）；**不在 verify 里**，见下「生管物料订单工作台」一节 |
 | `npm test` | = `npm run verify` |
 
-`npm run verify` 失败就不要提交。它一共 5 段：静态结构 → 语法 → jsdom 集成冒烟 **523 项** → 接口挂起时界面仍可用 → 服务端冒烟 **42 项**。
+`npm run verify` 失败就不要提交。它一共 5 段：静态结构 → 语法 → jsdom 集成冒烟 **539 项** → 接口挂起时界面仍可用 → 服务端冒烟 **42 项**。
 
 - jsdom 未安装时前端冒烟会自动回落到本机 DSH 自带的那份。
 - `tools/smoke-server.cjs` 用 `PORT` + `DATA_FILE` 环境变量把服务端指到随机端口和 `tools/out/` 里的临时文件，**不会碰真实 `data.json`**；子进程 stdio 必须用 `ignore`/`inherit`（沙箱禁管道，`pipe` 会 EPERM）。
@@ -414,6 +414,36 @@ npm run verify     # 改完代码、push 前的完整自检
   - ⚠️ **`当前层 = -` 或 Redis 里没进度时走另一条分支**：`这边没查到您有下午茶（吉运节节高）的抽取记录～` + `麻烦发一下角色ID + 区服（有截图更好）…`，**别瞎报层数**。
 - **只在本机**：纯前端解析，**不写 `/api/data`、也不改 `teaShops` / `teaPoll_*`**（跟别的粘贴解析一个规矩）；页面上不持久化，清空就没了。
 - **测试**：`tools/smoke.cjs` 第 **8y** 节 **14 条**（第三段按钮在、切过去只有这段亮 / **下午茶投票页里没有这块** / 卡片与按钮齐全 / 粘一整块认出档位·当前层·次数·大奖·层数 / 当前层那格高亮 / 升层奖励单独标 / **道具代码按映射换人话（2000049 → 随机奖励宝箱）+ 数量照数据走** / **话术就是用户模板那两句、且不含价格** / 纯文本里的「已抽取」标灰并写进「抽到了第 X 层的…」 / **大奖已抽取 → 换成「已获得最终大奖」** / **贴源码认 is-drawn 不串到下一条** / 没进度时改「没查到记录」/ 空输入只提示 / 清空全清 / 全程 0 请求）；`tools/verify.mjs` 3g-2（6 条）+ 3l（分段条现在三段）有静态断言。
+
+## 🧩 棋盘镜像（`data-tab="board"` · 粘 GM 镜像 JSON，2026-10）
+
+用户要求：「增加一个棋盘镜像功能，可以粘贴棋盘镜像数据生成类似展示主棋盘，背包，仓库的页面，还可以输入道具名称或者 id，来生成有几个 xx 在棋盘上，几个 xx 在临时背包，几个 xx 在仓库这样的确认道具棋子的状态的话术」。
+
+- **位置**：侧边栏「🧩 棋盘镜像」（`data-tab="board"` / `#tab-board`，在「下午茶」和「小游戏」之间）。**跟「下午茶投票」「吉运节节高」都无关**，是这个工作台自己的一个独立页。
+- **五块**（id 都别改）：
+  1. `#boardInput` 粘贴框 + `#boardParseBtn`（🔍 解析并展示）/ `#boardClearBtn`（🧹 清空）+ 提示 `#boardHint` + 汇总芯片 `#boardSummary`。
+  2. `#boardMainCard`：主棋盘 `#boardMainGrid`（`.board-grid`，`--bw` 控制列数）+ 其它棋盘 `#boardOtherGrids`。
+  3. `#boardBagCard`：临时背包 `#boardBagList` + 仓库 `#boardWareList`（`.board-chip` 一片一个）。
+  4. `#boardAskCard`：`#boardAskInput`（道具名或 id）+ `#boardAskBtn` / `#boardAskCopyBtn` + `#boardAskHint` + 话术框 `#boardAskOut`（回车也能查）。
+  5. 抬头 `#boardReportHead`（`#boardReportSub` / `#boardReportMeta`）。
+- **数据来源**（GM 玩家页镜像 JSON，原样贴；前面带「镜像数据：」之类的文字也认 —— `boardJsonText()` 取第一个 `{` 到最后一个 `}`）：
+  - `chessboardDataList[]`：每块 `{ chessboardId, cellNumW, cellNumH, cellTotalNum, expirationTime, cells[] }`；`cells[].pieceData` = 棋子（`pieceType` / `goodsId` / `itemCodeStr` / `inventory` / `capacity` / `spawnList` / `others.uniqueId`）。**主棋盘 = `chessboardId === 1`**，没有就取第一块；其余当「其它棋盘」（活动棋盘 9 之类）。
+  - `warehouseData.pieceDataList[]` = 仓库棋子；`activityChessBoardData.warehouse.pieces[]` = 活动仓库（有就一起算仓库）。
+  - `backpack`（`{ goodsId: 数量 }`）= **临时背包**；`backpackGoodsIds` 里出现的空 key（`""`）要跳过。
+  - `currencies`（`{ 101: 16, 102: 86130, … }`）= 货币芯片。
+- **棋盘怎么画**：按 `cellNumW × cellNumH` 铺格子（7×9 = 63 格），按 `cellIdx` 定位；三种样子 —— 有 `pieceData` = 棋子（名字来自 `itemNameMap`，产出棋 `pieceType` 11/12/31/32 标黄底并显示 `库存/上限`）、`lockState !== 2` = 未解锁（虚线「锁」）、其余 = 空位（虚线「·」）。`title` 里有 id / 库存 / 类型 / 格号。
+- **查询 / 话术**（`boardIdsOfQuery` + `boardAskScript`）：
+  - 全数字 → 直接当 id；否则用 `itemNameMap` 反查：**先精确匹配名字，再不精确到「真名里包含查询」**（⚠️ 反过来「查询里包含真名」不行 —— 会让「不存在的道具」命中名字叫「道具」的那几条）。
+  - 话术（用户要的三段式，别改句式）：
+    ```
+    【棋盘镜像 · <名字>（<id>）】
+    棋盘上有 X 个，临时背包有 Y 个，仓库有 Z 个。
+    ```
+  - **计数口径**：棋盘上 **每格算 1 个**（两块棋盘一起数）；仓库 **每件算 1 个**（`warehouseData` + 活动仓库）；临时背包 **取 `backpack` 里的数量值**。三处分开存 `model.counts[id] = { onBoard, inBackpack, inWarehouse }`。
+  - 名字对不上时话术直接说 `镜像里没找到「…」这个道具 / 棋子`，提示里也写「换个写法或直接输 id」。
+- ⚠️ **只在本机内存里**（`boardModel` 变量）：不写 `/api/data`、不塞 localStorage，刷新就没了（想留就重新贴）。
+- ⚠️ 活动棋盘的 `activityPieceIdMap` 里那批 id（826xx / 827xx / 610xx…）**物品名表里没有**，会显示成 `#82601` 这种原 id —— 想显示真名就去「映射管理」里补 `itemNameMap`，补完刷新即可（`boardNameOf()` 读的就是它）。
+- **测试**：`tools/smoke.cjs` 第 **8z** 节 **16 条**（标签页在 / 三块默认收起 / 解析出主棋盘 3×2 + 棋盘数 + 棋子 4·格 8 + 背包 1 项 + 仓库 2 件 + 货币 / 三块都显示 / 主棋盘 6 格含 3 棋子·1 未解锁·1 产出棋 / 名字换成「相思鸟」「云栖茶壶」且带 80/80 库存 / 其它棋盘单独画 / 背包「×3」/ 仓库认识换名·不认识写 id 带库存 / 输名字出话术（棋盘 2·背包 0·仓库 0）/ 输 id 出话术（棋盘 1·背包 0·仓库 1）/ 查不到就说没找到 / 坏 JSON 只提示不炸 / 清空全收 / 全程 0 请求）；`tools/verify.mjs` 3g-3 有 **6 条**静态断言。
 
 ## SOP 助手（**已删除** · 2026-10，用户要求）
 

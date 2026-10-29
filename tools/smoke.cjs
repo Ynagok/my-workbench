@@ -2832,6 +2832,114 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
       '吉运节节高解析全程只在本机（不碰服务端）', posts.slice(posts8y).map(p => p.url).join(' | '));
   }
 
+  console.log('--- 8z. 🧩 棋盘镜像（镜像 JSON → 主棋盘 / 背包 / 仓库 + 在哪几个话术）---');
+  {
+    const posts8z = posts.length;
+    check(!!doc.querySelector('.tab-btn[data-tab="board"]'),
+      '侧边栏多了「🧩 棋盘镜像」标签页');
+    doc.querySelector('.tab-btn[data-tab="board"]').click();
+    await sleep(60);
+    check(!!$('tab-board') && $('tab-board').classList.contains('active'),
+      '点进去就是棋盘镜像页（不碰服务端能力，纯前端）');
+    check($('boardMainCard').style.display === 'none' && $('boardBagCard').style.display === 'none'
+      && $('boardAskCard').style.display === 'none',
+      '还没解析时「棋盘 / 背包仓库 / 查询」三块都收着');
+
+    const boardPayload = {
+      chessboardDataList: [
+        {
+          cellTotalNum: 6, chessboardId: 1, cellNumH: 2, cellNumW: 3, expirationTime: 0,
+          cells: [
+            { cellIdx: 0, lockState: 2, pieceData: { pieceType: 2, goodsId: 21108, itemCodeStr: 21108, others: { uniqueId: 1 } } },
+            { cellIdx: 1, lockState: 2 },
+            { cellIdx: 2, lockState: 2, pieceData: { pieceType: 11, goodsId: 10207, itemCodeStr: 10207, inventory: 80, capacity: 80 } },
+            { cellIdx: 3, lockState: 0 },
+            { cellIdx: 4, lockState: 2 },
+            { cellIdx: 5, lockState: 2, pieceData: { pieceType: 6, goodsId: 60401, itemCodeStr: 60401 } }
+          ]
+        },
+        {
+          cellTotalNum: 2, chessboardId: 9, cellNumH: 1, cellNumW: 2,
+          cells: [
+            { cellIdx: 0, lockState: 2, pieceData: { pieceType: 2, goodsId: 21108, itemCodeStr: 21108 } },
+            { cellIdx: 1, lockState: 2 }
+          ]
+        }
+      ],
+      warehouseData: { pieceDataList: [{ pieceType: 6, goodsId: 60401 }, { pieceType: 11, goodsId: 3999999, inventory: 1, capacity: 2 }] },
+      activityChessBoardData: { warehouse: { pieces: [] } },
+      backpack: { '3000004': 3 },
+      backpackGoodsIds: ['', '3000004'],
+      currencies: { '102': 86130, '101': 16 }
+    };
+    $('boardInput').value = '镜像数据：' + JSON.stringify(boardPayload);
+    $('boardParseBtn').click();
+    await sleep(100);
+    const sum8z = $('boardSummary').textContent;
+    check(/主棋盘 3×2/.test(sum8z) && /另有 1 块棋盘/.test(sum8z) && /棋子 4 \/ 格 8/.test(sum8z)
+      && /临时背包 1 项/.test(sum8z) && /仓库 2 件/.test(sum8z) && /铜钱 86130/.test(sum8z),
+      '解析出主棋盘 / 棋盘数 / 棋子数 / 背包 / 仓库 / 货币', sum8z.slice(0, 180));
+    check($('boardMainCard').style.display !== 'none' && $('boardBagCard').style.display !== 'none'
+      && $('boardAskCard').style.display !== 'none',
+      '三块都显示了（棋盘 / 背包仓库 / 查询）');
+    const mainCells = $('boardMainGrid').querySelectorAll('.board-cell');
+    check(mainCells.length === 6
+      && $('boardMainGrid').querySelectorAll('.board-cell.is-piece').length === 3
+      && $('boardMainGrid').querySelectorAll('.board-cell.is-locked').length === 1
+      && $('boardMainGrid').querySelectorAll('.board-cell.t-producer').length === 1,
+      '主棋盘按 3×2 画 6 格：3 个棋子、1 格未解锁、1 个产出棋（虚线空位也画出来）',
+      mainCells.length + ' 格');
+    check(/相思鸟/.test($('boardMainGrid').textContent) && /云栖茶壶/.test($('boardMainGrid').textContent)
+      && /80\/80/.test($('boardMainGrid').textContent),
+      '棋子按物品名表换成名字（相思鸟 / 云栖茶壶），产出棋带库存 80/80');
+    check($('boardOtherGrids').querySelectorAll('.board-grid').length === 1,
+      '另一块棋盘（活动棋盘 9）单独画在「其它棋盘」里',
+      $('boardOtherGrids').querySelectorAll('.board-grid').length);
+    check(/打怪棋盘步数道具/.test($('boardBagList').textContent) && /×3/.test($('boardBagList').textContent),
+      '临时背包列出「道具 × 数量」', $('boardBagList').textContent.slice(0, 80));
+    check(/万能绒珠/.test($('boardWareList').textContent) && /3999999/.test($('boardWareList').textContent)
+      && /1\/2/.test($('boardWareList').textContent),
+      '仓库列出棋子（认识的换成名字，不认识的写 id）', $('boardWareList').textContent.slice(0, 100));
+
+    $('boardAskInput').value = '相思鸟';
+    $('boardAskBtn').click();
+    await sleep(60);
+    check(/【棋盘镜像 · 相思鸟（21108）】/.test($('boardAskOut').value)
+      && /棋盘上有 2 个，临时背包有 0 个，仓库有 0 个。/.test($('boardAskOut').value),
+      '输名字 → 话术「棋盘上有 X 个，临时背包有 Y 个，仓库有 Z 个」', $('boardAskOut').value.replace(/\n/g, ' | '));
+    $('boardAskInput').value = '60401';
+    $('boardAskBtn').click();
+    await sleep(60);
+    check(/【棋盘镜像 · 万能绒珠（60401）】/.test($('boardAskOut').value)
+      && /棋盘上有 1 个，临时背包有 0 个，仓库有 1 个。/.test($('boardAskOut').value),
+      '输 id 也一样（棋盘 1 / 背包 0 / 仓库 1）', $('boardAskOut').value.replace(/\n/g, ' | '));
+    $('boardAskInput').value = '不存在的道具';
+    $('boardAskBtn').click();
+    await sleep(60);
+    check(/没找到「不存在的道具」/.test($('boardAskOut').value)
+      && /镜像里没有这个名字/.test($('boardAskHint').textContent),
+      '镜像里没有的道具 → 话术里直接说没找到', $('boardAskOut').value.slice(0, 60));
+
+    // 坏的 JSON：只提示，不炸
+    $('boardInput').value = '{ 这不是 JSON }';
+    $('boardParseBtn').click();
+    await sleep(60);
+    check(/JSON 解析失败/.test($('boardHint').textContent) && $('boardMainCard').style.display === 'none',
+      '贴的不是 JSON → 只提示解析失败，页面不炸', $('boardHint').textContent.slice(0, 60));
+
+    $('boardInput').value = JSON.stringify(boardPayload);
+    $('boardParseBtn').click();
+    await sleep(80);
+    $('boardClearBtn').click();
+    await sleep(60);
+    check($('boardInput').value === '' && $('boardAskOut').value === ''
+      && $('boardMainCard').style.display === 'none' && $('boardSummary').innerHTML === '',
+      '「清空」把输入 / 棋盘 / 背包仓库 / 话术一起收掉');
+
+    check(posts.slice(posts8z).filter(p => /careerData|board|dailyData/.test(p.url) || /board/i.test(p.url)).length === 0,
+      '镜像解析全程只在本机（0 请求）', posts.slice(posts8z).map(p => p.url).join(' | '));
+  }
+
   console.log('--- 9. 无未捕获异常 ---');
   check(!warns.some(w => w.startsWith('ERROR')), 'console.error 未被调用：' + warns.filter(w => w.startsWith('ERROR')).join(' | '));
   check(jsdomErrors.length === 0, '页面无未捕获异常（jsdomError）', jsdomErrors.slice(0, 3));

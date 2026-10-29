@@ -591,6 +591,36 @@ ok(/const TEA_ITEM_ALIAS = \{ '2000049': '随机奖励宝箱' \};/.test(s) && /T
   && !/价格/.test((s.match(/function teaInfoScript\(info\) \{[\s\S]*?\n {36}\}/) || [''])[0]),
   '奖励名按映射换人话（2000049 先写「随机奖励宝箱」）；话术里不出现价格（内部价）；数量一律用粘进来的数据');
 
+// ---- 3g-3. 🧩 棋盘镜像（粘镜像 JSON → 主棋盘 / 背包 / 仓库 + 「在哪几个」话术）----
+ok(/data-tab="board"[^>]*>🧩 棋盘镜像/.test(s) && /id="tab-board"/.test(s)
+  && /id="boardInput"/.test(s) && /id="boardParseBtn"/.test(s) && /id="boardClearBtn"/.test(s)
+  && /id="boardSummary"/.test(s) && /id="boardMainGrid"/.test(s) && /id="boardOtherGrids"/.test(s)
+  && /id="boardBagList"/.test(s) && /id="boardWareList"/.test(s)
+  && /id="boardAskInput"/.test(s) && /id="boardAskBtn"/.test(s) && /id="boardAskCopyBtn"/.test(s) && /id="boardAskOut"/.test(s)
+  && /setClick\('boardParseBtn', boardRun\)/.test(s) && /setClick\('boardAskBtn', boardAskRun\)/.test(s)
+  && /setClick\('boardAskCopyBtn', boardAskCopy\)/.test(s) && /setClick\('boardClearBtn', boardClear\)/.test(s),
+  '「🧩 棋盘镜像」标签页：粘镜像 JSON + 主棋盘 / 其它棋盘 / 临时背包 / 仓库 / 道具查询五块都在，按钮都挂上了');
+ok(/const BOARD_JSON_MAX = 4000000;/.test(s) && /function boardJsonText\(raw\)/.test(s)
+  && /function boardParse\(raw\)/.test(s) && /function boardRender\(model\)/.test(s)
+  && /function boardGridHtml\(board\)/.test(s) && /function boardCellHtml\(c\)/.test(s)
+  && /chessboardDataList/.test(s) && /warehouseData\.pieceDataList/.test(s)
+  && /activityChessBoardData\.warehouse/.test(s) && /data\.backpack/.test(s) && /data\.currencies/.test(s),
+  '镜像解析：chessboardDataList（棋盘）/ warehouseData.pieceDataList + activityChessBoardData.warehouse（仓库）/ backpack（临时背包）/ currencies（货币）；贴「镜像数据：」这种前缀也认');
+ok(/model\.main = model\.boards\.filter\(x => String\(x\.id\) === '1'\)\[0\] \|\| model\.boards\[0\]/.test(s)
+  && /grid-template-columns: repeat\(var\(--bw, 7\)/.test(s) && /board-cell is-piece/.test(s)
+  && /\.board-cell\.t-producer/.test(s) && /\.board-cell\.is-locked/.test(s),
+  '主棋盘按 cellNumW×cellNumH 画格子（棋子 / 空位 / 未解锁三种样子，产出棋标黄），其它棋盘另起一块');
+ok(/model\.counts\[k\] = \{ onBoard: 0, inBackpack: 0, inWarehouse: 0 \}/.test(s)
+  && /slot\(id\)\.onBoard \+= 1/.test(s) && /slot\(x\.id\)\.inWarehouse \+= 1/.test(s)
+  && /slot\(x\.id\)\.inBackpack = x\.n/.test(s)
+  && /function boardIdsOfQuery\(q\)/.test(s) && /nm\.indexOf\(t\) !== -1/.test(s) && /itemNameMap/.test(s),
+  '三处数量分开数：棋盘上（每格 1 个）/ 仓库（每件 1 个）/ 临时背包（数量）；查询支持 id，也支持用物品名表反查名字（只认「真名包含查询」，避免误命中）');
+ok(/棋盘上有 ' \+ onBoard \+ ' 个，临时背包有 ' \+ inBag \+ ' 个，仓库有 ' \+ inWare \+ ' 个。/.test(s)
+  && /镜像里没找到「'/.test(s) && /【棋盘镜像 · '/.test(s),
+  '确认话术就是用户要的三段式：棋盘上有 X 个，临时背包有 Y 个，仓库有 Z 个；查不到时直说没找到');
+ok(!/saveData\('board/.test(s) && !/localStorage\.setItem\('boardMirror/.test(s),
+  '棋盘镜像只在本机内存里解析（不写 /api/data、也不塞 localStorage）');
+
 // ---- 3h. SOP 助手已整块删除（2026-10，用户要求）；服务端的 sop 口令关与 seed 工具保留 ----
 ok(!/sop/i.test(s),
   'SOP 助手已从页面上整块删除（侧边栏 / 页面 / 样式 / 脚本 / 绑定里都不再出现 sop）');

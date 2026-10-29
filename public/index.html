@@ -3363,6 +3363,34 @@
         .tea-reward.is-drawn { border-color: var(--line-2); background: var(--surface-3); color: var(--ink-3); }
         .tea-reward.is-drawn b { color: var(--ink-2); }
 
+        /* ---------- 🧩 棋盘镜像（粘 GM 镜像 JSON → 主棋盘 / 背包 / 仓库 + 「在哪几个」话术） ---------- */
+        .board-grid {
+            display: grid; gap: 6px; margin-top: 10px;
+            grid-template-columns: repeat(var(--bw, 7), minmax(0, 1fr));
+        }
+        .board-cell {
+            min-height: 46px; padding: 3px 4px; box-sizing: border-box;
+            display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 1px;
+            border: 1px solid var(--line-0); border-radius: var(--r-sm);
+            background: var(--surface); font-size: 10.5px; line-height: 1.25;
+            color: var(--ink-1); text-align: center; overflow: hidden;
+        }
+        .board-cell b { font-size: 11px; color: var(--ink-0); font-weight: 600; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .board-cell em { font-style: normal; color: var(--ink-3); font-size: 10px; font-variant-numeric: tabular-nums; }
+        .board-cell.is-empty { background: var(--surface-2); border-style: dashed; color: var(--ink-3); }
+        .board-cell.is-locked { background: var(--surface-3); border-style: dashed; color: var(--ink-3); }
+        .board-cell.t-producer { border-color: var(--accent-line); background: var(--accent-dim); }
+        .board-other { margin-top: 14px; }
+        .board-other h4 { margin: 0; font-size: 12px; color: var(--ink-2); font-weight: 600; }
+        .board-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+        .board-chip {
+            font-size: 11.5px; padding: 4px 9px; border-radius: var(--r-sm);
+            border: 1px solid var(--line-0); background: var(--surface); color: var(--ink-1);
+        }
+        .board-chip b { color: var(--ink-0); }
+        .board-chip em { font-style: normal; color: var(--ink-3); margin-left: 4px; font-size: 10.5px; }
+        #boardAskOut { background: var(--surface-2); }
+
         /* ---------- 统计页通用：紧凑信息条（少写字、多给数） ---------- */
         /* 用来替代原来成段的说明文字：一条事实 = 一片，扫一眼就能读。 */
         .stat-chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
@@ -3735,6 +3763,7 @@
             <button class="tab-btn" data-tab="career"> 客服生涯</button>
             <button class="tab-btn" data-tab="overseas"> 海外业务统计</button>
             <button class="tab-btn" data-tab="tea"> 下午茶</button>
+            <button class="tab-btn" data-tab="board">🧩 棋盘镜像</button>
             <button class="tab-btn" data-tab="script">小游戏</button>
         </div>
 
@@ -4569,6 +4598,57 @@
                 </div>
             </div><!-- /sub-panel-fry -->
         </div><!-- /tab-script -->
+        <!-- ==================== 🧩 棋盘镜像 ==================== -->
+        <div id="tab-board" class="tab-content">
+            <div class="career-report-head" id="boardReportHead">
+                <div>
+                    <div class="crh-kicker">BOARD MIRROR / 棋盘镜像</div>
+                    <div class="crh-title">棋盘镜像</div>
+                    <div class="crh-sub" id="boardReportSub">—</div>
+                </div>
+                <div class="crh-meta" id="boardReportMeta"></div>
+            </div>
+
+            <div class="card">
+                <label>① 粘贴镜像数据
+                    <span class="card-sub">GM 玩家页那块棋盘镜像 JSON，整段原样贴进来（含 chessboardDataList / warehouseData / backpack）</span>
+                </label>
+                <textarea id="boardInput" rows="6" style="margin-top:10px;" placeholder='直接贴 JSON：{"chessboardDataList":[…],"warehouseData":{"pieceDataList":[…]},"backpack":{"3000004":0}}'></textarea>
+                <div class="flex-row" style="margin-top:10px;">
+                    <button id="boardParseBtn">🔍 解析并展示</button>
+                    <button id="boardClearBtn" class="reset-btn">🧹 清空</button>
+                    <span class="hint-text" id="boardHint"></span>
+                </div>
+                <div class="stat-chips" id="boardSummary"></div>
+            </div>
+
+            <div class="card" id="boardMainCard" style="display:none;">
+                <label>② 主棋盘 <span class="card-sub" id="boardMainSub"></span></label>
+                <div id="boardMainGrid"></div>
+                <div id="boardOtherGrids"></div>
+            </div>
+
+            <div class="card" id="boardBagCard" style="display:none;">
+                <label>③ 临时背包 <span class="card-sub">backpack：道具 → 数量</span></label>
+                <div class="board-list" id="boardBagList"></div>
+                <label style="margin-top:16px;">④ 仓库 <span class="card-sub">warehouseData.pieceDataList：棋子 → 件数</span></label>
+                <div class="board-list" id="boardWareList"></div>
+            </div>
+
+            <div class="card" id="boardAskCard" style="display:none;">
+                <label>⑤ 查道具 / 棋子在哪
+                    <span class="card-sub">输道具名或 id（如「相思鸟」/「21108」），出「棋盘上 / 临时背包 / 仓库 各有几个」的确认话术</span>
+                </label>
+                <div class="flex-row" style="margin-top:10px;">
+                    <input id="boardAskInput" placeholder="道具名或 id，如：相思鸟 / 21108" style="max-width:280px;">
+                    <button id="boardAskBtn">✅ 生成确认话术</button>
+                    <button id="boardAskCopyBtn" class="secondary">📋 复制</button>
+                    <span class="hint-text" id="boardAskHint"></span>
+                </div>
+                <textarea id="boardAskOut" rows="6" readonly style="margin-top:10px;"></textarea>
+            </div>
+        </div>
+
     </div><!-- /container -->
     <!-- ==================== 模态框集合（移出 tab-content，避免父级 display:none 导致无法弹出） ==================== -->
     <div id="sourceRuleModal" class="modal" role="dialog" aria-modal="true">
@@ -15295,6 +15375,287 @@
                                         const totalVotes = list.reduce((a, v) => a + v.shopIds.length, 0);
                                         return { devices: list.length, totalVotes: totalVotes, rows: rows };
                                     }
+                                    // ==================== 🧩 棋盘镜像（GM 镜像 JSON → 主棋盘 / 背包 / 仓库 + 位置话术）====================
+                                    // 用户：「增加一个棋盘镜像功能，可以粘贴棋盘镜像数据生成类似展示主棋盘，背包，仓库的页面，
+                                    //   还可以输入道具名称或者id，来生成有几个xx在棋盘上，几个xx在临时背包，几个xx在仓库这样的话术」
+                                    // 数据来自 GM 玩家页的镜像 JSON：chessboardDataList（棋盘）/ warehouseData.pieceDataList（仓库）/
+                                    //   backpack（临时背包）/ currencies（货币）。⚠️ 只在本机解析，不进 /api/data、不落 localStorage。
+                                    const BOARD_JSON_MAX = 4000000;
+                                    let boardModel = null;
+                                    // 贴进来的可能会带「镜像数据：」这类前缀，也可能只截了一半 → 取第一个 { 到最后一个 }
+                                    function boardJsonText(raw) {
+                                        let s = String(raw == null ? '' : raw).trim();
+                                        if (!s) return '';
+                                        const a = s.indexOf('{');
+                                        const b = s.lastIndexOf('}');
+                                        if (a >= 0 && b > a) s = s.slice(a, b + 1);
+                                        return s.slice(0, BOARD_JSON_MAX);
+                                    }
+                                    function boardNameOf(id) {
+                                        const k = String(id == null ? '' : id);
+                                        if (!k) return '';
+                                        try { return (itemNameMap && itemNameMap[k]) || ''; } catch (_) { return ''; }
+                                    }
+                                    // 名字 → id：先精确，再「包含 / 被包含」的模糊（道具名可能存在多个 id 上）
+                                    function boardIdsOfQuery(q) {
+                                        const t = String(q == null ? '' : q).trim();
+                                        if (!t) return [];
+                                        if (/^\d+$/.test(t)) return [t];
+                                        const map = itemNameMap || {};
+                                        const ids = Object.keys(map);
+                                        const exact = ids.filter(id => String(map[id]) === t);
+                                        if (exact.length) return exact;
+                                        // ⚠️ 只认「真名里包含查询」：反过来（查询里包含真名）会把「不存在的道具」匹配到「道具」这种名字上
+                                        return ids.filter(id => {
+                                            const nm = String(map[id] || '');
+                                            return nm && t.length <= nm.length && nm.indexOf(t) !== -1;
+                                        });
+                                    }
+                                    // 解析成 { boards, main, warehouse, activityWarehouse, backpack, currencies, counts, error }
+                                    function boardParse(raw) {
+                                        const model = {
+                                            boards: [], main: null, warehouse: [], activityWarehouse: [],
+                                            backpack: [], currencies: [], counts: {}, error: '', empty: true
+                                        };
+                                        const txt = boardJsonText(raw);
+                                        if (!txt) return model;
+                                        let data = null;
+                                        try { data = JSON.parse(txt); } catch (e) {
+                                            model.error = 'JSON 解析失败：' + String((e && e.message) || e);
+                                            return model;
+                                        }
+                                        if (!data || typeof data !== 'object') {
+                                            model.error = '贴进来的不是 JSON 对象';
+                                            return model;
+                                        }
+                                        const list = Array.isArray(data.chessboardDataList) ? data.chessboardDataList : [];
+                                        list.forEach((b, i) => {
+                                            const cells = Array.isArray(b && b.cells) ? b.cells : [];
+                                            const w = +((b && b.cellNumW) || 7) || 7;
+                                            const h = +((b && b.cellNumH) || Math.ceil((+b.cellTotalNum || cells.length) / w)) || 1;
+                                            model.boards.push({
+                                                id: (b && b.chessboardId != null) ? b.chessboardId : (i + 1),
+                                                w: w, h: h, total: +((b && b.cellTotalNum) || cells.length) || (w * h),
+                                                exp: +((b && b.expirationTime) || 0), cells: cells
+                                            });
+                                        });
+                                        model.boards.sort((a, b) => a.id - b.id);
+                                        model.main = model.boards.filter(x => String(x.id) === '1')[0] || model.boards[0] || null;
+                                        const wh = (data.warehouseData && Array.isArray(data.warehouseData.pieceDataList)) ? data.warehouseData.pieceDataList : [];
+                                        model.warehouse = wh.map(p => ({
+                                            id: (p && p.goodsId != null) ? p.goodsId : (p && p.itemCodeStr),
+                                            pieceType: p && p.pieceType, inventory: p && p.inventory,
+                                            capacity: p && p.capacity, cellIdx: p && p.cellIdx
+                                        }));
+                                        const aw = (data.activityChessBoardData && data.activityChessBoardData.warehouse
+                                            && Array.isArray(data.activityChessBoardData.warehouse.pieces)) ? data.activityChessBoardData.warehouse.pieces : [];
+                                        model.activityWarehouse = aw.map(p => ({
+                                            id: (p && p.goodsId != null) ? p.goodsId : (p && p.itemCodeStr),
+                                            pieceType: p && p.pieceType, inventory: p && p.inventory, capacity: p && p.capacity
+                                        }));
+                                        const bp = (data.backpack && typeof data.backpack === 'object') ? data.backpack : {};
+                                        Object.keys(bp).forEach(id => { if (id) model.backpack.push({ id: id, n: +bp[id] || 0 }); });
+                                        (Array.isArray(data.backpackGoodsIds) ? data.backpackGoodsIds : []).forEach(id => {
+                                            const k = String(id || '');
+                                            if (!k) return;
+                                            if (!model.backpack.some(x => x.id === k)) model.backpack.push({ id: k, n: +bp[k] || 0 });
+                                        });
+                                        const cur = (data.currencies && typeof data.currencies === 'object') ? data.currencies : {};
+                                        Object.keys(cur).forEach(id => model.currencies.push({ id: id, n: +cur[id] || 0 }));
+                                        // 三处数量汇总：棋盘上一格 = 1 个；仓库一件 = 1 个；临时背包是数量
+                                        const slot = (id) => {
+                                            const k = String(id);
+                                            return model.counts[k] || (model.counts[k] = { onBoard: 0, inBackpack: 0, inWarehouse: 0 });
+                                        };
+                                        model.boards.forEach(b => (b.cells || []).forEach(c => {
+                                            const p = c && c.pieceData;
+                                            if (!p) return;
+                                            const id = (p.goodsId != null) ? p.goodsId : p.itemCodeStr;
+                                            if (id != null && String(id) !== '') slot(id).onBoard += 1;
+                                        }));
+                                        model.warehouse.forEach(x => { if (x.id != null) slot(x.id).inWarehouse += 1; });
+                                        model.activityWarehouse.forEach(x => { if (x.id != null) slot(x.id).inWarehouse += 1; });
+                                        model.backpack.forEach(x => { slot(x.id).inBackpack = x.n; });
+                                        model.empty = !model.boards.length && !model.warehouse.length && !model.backpack.length;
+                                        return model;
+                                    }
+                                    function boardCellHtml(c) {
+                                        const idx = (c && c.cellIdx != null) ? c.cellIdx : '?';
+                                        if (!c || !c.pieceData) {
+                                            const locked = c && c.lockState != null && c.lockState !== 2;
+                                            return '<div class="board-cell ' + (locked ? 'is-locked' : 'is-empty') + '" title="'
+                                                + escapeHtml('第 ' + idx + ' 格 · ' + (locked ? '未解锁' : '空')) + '">'
+                                                + (locked ? '锁' : '·') + '</div>';
+                                        }
+                                        const p = c.pieceData;
+                                        const id = (p.goodsId != null) ? p.goodsId : p.itemCodeStr;
+                                        const nm = boardNameOf(id);
+                                        const short = nm || ('#' + id);
+                                        const producer = [11, 12, 31, 32].indexOf(+p.pieceType) !== -1;
+                                        const hasStock = p.capacity != null || p.inventory != null;
+                                        const stock = hasStock
+                                            ? '<em>' + (p.inventory != null ? p.inventory : 0) + '/' + (p.capacity != null ? p.capacity : 0) + '</em>'
+                                            : '<em>' + escapeHtml(String(id == null ? '' : id)) + '</em>';
+                                        const tip = (nm ? nm + '（' + id + '）' : String(id))
+                                            + (hasStock ? ' · 库存 ' + (p.inventory || 0) + '/' + (p.capacity || 0) : '')
+                                            + ' · 类型 ' + (p.pieceType != null ? p.pieceType : '?')
+                                            + ' · 第 ' + idx + ' 格';
+                                        return '<div class="board-cell is-piece' + (producer ? ' t-producer' : '') + '" title="' + escapeHtml(tip) + '">'
+                                            + '<b>' + escapeHtml(short) + '</b>' + stock + '</div>';
+                                    }
+                                    function boardGridHtml(board) {
+                                        const byIdx = {};
+                                        (board.cells || []).forEach(c => { if (c && c.cellIdx != null) byIdx[+c.cellIdx] = c; });
+                                        let h = '<div class="board-grid" style="--bw:' + board.w + ';">';
+                                        for (let i = 0; i < board.w * board.h; i++) h += boardCellHtml(byIdx[i]);
+                                        return h + '</div>';
+                                    }
+                                    function boardRender(model) {
+                                        const sum = document.getElementById('boardSummary');
+                                        const sub = document.getElementById('boardReportSub');
+                                        const meta = document.getElementById('boardReportMeta');
+                                        const mainCard = document.getElementById('boardMainCard');
+                                        const bagCard = document.getElementById('boardBagCard');
+                                        const askCard = document.getElementById('boardAskCard');
+                                        const show = [mainCard, bagCard, askCard];
+                                        if (!model || model.empty) {
+                                            show.forEach(el => { if (el) el.style.display = 'none'; });
+                                            if (sum) sum.innerHTML = '';
+                                            if (sub) sub.textContent = '—';
+                                            if (meta) meta.innerHTML = '';
+                                            return;
+                                        }
+                                        show.forEach(el => { if (el) el.style.display = ''; });
+                                        const pieceN = model.boards.reduce((a, b) => a + (b.cells || []).filter(c => c && c.pieceData).length, 0);
+                                        const cellN = model.boards.reduce((a, b) => a + b.w * b.h, 0);
+                                        if (sum) {
+                                            const chips = [];
+                                            if (model.main) chips.push(statChip('主棋盘 ' + model.main.w + '×' + model.main.h + '（id ' + model.main.id + '）', 'k-accent'));
+                                            if (model.boards.length > 1) chips.push(statChip('另有 ' + (model.boards.length - 1) + ' 块棋盘'));
+                                            chips.push(statChip('棋子 ' + pieceN + ' / 格 ' + cellN));
+                                            chips.push(statChip('临时背包 ' + model.backpack.length + ' 项'));
+                                            chips.push(statChip('仓库 ' + (model.warehouse.length + model.activityWarehouse.length) + ' 件'));
+                                            model.currencies.forEach(c => chips.push(statChip((boardNameOf(c.id) || ('货币 ' + c.id)) + ' ' + c.n)));
+                                            sum.innerHTML = chips.join('');
+                                        }
+                                        if (sub) {
+                                            sub.textContent = '主棋盘 ' + (model.main ? model.main.w + '×' + model.main.h : '—')
+                                                + '　·　棋盘 ' + model.boards.length + ' 块　·　仓库 ' + (model.warehouse.length + model.activityWarehouse.length) + ' 件　·　临时背包 ' + model.backpack.length + ' 项';
+                                        }
+                                        if (meta) {
+                                            meta.innerHTML = statChips([
+                                                ['主棋盘', model.main ? ('id ' + model.main.id) : '—'],
+                                                ['棋子', pieceN + ' 个'],
+                                                ['其它棋盘', (model.boards.length - 1) + ' 块']
+                                            ]);
+                                        }
+                                        const mainGrid = document.getElementById('boardMainGrid');
+                                        const mainSub = document.getElementById('boardMainSub');
+                                        if (mainGrid) mainGrid.innerHTML = model.main ? boardGridHtml(model.main) : '<div class="hint-text">没认出主棋盘（chessboardDataList 里没有第 1 块）</div>';
+                                        if (mainSub) mainSub.textContent = model.main
+                                            ? ('id ' + model.main.id + ' · ' + model.main.w + '×' + model.main.h + ' · ' + model.main.total + ' 格')
+                                            : '';
+                                        const others = document.getElementById('boardOtherGrids');
+                                        if (others) {
+                                            const rest = model.boards.filter(b => !model.main || b !== model.main);
+                                            others.innerHTML = rest.length ? '<div class="board-other"><h4>其它棋盘（' + rest.length + ' 块）</h4>'
+                                                + rest.map(b => '<div class="board-other"><h4>棋盘 ' + b.id + ' · ' + b.w + '×' + b.h
+                                                    + (b.exp ? ' · 到期 ' + new Date(b.exp * 1000).toISOString().slice(0, 10) : '') + '</h4>'
+                                                    + boardGridHtml(b) + '</div>').join('')
+                                                + '</div>' : '';
+                                        }
+                                        const bag = document.getElementById('boardBagList');
+                                        if (bag) {
+                                            bag.innerHTML = model.backpack.length
+                                                ? model.backpack.map(x => '<span class="board-chip"><b>' + escapeHtml(boardNameOf(x.id) || ('道具 ' + x.id))
+                                                    + '</b> ×' + x.n + '<em>' + escapeHtml(x.id) + '</em></span>').join('')
+                                                : '<span class="hint-text">临时背包是空的</span>';
+                                        }
+                                        const ware = document.getElementById('boardWareList');
+                                        if (ware) {
+                                            const all = model.warehouse.concat(model.activityWarehouse);
+                                            ware.innerHTML = all.length
+                                                ? all.map(x => '<span class="board-chip"><b>' + escapeHtml(boardNameOf(x.id) || ('棋子 ' + x.id))
+                                                    + '</b><em>' + escapeHtml(String(x.id)) + (x.capacity != null ? ' · 库存 ' + (x.inventory || 0) + '/' + x.capacity : '') + '</em></span>').join('')
+                                                : '<span class="hint-text">仓库是空的</span>';
+                                        }
+                                    }
+                                    function boardRun() {
+                                        const input = document.getElementById('boardInput');
+                                        const out = document.getElementById('boardAskOut');
+                                        const raw = (input && input.value) || '';
+                                        if (!raw.trim()) {
+                                            teaSetHint('boardHint', '先把棋盘镜像 JSON 整段贴到上面');
+                                            boardModel = null;
+                                            boardRender(null);
+                                            if (out) out.value = '';
+                                            teaSetHint('boardAskHint', '');
+                                            return null;
+                                        }
+                                        const model = boardParse(raw);
+                                        if (model.error) {
+                                            boardModel = null;
+                                            boardRender(null);
+                                            teaSetHint('boardHint', model.error);
+                                            return null;
+                                        }
+                                        boardModel = model;
+                                        boardRender(model);
+                                        if (out) out.value = '';
+                                        teaSetHint('boardAskHint', '');
+                                        if (model.empty) teaSetHint('boardHint', 'JSON 认出来了，但里面没有棋盘 / 仓库 / 背包数据 —— 确认贴的是棋盘镜像那块');
+                                        else {
+                                            const pieceN = model.boards.reduce((a, b) => a + (b.cells || []).filter(c => c && c.pieceData).length, 0);
+                                            teaSetHint('boardHint', '认出 ' + model.boards.length + ' 块棋盘（棋子 ' + pieceN + ' 个）· 仓库 '
+                                                + (model.warehouse.length + model.activityWarehouse.length) + ' 件 · 临时背包 ' + model.backpack.length + ' 项');
+                                        }
+                                        return model;
+                                    }
+                                    // 话术：棋盘上 x 个 / 临时背包 x 个 / 仓库 x 个（名字优先，按物品名表反查 id）
+                                    function boardAskScript(model, q) {
+                                        if (!model) return '';
+                                        const t = String(q == null ? '' : q).trim();
+                                        if (!t) return '';
+                                        const ids = boardIdsOfQuery(t);
+                                        if (!ids.length) return '镜像里没找到「' + t + '」这个道具 / 棋子 —— 换个名字或直接输 id 试试。';
+                                        let onBoard = 0, inBag = 0, inWare = 0;
+                                        ids.forEach(id => {
+                                            const rec = model.counts[String(id)] || { onBoard: 0, inBackpack: 0, inWarehouse: 0 };
+                                            onBoard += rec.onBoard; inBag += rec.inBackpack; inWare += rec.inWarehouse;
+                                        });
+                                        const nm = boardNameOf(ids[0]) || t;
+                                        const out = ['【棋盘镜像 · ' + nm + '（' + ids.join(' / ') + '）】'];
+                                        out.push('棋盘上有 ' + onBoard + ' 个，临时背包有 ' + inBag + ' 个，仓库有 ' + inWare + ' 个。');
+                                        return out.join('\n');
+                                    }
+                                    function boardAskRun() {
+                                        const input = document.getElementById('boardAskInput');
+                                        const out = document.getElementById('boardAskOut');
+                                        const q = (input && input.value) || '';
+                                        if (!boardModel) { teaSetHint('boardAskHint', '先在上面把镜像数据解析出来'); if (out) out.value = ''; return; }
+                                        if (!q.trim()) { teaSetHint('boardAskHint', '输个道具名或 id'); if (out) out.value = ''; return; }
+                                        const text = boardAskScript(boardModel, q);
+                                        if (out) out.value = text;
+                                        teaSetHint('boardAskHint', /没找到/.test(text) ? '镜像里没有这个名字，换个写法或直接输 id' : '话术已生成');
+                                    }
+                                    function boardAskCopy() {
+                                        const out = document.getElementById('boardAskOut');
+                                        const t = (out && out.value) || '';
+                                        if (!t.trim()) { teaSetHint('boardAskHint', '还没生成话术'); return; }
+                                        safeCopy(t);
+                                        teaSetHint('boardAskHint', '话术已复制');
+                                    }
+                                    function boardClear() {
+                                        const input = document.getElementById('boardInput');
+                                        const out = document.getElementById('boardAskOut');
+                                        if (input) input.value = '';
+                                        if (out) out.value = '';
+                                        boardModel = null;
+                                        boardRender(null);
+                                        teaSetHint('boardHint', '已清空');
+                                        teaSetHint('boardAskHint', '');
+                                    }
+
                                     // ==================== 吉运节节高 → 话术（反推 GM「玩家下午茶信息」那块）====================
                                     // ⚠️ 这里的「下午茶」是**游戏内活动「吉运节节高」在 GM 后台的显示名**，跟「🧋 下午茶投票」那一页毫无关系。
                                     // 这一块挂在「话术生成」页的第三段（吉运节节高（下午茶）），不是下午茶投票页。
@@ -16487,6 +16848,12 @@
                                         setClick('teaInfoParseBtn', teaInfoRun);
                                         setClick('teaInfoCopyBtn', teaInfoCopy);
                                         setClick('teaInfoClearBtn', teaInfoClear);
+                                        // 🧩 棋盘镜像（粘镜像 JSON → 主棋盘 / 背包 / 仓库 + 「在哪几个」话术）
+                                        setClick('boardParseBtn', boardRun);
+                                        setClick('boardClearBtn', boardClear);
+                                        setClick('boardAskBtn', boardAskRun);
+                                        setClick('boardAskCopyBtn', boardAskCopy);
+                                        addEvent('boardAskInput', 'keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); boardAskRun(); } });
                                         // 反馈模板（模板 / 来源选择片 + 生成 / 复制 / 清空）
                                         fbLoadState();
                                         fbRenderChips();
