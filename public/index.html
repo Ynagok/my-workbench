@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="x-build" content="2026-10-30 我要烟牌-v4-含霞光幻狐">
+    <meta name="x-build" content="2026-10-30 我要烟牌-v5-霞光双路线">
     <title>客服冷静演绎工作台</title>
     <link rel="icon" type="image/gif" href="/my-icon.gif">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1566,6 +1566,13 @@
             font-weight: 400;
             margin-left: 2px;
             color: var(--ink-3);
+        }
+
+        .odds-card .oc-alt {
+            margin-top: 3px;
+            font-size: 10.5px;
+            color: var(--ink-3);
+            white-space: nowrap;
         }
 
         tr.odds-group td {
@@ -9425,12 +9432,30 @@
                                             from = 'pack';
                                         }
                                         const fromText = from === 'log' ? '本日志实测' : from === 'pack' ? '每包必出' : '按保底规则';
-                                        const expectText = n
+                                        // 霞光还有第二条路：开**同星级的普通包**也可能出霞光（概率说明里牌1 的那一小档）。
+                                        // 这条没有保底，按正态近似算：等待时间 ~ 均值 1/p、标准差 √(1−p)/p
+                                        //   期望抽数 = round(1/p)（至少 1），约 84% 概率能拿到 = round(1/p + 标准差)
+                                        const alt = (function () {
+                                            if (rule.key.charAt(0) !== 'x') return null;
+                                            const route = rule.routes.filter(r => r.note)[0];
+                                            if (!route) return null;
+                                            const p = cardPackExpect(route.pack, label);
+                                            if (!(p > 0)) return null;
+                                            const mean = 1 / p;
+                                            const sd = Math.sqrt(1 - p) / p;
+                                            return {
+                                                pack: route.pack, p: p,
+                                                mean: Math.max(1, Math.round(mean)),
+                                                band: Math.max(1, Math.round(mean + sd)),
+                                            };
+                                        })();
+                                        const expectText = (n
                                             ? (n + ' 抽（' + fromText + (from === 'pack' ? '，重复也算' : '') + '）')
-                                            : '无保底规则（只给集齐上限）';
+                                            : '无保底规则（只给集齐上限）')
+                                            + (alt ? '\n普通包 ≈' + alt.mean + ' 抽（牌1 ' + Math.round(alt.p * 1000) / 10 + '%，正态近似：约 84% 要 ' + alt.band + ' 抽）' : '');
                                         return {
                                             label: label, usable: usable, pText: pText, from: from, fromText: fromText,
-                                            expectNum: n, expectText: expectText,
+                                            expectNum: n, expectText: expectText, alt: alt,
                                             expectOne: n ? String(n) : '',
                                         };
                                     }
@@ -9447,6 +9472,7 @@
                                             cardChipHtml('重复牌换戏符：<b>1–5</b> 星 = 1–5 点', 'k-plain', '活动期间重复牌按星数等额换戏符点；活动结束戏符匣清零，不延续到下次'),
                                             cardChipHtml('集齐上限 ≠ 均匀分布', 'k-op', '「最多 N 包集齐一系列」只是保底上限：比如五星霞光最多 48 个普通 5星包集齐 8 张，不代表每 6 抽 1 张，前几抽通常更容易出'),
                                             cardChipHtml('预计取整数', 'k-op', '按这份日志的实际开卡情况算（总抽数 ÷ 该星级新卡数，四舍五入、至少 1 抽）；还没出过该星级新卡时按保底规则的 pity + 1 抽；每包必出的星级（霞光五星）按 1 抽算，但可能是重复牌'),
+                                            cardChipHtml('霞光两条路', 'k-plain', '霞光除了开霞光锦囊，开同星级的普通包也可能出（概率说明里牌1 的一小档）。普通包没有保底，按正态近似算：期望 ≈ 1÷该档概率，约 84% 概率要 期望 + 标准差'),
                                         ].join('');
 
                                         // 预计结果 = 小卡片（普通一星…五星 + 霞光三星/四星/五星 + 幻狐二星…五星）
@@ -9464,11 +9490,17 @@
                                                 const rule = c.rule, info = c.info;
                                                 const series = rule.key.charAt(0) === 'x' ? '霞光' : rule.key.charAt(0) === 'h' ? '幻狐' : '';
                                                 const starText = series + (starCn[rule.star - 1] || rule.star) + '星';
-                                                const tip = info.label + '：' + (info.expectNum ? '预计 ' + info.expectNum + ' 抽（' + info.fromText + '）' : '无保底规则（只给集齐上限）')
+                                                const tip = info.label + '：'
+                                                    + (info.expectNum ? '预计 ' + info.expectNum + ' 抽（' + info.fromText + '）' : '无保底规则（只给集齐上限）')
+                                                    + (info.alt ? ' · 开普通包：' + info.alt.pack + ' 牌1 出霞光 ' + (Math.round(info.alt.p * 1000) / 10) + '%，正态近似期望 ≈' + info.alt.mean + ' 抽、约 84% 要 ' + info.alt.band + ' 抽' : '')
                                                     + ' · ' + cardPityRuleText(rule) + ' · ' + cardCapText(rule);
+                                                const altLine = info.alt
+                                                    ? '<div class="oc-alt">普通包 ≈' + escapeHtml(String(info.alt.mean)) + ' 抽</div>'
+                                                    : '';
                                                 return '<div class="odds-card' + (i === fastIdx ? ' is-fast' : '') + '" title="' + escapeHtml(tip) + '">'
                                                     + '<div class="oc-star">' + escapeHtml(starText) + '</div>'
                                                     + '<div class="oc-num">' + (info.expectNum ? escapeHtml(String(info.expectNum)) + '<i>抽</i>' : '—') + '</div>'
+                                                    + altLine
                                                     + '</div>';
                                             }).join('');
                                         }
@@ -9484,7 +9516,7 @@
                                             return '<tr><td><b>' + escapeHtml(rule.label) + '</b></td>'
                                                 + '<td>' + escapeHtml(cardPityRuleText(rule)) + '</td>'
                                                 + '<td>' + escapeHtml(info.pText) + (info.usable.length ? ' 张' : '') + '</td>'
-                                                + '<td>' + escapeHtml(info.expectText) + '</td>'
+                                                + '<td>' + escapeHtml(info.expectText).replace(/\n/g, '<br>') + '</td>'
                                                 + '<td>' + escapeHtml(cardCapText(rule)) + '</td>'
                                                 + '<td>' + escapeHtml(realText) + '</td></tr>';
                                         }).join('');

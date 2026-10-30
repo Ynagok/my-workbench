@@ -536,15 +536,15 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     && ![...$('cardPityCard').querySelectorAll('label .card-sub')].some(el => /百戏锦囊说明/.test(el.textContent)),
     '这一块的标题就叫「我要烟牌~」，标题底下那行小字不显示');
   const oddsCards = [...$('cardOddsCards').querySelectorAll('.odds-card')];
-  check(oddsCards.length === 12 && oddsCards.every(c => /^(霞光|幻狐)?[一二三四五]星(\d+抽|—)$/.test(c.textContent))
+  check(oddsCards.length === 12 && oddsCards.every(c => /^(霞光|幻狐)?[一二三四五]星(\d+抽|—)(普通包 ≈\d+ 抽)?$/.test(c.textContent))
     && oddsCards[0].textContent === '五星2抽' && oddsCards[1].textContent === '四星5抽'
     && oddsCards[2].textContent === '三星2抽' && oddsCards[3].textContent === '二星8抽'
     && oddsCards[4].textContent === '一星10抽',
     '预计卡片：普通 5 个星级都在（五星 2 / 四星 5 / 三星 2 / 二星 8 / 一星 10），全是整数',
     oddsCards.map(c => c.textContent).join(' | '));
-  check(oddsCards[5].textContent === '霞光五星1抽' && oddsCards[6].textContent === '霞光四星2抽'
-    && oddsCards[7].textContent === '霞光三星5抽',
-    '霞光也有预测卡片：五星 1 抽（每包必出）· 四星 2 抽 · 三星 5 抽（按保底规则）',
+  check(oddsCards[5].textContent === '霞光五星1抽普通包 ≈6 抽' && oddsCards[6].textContent === '霞光四星2抽普通包 ≈13 抽'
+    && oddsCards[7].textContent === '霞光三星5抽普通包 ≈15 抽',
+    '霞光两条路都算：霞光锦囊 1 / 2 / 5 抽，普通包（正态近似）≈6 / 13 / 15 抽',
     oddsCards.slice(5, 8).map(c => c.textContent).join(' | '));
   check(oddsCards[8].textContent === '幻狐五星—' && oddsCards[9].textContent === '幻狐四星2抽'
     && oddsCards[11].textContent === '幻狐二星3抽',
@@ -571,9 +571,14 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     && /5 抽（本日志实测）/.test(oddsRow('四星普通').textContent),
     '一星普通按保底 10 抽 · 四星普通按实测 5 抽（表里标明依据、都是整数）', oddsRow('一星普通').textContent);
   check(/1 抽（每包必出，重复也算）/.test(oddsRow('五星霞光').textContent)
+    && /普通包 ≈6 抽（牌1 16\.7%，正态近似：约 84% 要 11 抽）/.test(oddsRow('五星霞光').textContent)
     && /8 包集齐 8 张 · 普通 5星包最多 48 包/.test(oddsRow('五星霞光').textContent),
-    '五星霞光：该锦囊每包必出一张（重复也算）→ 预计 1 抽；活动上限 8 包集齐 8 张 / 普通包最多 48 包',
+    '五星霞光两条路：霞光锦囊每包必出 1 抽 · 开 5 星普通包（牌1 16.7%）正态近似 ≈6 抽、约 84% 要 11 抽',
     oddsRow('五星霞光').textContent);
+  check(/普通包 ≈13 抽（牌1 7\.7%/.test(oddsRow('四星霞光').textContent)
+    && /普通包 ≈15 抽（牌1 6\.7%/.test(oddsRow('三星霞光').textContent),
+    '霞光四星 / 三星同样把普通包那条路算进来（≈13 / ≈15 抽）',
+    oddsRow('四星霞光').textContent);
   check(/无保底规则（只给集齐上限）/.test(oddsRow('五星幻狐').textContent),
     '幻狐五星既没保底也没公布概率 → 不给「几抽」的数，只写集齐上限',
     oddsRow('五星幻狐').textContent);

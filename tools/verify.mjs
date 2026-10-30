@@ -118,6 +118,16 @@ ok(/n = Math\.max\(1, Math\.round\(pulls \/ t\.news\)\);/.test(s)
   && /'本日志实测' : from === 'pack' \? '每包必出' : '按保底规则'/.test(s)
   && /预计取整数/.test(s),
   '「预计几抽出新卡」= **整数**：优先按玩家日志实测（总抽数 ÷ 该星级新卡数，四舍五入、至少 1 抽），没出过该星级新卡时按保底规则（pity + 1），每包必出的星级（霞光五星）按 1 抽，并在表里标明依据');
+// 霞光还要算「开同星级普通包」那条路（正态近似）
+ok(/const alt = \(function \(\) \{/.test(s) && /if \(rule\.key\.charAt\(0\) !== 'x'\) return null;/.test(s)
+  && /const route = rule\.routes\.filter\(r => r\.note\)\[0\];/.test(s)
+  && /const p = cardPackExpect\(route\.pack, label\);/.test(s)
+  && /const sd = Math\.sqrt\(1 - p\) \/ p;/.test(s)
+  && /mean: Math\.max\(1, Math\.round\(mean\)\)/.test(s)
+  && /band: Math\.max\(1, Math\.round\(mean \+ sd\)\)/.test(s)
+  && /普通包 ≈' \+ alt\.mean \+ ' 抽/.test(s) && /class="oc-alt"/.test(s)
+  && /霞光两条路/.test(s),
+  '霞光除了霞光锦囊，还要算「开同星级普通包」那条路（5星普通包牌1 16.7% 出霞光五星）：按正态近似给整数期望 round(1/p) 与约 84% 上界 round(1/p + √(1−p)/p)，卡片副行与收起表都写出来');
 ok(/function cardCapText\(rule\)/.test(s) && /集齐上限 ≠ 均匀分布/.test(s)
   && /rule\.series \? '集齐 ' \+ rule\.series \+ ' 张' : '集齐系列'/.test(s)
   && /capAlt: 48, capAltPack: '普通 5星包'/.test(s)
