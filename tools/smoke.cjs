@@ -624,6 +624,23 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
   await sleep(80);
   check($('cardGroupGrid').children.length === 0 && $('cardGroupInput').value === '',
     '清空 → 卡组网格与输入框都清掉');
+  // 认不出卡包 + 只开 1 张 = 使用了无相牌
+  const wxCsv = [
+    '卡包ID,卡包星级,after,创建时间',
+    '176,[32],{2010101:1},2026-10-02 10:00:00',
+    '999,[1],{2010105:1},2026-10-02 10:01:00',
+  ].join('\n');
+  Object.defineProperty($('csvFileInput'), 'files', { value: [new window.File([wxCsv], 'wx.csv', { type: 'text/csv' })], configurable: true });
+  $('uploadCsvBtn').click();
+  await sleep(250);
+  const wxAll = $('cardResultArea').value;
+  check(/开启【幻狐2星锦囊】获得1张卡牌/.test(wxAll) && /使用了无相牌获得1张卡牌/.test(wxAll)
+    && !/未知卡包/.test(wxAll),
+    '未知卡包 + 只开 1 张 → 话术写成「使用了无相牌」（不再显示「未知卡包」）', wxAll);
+  check(/总抽数\s*2/.test(pityChips()) && /其中无相牌\s*1\s*次/.test(pityChips())
+    && /开包 1 次 \+ 无相牌 1 次/.test($('cardPityHint').textContent),
+    '抽卡详情把这一条记成「无相牌 1 次」：总抽数 2（开包 1 + 无相牌 1）',
+    pityChips() + ' / ' + $('cardPityHint').textContent);
   check(posts.length === postsBeforeCard2, '抽卡详情 / 卡组收藏全程只在本机（0 请求）',
     posts.slice(postsBeforeCard2).map(p => p.url).join(' | '));
 

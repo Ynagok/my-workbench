@@ -8948,10 +8948,10 @@
 
                                     function generateCardSentence(record) {
                                         const packId = parseInt(record["卡包ID"]);
-                                        const packName = PACK_NAME_MAP[packId] || "未知卡包";
                                         const starsArray = parseStarsArray(record["卡包星级"]);
                                         const afterData = parseAfter(record["after"]);
                                         const cardIds = Object.keys(afterData);
+                                        const packName = cardPackNameOf(packId, cardIds.length);
                                         const textParts = [];
                                         const htmlParts = [];
                                         cardIds.forEach((cid, idx) => {
@@ -8966,7 +8966,10 @@
                                             htmlParts.push(isNew ? `<mark class="hl-new">${segHtml}</mark>` : segHtml);
                                         });
                                         const timeRaw = String(record["创建时间"]).replace(/-/g, '/');
-                                        const prefixRaw = `在${timeRaw}，开启【${packName}】获得${cardIds.length}张卡牌，分别为`;
+                                        // 无相牌不是开包：话说成「使用了无相牌」，别写「开启【无相牌】」
+                                        const prefixRaw = packName === '无相牌'
+                                            ? `在${timeRaw}，使用了无相牌获得${cardIds.length}张卡牌，为`
+                                            : `在${timeRaw}，开启【${packName}】获得${cardIds.length}张卡牌，分别为`;
                                         const prefixHtml = escapeHtml(prefixRaw);
                                         return {
                                             text: `${prefixRaw}${textParts.join('，')}`,
@@ -8993,6 +8996,20 @@
                                         if (!record) return false;
                                         const afterData = parseAfter(record['after']);
                                         return Object.keys(afterData).length > CARD_EXCHANGE_MAX_CARDS;
+                                    }
+
+                                    // 卡包名：认不出卡包 + 只开了 1 张 → 是用了「无相牌」（活动里另一种得卡方式，不是开包）
+                                    function cardPackNameOf(packId, cards) {
+                                        const name = PACK_NAME_MAP[packId];
+                                        if (name) return name;
+                                        return cards === 1 ? '无相牌' : '未知卡包';
+                                    }
+
+                                    function cardIsWuxiangRecord(record) {
+                                        if (!record) return false;
+                                        const afterData = parseAfter(record['after']);
+                                        const ids = Object.keys(afterData);
+                                        return !PACK_NAME_MAP[parseInt(record['卡包ID'])] && ids.length === 1;
                                     }
 
                                     async function processCardCsv() {
@@ -9075,7 +9092,8 @@
                                             const packId = parseInt(r['卡包ID']);
                                             rows.push({
                                                 packId: packId,
-                                                packName: PACK_NAME_MAP[packId] || '未知卡包',
+                                                packName: cardPackNameOf(packId, ids.length),
+                                                isWuxiang: !PACK_NAME_MAP[packId] && ids.length === 1,
                                                 ms: isFinite(t) ? t : 0,
                                                 ids: ids,
                                                 stars: ids.map((_, k) => stars[k] || 0),
@@ -9133,6 +9151,8 @@
                                         const exchanges = allRows.filter(r => r.ids.length > CARD_EXCHANGE_MAX_CARDS);
                                         const rows = allRows.filter(r => r.ids.length <= CARD_EXCHANGE_MAX_CARDS);
                                         const exchangeCards = exchanges.reduce((a, r) => a + r.ids.length, 0);
+                                        // 无相牌：认不出卡包但只开 1 张 —— 也算一次得卡，但不叫「开包」
+                                        const wuxiangCount = rows.filter(r => r.isWuxiang).length;
                                         const events = [];
                                         let lastNewPull = 0;
                                         rows.forEach((row, i) => {
@@ -9166,6 +9186,7 @@
                                             totalPulls: totalPulls, totalNew: totalNew, avg: avg,
                                             maxGap: maxGap, streak: totalPulls - lastNewPull, buckets: buckets,
                                             skippedPulls: exchanges.length, skippedCards: exchangeCards,
+                                            wuxiangCount: wuxiangCount,
                                         };
                                     }
 
@@ -9195,6 +9216,7 @@
                                         body.style.display = 'block';
                                         chips.innerHTML = [
                                             cardChipHtml('总抽数 <b>' + model.totalPulls + '</b>', 'k-plain'),
+                                            model.wuxiangCount ? cardChipHtml('其中无相牌 <b>' + model.wuxiangCount + '</b> 次', 'k-plain', '认不出卡包、只开了 1 张的记录 = 使用了无相牌') : '',
                                             cardChipHtml('新卡 <b>' + model.totalNew + '</b> 张', 'k-accent'),
                                             cardChipHtml('平均 <b>' + (model.totalNew ? (Math.round(model.avg * 10) / 10) + ' 抽' : '—') + '</b>出 1 张新卡', 'k-op', '总抽数 ÷ 新卡张数'),
                                             cardChipHtml('最长空档 <b>' + model.maxGap + '</b> 抽没出新卡', model.maxGap >= 20 ? 'k-warn' : 'k-plain'),
@@ -9222,7 +9244,10 @@
                                                 + '<td>' + escapeHtml(e.timeText || '—') + '</td></tr>';
                                         }).join('');
                                         table.innerHTML = head + '<tbody>' + (bodyRows || '<tr><td colspan="5">这份日志里没有新卡记录</td></tr>') + '</tbody>';
-                                        hint.textContent = '共 ' + model.totalPulls + ' 抽（开包 ' + model.totalPulls + ' 次）· 新卡 ' + model.totalNew + ' 张 · 按 CSV 的「创建时间」排序'
+                                        const pullBreak = model.wuxiangCount
+                                            ? '开包 ' + (model.totalPulls - model.wuxiangCount) + ' 次 + 无相牌 ' + model.wuxiangCount + ' 次'
+                                            : '开包 ' + model.totalPulls + ' 次';
+                                        hint.textContent = '共 ' + model.totalPulls + ' 抽（' + pullBreak + '）· 新卡 ' + model.totalNew + ' 张 · 按 CSV 的「创建时间」排序'
                                             + (model.skippedPulls ? ' · 兑换记录 ' + model.skippedPulls + ' 条（' + model.skippedCards + ' 张）没算进抽数' : '');
                                         return model;
                                     }

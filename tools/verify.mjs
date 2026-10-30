@@ -106,6 +106,13 @@ ok(/function cardCapText\(rule\)/.test(s) && /集齐上限 ≠ 均匀分布/.tes
   && /capAlt: 48, capAltPack: '普通 5星包'/.test(s)
   && /rule\.pity[\s\S]{0,400}?'无保底规则（只给集齐上限）'/.test(s),
   '「集齐上限」只当保底上限写（五星霞光：8 包集齐 8 张 / 普通 5星包最多 48 包），没有保底规则的星级不给「几抽一张」的数，并注明不是均匀分布');
+// 未知卡包 + 只开 1 张 = 使用了无相牌
+ok(/function cardPackNameOf\(packId, cards\)/.test(s) && /cards === 1 \? '无相牌' : '未知卡包'/.test(s)
+  && /function cardIsWuxiangRecord\(record\)/.test(s)
+  && /packName === '无相牌'[\s\S]{0,120}?使用了无相牌获得/.test(s)
+  && /isWuxiang: !PACK_NAME_MAP\[packId\] && ids\.length === 1/.test(s)
+  && /其中无相牌 <b>/.test(s) && /开包 1 次|' 次 \+ 无相牌 '/.test(s),
+  '认不出卡包但只开了 1 张 → 识别成「使用了无相牌」：话术不写「开启【未知卡包】」，抽卡详情多一片「其中无相牌 N 次」、提示写「开包 X 次 + 无相牌 Y 次」');
 ok(/"253": "联动分享活动-首次赠送"/.test(s) && /"257": "打怪棋盘-消耗步数"/.test(s), '来源/物品映射已补 253–257');
 ok(/"264": "活动pass卡领取"/.test(s) && /"265": "活动pass卡购买"/.test(s)
   && /"266": "1\+4礼包购买"/.test(s) && /"267": "1\+4礼包免费领取"/.test(s),
