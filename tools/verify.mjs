@@ -104,7 +104,8 @@ ok(/function cardPackExpect\(packName, label\)/.test(s) && /function cardTierOfS
 // 「我要烟牌~」：只出 5 个小卡片（星级 + 预计几抽，整数），保底规则 + 卡包说明 + 概率收在底下一张表里
 ok(/🔥 我要烟牌~/.test(s) && /id="cardOddsCards"/.test(s) && /class="odds-cards"/.test(s)
   && /function cardRuleInfo\(rule, tier, pulls\)/.test(s)
-  && /const starCards = CARD_DRAW_RULES\.map\(rule => \(\{ rule: rule, info: cardRuleInfo\(rule, tier, pulls\) \}\)\)/.test(s)
+  && /const CARD_HIDE_KEYS = \['h5', 'h4', 'h3', 'h2'\];/.test(s)
+  && /const starCards = CARD_DRAW_RULES\.filter\(rule => CARD_HIDE_KEYS\.indexOf\(rule\.key\) === -1\)/.test(s)
   && /class="oc-star"/.test(s) && /class="oc-num"/.test(s) && /' is-fast' : ''\)/.test(s)
   && /name="x-build"/.test(s)
   && /class="odds-group"/.test(s) && /class="pack-row"/.test(s)

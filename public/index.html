@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="x-build" content="2026-10-30 我要烟牌-v5-霞光双路线">
+    <meta name="x-build" content="2026-10-30 我要烟牌-v6-幻狐暂隐">
     <title>客服冷静演绎工作台</title>
     <link rel="icon" type="image/gif" href="/my-icon.gif">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -9214,6 +9214,9 @@
                                         { key: 'h3', label: '三星幻狐', star: 3, pity: 1, cap: 16, routes: [] },
                                         { key: 'h2', label: '二星幻狐', star: 2, pity: 2, cap: 24, routes: [] },
                                     ];
+                                    // 2026-10 用户：「幻狐暂时不用展示」—— 数据留着（CARD_DRAW_RULES 里别删），
+                                    // 只是「我要烟牌~」的预计卡片和收起的那张表先不画这几行；要恢复就把这个数组清空。
+                                    const CARD_HIDE_KEYS = ['h5', 'h4', 'h3', 'h2'];
                                     // 概率说明：slots = 每个「牌位」的出货分布（百分比）；n = 连续几个牌位共用这套分布
                                     const CARD_PACK_ODDS = [
                                         { name: '1星百戏锦囊', cards: 2, slots: [{ n: 1, opts: [['2星普通', 25], ['1星普通', 75]] }, { n: 1, opts: [['1星普通', 100]] }] },
@@ -9477,7 +9480,8 @@
 
                                         // 预计结果 = 小卡片（普通一星…五星 + 霞光三星/四星/五星 + 幻狐二星…五星）
                                         const starCn = ['一', '二', '三', '四', '五'];
-                                        const starCards = CARD_DRAW_RULES.map(rule => ({ rule: rule, info: cardRuleInfo(rule, tier, pulls) }));
+                                        const starCards = CARD_DRAW_RULES.filter(rule => CARD_HIDE_KEYS.indexOf(rule.key) === -1)
+                                            .map(rule => ({ rule: rule, info: cardRuleInfo(rule, tier, pulls) }));
                                         let fastIdx = -1, fastVal = Infinity;
                                         starCards.forEach((c, i) => {
                                             // 只在普通星级之间比「最快」（霞光的 pity 0 是「每包必出，重复也算」，口径不同）
@@ -9507,7 +9511,7 @@
 
                                         // 收起来的那张表：保底规则 + 卡包（锦囊）说明 + 概率，全在一张表里
                                         const head = '<thead><tr><th>星级</th><th>保底</th><th>单包期望</th><th>预计几抽出新卡</th><th>活动上限</th><th>本日志实测</th></tr></thead>';
-                                        const ruleRows = CARD_DRAW_RULES.map(rule => {
+                                        const ruleRows = CARD_DRAW_RULES.filter(rule => CARD_HIDE_KEYS.indexOf(rule.key) === -1).map(rule => {
                                             const info = cardRuleInfo(rule, tier, pulls);
                                             const t = tier[rule.key];
                                             const realText = (t && t.news)

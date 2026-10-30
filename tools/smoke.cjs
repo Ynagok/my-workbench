@@ -536,7 +536,7 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     && ![...$('cardPityCard').querySelectorAll('label .card-sub')].some(el => /百戏锦囊说明/.test(el.textContent)),
     '这一块的标题就叫「我要烟牌~」，标题底下那行小字不显示');
   const oddsCards = [...$('cardOddsCards').querySelectorAll('.odds-card')];
-  check(oddsCards.length === 12 && oddsCards.every(c => /^(霞光|幻狐)?[一二三四五]星(\d+抽|—)(普通包 ≈\d+ 抽)?$/.test(c.textContent))
+  check(oddsCards.length === 8 && oddsCards.every(c => /^(霞光)?[一二三四五]星(\d+抽|—)(普通包 ≈\d+ 抽)?$/.test(c.textContent))
     && oddsCards[0].textContent === '五星2抽' && oddsCards[1].textContent === '四星5抽'
     && oddsCards[2].textContent === '三星2抽' && oddsCards[3].textContent === '二星8抽'
     && oddsCards[4].textContent === '一星10抽',
@@ -546,10 +546,8 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     && oddsCards[7].textContent === '霞光三星5抽普通包 ≈15 抽',
     '霞光两条路都算：霞光锦囊 1 / 2 / 5 抽，普通包（正态近似）≈6 / 13 / 15 抽',
     oddsCards.slice(5, 8).map(c => c.textContent).join(' | '));
-  check(oddsCards[8].textContent === '幻狐五星—' && oddsCards[9].textContent === '幻狐四星2抽'
-    && oddsCards[11].textContent === '幻狐二星3抽',
-    '幻狐：五星没有保底/概率 → 显示「—」，四星 2 抽 / 二星 3 抽按保底',
-    oddsCards.slice(8).map(c => c.textContent).join(' | '));
+  check(!/幻狐/.test($('cardOddsCards').textContent) && !/幻狐/.test($('cardOddsTable').textContent),
+    '幻狐暂时不展示：卡片和收起表里都没有幻狐（数据还留在 CARD_DRAW_RULES 里）');
   check(!/保底/.test($('cardOddsCards').textContent) && !$('cardOddsHint') && !$('cardPackOddsTable'),
     '卡片里不再塞保底 / 期望 / 上限，底下那段说明小字与旧的概率表都撤了');
   const fastCards = [...$('cardOddsCards').querySelectorAll('.odds-card.is-fast')];
@@ -557,14 +555,14 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     '最快的普通星级（五星 2 抽）单独标成 is-fast（霞光不参与比较）', fastCards.map(c => c.textContent).join(' | '));
   check(/预计取整数/.test($('cardOddsChips').textContent),
     '口径芯片写明「预计取整数」及其依据', $('cardOddsChips').textContent);
-  // 收起来的那一张表：12 条保底规则 + 14 种锦囊概率
+  // 收起来的那一张表：8 条保底规则（幻狐先不展示）+ 14 种锦囊概率
   const oddsRows = () => [...$('cardOddsTable').querySelectorAll('tbody tr')]
     .filter(tr => !tr.classList.contains('odds-group') && !tr.classList.contains('pack-row'));
   const oddsRow = (label) => oddsRows().filter(tr => tr.children[0].textContent === label)[0] || { textContent: '' };
   const oddsSheet = $('cardOddsTable').closest('details.stat-fold');
-  check(!!oddsSheet && oddsSheet.open === false && oddsRows().length === 12
+  check(!!oddsSheet && oddsSheet.open === false && oddsRows().length === 8
     && /预计几抽出新卡/.test($('cardOddsTable').textContent),
-    '保底规则 12 条收在底下的 details.stat-fold 里，默认不展开', String(oddsRows().length));
+    '保底规则 8 条（普通 5 + 霞光 3，幻狐先不展示）收在底下的 details.stat-fold 里，默认不展开', String(oddsRows().length));
   check(/2 抽（按保底规则）/.test(oddsRow('五星普通').textContent),
     '五星普通：日志里还没出过五星新卡 → 预计按保底规则 = 2 抽（1 张重复 + 1）', oddsRow('五星普通').textContent);
   check(/10 抽（按保底规则）/.test(oddsRow('一星普通').textContent)
@@ -579,11 +577,6 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     && /普通包 ≈15 抽（牌1 6\.7%/.test(oddsRow('三星霞光').textContent),
     '霞光四星 / 三星同样把普通包那条路算进来（≈13 / ≈15 抽）',
     oddsRow('四星霞光').textContent);
-  check(/无保底规则（只给集齐上限）/.test(oddsRow('五星幻狐').textContent),
-    '幻狐五星既没保底也没公布概率 → 不给「几抽」的数，只写集齐上限',
-    oddsRow('五星幻狐').textContent);
-  check(/概率未公布/.test(oddsRow('五星幻狐').textContent) && /3 抽（按保底规则）/.test(oddsRow('二星幻狐').textContent),
-    '幻狐的概率没公布（单包期望写「概率未公布」），预计仍按保底规则给整数', oddsRow('二星幻狐').textContent);
   check(/3 张新卡 \/ 出现 5 次/.test(oddsRow('三星普通').textContent),
     '本日志实测列写清明细：三星普通 3 张新卡 / 出现 5 次', oddsRow('三星普通').textContent);
   const packRows = [...$('cardOddsTable').querySelectorAll('tbody tr.pack-row')];
