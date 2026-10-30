@@ -643,14 +643,14 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     pityChips() + ' / ' + $('cardPityHint').textContent);
   // 本期卡牌活动的时间窗是内置的：2026-10-30 11:00 开、为期 40 天 → 2026-12-09 11:00
   check(/本期卡牌活动：2026-10-30 11:00 – 2026-12-09 11:00（40 天）/.test($('cardSeasonHint').textContent)
-    && /往期记录自动排除/.test($('cardSeasonHint').textContent),
-    '上传框上方内置本期时间窗（2026-10-30 11:00 开、为期 40 天 → 2026-12-09 11:00），并写明往期不混算',
+    && /集卡话术不受时间规则影响/.test($('cardSeasonHint').textContent),
+    '上传框上方内置本期时间窗（2026-10-30 11:00 开、为期 40 天 → 2026-12-09 11:00），并写明话术不受它影响',
     $('cardSeasonHint').textContent);
   check(/本期\s*10-30 11:00 → 12-09 11:00/.test(pityChips())
     && /本期\s*10-30 11:00 → 12-09 11:00/.test($('cardGroupChips').textContent),
     '抽卡详情与卡组收藏的芯片都写明本期时间窗',
     pityChips() + ' / ' + $('cardGroupChips').textContent);
-  // 往期记录整条排除（窗口前 / 窗口后都不算这一期；窗口开头 11:00 那一条算本期）
+  // 统计不吃往期（窗口前 / 窗口后都不算这一期；窗口开头 11:00 那一条算本期），但话术照出
   const seasonCsv = [
     '卡包ID,卡包星级,after,创建时间',
     '201,[3],{2010101:1},2026-10-30 10:59:00',
@@ -662,8 +662,8 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
   Object.defineProperty($('csvFileInput'), 'files', { value: [new window.File([seasonCsv], 'season.csv', { type: 'text/csv' })], configurable: true });
   $('uploadCsvBtn').click();
   await sleep(250);
-  check($('recordCount').textContent === '2' && /已排除 3 条往期记录/.test($('cardSkipHint').textContent),
-    '混合 CSV 里往期 3 条（10-30 10:59 / 12-09 11:00 / 09-01）被排除，话术只剩本期 2 条',
+  check($('recordCount').textContent === '5' && !/往期/.test($('cardSkipHint').textContent),
+    '集卡话术不受时间规则影响：混合 CSV 里 5 条（含 3 条往期）都出话术，抬头不写「往期」',
     $('recordCount').textContent + ' / ' + $('cardSkipHint').textContent);
   check(/总抽数\s*2/.test(pityChips()) && /已排除往期\s*3\s*条/.test(pityChips()),
     '抽卡详情只算本期 2 抽（10-30 11:00 那条算、12-09 11:00 那条不算），芯片写「已排除往期 3 条」', pityChips());

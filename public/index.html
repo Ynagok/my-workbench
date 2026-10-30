@@ -9039,12 +9039,10 @@
                                         const f = document.getElementById('csvFileInput').files[0]; if (!f) return;
                                         const text = await f.text();
                                         const allRecords = parseCSVEnhanced(text);
-                                        // 只留本期记录：往期活动的抽卡不掺进这一期
-                                        currentCardRecords = allRecords.filter(cardInSeason);
-                                        cardOutSeasonCount = allRecords.length - currentCardRecords.length;
+                                        // 集卡话术**不看时间窗**：CSV 里有什么记录就出什么话术（只有兑换重复卡牌跳过）
                                         const star = document.getElementById('starFilterSelect').value;
-                                        const draws = currentCardRecords.filter(r => !cardIsExchangeRecord(r));
-                                        const exchanges = currentCardRecords.length - draws.length;
+                                        const draws = allRecords.filter(r => !cardIsExchangeRecord(r));
+                                        const exchanges = allRecords.length - draws.length;
                                         const filtered = filterRecordsByStar(draws, star);
                                         const results = filtered.map(r => {
                                             try { return generateCardSentence(r); }
@@ -9064,11 +9062,13 @@
                                         document.getElementById('recordCount').textContent = texts.length;
                                         const skipHint = document.getElementById('cardSkipHint');
                                         if (skipHint) {
-                                            const skipParts = [];
-                                            if (exchanges) skipParts.push('已跳过 ' + exchanges + ' 条「兑换重复卡牌」记录（一次开包超过 ' + CARD_EXCHANGE_MAX_CARDS + ' 张，不算开包，不出开包话术）');
-                                            if (cardOutSeasonCount) skipParts.push('已排除 ' + cardOutSeasonCount + ' 条往期记录（本期 ' + cardSeasonText() + '，不和这一期混算）');
-                                            skipHint.textContent = skipParts.join(' · ');
+                                            skipHint.textContent = exchanges
+                                                ? '已跳过 ' + exchanges + ' 条「兑换重复卡牌」记录（一次开包超过 ' + CARD_EXCHANGE_MAX_CARDS + ' 张，不算开包，不出开包话术）'
+                                                : '';
                                         }
+                                        // 抽卡详情 / 卡组收藏是统计：只算本期，往期记录不掺进来
+                                        currentCardRecords = allRecords.filter(cardInSeason);
+                                        cardOutSeasonCount = allRecords.length - currentCardRecords.length;
                                         cardPityRender(currentCardRecords);
                                         cardGroupRender();
                                     }
@@ -17535,7 +17535,7 @@
                                         // 集卡 · 本期时间窗（内置）：上传框与抽卡详情先把规则写出来
                                         const seasonHintEl = document.getElementById('cardSeasonHint');
                                         if (seasonHintEl) {
-                                            seasonHintEl.textContent = '本期卡牌活动：' + cardSeasonText() + ' · 往期记录自动排除，不和这一期混合计算';
+                                            seasonHintEl.textContent = '本期卡牌活动：' + cardSeasonText() + ' · 抽卡详情 / 卡组收藏只算这一期（往期不混算），集卡话术不受时间规则影响';
                                         }
                                         cardPityRender([]);
                                         addEvent('cardGroupGrid', 'click', (e) => {
