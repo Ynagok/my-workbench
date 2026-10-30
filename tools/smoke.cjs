@@ -467,6 +467,95 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
   $('applyFilterBtn').click();
   await sleep(100);
 
+  console.log('--- 8b-2. 集卡 · 抽卡详情（几抽出新卡）+ 卡组收藏（15 组 × 9 张） ---');
+  const postsBeforeCard2 = posts.length;
+  // 故意把 CSV 行打乱：验证按「创建时间」排成抽卡顺序
+  const cardCsv2 = [
+    '卡包ID,卡包星级,after,创建时间',
+    '201,[3],{2010102:1},2026-10-01 10:10:00',
+    '201,[3],{2010101:1},2026-10-01 10:00:00',
+    '201,"[3,4]","{2010103:1,2010104:1}",2026-10-01 10:20:00',
+    '201,[3],{2010101:0},2026-10-01 10:05:00',
+    '201,[3],{2010102:0},2026-10-01 10:15:00',
+  ].join('\n');
+  Object.defineProperty($('csvFileInput'), 'files', { value: [new window.File([cardCsv2], 'cards2.csv', { type: 'text/csv' })], configurable: true });
+  $('uploadCsvBtn').click();
+  await sleep(250);
+
+  const pityChips = () => $('cardPityChips').textContent;
+  check(!!$('cardPityCard') && !!$('cardPityChart') && !!$('cardPityTable') && !!$('cardGroupGrid'),
+    '集卡页有「抽卡详情」（芯片 / 图表 / 明细表）与「卡组收藏」（网格）');
+  check(/总抽数\s*5/.test(pityChips()) && /新卡\s*4\s*张/.test(pityChips()),
+    '抽卡详情：总抽数 5 · 新卡 4 张', pityChips());
+  check(/平均\s*1\.3\s*抽/.test(pityChips()), '平均 1.3 抽出一张新卡（5 抽 ÷ 4 张）', pityChips());
+  check(/最长空档\s*2\s*抽/.test(pityChips()) && /当前连续\s*0\s*抽/.test(pityChips()),
+    '最长空档 2 抽 · 当前连续 0 抽（最后一抽就出了新卡）', pityChips());
+  const pityCols = [...$('cardPityChart').querySelectorAll('.pity-col')];
+  check(pityCols.length === 5 && pityCols[0].querySelector('b').textContent === '1'
+    && pityCols[1].querySelector('b').textContent === '3',
+    '「几抽出新卡」分布图：5 个分档，1 抽档 1 张 / 2 抽档 3 张',
+    pityCols.map(c => c.textContent).join(' | '));
+  const pityRows = [...$('cardPityTable').querySelectorAll('tbody tr')];
+  check(pityRows.length === 4, '新卡明细 4 行', String(pityRows.length));
+  check(pityRows.map(r => r.children[0].textContent).join(',') === '1,3,5,5',
+    '明细按 CSV 时间重排（乱序 CSV → 第 1/3/5/5 抽）', pityRows.map(r => r.children[0].textContent).join(','));
+  check(pityRows[2].children[1].textContent === '01组第03张' && pityRows[2].children[3].textContent === '2 抽',
+    '同一抽里出两张新卡：组/张号与「距上次新卡 2 抽」都对',
+    pityRows[2].textContent);
+
+  const groupBtns = () => [...$('cardGroupGrid').querySelectorAll('.card-group-btn')];
+  const groupBtn = (key) => groupBtns().filter(b => b.dataset.group === key)[0];
+  check(groupBtns().length === 15, '卡组网格 15 组（没粘进度也是 15 组）', String(groupBtns().length));
+  check(groupBtn('20101').querySelector('.cg-count').textContent === '4/9',
+    '第 01 组按集卡 CSV 算 4/9（2010101–2010104 出现过）', groupBtn('20101').textContent);
+  groupBtn('20101').click();
+  await sleep(80);
+  const cells = [...$('cardGroupCells').querySelectorAll('.card-cell')];
+  check($('cardGroupDetail').style.display === 'block' && groupBtns()[0].getAttribute('aria-expanded') === 'true',
+    '点一组 → 展开这 9 张（aria-expanded=true）');
+  check(cells.length === 9 && cells.filter(c => c.classList.contains('is-on')).length === 4,
+    '展开后 9 张：4 张已收集 / 5 张灰的', String(cells.filter(c => c.classList.contains('is-on')).length));
+  check(/未收集/.test(cells[8].textContent) && !cells[8].classList.contains('is-on'),
+    '没获得的卡是灰底 + 写「未收集」', cells[8].textContent);
+  check(/10-01 10:05/.test(cells[0].textContent),
+    '已获得的卡标最近一次获得时间（2010101 在 10:00 首次、10:05 重复 → 取 10:05）', cells[0].textContent);
+  groupBtns()[0].click();
+  await sleep(80);
+  check($('cardGroupDetail').style.display === 'none', '再点同一组 → 收起');
+
+  $('cardGroupInput').value = '未收集的卡组信息：' + JSON.stringify({ '20101': ['2010101', '2010105'] });
+  $('cardGroupParseBtn').click();
+  await sleep(80);
+  check(/收集进度：已解析/.test($('cardGroupHint').textContent),
+    '粘「未收集的卡组信息」→ 提示里认了收集进度', $('cardGroupHint').textContent);
+  check(/冲突\s*1\s*张/.test($('cardGroupChips').textContent),
+    'CSV 里出现、却又在未收集表里 → 记 1 张冲突（以 CSV 为准）', $('cardGroupChips').textContent);
+
+  const allGroups = {};
+  for (let g = 20101; g <= 20115; g++) {
+    const k = String(g);
+    allGroups[k] = [];
+    for (let i = 1; i <= 9; i++) allGroups[k].push(k + String(i).padStart(2, '0'));
+  }
+  const unGroups = { '20101': ['2010105'] };
+  ['20116', '20117', '20118'].forEach(k => {
+    unGroups[k] = [];
+    for (let i = 1; i <= 9; i++) unGroups[k].push(k + String(i).padStart(2, '0'));
+  });
+  $('cardGroupInput').value = JSON.stringify(allGroups) + '\n' + JSON.stringify(unGroups);
+  $('cardGroupParseBtn').click();
+  await sleep(80);
+  check(groupBtns().length === 18, '「卡组数据」+「未收集」一起粘 → 组数取并集 18 组', String(groupBtns().length));
+  check(groupBtn('20101').querySelector('.cg-count').textContent === '8/9'
+    && groupBtn('20116').querySelector('.cg-count').textContent === '0/9',
+    '20101 组 8/9（只有 2010105 未收集）· 20116 组 0/9', groupBtn('20101').textContent);
+  $('cardGroupClearBtn').click();
+  await sleep(80);
+  check($('cardGroupGrid').children.length === 0 && $('cardGroupInput').value === '',
+    '清空 → 卡组网格与输入框都清掉');
+  check(posts.length === postsBeforeCard2, '抽卡详情 / 卡组收藏全程只在本机（0 请求）',
+    posts.slice(postsBeforeCard2).map(p => p.url).join(' | '));
+
   console.log('--- 8c. 客服生涯：日报自动归档 / 粘贴导入 / 统计口径 ---');
   // 北京时间今天，与页面 getBeijingDate() 同口径
   const bjToday = (() => {

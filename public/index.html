@@ -1469,6 +1469,175 @@
             }
 
         /* ============================================================
+        集卡 · 抽卡详情（几抽出新卡）+ 卡组收藏（按游戏内卡牌页）
+        ============================================================ */
+        .pity-chart {
+            display: flex;
+            align-items: flex-end;
+            gap: 6px;
+            height: 160px;
+            padding: 6px 2px 0;
+            margin: 10px 0 6px;
+            border-bottom: 1px solid var(--line-1);
+            overflow-x: auto;
+        }
+
+            .pity-col {
+                flex: 1 0 44px;
+                height: 100%;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: flex-end;
+                gap: 3px;
+            }
+
+                .pity-col b {
+                    font-family: var(--font-mono);
+                    font-size: 11px;
+                    color: var(--ink-2);
+                    line-height: 1;
+                }
+
+                .pity-col i {
+                    display: block;
+                    width: 100%;
+                    max-width: 46px;
+                    min-height: 2px;
+                    border-radius: 5px 5px 0 0;
+                    background: var(--accent);
+                    opacity: 0.85;
+                }
+
+                .pity-col.is-zero i { background: var(--surface-3); opacity: 1; }
+
+                .pity-col span {
+                    font-size: 10.5px;
+                    color: var(--ink-3);
+                    white-space: nowrap;
+                    margin-bottom: 3px;
+                }
+
+        .card-groups {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+            .card-group-btn {
+                display: block;
+                width: 100%;
+                text-align: left;
+                letter-spacing: 0 !important;
+                padding: 9px 11px !important;
+                border-radius: var(--r-md) !important;
+                background: var(--surface) !important;
+                border: 1px solid var(--line-1) !important;
+                color: var(--ink-1) !important;
+                clip-path: none !important;
+            }
+
+                .card-group-btn:hover {
+                    background: var(--surface-2) !important;
+                    border-color: var(--accent-line) !important;
+                    color: var(--ink-1) !important;
+                }
+
+                .card-group-btn.is-on {
+                    border-color: var(--accent) !important;
+                    box-shadow: inset 0 0 0 1px var(--accent-line);
+                }
+
+                .card-group-btn .cg-top {
+                    display: flex;
+                    align-items: baseline;
+                    justify-content: space-between;
+                    gap: 8px;
+                }
+
+                .card-group-btn .cg-name {
+                    font-size: 12.5px;
+                    font-weight: 700;
+                }
+
+                .card-group-btn .cg-count {
+                    font-family: var(--font-mono);
+                    font-size: 11.5px;
+                    color: var(--accent-ink);
+                }
+
+                .card-group-btn .cg-bar {
+                    display: flex;
+                    gap: 3px;
+                    margin-top: 8px;
+                }
+
+                .card-group-btn .cg-bar i {
+                    flex: 1 1 auto;
+                    height: 6px;
+                    border-radius: 2px;
+                    background: var(--surface-3);
+                }
+
+                .card-group-btn .cg-bar i.on { background: var(--accent); }
+
+        .card-group-detail {
+            margin-top: 12px;
+            padding: 10px 12px;
+            border: 1px solid var(--line-1);
+            border-radius: var(--r-md);
+            background: var(--bg-1);
+        }
+
+            .card-group-detail > label { display: block; margin-bottom: 8px; }
+
+        .card-cells {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(122px, 1fr));
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+            .card-cell {
+                padding: 7px 9px;
+                border: 1px dashed var(--line-2);
+                border-radius: var(--r-sm);
+                background: var(--bg-1);
+                color: var(--ink-3);
+                text-align: left;
+            }
+
+            .card-cell.is-on {
+                border-style: solid;
+                border-color: var(--accent-line);
+                background: var(--surface);
+                color: var(--ink-1);
+            }
+
+                .card-cell .cc-id {
+                    font-family: var(--font-mono);
+                    font-size: 12px;
+                    font-weight: 700;
+                }
+
+                .card-cell .cc-meta {
+                    display: flex;
+                    align-items: baseline;
+                    justify-content: space-between;
+                    gap: 6px;
+                    margin-top: 3px;
+                    font-size: 10.5px;
+                    color: var(--ink-3);
+                }
+
+                .card-cell .cc-time { font-family: var(--font-mono); }
+
+                .card-cell.is-on .cc-star { color: var(--accent-ink); }
+
+                .card-cell.is-on .cc-time { color: var(--ink-2); }
+
+        /* ============================================================
         日报生成
         ============================================================ */
         .daily-tab-btn {
@@ -4170,6 +4339,33 @@
                 <div class="flex-row" style="margin-top:10px;">
                     <button id="copyAllCardBtn">📋 复制全部</button>
                     <button id="exportCardBtn">💾 导出TXT</button>
+                </div>
+            </div>
+            <div class="card" id="cardPityCard">
+                <label>🎯 抽卡详情 <span class="card-sub">一次开包算 1 抽 · 出新卡的那一抽记「第几抽」</span></label>
+                <div class="stat-chips" id="cardPityChips"></div>
+                <div id="cardPityBody" style="display:none;">
+                    <div class="pity-chart" id="cardPityChart"></div>
+                    <label style="font-size:12.5px;margin-top:12px;">新卡明细 <span class="card-sub">按抽卡先后排 · 只在下面这块里滚动</span></label>
+                    <div class="career-scroll" style="max-height:300px;">
+                        <table class="career-table" id="cardPityTable"></table>
+                    </div>
+                </div>
+                <div id="cardPityHint" class="hint-text">上传集卡 CSV 后，这里出「几抽出新卡」的分布图和明细。</div>
+            </div>
+            <div class="card" id="cardGroupCard">
+                <label>🗂️ 卡组收藏 <span class="card-sub">按游戏内卡牌页：每行 3 组 · 点一组展开 9 张</span></label>
+                <textarea id="cardGroupInput" rows="4" placeholder="把「卡组数据」和「未收集的卡组信息」的 JSON 粘进来（两个一起粘也行）"></textarea>
+                <div class="flex-row" style="margin-top:8px;">
+                    <button id="cardGroupParseBtn">🔍 解析并展示</button>
+                    <button id="cardGroupClearBtn" class="secondary">🧹 清空</button>
+                </div>
+                <div id="cardGroupHint" class="hint-text">粘 JSON 后点解析；收集情况以集卡 CSV 为准，没时间的卡不编时间。</div>
+                <div class="stat-chips" id="cardGroupChips"></div>
+                <div class="card-groups" id="cardGroupGrid"></div>
+                <div class="card-group-detail" id="cardGroupDetail" style="display:none;">
+                    <label id="cardGroupDetailLabel">—</label>
+                    <div class="card-cells" id="cardGroupCells"></div>
                 </div>
             </div>
         </div>
@@ -8744,14 +8940,7 @@
                                             const group = cid.substring(3, 5);
                                             const num = cid.substring(5, 7);
                                             const rawStar = starsArray[idx] || 0;
-                                            let starLabel = `${rawStar}星`;
-                                            if (rawStar === 23) starLabel = "霞光3星";
-                                            else if (rawStar === 24) starLabel = "霞光4星";
-                                            else if (rawStar === 25) starLabel = "霞光5星";
-                                            else if (rawStar === 32) starLabel = "幻狐2星";
-                                            else if (rawStar === 33) starLabel = "幻狐3星";
-                                            else if (rawStar === 34) starLabel = "幻狐4星";
-                                            else if (rawStar === 35) starLabel = "幻狐5星";
+                                            const starLabel = cardStarLabel(rawStar);
                                             const isNew = afterData[cid] === 1;
                                             const segRaw = `${group}组第${num}张（${starLabel}，${isNew ? '新卡' : '重复'}）`;
                                             const segHtml = escapeHtml(segRaw);
@@ -8800,6 +8989,402 @@
                                         }
 
                                         document.getElementById('recordCount').textContent = texts.length;
+                                        cardPityRender(currentCardRecords);
+                                        cardGroupRender();
+                                    }
+
+                                    // ---------------- 抽卡详情（几抽出新卡）----------------
+                                    function cardTimeValue(str) {
+                                        const s = String(str == null ? '' : str).trim();
+                                        if (!s) return NaN;
+                                        if (/^\d{9,13}$/.test(s)) { const n = parseInt(s, 10); return s.length > 10 ? n : n * 1000; }
+                                        const t = Date.parse(s.replace(/\//g, '-').replace(/\./g, '-'));
+                                        return isNaN(t) ? NaN : t;
+                                    }
+
+                                    function cardTimeLabel(ms) {
+                                        if (!isFinite(ms)) return '';
+                                        const d = new Date(ms);
+                                        const p = n => String(n).padStart(2, '0');
+                                        return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+                                    }
+
+                                    function cardTimeShort(ms) {
+                                        const full = cardTimeLabel(ms);
+                                        return full ? full.slice(5) : '';
+                                    }
+
+                                    // 星级码：1–5 普通星，23/24/25 = 霞光3/4/5星，32–35 = 幻狐2–5星
+                                    function cardStarLabel(code) {
+                                        const n = parseInt(code, 10) || 0;
+                                        if (n === 23) return '霞光3星';
+                                        if (n === 24) return '霞光4星';
+                                        if (n === 25) return '霞光5星';
+                                        if (n === 32) return '幻狐2星';
+                                        if (n === 33) return '幻狐3星';
+                                        if (n === 34) return '幻狐4星';
+                                        if (n === 35) return '幻狐5星';
+                                        return n + '星';
+                                    }
+
+                                    // 一行 CSV = 开一次卡包 = 1 抽；时间认 2026-10-02 10:05:53 / 2026/10/02 / unix 秒
+                                    function cardPullRows(records) {
+                                        const rows = [];
+                                        (records || []).forEach(r => {
+                                            if (!r) return;
+                                            const afterData = parseAfter(r['after']);
+                                            const stars = parseStarsArray(r['卡包星级']);
+                                            const ids = Object.keys(afterData);
+                                            if (!ids.length) return;
+                                            const t = cardTimeValue(r['创建时间']);
+                                            const packId = parseInt(r['卡包ID']);
+                                            rows.push({
+                                                packId: packId,
+                                                packName: PACK_NAME_MAP[packId] || '未知卡包',
+                                                ms: isFinite(t) ? t : 0,
+                                                ids: ids,
+                                                stars: ids.map((_, k) => stars[k] || 0),
+                                                isNew: ids.map(id => afterData[id] === 1),
+                                            });
+                                        });
+                                        // 时间升序（没有时间的排最前，并保持 CSV 里的先后）
+                                        return rows.map((row, i) => ({ row: row, i: i }))
+                                            .sort((a, b) => (a.row.ms - b.row.ms) || (a.i - b.i))
+                                            .map(x => x.row);
+                                    }
+
+                                    // 间隔分布的分档：1–5 抽逐档，之后按区间
+                                    const CARD_PITY_BUCKETS = [[1, 1], [2, 2], [3, 3], [4, 4], [5, 5], [6, 10], [11, 20], [21, 30], [31, 50], [51, 100], [101, Infinity]];
+
+                                    function cardPityModel(records) {
+                                        const rows = cardPullRows(records);
+                                        const events = [];
+                                        let lastNewPull = 0;
+                                        rows.forEach((row, i) => {
+                                            const pull = i + 1;
+                                            const news = [];
+                                            row.ids.forEach((id, k) => { if (row.isNew[k]) news.push({ id: id, star: row.stars[k] }); });
+                                            if (!news.length) return;
+                                            const gap = pull - lastNewPull;
+                                            news.forEach(n => events.push({
+                                                card: n.id, star: n.star, pull: pull, gap: gap,
+                                                ms: row.ms, timeText: cardTimeLabel(row.ms), packName: row.packName,
+                                            }));
+                                            lastNewPull = pull;
+                                        });
+                                        const totalPulls = rows.length;
+                                        const totalNew = events.length;
+                                        const avg = totalNew ? totalPulls / totalNew : 0;
+                                        const maxGap = events.reduce((m, e) => Math.max(m, e.gap), 0);
+                                        const buckets = CARD_PITY_BUCKETS.map(b => {
+                                            const lo = b[0], hi = b[1];
+                                            const items = events.filter(e => e.gap >= lo && e.gap <= hi);
+                                            return {
+                                                lo: lo, hi: hi,
+                                                label: lo === hi ? String(lo) : (hi === Infinity ? lo + '+' : lo + '-' + hi),
+                                                count: items.length,
+                                                items: items,
+                                            };
+                                        }).filter(b => b.lo <= Math.max(5, maxGap));
+                                        return {
+                                            rows: rows, events: events,
+                                            totalPulls: totalPulls, totalNew: totalNew, avg: avg,
+                                            maxGap: maxGap, streak: totalPulls - lastNewPull, buckets: buckets,
+                                        };
+                                    }
+
+                                    function cardChipHtml(text, cls, title) {
+                                        return '<span class="stat-chip' + (cls ? ' ' + cls : '') + '"' + (title ? ' title="' + escapeHtml(title) + '"' : '') + '>' + text + '</span>';
+                                    }
+
+                                    function cardPityRender(records) {
+                                        const chips = document.getElementById('cardPityChips');
+                                        const body = document.getElementById('cardPityBody');
+                                        const chart = document.getElementById('cardPityChart');
+                                        const table = document.getElementById('cardPityTable');
+                                        const hint = document.getElementById('cardPityHint');
+                                        if (!chips || !body || !chart || !table || !hint) return null;
+                                        const model = cardPityModel(records);
+                                        if (!model.totalPulls) {
+                                            chips.innerHTML = '';
+                                            body.style.display = 'none';
+                                            hint.textContent = '上传集卡 CSV 后，这里出「几抽出新卡」的分布图和明细。';
+                                            return model;
+                                        }
+                                        body.style.display = 'block';
+                                        chips.innerHTML = [
+                                            cardChipHtml('总抽数 <b>' + model.totalPulls + '</b>', 'k-plain'),
+                                            cardChipHtml('新卡 <b>' + model.totalNew + '</b> 张', 'k-accent'),
+                                            cardChipHtml('平均 <b>' + (model.totalNew ? (Math.round(model.avg * 10) / 10) + ' 抽' : '—') + '</b>出 1 张新卡', 'k-op', '总抽数 ÷ 新卡张数'),
+                                            cardChipHtml('最长空档 <b>' + model.maxGap + '</b> 抽没出新卡', model.maxGap >= 20 ? 'k-warn' : 'k-plain'),
+                                            cardChipHtml('当前连续 <b>' + model.streak + '</b> 抽未出新卡', model.streak >= 20 ? 'k-warn' : 'k-plain'),
+                                        ].join('');
+                                        const peak = model.buckets.reduce((m, b) => Math.max(m, b.count), 0) || 1;
+                                        chart.innerHTML = model.buckets.map(b => {
+                                            const h = b.count ? Math.max(6, Math.round((b.count / peak) * 110)) : 2;
+                                            const tip = (b.lo === b.hi ? ('第 ' + b.lo + ' 抽') : (b.hi === Infinity ? (b.lo + ' 抽以上') : ('第 ' + b.lo + '–' + b.hi + ' 抽'))) + '出新卡：' + b.count + ' 张';
+                                            return '<div class="pity-col' + (b.count ? '' : ' is-zero') + '" title="' + escapeHtml(tip) + '">'
+                                                + '<b>' + b.count + '</b>'
+                                                + '<i style="height:' + h + 'px;"></i>'
+                                                + '<span>' + escapeHtml(b.label) + '</span>'
+                                                + '</div>';
+                                        }).join('');
+                                        const head = '<thead><tr><th>第几抽</th><th>卡牌</th><th>星级</th><th>距上次新卡</th><th>时间</th></tr></thead>';
+                                        const bodyRows = model.events.slice().sort((a, b) => a.pull - b.pull).map(e => {
+                                            const grp = String(e.card).substring(3, 5);
+                                            const num = String(e.card).substring(5, 7);
+                                            return '<tr><td>' + e.pull + '</td>'
+                                                + '<td title="' + escapeHtml(e.card) + '">' + escapeHtml(grp + '组第' + num + '张') + '</td>'
+                                                + '<td>' + escapeHtml(e.star ? cardStarLabel(e.star) : '—') + '</td>'
+                                                + '<td>' + e.gap + ' 抽</td>'
+                                                + '<td>' + escapeHtml(e.timeText || '—') + '</td></tr>';
+                                        }).join('');
+                                        table.innerHTML = head + '<tbody>' + (bodyRows || '<tr><td colspan="5">这份日志里没有新卡记录</td></tr>') + '</tbody>';
+                                        hint.textContent = '共 ' + model.totalPulls + ' 抽（开包 ' + model.totalPulls + ' 次）· 新卡 ' + model.totalNew + ' 张 · 按 CSV 的「创建时间」排序';
+                                        return model;
+                                    }
+
+                                    // ---------------- 卡组收藏（按游戏内卡牌页：15 组 × 9 张）----------------
+                                    const CARD_GROUP_DEFAULT = (() => { const out = []; for (let g = 20101; g <= 20115; g++) out.push(String(g)); return out; })();
+                                    let cardGroupRaw = null;    // { allMap, unMap, groups, blobs }
+                                    let cardGroupModel = null;  // 最近一次渲染的模型
+                                    let cardGroupOpen = '';     // 当前展开的组号
+
+                                    // 把文本里所有 {...} 块切出来（「卡组数据」和「未收集」两个一起粘也行）
+                                    function cardJsonBlobs(text) {
+                                        const s = String(text || '');
+                                        const blobs = [];
+                                        for (let i = 0; i < s.length; i++) {
+                                            if (s[i] !== '{') continue;
+                                            let depth = 0, inStr = false, esc = false, j = i;
+                                            for (; j < s.length; j++) {
+                                                const ch = s[j];
+                                                if (inStr) {
+                                                    if (esc) esc = false;
+                                                    else if (ch === '\\') esc = true;
+                                                    else if (ch === '"') inStr = false;
+                                                    continue;
+                                                }
+                                                if (ch === '"') { inStr = true; continue; }
+                                                if (ch === '{' || ch === '[') depth++;
+                                                else if (ch === '}' || ch === ']') { depth--; if (depth === 0) break; }
+                                            }
+                                            if (depth === 0 && j > i) { blobs.push(s.slice(i, j + 1)); i = j; }
+                                        }
+                                        return blobs;
+                                    }
+
+                                    function cardGroupParseText(text) {
+                                        const allMap = {}, unMap = {};
+                                        let blobs = 0;
+                                        cardJsonBlobs(text).forEach(blob => {
+                                            let obj;
+                                            try { obj = JSON.parse(blob); } catch (_) { return; }
+                                            if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return;
+                                            const parsed = [];
+                                            Object.keys(obj).forEach(key => {
+                                                const arr = obj[key];
+                                                if (!/^\d{4,6}$/.test(key) || !Array.isArray(arr)) return;
+                                                const ids = arr.map(v => String(v).trim()).filter(v => /^\d{5,8}$/.test(v));
+                                                if (!ids.length) return;
+                                                // 9 张整整齐齐 = 这一组被完整列出来了
+                                                const full = ids.length >= 9 && ids.every((id, i) => id === key + String(i + 1).padStart(2, '0'));
+                                                parsed.push({ key: key, ids: ids, full: full });
+                                            });
+                                            if (!parsed.length) return;
+                                            blobs++;
+                                            // 整段都是「整组 9 张」→ 「卡组数据」（有哪些卡）；只要有一段是零散几张 → 「未收集的卡组信息」
+                                            const allFull = parsed.every(g => g.full);
+                                            parsed.forEach(g => {
+                                                if (allFull) allMap[g.key] = g.ids;
+                                                else unMap[g.key] = (unMap[g.key] || []).concat(g.ids);
+                                            });
+                                        });
+                                        const keys = Object.keys(allMap).concat(Object.keys(unMap));
+                                        const groups = Array.from(new Set(keys)).sort((a, b) => parseInt(a, 10) - parseInt(b, 10));
+                                        return { allMap: allMap, unMap: unMap, groups: groups.length ? groups : CARD_GROUP_DEFAULT.slice(), blobs: blobs };
+                                    }
+
+                                    function cardGroupCardsOf(key, allMap) {
+                                        const k = String(key);
+                                        if (allMap && allMap[k] && allMap[k].length) return allMap[k].slice();
+                                        const out = [];
+                                        for (let i = 1; i <= 9; i++) out.push(k + String(i).padStart(2, '0'));
+                                        return out;
+                                    }
+
+                                    function cardGroupOfId(id) {
+                                        const s = String(id == null ? '' : id);
+                                        return /^201\d{4}$/.test(s) ? s.slice(0, 5) : '';
+                                    }
+
+                                    // CSV 索引：每张卡出现过几次 / 最近一次获得时间 / 星级 / 有没有当过新卡
+                                    function cardCsvIndex(records) {
+                                        const idx = {};
+                                        (records || []).forEach(r => {
+                                            if (!r) return;
+                                            const afterData = parseAfter(r['after']);
+                                            const stars = parseStarsArray(r['卡包星级']);
+                                            const ids = Object.keys(afterData);
+                                            const ms = cardTimeValue(r['创建时间']);
+                                            ids.forEach((id, k) => {
+                                                const cur = idx[id] || (idx[id] = { count: 0, ms: NaN, timeText: '', star: 0, wasNew: false });
+                                                cur.count++;
+                                                if (isFinite(ms) && (!isFinite(cur.ms) || ms >= cur.ms)) {
+                                                    cur.ms = ms;
+                                                    cur.timeText = cardTimeLabel(ms);
+                                                }
+                                                const st = stars[k] || 0;
+                                                if (st) cur.star = st;
+                                                if (afterData[id] === 1) cur.wasNew = true;
+                                            });
+                                        });
+                                        return idx;
+                                    }
+
+                                    function cardGroupBuild() {
+                                        const csv = cardCsvIndex(currentCardRecords);
+                                        const raw = cardGroupRaw;
+                                        // 只有「未收集表」能判断某张卡到底有没有；只粘「卡组数据」时只能看 CSV
+                                        const canJudge = !!raw && Object.keys(raw.unMap).length > 0;
+                                        const csvGroups = [];
+                                        Object.keys(csv).forEach(id => {
+                                            const g = cardGroupOfId(id);
+                                            if (g && csvGroups.indexOf(g) === -1) csvGroups.push(g);
+                                        });
+                                        const keys = [];
+                                        (raw ? raw.groups : CARD_GROUP_DEFAULT).concat(csvGroups).forEach(k => { if (keys.indexOf(k) === -1) keys.push(k); });
+                                        keys.sort((a, b) => parseInt(a, 10) - parseInt(b, 10));
+                                        let ownedTotal = 0, cardTotal = 0, conflict = 0, timed = 0, csvCardCount = 0;
+                                        const groups = keys.map(key => {
+                                            const un = (raw && raw.unMap[key]) || [];
+                                            const ids = cardGroupCardsOf(key, raw && raw.allMap);
+                                            Object.keys(csv).forEach(id => {
+                                                if (cardGroupOfId(id) === key && ids.indexOf(id) === -1) ids.push(id);
+                                            });
+                                            const items = ids.map(id => {
+                                                const c = csv[id];
+                                                const inUn = un.indexOf(id) !== -1;
+                                                // 收集情况以 CSV 为准；没在 CSV 里出现过的，按「未收集表」判断
+                                                const owned = !!c || (canJudge && !inUn);
+                                                if (c && inUn) conflict++;
+                                                if (c) csvCardCount++;
+                                                if (owned && c && c.timeText) timed++;
+                                                return {
+                                                    id: id,
+                                                    owned: owned,
+                                                    inCsv: !!c,
+                                                    inUn: inUn,
+                                                    star: c ? c.star : 0,
+                                                    count: c ? c.count : 0,
+                                                    ms: c ? c.ms : NaN,
+                                                    timeText: c && c.timeText ? c.timeText : '',
+                                                };
+                                            });
+                                            const owned = items.filter(it => it.owned).length;
+                                            ownedTotal += owned;
+                                            cardTotal += items.length;
+                                            return { key: key, items: items, owned: owned, total: items.length };
+                                        });
+                                        return {
+                                            groups: groups, ownedTotal: ownedTotal, cardTotal: cardTotal,
+                                            conflict: conflict, timed: timed, csvCardCount: csvCardCount,
+                                            hasProgress: !!raw, hasCsv: Object.keys(csv).length > 0,
+                                        };
+                                    }
+
+                                    function cardGroupCellHtml(it) {
+                                        const num = String(it.id).substring(5, 7) || String(it.id).slice(-2);
+                                        const star = it.star ? cardStarLabel(it.star) : '';
+                                        const meta = it.owned
+                                            ? '<div class="cc-meta"><span class="cc-star">' + escapeHtml(star || '已收集') + '</span>'
+                                                + '<span class="cc-time">' + escapeHtml(it.timeText ? cardTimeShort(it.ms) : '') + '</span></div>'
+                                            : '<div class="cc-meta"><span>未收集</span><span class="cc-time"></span></div>';
+                                        const title = it.id + ' · ' + (it.owned
+                                            ? (it.timeText ? ('最近获得 ' + it.timeText + (it.count > 1 ? '（共获得 ' + it.count + ' 次）' : '')) : '已收集（日志里没有获得时间）')
+                                            : '未收集');
+                                        return '<div class="card-cell' + (it.owned ? ' is-on' : '') + '" data-card="' + escapeHtml(it.id) + '" title="' + escapeHtml(title) + '">'
+                                            + '<div class="cc-id">#' + escapeHtml(num) + '</div>' + meta + '</div>';
+                                    }
+
+                                    function cardGroupDetailRender(model, key) {
+                                        const box = document.getElementById('cardGroupDetail');
+                                        const label = document.getElementById('cardGroupDetailLabel');
+                                        const cells = document.getElementById('cardGroupCells');
+                                        if (!box || !label || !cells) return;
+                                        const g = model.groups.filter(x => x.key === key)[0];
+                                        if (!g) { box.style.display = 'none'; return; }
+                                        box.style.display = 'block';
+                                        label.innerHTML = '第 <b>' + escapeHtml(String(key).slice(3)) + '</b> 组 '
+                                            + '<span class="card-sub">' + g.owned + '/' + g.total + ' 已收集 · 组号 ' + escapeHtml(key) + '</span>';
+                                        cells.innerHTML = g.items.map(cardGroupCellHtml).join('');
+                                    }
+
+                                    function cardGroupRender() {
+                                        const grid = document.getElementById('cardGroupGrid');
+                                        const chips = document.getElementById('cardGroupChips');
+                                        const hint = document.getElementById('cardGroupHint');
+                                        const box = document.getElementById('cardGroupDetail');
+                                        if (!grid || !chips || !hint) return null;
+                                        const model = cardGroupBuild();
+                                        cardGroupModel = model;
+                                        const pct = model.cardTotal ? Math.round((model.ownedTotal / model.cardTotal) * 100) : 0;
+                                        chips.innerHTML = [
+                                            cardChipHtml('卡组 <b>' + model.groups.length + '</b> 组', 'k-plain'),
+                                            cardChipHtml('已收集 <b>' + model.ownedTotal + '</b>/' + model.cardTotal + ' 张', 'k-accent'),
+                                            cardChipHtml('完成度 <b>' + pct + '%</b>', 'k-op'),
+                                            cardChipHtml('未收集 <b>' + (model.cardTotal - model.ownedTotal) + '</b> 张', 'k-plain'),
+                                            model.timed ? cardChipHtml('有获得时间 <b>' + model.timed + '</b> 张', 'k-plain') : '',
+                                            model.conflict ? cardChipHtml('CSV 与未收集表冲突 <b>' + model.conflict + '</b> 张（以 CSV 为准）', 'k-warn') : '',
+                                        ].join('');
+                                        grid.innerHTML = model.groups.map(g => {
+                                            const total = g.total || 9;
+                                            const bars = g.items.map(it => '<i class="' + (it.owned ? 'on' : '') + '"></i>').join('');
+                                            const on = cardGroupOpen === g.key;
+                                            return '<button type="button" class="card-group-btn' + (on ? ' is-on' : '') + '"'
+                                                + ' data-group="' + escapeHtml(g.key) + '" aria-expanded="' + (on ? 'true' : 'false') + '"'
+                                                + ' title="组号 ' + escapeHtml(g.key) + ' · 点开看这 ' + total + ' 张">'
+                                                + '<span class="cg-top"><span class="cg-name">卡组 ' + escapeHtml(String(g.key).slice(3)) + '</span>'
+                                                + '<span class="cg-count">' + g.owned + '/' + total + '</span></span>'
+                                                + '<span class="cg-bar">' + bars + '</span></button>';
+                                        }).join('');
+                                        if (cardGroupOpen) cardGroupDetailRender(model, cardGroupOpen);
+                                        else if (box) box.style.display = 'none';
+                                        const src = [
+                                            model.hasProgress ? '收集进度：已解析' : '收集进度：没粘（只按 CSV 判断）',
+                                            model.hasCsv ? ('集卡 CSV：' + model.csvCardCount + ' 张卡出现过') : '集卡 CSV：还没解析',
+                                        ];
+                                        hint.textContent = src.join(' · ') + ' —— 点一组展开，灰的是未收集'
+                                            + (model.hasCsv ? '，有时间的写最近一次获得时间（多张取最新）' : '');
+                                        return model;
+                                    }
+
+                                    function cardGroupRun() {
+                                        const input = document.getElementById('cardGroupInput');
+                                        cardGroupRaw = cardGroupParseText(input ? input.value : '');
+                                        cardGroupOpen = '';
+                                        const model = cardGroupRender();
+                                        const hint = document.getElementById('cardGroupHint');
+                                        if (hint && !cardGroupRaw.blobs) {
+                                            hint.textContent = '没认出 JSON：把「卡组数据」或「未收集的卡组信息」整段（含 { }）粘进来。';
+                                        }
+                                        return model;
+                                    }
+
+                                    function cardGroupClear() {
+                                        const input = document.getElementById('cardGroupInput');
+                                        if (input) input.value = '';
+                                        cardGroupRaw = null;
+                                        cardGroupModel = null;
+                                        cardGroupOpen = '';
+                                        const grid = document.getElementById('cardGroupGrid');
+                                        const chips = document.getElementById('cardGroupChips');
+                                        const box = document.getElementById('cardGroupDetail');
+                                        const hint = document.getElementById('cardGroupHint');
+                                        if (grid) grid.innerHTML = '';
+                                        if (chips) chips.innerHTML = '';
+                                        if (box) box.style.display = 'none';
+                                        if (hint) hint.textContent = '粘 JSON 后点解析；收集情况以集卡 CSV 为准，没时间的卡不编时间。';
                                     }
 
                                     // ==================== 拼豆小游戏 ====================
@@ -16642,6 +17227,17 @@
                                             if (!f) return;
                                             const text = await f.text();
                                             alert('CSV前500字符:\n' + text.substring(0, 500));
+                                        });
+                                        // 集卡 · 卡组收藏：解析 / 清空 / 点组展开
+                                        setClick('cardGroupParseBtn', cardGroupRun);
+                                        setClick('cardGroupClearBtn', cardGroupClear);
+                                        addEvent('cardGroupGrid', 'click', (e) => {
+                                            const t = e.target;
+                                            const btn = t && t.closest ? t.closest('.card-group-btn') : null;
+                                            if (!btn) return;
+                                            const key = btn.dataset.group || '';
+                                            cardGroupOpen = (cardGroupOpen === key) ? '' : key;
+                                            cardGroupRender();
                                         });
 
                                         // 主导航 tab 切换

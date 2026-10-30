@@ -40,7 +40,32 @@ ok(!/@import url\('https:\/\/fonts\.googleapis/.test(s), '@import 字体已移�
 ok((s.match(/#sub-panel-fry #fryLemonBtn,\r?\n\s*#sub-panel-fry #fryLettuceBtn \{/g) || []).length === 1, 'fry 按钮 CSS 重复块已去重');
 ok(!/function cleanText|resolveActivityType/.test(s), '死代码已删除');
 ok(/<option value="活动奖励">/.test(s) && /resourceType === '活动奖励'/.test(s), '资源类型「活动奖励（集合）」已注入');
-ok(/176: "幻狐2星锦囊"/.test(s) && /rawStar === 35\) starLabel = "幻狐5星"/.test(s), '集卡分析已识别幻狐（卡包 176-179 / 星级码 32-35）');
+ok(/176: "幻狐2星锦囊"/.test(s) && /if \(n === 35\) return '幻狐5星'/.test(s), '集卡分析已识别幻狐（卡包 176-179 / 星级码 32-35）');
+// 集卡 · 抽卡详情（几抽出新卡）+ 卡组收藏（按游戏内卡牌页）
+ok(/id="cardPityCard"/.test(s) && /id="cardPityChips"/.test(s) && /id="cardPityChart"/.test(s) && /id="cardPityTable"/.test(s)
+  && /id="cardGroupCard"/.test(s) && /id="cardGroupInput"/.test(s) && /id="cardGroupParseBtn"/.test(s)
+  && /id="cardGroupClearBtn"/.test(s) && /id="cardGroupGrid"/.test(s) && /id="cardGroupCells"/.test(s),
+  '集卡页：抽卡详情（芯片 / 图表 / 明细）+ 卡组收藏（粘贴框 / 解析 / 清空 / 网格 / 卡片格）DOM 都在');
+ok(/function cardPullRows\(/.test(s) && /function cardPityModel\(/.test(s) && /function cardPityRender\(/.test(s)
+  && /const CARD_PITY_BUCKETS = /.test(s) && /if \(!ids\.length\) return;/.test(s),
+  '抽卡详情：一行 CSV = 1 抽，按「创建时间」升序排出抽卡顺序，再按间隔分档');
+ok(/'总抽数 <b>'/.test(s) && /'新卡 <b>'/.test(s) && /'平均 <b>'/.test(s) && /'最长空档 <b>'/.test(s)
+  && /'当前连续 <b>'/.test(s) && /<th>距上次新卡<\/th>/.test(s),
+  '抽卡详情芯片：总抽数 / 新卡 / 平均几抽出一张 / 最长空档 / 当前连续，明细表有「距上次新卡」');
+ok(/function cardStarLabel\(/.test(s) && /const starLabel = cardStarLabel\(rawStar\);/.test(s),
+  '星级码（1–5 / 霞光 23–25 / 幻狐 32–35）收进一个 cardStarLabel，话术与卡组页共用同一套写法');
+ok(/const CARD_GROUP_DEFAULT = \(\(\) => \{ const out = \[\]; for \(let g = 20101; g <= 20115; g\+\+\)/.test(s)
+  && /function cardJsonBlobs\(/.test(s) && /function cardGroupParseText\(/.test(s)
+  && /k \+ String\(i\)\.padStart\(2, '0'\)/.test(s) && /const canJudge = /.test(s),
+  '卡组收藏：默认 15 组（20101–20115）、组内 9 张按 id 推（组号 + 01…09）；一次能粘两个 JSON（卡组数据 + 未收集）');
+ok(/const allFull = parsed\.every\(g => g\.full\);/.test(s) && /if \(allFull\) allMap\[g\.key\] = g\.ids;/.test(s),
+  '两个 JSON 靠「整段是不是整组 9 张」分开认：全整组 = 卡组数据，有零散 = 未收集表（整组都没收的组也不会被认错）');
+ok(/\.card-groups \{[\s\S]{0,200}?grid-template-columns: repeat\(3, minmax\(0, 1fr\)\);/.test(s)
+  && /\.card-cell\.is-on \{/.test(s) && /\.pity-chart \{/.test(s) && /\.pity-col\.is-zero i \{/.test(s),
+  '版式：卡组每行 3 个、已收集的卡格实线黄边（未收集虚线灰）、抽卡分布图有柱子与空格子');
+ok(/aria-expanded/.test(s) && /closest\('\.card-group-btn'\)/.test(s) && /'未收集'/.test(s)
+  && /已收集（日志里没有获得时间）/.test(s) && /CSV 与未收集表冲突/.test(s),
+  '点组展开 / 收起（aria-expanded）；未收集写「未收集」、没时间数据不编时间、跟未收集表打架时以 CSV 为准');
 ok(/"253": "联动分享活动-首次赠送"/.test(s) && /"257": "打怪棋盘-消耗步数"/.test(s), '来源/物品映射已补 253–257');
 ok(/"264": "活动pass卡领取"/.test(s) && /"265": "活动pass卡购买"/.test(s)
   && /"266": "1\+4礼包购买"/.test(s) && /"267": "1\+4礼包免费领取"/.test(s),
