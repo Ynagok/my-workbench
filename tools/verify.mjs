@@ -76,11 +76,13 @@ ok(/data-seg-card="speech"/.test(s) && /id="cardPityCard" data-seg-card="pity"/.
   '三段各挂一块卡片：生成结果 = speech / 抽卡详情 = pity / 卡组收藏 = group');
 ok(!/statsSetSeg\('tab-gamedata', 'resource'\)/.test(s),
   '棋盘镜像页的分段初始化调用也删掉了（那一页已经没有分段条）');
-ok(/const CARD_PITY_MAX_PER_PULL = 10;/.test(s)
-  && /const skipped = allRows\.filter\(r => r\.ids\.length > CARD_PITY_MAX_PER_PULL\);/.test(s)
-  && /const rows = allRows\.filter\(r => r\.ids\.length <= CARD_PITY_MAX_PER_PULL\);/.test(s)
-  && /批量发卡已排除 <b>/.test(s),
-  '抽卡详情排除「批量发卡」：一次开包超过 10 张（如补发 61 张）不算抽卡、不进抽数，芯片里写明排除了几条几张');
+ok(/const CARD_EXCHANGE_MAX_CARDS = 10;/.test(s) && /function cardIsExchangeRecord\(record\)/.test(s)
+  && /const draws = currentCardRecords\.filter\(r => !cardIsExchangeRecord\(r\)\);/.test(s)
+  && /const exchanges = allRows\.filter\(r => r\.ids\.length > CARD_EXCHANGE_MAX_CARDS\);/.test(s)
+  && /const rows = allRows\.filter\(r => r\.ids\.length <= CARD_EXCHANGE_MAX_CARDS\);/.test(s)
+  && /if \(cardIsExchangeRecord\(r\)\) return;/.test(s)
+  && /id="cardSkipHint"/.test(s) && /兑换记录已排除 <b>/.test(s),
+  '「一次开包 > 10 张 = 兑换重复卡牌」这个识别结果**整个集卡分析都适用**：话术跳过它（cardSkipHint 写条数）、抽卡详情不算抽数、卡组收藏不用它的时间/数量算收集');
 // 内置「百戏锦囊说明」：规则 + 概率 + 预计几抽出新卡
 ok(/const CARD_DRAW_RULES = \[/.test(s) && (s.match(/\{ key: '[sxh]\d', label:/g) || []).length === 12
   && /key: 's5'[^}]*pity: 1, cap: 24/.test(s) && /key: 's4'[^}]*pity: 4, cap: 100/.test(s)

@@ -488,9 +488,9 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
   await sleep(60);
   check($('tab-card').dataset.seg === 'speech' && cardSegOn() === 'speech', '点回「集卡话术」');
   // 故意把 CSV 行打乱：验证按「创建时间」排成抽卡顺序
-  // 最后一行是「批量发卡」（一次 61 张、卡包认不出），不能算抽卡
-  const batchIds = [];
-  for (let i = 1; i <= 61; i++) batchIds.push(9900000 + i);
+  // 最后一行是「兑换重复卡牌」（一次 61 张、卡包认不出、时间是 10:30，比真正的获得时间晚）
+  const batchIds = [2010101];
+  for (let i = 1; i <= 60; i++) batchIds.push(9900000 + i);
   const batchAfter = '{' + batchIds.map(id => id + ':1').join(',') + '}';
   const cardCsv2 = [
     '卡包ID,卡包星级,after,创建时间',
@@ -509,9 +509,12 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
   check(!!$('cardPityCard') && !!$('cardPityChart') && !!$('cardPityTable') && !!$('cardGroupGrid'),
     '集卡页有「抽卡详情」（芯片 / 图表 / 明细表）与「卡组收藏」（网格）');
   check(/总抽数\s*5/.test(pityChips()) && /新卡\s*4\s*张/.test(pityChips()),
-    '抽卡详情：总抽数 5 · 新卡 4 张（那一行 61 张的批量发卡没算进去）', pityChips());
-  check(/批量发卡已排除\s*1\s*条（61 张）/.test(pityChips()) && /没算进抽数/.test($('cardPityHint').textContent),
-    '一次开包 61 张的「未知卡包」被当批量发卡排除，芯片与提示都写出来', pityChips());
+    '抽卡详情：总抽数 5 · 新卡 4 张（那一行 61 张的兑换记录没算进去）', pityChips());
+  check(/兑换记录已排除\s*1\s*条（61 张）/.test(pityChips()) && /没算进抽数/.test($('cardPityHint').textContent),
+    '一次开包 61 张 = 兑换重复卡牌 → 抽卡详情排除，芯片与提示都写出来', pityChips());
+  check(/已跳过 1 条「兑换重复卡牌」记录/.test($('cardSkipHint').textContent) && $('recordCount').textContent === '5',
+    '集卡话术也按同一口径跳过兑换记录（只剩 5 条开包话术），并在抬头下面写明',
+    $('cardSkipHint').textContent + ' / ' + $('recordCount').textContent);
   check(/平均\s*1\.3\s*抽/.test(pityChips()), '平均 1.3 抽出一张新卡（5 抽 ÷ 4 张）', pityChips());
   check(/最长空档\s*2\s*抽/.test(pityChips()) && /当前连续\s*0\s*抽/.test(pityChips()),
     '最长空档 2 抽 · 当前连续 0 抽（最后一抽就出了新卡）', pityChips());
@@ -567,6 +570,9 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     '没获得的卡是灰底 + 写「未收集」', cells[8].textContent);
   check(/10-01 10:05/.test(cells[0].textContent),
     '已获得的卡标最近一次获得时间（2010101 在 10:00 首次、10:05 重复 → 取 10:05）', cells[0].textContent);
+  check(/兑换记录\s*1\s*条/.test($('cardGroupChips').textContent) && /10:05/.test(cells[0].title) && !/10:30/.test(cells[0].title),
+    '兑换记录在卡组收藏里也不采信：记 1 条，获得时间仍是 10:05（没被 10:30 的兑换覆盖）',
+    $('cardGroupChips').textContent + ' / ' + cells[0].title);
   groupBtns()[0].click();
   await sleep(80);
   check($('cardGroupDetail').style.display === 'none', '再点同一组 → 收起');

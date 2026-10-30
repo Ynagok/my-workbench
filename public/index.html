@@ -4339,6 +4339,7 @@
             </div>
             <div class="card" data-seg-card="speech">
                 <label>生成结果（共 <span id="recordCount">0</span> 条）</label>
+                <div id="cardSkipHint" class="hint-text"></div>
                 <div id="cardResultPreview" class="card-preview"></div>
                 <textarea id="cardResultArea" rows="12" readonly style="display:none;"></textarea>
                 <div class="flex-row" style="margin-top:10px;">
@@ -8985,11 +8986,22 @@
                                         });
                                     }
 
+                                    // 一次开包 > 10 张 = 兑换了重复卡牌（不是开包抽卡）——这个口径**整个集卡分析都适用**
+                                    const CARD_EXCHANGE_MAX_CARDS = 10;
+
+                                    function cardIsExchangeRecord(record) {
+                                        if (!record) return false;
+                                        const afterData = parseAfter(record['after']);
+                                        return Object.keys(afterData).length > CARD_EXCHANGE_MAX_CARDS;
+                                    }
+
                                     async function processCardCsv() {
                                         const f = document.getElementById('csvFileInput').files[0]; if (!f) return;
                                         const text = await f.text(); currentCardRecords = parseCSVEnhanced(text);
                                         const star = document.getElementById('starFilterSelect').value;
-                                        const filtered = filterRecordsByStar(currentCardRecords, star);
+                                        const draws = currentCardRecords.filter(r => !cardIsExchangeRecord(r));
+                                        const exchanges = currentCardRecords.length - draws.length;
+                                        const filtered = filterRecordsByStar(draws, star);
                                         const results = filtered.map(r => {
                                             try { return generateCardSentence(r); }
                                             catch { return { text: '[解析失败]', html: '[解析失败]' }; }
@@ -9006,6 +9018,12 @@
                                         }
 
                                         document.getElementById('recordCount').textContent = texts.length;
+                                        const skipHint = document.getElementById('cardSkipHint');
+                                        if (skipHint) {
+                                            skipHint.textContent = exchanges
+                                                ? '已跳过 ' + exchanges + ' 条「兑换重复卡牌」记录（一次开包超过 ' + CARD_EXCHANGE_MAX_CARDS + ' 张，不算开包，不出开包话术）'
+                                                : '';
+                                        }
                                         cardPityRender(currentCardRecords);
                                         cardGroupRender();
                                     }
@@ -9072,8 +9090,6 @@
 
                                     // 间隔分布的分档：1–5 抽逐档，之后按区间
                                     const CARD_PITY_BUCKETS = [[1, 1], [2, 2], [3, 3], [4, 4], [5, 5], [6, 10], [11, 20], [21, 30], [31, 50], [51, 100], [101, Infinity]];
-                                    // 一次开包最多 10 张（十连）；一次出几十张的是批量发卡（补发 / 活动发卡），不算「抽卡」——别让它污染抽数
-                                    const CARD_PITY_MAX_PER_PULL = 10;
 
                                     // ---- 内置「百戏锦囊说明」（2026-10 用户给的规则页 + 概率页原文数值）----
                                     // 基本规则：保底 = 连续这么多张重复后，下一张同星级必是新的；cap = 活动内最多开这么多包集齐一系列
@@ -9113,9 +9129,10 @@
 
                                     function cardPityModel(records) {
                                         const allRows = cardPullRows(records);
-                                        const skipped = allRows.filter(r => r.ids.length > CARD_PITY_MAX_PER_PULL);
-                                        const rows = allRows.filter(r => r.ids.length <= CARD_PITY_MAX_PER_PULL);
-                                        const skippedCards = skipped.reduce((a, r) => a + r.ids.length, 0);
+                                        // 兑换重复卡牌（一次 > 10 张）不是开包 —— 不算抽数、也不出新卡
+                                        const exchanges = allRows.filter(r => r.ids.length > CARD_EXCHANGE_MAX_CARDS);
+                                        const rows = allRows.filter(r => r.ids.length <= CARD_EXCHANGE_MAX_CARDS);
+                                        const exchangeCards = exchanges.reduce((a, r) => a + r.ids.length, 0);
                                         const events = [];
                                         let lastNewPull = 0;
                                         rows.forEach((row, i) => {
@@ -9148,7 +9165,7 @@
                                             rows: rows, events: events,
                                             totalPulls: totalPulls, totalNew: totalNew, avg: avg,
                                             maxGap: maxGap, streak: totalPulls - lastNewPull, buckets: buckets,
-                                            skippedPulls: skipped.length, skippedCards: skippedCards,
+                                            skippedPulls: exchanges.length, skippedCards: exchangeCards,
                                         };
                                     }
 
@@ -9167,11 +9184,11 @@
                                         cardOddsRender(model);
                                         if (!model.totalPulls) {
                                             chips.innerHTML = model.skippedPulls
-                                                ? cardChipHtml('批量发卡已排除 <b>' + model.skippedPulls + '</b> 条（' + model.skippedCards + ' 张）', 'k-plain')
+                                                ? cardChipHtml('兑换记录已排除 <b>' + model.skippedPulls + '</b> 条（' + model.skippedCards + ' 张）', 'k-plain')
                                                 : '';
                                             body.style.display = 'none';
                                             hint.textContent = model.skippedPulls
-                                                ? '这份日志里只有批量发卡（一次几十张的补发 / 活动发卡），不算抽卡 —— 没有可统计的抽卡记录。'
+                                                ? '这份日志里只有「兑换重复卡牌」记录（一次超过 10 张），它们不是开包 —— 没有可统计的抽卡记录。'
                                                 : '上传集卡 CSV 后，这里出「几抽出新卡」的分布图和明细。';
                                             return model;
                                         }
@@ -9182,7 +9199,7 @@
                                             cardChipHtml('平均 <b>' + (model.totalNew ? (Math.round(model.avg * 10) / 10) + ' 抽' : '—') + '</b>出 1 张新卡', 'k-op', '总抽数 ÷ 新卡张数'),
                                             cardChipHtml('最长空档 <b>' + model.maxGap + '</b> 抽没出新卡', model.maxGap >= 20 ? 'k-warn' : 'k-plain'),
                                             cardChipHtml('当前连续 <b>' + model.streak + '</b> 抽未出新卡', model.streak >= 20 ? 'k-warn' : 'k-plain'),
-                                            model.skippedPulls ? cardChipHtml('批量发卡已排除 <b>' + model.skippedPulls + '</b> 条（' + model.skippedCards + ' 张）', 'k-plain', '一次开包超过 ' + CARD_PITY_MAX_PER_PULL + ' 张 = 补发 / 活动发卡，不算抽卡，也不进抽数') : '',
+                                            model.skippedPulls ? cardChipHtml('兑换记录已排除 <b>' + model.skippedPulls + '</b> 条（' + model.skippedCards + ' 张）', 'k-plain', '一次开包超过 ' + CARD_EXCHANGE_MAX_CARDS + ' 张 = 兑换重复卡牌，不算开包，也不进抽数') : '',
                                         ].join('');
                                         const peak = model.buckets.reduce((m, b) => Math.max(m, b.count), 0) || 1;
                                         chart.innerHTML = model.buckets.map(b => {
@@ -9206,7 +9223,7 @@
                                         }).join('');
                                         table.innerHTML = head + '<tbody>' + (bodyRows || '<tr><td colspan="5">这份日志里没有新卡记录</td></tr>') + '</tbody>';
                                         hint.textContent = '共 ' + model.totalPulls + ' 抽（开包 ' + model.totalPulls + ' 次）· 新卡 ' + model.totalNew + ' 张 · 按 CSV 的「创建时间」排序'
-                                            + (model.skippedPulls ? ' · 批量发卡 ' + model.skippedPulls + ' 条（' + model.skippedCards + ' 张）没算进抽数' : '');
+                                            + (model.skippedPulls ? ' · 兑换记录 ' + model.skippedPulls + ' 条（' + model.skippedCards + ' 张）没算进抽数' : '');
                                         return model;
                                     }
 
@@ -9417,10 +9434,12 @@
                                     }
 
                                     // CSV 索引：每张卡出现过几次 / 最近一次获得时间 / 星级 / 有没有当过新卡
+                                    // ⚠️「兑换重复卡牌」（一次 > 10 张）整条跳过：里面的都是重复卡，不能拿它的时间去覆盖真正的获得时间
                                     function cardCsvIndex(records) {
                                         const idx = {};
                                         (records || []).forEach(r => {
                                             if (!r) return;
+                                            if (cardIsExchangeRecord(r)) return;
                                             const afterData = parseAfter(r['after']);
                                             const stars = parseStarsArray(r['卡包星级']);
                                             const ids = Object.keys(afterData);
@@ -9489,6 +9508,7 @@
                                             groups: groups, ownedTotal: ownedTotal, cardTotal: cardTotal,
                                             conflict: conflict, timed: timed, csvCardCount: csvCardCount,
                                             hasProgress: !!raw, hasCsv: Object.keys(csv).length > 0,
+                                            exchangeCount: (currentCardRecords || []).filter(cardIsExchangeRecord).length,
                                         };
                                     }
 
@@ -9535,6 +9555,7 @@
                                             cardChipHtml('未收集 <b>' + (model.cardTotal - model.ownedTotal) + '</b> 张', 'k-plain'),
                                             model.timed ? cardChipHtml('有获得时间 <b>' + model.timed + '</b> 张', 'k-plain') : '',
                                             model.conflict ? cardChipHtml('CSV 与未收集表冲突 <b>' + model.conflict + '</b> 张（以 CSV 为准）', 'k-warn') : '',
+                                            model.exchangeCount ? cardChipHtml('兑换记录 <b>' + model.exchangeCount + '</b> 条（不算获得，时间不覆盖）', 'k-plain', '一次开包超过 ' + CARD_EXCHANGE_MAX_CARDS + ' 张 = 兑换重复卡牌，收集状态与获得时间都不采信它') : '',
                                         ].join('');
                                         grid.innerHTML = model.groups.map(g => {
                                             const total = g.total || 9;
