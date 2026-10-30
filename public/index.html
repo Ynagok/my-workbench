@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="x-build" content="2026-10-30 我要烟牌-v9-普通包含重复">
+    <meta name="x-build" content="2026-10-30 我要烟牌-v10-重复张数">
     <title>客服冷静演绎工作台</title>
     <link rel="icon" type="image/gif" href="/my-icon.gif">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1732,6 +1732,19 @@
                 .card-cell.is-on .cc-star { color: var(--accent-ink); }
 
                 .card-cell.is-on .cc-time { color: var(--ink-2); }
+
+                /* 重复获得：卡格右下角一个小黄片，写重复了几张 */
+                .card-cell .cc-dup {
+                    display: inline-block;
+                    margin-top: 3px;
+                    padding: 0 5px;
+                    border-radius: var(--r-pill);
+                    background: var(--accent-dim);
+                    border: 1px solid var(--accent-line);
+                    color: var(--accent-ink);
+                    font-size: 9.5px;
+                    line-height: 1.5;
+                }
 
         /* ============================================================
         日报生成
@@ -9734,7 +9747,7 @@
                                         const keys = [];
                                         CARD_GROUP_DEFAULT.concat(raw ? raw.groups : [], csvGroups).forEach(k => { if (keys.indexOf(k) === -1) keys.push(k); });
                                         keys.sort((a, b) => parseInt(a, 10) - parseInt(b, 10));
-                                        let ownedTotal = 0, cardTotal = 0, conflict = 0, timed = 0, csvCardCount = 0;
+                                        let ownedTotal = 0, cardTotal = 0, conflict = 0, timed = 0, csvCardCount = 0, dupTotal = 0;
                                         const groups = keys.map(key => {
                                             const un = (raw && raw.unMap[key]) || [];
                                             const ids = cardGroupCardsOf(key, raw && raw.allMap);
@@ -9760,6 +9773,7 @@
                                                     timeText: c && c.timeText ? c.timeText : '',
                                                 };
                                             });
+                                            items.forEach(it => { if (it.count > 1) dupTotal += (it.count - 1); });
                                             const owned = items.filter(it => it.owned).length;
                                             ownedTotal += owned;
                                             cardTotal += items.length;
@@ -9767,7 +9781,7 @@
                                         });
                                         return {
                                             groups: groups, ownedTotal: ownedTotal, cardTotal: cardTotal,
-                                            conflict: conflict, timed: timed, csvCardCount: csvCardCount,
+                                            conflict: conflict, timed: timed, csvCardCount: csvCardCount, dupTotal: dupTotal,
                                             hasProgress: !!raw, hasCsv: Object.keys(csv).length > 0,
                                             exchangeCount: (currentCardRecords || []).filter(cardIsExchangeRecord).length,
                                         };
@@ -9776,12 +9790,15 @@
                                     function cardGroupCellHtml(it) {
                                         const num = String(it.id).substring(5, 7) || String(it.id).slice(-2);
                                         const star = it.star ? cardStarLabel(it.star) : '';
+                                        // 重复获得：同一个卡位获得超过 1 次就标「重复 N 张」（= 获得次数 − 1）
+                                        const dup = it.count > 1 ? (it.count - 1) : 0;
                                         const meta = it.owned
                                             ? '<div class="cc-meta"><span class="cc-star">' + escapeHtml(star || '已收集') + '</span>'
                                                 + '<span class="cc-time">' + escapeHtml(it.timeText ? cardTimeShort(it.ms) : '') + '</span></div>'
+                                                + (dup ? '<div class="cc-dup" title="' + escapeHtml('共获得 ' + it.count + ' 次，其中 ' + dup + ' 张是重复的') + '">重复 ' + dup + '</div>' : '')
                                             : '<div class="cc-meta"><span>未收集</span><span class="cc-time"></span></div>';
                                         const title = it.id + ' · ' + (it.owned
-                                            ? (it.timeText ? ('最近获得 ' + it.timeText + (it.count > 1 ? '（共获得 ' + it.count + ' 次）' : '')) : '已收集（日志里没有获得时间）')
+                                            ? (it.timeText ? ('最近获得 ' + it.timeText + (it.count > 1 ? '（共获得 ' + it.count + ' 次，重复 ' + dup + ' 张）' : '')) : '已收集（日志里没有获得时间）')
                                             : '未收集');
                                         return '<div class="card-cell' + (it.owned ? ' is-on' : '') + '" data-card="' + escapeHtml(it.id) + '" title="' + escapeHtml(title) + '">'
                                             + '<div class="cc-id">#' + escapeHtml(num) + '</div>' + meta + '</div>';
@@ -9815,6 +9832,7 @@
                                             cardChipHtml('已收集 <b>' + model.ownedTotal + '</b>/' + model.cardTotal + ' 张', 'k-accent'),
                                             cardChipHtml('完成度 <b>' + pct + '%</b>', 'k-op'),
                                             cardChipHtml('未收集 <b>' + (model.cardTotal - model.ownedTotal) + '</b> 张', 'k-plain'),
+                                            model.dupTotal ? cardChipHtml('重复获得 <b>' + model.dupTotal + '</b> 张', 'k-plain', '同一个卡位获得多次时，除第一张外都算重复（重复牌能换戏符点）') : '',
                                             model.timed ? cardChipHtml('有获得时间 <b>' + model.timed + '</b> 张', 'k-plain') : '',
                                             model.conflict ? cardChipHtml('CSV 与未收集表冲突 <b>' + model.conflict + '</b> 张（以 CSV 为准）', 'k-warn') : '',
                                             model.exchangeCount ? cardChipHtml('兑换记录 <b>' + model.exchangeCount + '</b> 条（不算获得，时间不覆盖）', 'k-plain', '一次开包超过 ' + CARD_EXCHANGE_MAX_CARDS + ' 张 = 兑换重复卡牌，收集状态与获得时间都不采信它') : '',

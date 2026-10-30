@@ -611,6 +611,11 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     '没获得的卡是灰底 + 写「未收集」', cells[8].textContent);
   check(/11-01 10:05/.test(cells[0].textContent),
     '已获得的卡标最近一次获得时间（2010101 在 10:00 首次、10:05 重复 → 取 10:05）', cells[0].textContent);
+  check(/重复 1/.test(cells[0].textContent) && /重复 1/.test(cells[1].textContent)
+    && !cells[2].querySelector('.cc-dup') && !cells[8].querySelector('.cc-dup')
+    && /重复获得\s*2\s*张/.test($('cardGroupChips').textContent),
+    '重复获得的卡标「重复 N 张」（2010101 / 2010102 各获得 2 次 → 重复 1；只获得 1 次的不标），芯片汇总「重复获得 2 张」',
+    cells[0].textContent + ' | ' + cells[2].textContent + ' | ' + $('cardGroupChips').textContent);
   check(/兑换记录\s*1\s*条/.test($('cardGroupChips').textContent) && /10:05/.test(cells[0].title) && !/10:30/.test(cells[0].title),
     '兑换记录在卡组收藏里也不采信：记 1 条，获得时间仍是 10:05（没被 10:30 的兑换覆盖）',
     $('cardGroupChips').textContent + ' / ' + cells[0].title);

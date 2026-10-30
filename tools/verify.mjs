@@ -143,7 +143,13 @@ ok(/function cardCapText\(rule\)/.test(s) && /集齐上限 ≠ 均匀分布/.tes
   && /capAlt: 48, capAltPack: '普通 5星包'/.test(s)
   && /无保底规则（只给集齐上限）/.test(s) && /from === 'pack'/.test(s),
   '「集齐上限」只当保底上限写（五星霞光：8 包集齐 8 张 / 普通 5星包最多 48 包），既没保底也没概率的星级（幻狐五星）不给「几抽一张」的数，并注明不是均匀分布');
-// 未知卡包 + 只开 1 张 = 使用了无相牌
+// 卡组收藏：重复获得要显示重复张数
+ok(/const dup = it\.count > 1 \? \(it\.count - 1\) : 0;/.test(s)
+  && /class="cc-dup"/.test(s) && /'">重复 ' \+ dup \+ '<\/div>'/.test(s)
+  && /if \(it\.count > 1\) dupTotal \+= \(it\.count - 1\);/.test(s)
+  && /'重复获得 <b>' \+ model\.dupTotal \+ '<\/b> 张'/.test(s)
+  && /\.card-cell \.cc-dup \{/.test(s),
+  '卡组收藏：同一个卡位获得多次时卡格上标「重复 N 张」（= 获得次数 − 1），芯片再汇总一片「重复获得 N 张」');// 未知卡包 + 只开 1 张 = 使用了无相牌
 ok(/function cardPackNameOf\(packId, cards\)/.test(s) && /cards === 1 \? '无相牌' : '未知卡包'/.test(s)
   && /function cardIsWuxiangRecord\(record\)/.test(s)
   && /packName === '无相牌'[\s\S]{0,120}?使用了无相牌获得/.test(s)
