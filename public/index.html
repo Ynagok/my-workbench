@@ -4354,13 +4354,13 @@
                 <div id="cardPityHint" class="hint-text">上传集卡 CSV 后，这里出「几抽出新卡」的分布图和明细。</div>
             </div>
             <div class="card" id="cardGroupCard">
-                <label>🗂️ 卡组收藏 <span class="card-sub">按游戏内卡牌页：每行 3 组 · 点一组展开 9 张</span></label>
-                <textarea id="cardGroupInput" rows="4" placeholder="把「卡组数据」和「未收集的卡组信息」的 JSON 粘进来（两个一起粘也行）"></textarea>
+                <label>🗂️ 卡组收藏 <span class="card-sub">按游戏内卡牌页：15 组已内置 · 每行 3 组 · 点一组展开 9 张</span></label>
+                <textarea id="cardGroupInput" rows="4" placeholder="只需粘「未收集的卡组信息」的 JSON（卡组数据已内置）；把「卡组数据」也一起粘进来同样认"></textarea>
                 <div class="flex-row" style="margin-top:8px;">
                     <button id="cardGroupParseBtn">🔍 解析并展示</button>
                     <button id="cardGroupClearBtn" class="secondary">🧹 清空</button>
                 </div>
-                <div id="cardGroupHint" class="hint-text">粘 JSON 后点解析；收集情况以集卡 CSV 为准，没时间的卡不编时间。</div>
+                <div id="cardGroupHint" class="hint-text">卡组数据（15 组 × 9 张）已内置；粘「未收集的卡组信息」后就能看出每张卡收没收集，没时间的卡不编时间。</div>
                 <div class="stat-chips" id="cardGroupChips"></div>
                 <div class="card-groups" id="cardGroupGrid"></div>
                 <div class="card-group-detail" id="cardGroupDetail" style="display:none;">
@@ -9145,7 +9145,25 @@
                                     }
 
                                     // ---------------- 卡组收藏（按游戏内卡牌页：15 组 × 9 张）----------------
-                                    const CARD_GROUP_DEFAULT = (() => { const out = []; for (let g = 20101; g <= 20115; g++) out.push(String(g)); return out; })();
+                                    // 卡组数据**内置**（用户 2026-10 给的）：15 组，id = 组号 + 01…09；不用粘，粘「未收集的卡组信息」就够
+                                    const CARD_GROUP_DATA = {
+                                        "20101": ["2010101", "2010102", "2010103", "2010104", "2010105", "2010106", "2010107", "2010108", "2010109"],
+                                        "20102": ["2010201", "2010202", "2010203", "2010204", "2010205", "2010206", "2010207", "2010208", "2010209"],
+                                        "20103": ["2010301", "2010302", "2010303", "2010304", "2010305", "2010306", "2010307", "2010308", "2010309"],
+                                        "20104": ["2010401", "2010402", "2010403", "2010404", "2010405", "2010406", "2010407", "2010408", "2010409"],
+                                        "20105": ["2010501", "2010502", "2010503", "2010504", "2010505", "2010506", "2010507", "2010508", "2010509"],
+                                        "20106": ["2010601", "2010602", "2010603", "2010604", "2010605", "2010606", "2010607", "2010608", "2010609"],
+                                        "20107": ["2010701", "2010702", "2010703", "2010704", "2010705", "2010706", "2010707", "2010708", "2010709"],
+                                        "20108": ["2010801", "2010802", "2010803", "2010804", "2010805", "2010806", "2010807", "2010808", "2010809"],
+                                        "20109": ["2010901", "2010902", "2010903", "2010904", "2010905", "2010906", "2010907", "2010908", "2010909"],
+                                        "20110": ["2011001", "2011002", "2011003", "2011004", "2011005", "2011006", "2011007", "2011008", "2011009"],
+                                        "20111": ["2011101", "2011102", "2011103", "2011104", "2011105", "2011106", "2011107", "2011108", "2011109"],
+                                        "20112": ["2011201", "2011202", "2011203", "2011204", "2011205", "2011206", "2011207", "2011208", "2011209"],
+                                        "20113": ["2011301", "2011302", "2011303", "2011304", "2011305", "2011306", "2011307", "2011308", "2011309"],
+                                        "20114": ["2011401", "2011402", "2011403", "2011404", "2011405", "2011406", "2011407", "2011408", "2011409"],
+                                        "20115": ["2011501", "2011502", "2011503", "2011504", "2011505", "2011506", "2011507", "2011508", "2011509"],
+                                    };
+                                    const CARD_GROUP_DEFAULT = Object.keys(CARD_GROUP_DATA);
                                     let cardGroupRaw = null;    // { allMap, unMap, groups, blobs }
                                     let cardGroupModel = null;  // 最近一次渲染的模型
                                     let cardGroupOpen = '';     // 当前展开的组号
@@ -9208,6 +9226,7 @@
                                     function cardGroupCardsOf(key, allMap) {
                                         const k = String(key);
                                         if (allMap && allMap[k] && allMap[k].length) return allMap[k].slice();
+                                        if (CARD_GROUP_DATA[k] && CARD_GROUP_DATA[k].length) return CARD_GROUP_DATA[k].slice();
                                         const out = [];
                                         for (let i = 1; i <= 9; i++) out.push(k + String(i).padStart(2, '0'));
                                         return out;
@@ -9252,8 +9271,9 @@
                                             const g = cardGroupOfId(id);
                                             if (g && csvGroups.indexOf(g) === -1) csvGroups.push(g);
                                         });
+                                        // 内置 15 组永远都在；粘进来的组 + CSV 里出现的组再并上去
                                         const keys = [];
-                                        (raw ? raw.groups : CARD_GROUP_DEFAULT).concat(csvGroups).forEach(k => { if (keys.indexOf(k) === -1) keys.push(k); });
+                                        CARD_GROUP_DEFAULT.concat(raw ? raw.groups : [], csvGroups).forEach(k => { if (keys.indexOf(k) === -1) keys.push(k); });
                                         keys.sort((a, b) => parseInt(a, 10) - parseInt(b, 10));
                                         let ownedTotal = 0, cardTotal = 0, conflict = 0, timed = 0, csvCardCount = 0;
                                         const groups = keys.map(key => {
@@ -9351,7 +9371,8 @@
                                         if (cardGroupOpen) cardGroupDetailRender(model, cardGroupOpen);
                                         else if (box) box.style.display = 'none';
                                         const src = [
-                                            model.hasProgress ? '收集进度：已解析' : '收集进度：没粘（只按 CSV 判断）',
+                                            '卡组数据：内置 ' + CARD_GROUP_DEFAULT.length + ' 组',
+                                            model.hasProgress ? '未收集表：已解析' : '未收集表：没粘（只按 CSV 判断）',
                                             model.hasCsv ? ('集卡 CSV：' + model.csvCardCount + ' 张卡出现过') : '集卡 CSV：还没解析',
                                         ];
                                         hint.textContent = src.join(' · ') + ' —— 点一组展开，灰的是未收集'
@@ -9366,7 +9387,7 @@
                                         const model = cardGroupRender();
                                         const hint = document.getElementById('cardGroupHint');
                                         if (hint && !cardGroupRaw.blobs) {
-                                            hint.textContent = '没认出 JSON：把「卡组数据」或「未收集的卡组信息」整段（含 { }）粘进来。';
+                                            hint.textContent = '没认出 JSON：把「未收集的卡组信息」整段（含 { }）粘进来（卡组数据已内置，不用粘）。';
                                         }
                                         return model;
                                     }
@@ -9384,7 +9405,7 @@
                                         if (grid) grid.innerHTML = '';
                                         if (chips) chips.innerHTML = '';
                                         if (box) box.style.display = 'none';
-                                        if (hint) hint.textContent = '粘 JSON 后点解析；收集情况以集卡 CSV 为准，没时间的卡不编时间。';
+                                        if (hint) hint.textContent = '卡组数据（15 组 × 9 张）已内置；粘「未收集的卡组信息」后就能看出每张卡收没收集，没时间的卡不编时间。';
                                     }
 
                                     // ==================== 拼豆小游戏 ====================

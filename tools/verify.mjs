@@ -54,10 +54,11 @@ ok(/'总抽数 <b>'/.test(s) && /'新卡 <b>'/.test(s) && /'平均 <b>'/.test(s)
   '抽卡详情芯片：总抽数 / 新卡 / 平均几抽出一张 / 最长空档 / 当前连续，明细表有「距上次新卡」');
 ok(/function cardStarLabel\(/.test(s) && /const starLabel = cardStarLabel\(rawStar\);/.test(s),
   '星级码（1–5 / 霞光 23–25 / 幻狐 32–35）收进一个 cardStarLabel，话术与卡组页共用同一套写法');
-ok(/const CARD_GROUP_DEFAULT = \(\(\) => \{ const out = \[\]; for \(let g = 20101; g <= 20115; g\+\+\)/.test(s)
-  && /function cardJsonBlobs\(/.test(s) && /function cardGroupParseText\(/.test(s)
-  && /k \+ String\(i\)\.padStart\(2, '0'\)/.test(s) && /const canJudge = /.test(s),
-  '卡组收藏：默认 15 组（20101–20115）、组内 9 张按 id 推（组号 + 01…09）；一次能粘两个 JSON（卡组数据 + 未收集）');
+ok(/const CARD_GROUP_DATA = \{/.test(s) && (s.match(/"201\d{2}": \[/g) || []).length === 15
+  && /"20101": \["2010101", "2010102"/.test(s) && /"20115": \["2011501"/.test(s)
+  && /if \(CARD_GROUP_DATA\[k\] && CARD_GROUP_DATA\[k\]\.length\) return CARD_GROUP_DATA\[k\]\.slice\(\);/.test(s)
+  && /function cardJsonBlobs\(/.test(s) && /function cardGroupParseText\(/.test(s) && /const canJudge = /.test(s),
+  '卡组收藏：卡组数据**内置**（15 组 × 9 张，20101–20115），不粘也能画；粘贴那边只认「未收集表」（两个一起粘也认）');
 ok(/const allFull = parsed\.every\(g => g\.full\);/.test(s) && /if \(allFull\) allMap\[g\.key\] = g\.ids;/.test(s),
   '两个 JSON 靠「整段是不是整组 9 张」分开认：全整组 = 卡组数据，有零散 = 未收集表（整组都没收的组也不会被认错）');
 ok(/\.card-groups \{[\s\S]{0,200}?grid-template-columns: repeat\(3, minmax\(0, 1fr\)\);/.test(s)

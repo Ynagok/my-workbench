@@ -526,8 +526,8 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
   $('cardGroupInput').value = '未收集的卡组信息：' + JSON.stringify({ '20101': ['2010101', '2010105'] });
   $('cardGroupParseBtn').click();
   await sleep(80);
-  check(/收集进度：已解析/.test($('cardGroupHint').textContent),
-    '粘「未收集的卡组信息」→ 提示里认了收集进度', $('cardGroupHint').textContent);
+  check(/未收集表：已解析/.test($('cardGroupHint').textContent) && /卡组数据：内置 15 组/.test($('cardGroupHint').textContent),
+    '粘「未收集的卡组信息」→ 提示里认了未收集表，并写明卡组数据是内置的 15 组', $('cardGroupHint').textContent);
   check(/冲突\s*1\s*张/.test($('cardGroupChips').textContent),
     'CSV 里出现、却又在未收集表里 → 记 1 张冲突（以 CSV 为准）', $('cardGroupChips').textContent);
 
@@ -542,13 +542,24 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     unGroups[k] = [];
     for (let i = 1; i <= 9; i++) unGroups[k].push(k + String(i).padStart(2, '0'));
   });
-  $('cardGroupInput').value = JSON.stringify(allGroups) + '\n' + JSON.stringify(unGroups);
+  check(groupBtn('20102').querySelectorAll('.cg-bar i').length === 9
+    && groupBtn('20102').querySelector('.cg-count').textContent === '9/9',
+    '卡组数据内置：CSV 里没有 20102 的卡也能画出 9 张；未收集表没提这组 → 按「不在表里 = 已获得」算 9/9',
+    groupBtn('20102').textContent);
+  // 卡组数据已内置：只粘「未收集」就够
+  $('cardGroupInput').value = JSON.stringify(unGroups);
   $('cardGroupParseBtn').click();
   await sleep(80);
-  check(groupBtns().length === 18, '「卡组数据」+「未收集」一起粘 → 组数取并集 18 组', String(groupBtns().length));
+  check(groupBtns().length === 18, '只粘「未收集」+ 内置 15 组 → 并集 18 组', String(groupBtns().length));
   check(groupBtn('20101').querySelector('.cg-count').textContent === '8/9'
     && groupBtn('20116').querySelector('.cg-count').textContent === '0/9',
     '20101 组 8/9（只有 2010105 未收集）· 20116 组 0/9', groupBtn('20101').textContent);
+  // 把「卡组数据」也一起粘进来（老习惯）→ 仍然认，组数不变
+  $('cardGroupInput').value = JSON.stringify(allGroups) + '\n' + JSON.stringify(unGroups);
+  $('cardGroupParseBtn').click();
+  await sleep(80);
+  check(groupBtns().length === 18 && groupBtn('20101').querySelector('.cg-count').textContent === '8/9',
+    '把「卡组数据」也一起粘 → 照样认（内置的不会被搞乱）', String(groupBtns().length));
   $('cardGroupClearBtn').click();
   await sleep(80);
   check($('cardGroupGrid').children.length === 0 && $('cardGroupInput').value === '',
