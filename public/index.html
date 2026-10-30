@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="x-build" content="2026-10-30 我要烟牌-v7-明细秒">
+    <meta name="x-build" content="2026-10-30 我要烟牌-v8-卡片直观">
     <title>客服冷静演绎工作台</title>
     <link rel="icon" type="image/gif" href="/my-icon.gif">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1573,6 +1573,38 @@
             font-size: 10.5px;
             color: var(--ink-3);
             white-space: nowrap;
+        }
+
+        /* 一眼看出谁快：条越长越省抽（最快的满格） */
+        .odds-card .oc-bar {
+            height: 4px;
+            margin: 7px 2px 0;
+            border-radius: var(--r-pill);
+            background: var(--surface-3);
+            overflow: hidden;
+        }
+
+        .odds-card .oc-bar i {
+            display: block;
+            height: 100%;
+            border-radius: inherit;
+            background: var(--accent);
+            opacity: .75;
+        }
+
+        .odds-card.is-fast .oc-bar i {
+            opacity: 1;
+        }
+
+        .odds-card .oc-note {
+            margin-top: 4px;
+            font-size: 10px;
+            color: var(--ink-3);
+            white-space: nowrap;
+        }
+
+        .odds-card.is-x {
+            border-color: var(--line-1);
         }
 
         tr.odds-group td {
@@ -9498,6 +9530,14 @@
                                             if (v > 0 && v < fastVal) { fastVal = v; fastIdx = i; }
                                         });
                                         if (cards) {
+                                            // 条形长度按「越快越长」，**同一系列内部比**（普通 / 霞光 的口径不同，不混着比）：
+                                            // 该系列里最短的那张满格，其余按 最短÷自己 缩
+                                            const minNBySeries = {};
+                                            starCards.forEach(c => {
+                                                if (!(c.info.expectNum > 0)) return;
+                                                const s = c.rule.key.charAt(0);
+                                                minNBySeries[s] = Math.min(minNBySeries[s] || Infinity, c.info.expectNum);
+                                            });
                                             cards.innerHTML = starCards.map((c, i) => {
                                                 const rule = c.rule, info = c.info;
                                                 const series = rule.key.charAt(0) === 'x' ? '霞光' : rule.key.charAt(0) === 'h' ? '幻狐' : '';
@@ -9506,12 +9546,23 @@
                                                     + (info.expectNum ? '预计 ' + info.expectNum + ' 抽（' + info.fromText + '）' : '无保底规则（只给集齐上限）')
                                                     + (info.alt ? ' · 开普通包：' + info.alt.pack + ' 牌1 出霞光 ' + (Math.round(info.alt.p * 1000) / 10) + '%，正态近似期望 ≈' + info.alt.mean + ' 抽、约 84% 要 ' + info.alt.band + ' 抽' : '')
                                                     + ' · ' + cardPityRuleText(rule) + ' · ' + cardCapText(rule);
+                                                const seriesMin = minNBySeries[rule.key.charAt(0)];
+                                                const barPct = (info.expectNum > 0 && isFinite(seriesMin))
+                                                    ? Math.max(12, Math.round((seriesMin / info.expectNum) * 100))
+                                                    : 0;
+                                                // 这句说明「这个数是几抽一张什么」：普通星级是「出新卡」，每包必出的霞光五星是「必出一张（可能重复）」
+                                                const note = info.from === 'pack' ? '必出 1 张' : '出 1 张新卡';
                                                 const altLine = info.alt
                                                     ? '<div class="oc-alt">普通包 ≈' + escapeHtml(String(info.alt.mean)) + ' 抽</div>'
                                                     : '';
-                                                return '<div class="odds-card' + (i === fastIdx ? ' is-fast' : '') + '" title="' + escapeHtml(tip) + '">'
+                                                return '<div class="odds-card'
+                                                    + (i === fastIdx ? ' is-fast' : '')
+                                                    + (series ? (series === '霞光' ? ' is-x' : ' is-h') : '')
+                                                    + '" title="' + escapeHtml(tip) + '">'
                                                     + '<div class="oc-star">' + escapeHtml(starText) + '</div>'
                                                     + '<div class="oc-num">' + (info.expectNum ? escapeHtml(String(info.expectNum)) + '<i>抽</i>' : '—') + '</div>'
+                                                    + '<div class="oc-bar"><i style="width:' + barPct + '%;"></i></div>'
+                                                    + (info.expectNum ? '<div class="oc-note">' + escapeHtml(note) + '</div>' : '<div class="oc-note">没保底数据</div>')
                                                     + altLine
                                                     + '</div>';
                                             }).join('');

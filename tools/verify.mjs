@@ -112,7 +112,12 @@ ok(/🔥 我要烟牌~/.test(s) && /id="cardOddsCards"/.test(s) && /class="odds-
   && /table\.innerHTML = head \+ '<tbody>' \+ ruleRows \+ packTitleRow \+ packRows/.test(s)
   && !/id="cardPackOddsTable"/.test(s) && !/id="cardOddsHint"/.test(s),
   '「我要烟牌~」这一块：预计结果出小卡片（普通 5 + 霞光 3 + 幻狐 4，只有星级 + 预计几抽），保底规则 / 卡包说明 / 概率合到收起的**同一张表**里（旧的概率表与说明小字都撤了）');
-// 预计必须是整数：按玩家这份日志的实际开卡情况算，没数据才退回保底规则 / 每包必出
+// 预计卡片要「直观」：进度条 + 一句人话说明
+ok(/class="oc-bar"/.test(s) && /class="oc-note"/.test(s) && /minNBySeries/.test(s)
+  && /'抽 \/ 必出 1 张' : '抽 \/ 出 1 张新卡'|'必出 1 张' : '出 1 张新卡'/.test(s)
+  && /\.odds-card \.oc-bar \{/.test(s) && /\.odds-card \.oc-note \{/.test(s)
+  && /style="width:' \+ barPct \+ '%;"/.test(s),
+  '预计卡片更直观：每张一条进度条（**同系列内**最快那张满格、其余按比例缩短）+ 一句「出 1 张新卡 / 必出 1 张」说明这个数是什么');// 预计必须是整数：按玩家这份日志的实际开卡情况算，没数据才退回保底规则 / 每包必出
 ok(/n = Math\.max\(1, Math\.round\(pulls \/ t\.news\)\);/.test(s)
   && /n = rule\.pity \+ 1;/.test(s) && /n = 1;/.test(s) && /from = 'pack';/.test(s)
   && /from = 'log';/.test(s) && /from = 'rule';/.test(s)
