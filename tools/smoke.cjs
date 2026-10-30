@@ -539,16 +539,17 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     && ![...$('cardPityCard').querySelectorAll('label .card-sub')].some(el => /百戏锦囊说明/.test(el.textContent)),
     '这一块的标题就叫「我要烟牌~」，标题底下那行小字不显示');
   const oddsCards = [...$('cardOddsCards').querySelectorAll('.odds-card')];
-  check(oddsCards.length === 8 && oddsCards.every(c => /^(霞光)?[一二三四五]星(\d+抽已收集 \d+\/\d+)(普通包 ≈\d+ 抽\/张（含重复）)?$/.test(c.textContent))
-    && oddsCards[0].textContent === '五星2抽已收集 0/10' && oddsCards[1].textContent === '四星8抽已收集 1/18'
-    && oddsCards[2].textContent === '三星2抽已收集 3/22' && oddsCards[3].textContent === '二星6抽已收集 0/29'
-    && oddsCards[4].textContent === '一星6抽已收集 0/37',
-    '预计卡片：普通 5 个星级都在（五星 2 / 四星 8 / 三星 2 / 二星 6 / 一星 6），全是整数；'
+  check(oddsCards.length === 8 && oddsCards.every(c => /^(霞光)?[一二三四五]星(\d+(抽出新|抽)已收集 \d+\/\d+)(普通包 ≈\d+ 抽\/张（含重复）)?$/.test(c.textContent))
+    && oddsCards[0].textContent === '五星2抽出新已收集 0/10' && oddsCards[1].textContent === '四星8抽出新已收集 1/18'
+    && oddsCards[2].textContent === '三星2抽出新已收集 3/22' && oddsCards[3].textContent === '二星6抽出新已收集 0/29'
+    && oddsCards[4].textContent === '一星6抽出新已收集 0/37',
+    '预计卡片：普通 5 个星级都在（五星 2 / 四星 8 / 三星 2 / 二星 6 / 一星 6），大数字后面写「抽出新」、全是整数；'
     + '「已收集」按这份 CSV 解析（四星 1 张 / 三星 3 张）',
     oddsCards.map(c => c.textContent).join(' | '));
-  check(oddsCards[5].textContent === '霞光五星1抽已收集 0/8普通包 ≈6 抽/张（含重复）' && oddsCards[6].textContent === '霞光四星2抽已收集 0/6普通包 ≈13 抽/张（含重复）'
-    && oddsCards[7].textContent === '霞光三星5抽已收集 0/5普通包 ≈15 抽/张（含重复）',
-    '霞光两条路都算：霞光锦囊 1 / 2 / 5 抽，普通包（正态近似）≈6 / 13 / 15 抽',
+  check(oddsCards[5].textContent === '霞光五星1抽已收集 0/8普通包 ≈6 抽/张（含重复）' && oddsCards[6].textContent === '霞光四星2抽出新已收集 0/6普通包 ≈13 抽/张（含重复）'
+    && oddsCards[7].textContent === '霞光三星5抽出新已收集 0/5普通包 ≈15 抽/张（含重复）',
+    '霞光两条路都算：霞光锦囊 1 / 2 / 5 抽，普通包（正态近似）≈6 / 13 / 15 抽；'
+    + '五星霞光是「每包必出一张（含重复）」→ 只写「1抽」，四星/三星是算出来的 →「2/5 抽出新」',
     oddsCards.slice(5, 8).map(c => c.textContent).join(' | '));
   check(!/幻狐/.test($('cardOddsCards').textContent) && !/幻狐/.test($('cardOddsTable').textContent),
     '幻狐暂时不展示：卡片和收起表里都没有幻狐（数据还留在 CARD_DRAW_RULES 里）');
@@ -725,8 +726,8 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
   $('uploadCsvBtn').click();
   await sleep(250);
   const mixTexts = [...$('cardOddsCards').querySelectorAll('.odds-card')].map(c => c.textContent);
-  check(mixTexts[0] === '五星2抽已收集 0/10' && mixTexts[1] === '四星2抽已收集 3/18'
-    && mixTexts[2] === '三星27抽已收集 0/22' && mixTexts[3] === '二星10抽已收集 0/29'
+  check(mixTexts[0] === '五星2抽出新已收集 0/10' && mixTexts[1] === '四星2抽出新已收集 3/18'
+    && mixTexts[2] === '三星27抽出新已收集 0/22' && mixTexts[3] === '二星10抽出新已收集 0/29'
     && /规则 \+ 概率/.test($('cardOddsTable').textContent),
     '只开 5星百戏锦囊时，五星/三星/二星/一星也有预计（5星包掉的低星按概率算进来了）；重传 CSV 后收集情况自动跟着变（四星 3/18）',
     mixTexts.join(' | '));

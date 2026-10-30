@@ -124,8 +124,12 @@ ok(/class="oc-bar"/.test(s) && /class="oc-note"/.test(s)
   && /const barPct = stat\.pct;/.test(s)
   && !/id="cardStarStatInput"/.test(s) && !/cardStarStatParse/.test(s)
   && !/cardStarStatRun/.test(s) && !/cardStarStatClear/.test(s)
-  && /\.odds-card \.oc-bar \{/.test(s) && /style="width:' \+ barPct \+ '%;"/.test(s),
-  '卡片进度条 = **该星级的收集率**（全部张数内置 CARD_STAR_TOTAL 共 135 张；「拥有」直接从抽卡 CSV 解析 —— 不用粘 GM 表）；卡片下方写「已收集 X/Y」，收集率最高的那格高亮');
+  && /\.odds-card \.oc-bar \{/.test(s) && /style="width:' \+ barPct \+ '%;"/.test(s)
+  // 卡片上的大数字后面仍要写清「几抽出新」（用户：「卡片上几抽出新还是要的」）
+  // —— 算出来的写「抽出新」；「每包必出一张、含重复」那条路（五星霞光）只写「抽」
+  && /const unitText = info\.from === 'pack' \? '抽' : '抽出新';/.test(s)
+  && /\+ '<i>' \+ unitText \+ '<\/i>'/.test(s),
+  '卡片进度条 = **该星级的收集率**（全部张数内置 CARD_STAR_TOTAL 共 135 张；「拥有」直接从抽卡 CSV 解析 —— 不用粘 GM 表）；卡片下方写「已收集 X/Y」，收集率最高的那格高亮；大数字后面写「抽出新」（每包必出那条路只写「抽」）');
 // 预计 = 数学预测模型（卡包概率 × 保底规则 × 玩家重复率），结果取整；卡片上不再写「模型」字样（2026-10 用户要求）
 ok(/let perPull = 0;/.test(s) && /if \(mix && mix\.perPull && mix\.perPull\[rule\.key\] > 0\)/.test(s)
   && /else if \(seen > 0 && pulls > 0\) perPull = seen \/ pulls;/.test(s)

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="x-build" content="2026-10-30 我要烟牌-v14-收集率按CSV解析">
+    <meta name="x-build" content="2026-10-30 我要烟牌-v15-卡片写抽出新">
     <title>客服冷静演绎工作台</title>
     <link rel="icon" type="image/gif" href="/my-icon.gif">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -9651,6 +9651,9 @@
                                                 const barPct = stat.pct;
                                                 // 卡片下方这行 = 该星级的收集进度（拥有 / 全部）
                                                 const note = '已收集 ' + stat.owned + '/' + stat.total;
+                                                // 大数字后面的单位：算出来的（规则 + 概率）写「抽出新」，
+                                                // 「每包必出一张」那条路（五星霞光）只写「抽」，免得把「含重复」说成出新
+                                                const unitText = info.from === 'pack' ? '抽' : '抽出新';
                                                 const altLine = info.alt
                                                     ? '<div class="oc-alt">普通包 ≈' + escapeHtml(String(info.alt.mean)) + ' 抽/张（含重复）</div>'
                                                     : '';
@@ -9659,7 +9662,7 @@
                                                     + (series ? (series === '霞光' ? ' is-x' : ' is-h') : '')
                                                     + '" title="' + escapeHtml(tip) + '">'
                                                     + '<div class="oc-star">' + escapeHtml(starText) + '</div>'
-                                                    + '<div class="oc-num">' + (info.expectNum ? escapeHtml(String(info.expectNum)) + '<i>抽</i>' : '—') + '</div>'
+                                                    + '<div class="oc-num">' + (info.expectNum ? escapeHtml(String(info.expectNum)) + '<i>' + unitText + '</i>' : '—') + '</div>'
                                                     + '<div class="oc-bar"><i style="width:' + barPct + '%;"></i></div>'
                                                     + (info.expectNum ? '<div class="oc-note">' + escapeHtml(note) + '</div>' : '<div class="oc-note">没保底数据</div>')
                                                     + altLine
