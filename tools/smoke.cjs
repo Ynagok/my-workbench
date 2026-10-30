@@ -531,12 +531,28 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     '同一抽里出两张新卡：组/张号与「距上次新卡 2 抽」都对',
     pityRows[2].textContent);
 
-  // 内置「百戏锦囊说明」：规则 / 概率 / 预计几抽出新卡
-  const oddsRows = () => [...$('cardOddsTable').querySelectorAll('tbody tr')];
+  // 内置「百戏锦囊说明」：预计几抽出新卡 = 5 个小卡片，规则 / 卡包说明 / 概率收在底下一张表里
+  check(/我要烟牌/.test($('cardPityCard').textContent)
+    && ![...$('cardPityCard').querySelectorAll('label .card-sub')].some(el => /百戏锦囊说明/.test(el.textContent)),
+    '这一块的标题就叫「我要烟牌~」，标题底下那行小字不显示');
+  const oddsCards = [...$('cardOddsCards').querySelectorAll('.odds-card')];
+  check(oddsCards.length === 5 && oddsCards[0].textContent === '五星2.4抽'
+    && oddsCards[4].textContent === '一星5.7抽',
+    '预计结果只出 5 个小卡片（五星…一星普通），卡片里只有星级 + 预计几抽',
+    oddsCards.map(c => c.textContent).join(' | '));
+  check(!/保底/.test($('cardOddsCards').textContent) && !$('cardOddsHint') && !$('cardPackOddsTable'),
+    '卡片里不再塞保底 / 期望 / 上限，底下那段说明小字与旧的概率表都撤了');
+  check(/集齐上限 ≠ 均匀分布/.test($('cardOddsChips').textContent)
+    && /只按保底规则推算/.test($('cardOddsChips').textContent),
+    '口径收在芯片里：集齐上限 ≠ 均匀分布 · 预计只按保底规则推算', $('cardOddsChips').textContent);
+  // 收起来的那一张表：12 条保底规则 + 14 种锦囊概率
+  const oddsRows = () => [...$('cardOddsTable').querySelectorAll('tbody tr')]
+    .filter(tr => !tr.classList.contains('odds-group') && !tr.classList.contains('pack-row'));
   const oddsRow = (label) => oddsRows().filter(tr => tr.children[0].textContent === label)[0] || { textContent: '' };
-  check(!!$('cardOddsTable') && oddsRows().length === 12
+  const oddsSheet = $('cardOddsTable').closest('details.stat-fold');
+  check(!!oddsSheet && oddsSheet.open === false && oddsRows().length === 12
     && /预计几抽出新卡/.test($('cardOddsTable').textContent),
-    '抽卡详情里内置了 12 个星级的「规则 / 预计几抽出新卡」表', String(oddsRows().length));
+    '保底规则 12 条收在底下的 details.stat-fold 里，默认不展开', String(oddsRows().length));
   check(/2\.4 抽/.test(oddsRow('五星普通').textContent),
     '五星普通：保底 1 张重复、单包 0.83 张 → 预计 2.4 抽一张新卡', oddsRow('五星普通').textContent);
   check(/5\.7 抽/.test(oddsRow('一星普通').textContent) && /5\.4 抽/.test(oddsRow('四星普通').textContent),
@@ -545,20 +561,18 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     && /8 包集齐 8 张 · 普通 5星包最多 48 包/.test(oddsRow('五星霞光').textContent),
     '五星霞光没有「连续 N 张重复」的保底规则 → 不给「6 抽」这种数，只写 8 包集齐 8 张 / 普通包最多 48 包',
     oddsRow('五星霞光').textContent);
-  check(/集齐上限 ≠ 均匀分布/.test($('cardOddsChips').textContent)
-    && /不是均匀分布/.test($('cardOddsHint').textContent),
-    '规则表上方与说明里都点明「集齐上限 ≠ 均匀分布」（48 包集齐 8 张 ≠ 每 6 抽一张）',
-    $('cardOddsChips').textContent);
   check(/概率未公布/.test(oddsRow('五星幻狐').textContent) && /概率未公布/.test(oddsRow('二星幻狐').textContent),
     '幻狐锦囊的概率页没公布 → 只给保底与活动上限', oddsRow('五星幻狐').textContent);
   check(/1\.7 抽（新 3 \/ 出 5）/.test(oddsRow('三星普通').textContent),
     '本日志实测列：三星普通 5 抽里出现 5 次、3 张新 → 1.7 抽', oddsRow('三星普通').textContent);
-  const packRows = [...$('cardPackOddsTable').querySelectorAll('tbody tr')];
-  check(packRows.length === 14 && /5星百戏超大锦囊/.test($('cardPackOddsTable').textContent)
-    && /83\.3%/.test($('cardPackOddsTable').textContent) && /牌2–4：/.test($('cardPackOddsTable').textContent),
-    '概率说明 14 种锦囊、牌位概率按原文数值内置（含 83.3% / 牌2–4 这种合并牌位）', String(packRows.length));
+  const packRows = [...$('cardOddsTable').querySelectorAll('tbody tr.pack-row')];
+  check(packRows.length === 14 && /卡包说明 · 每种锦囊的出货概率/.test($('cardOddsTable').textContent)
+    && /5星百戏超大锦囊/.test($('cardOddsTable').textContent)
+    && /83\.3%/.test($('cardOddsTable').textContent) && /牌2–4：/.test($('cardOddsTable').textContent),
+    '保底规则 + 卡包说明 + 概率在同一张表里（14 种锦囊按原文数值，含 83.3% / 牌2–4 这种合并牌位）',
+    String(packRows.length));
   check(/百戏锦囊说明/.test($('cardOddsChips').textContent) && /戏符/.test($('cardOddsChips').textContent),
-    '规则表上方写清数据来源与戏符点口径', $('cardOddsChips').textContent);
+    '这一块上方写清数据来源与戏符点口径', $('cardOddsChips').textContent);
 
   const groupBtns = () => [...$('cardGroupGrid').querySelectorAll('.card-group-btn')];
   const groupBtn = (key) => groupBtns().filter(b => b.dataset.group === key)[0];

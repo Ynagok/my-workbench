@@ -1518,6 +1518,52 @@
                     margin-bottom: 3px;
                 }
 
+        /* 「我要烟牌~」：预计几抽出新卡 = 5 个小卡片（一行 5 个，窄屏自动换行） */
+        .odds-cards {
+            display: grid;
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .odds-card {
+            padding: 10px 8px;
+            border: 1px solid var(--line-0);
+            border-radius: var(--r-md);
+            background: var(--surface-2);
+            text-align: center;
+        }
+
+        .odds-card .oc-star {
+            font-size: 12px;
+            color: var(--ink-2);
+            letter-spacing: .06em;
+        }
+
+        .odds-card .oc-num {
+            margin-top: 4px;
+            font-family: var(--ak-mono, ui-monospace, Consolas, monospace);
+            font-size: 20px;
+            font-weight: 700;
+            line-height: 1.1;
+            color: var(--accent-ink);
+        }
+
+        .odds-card .oc-num i {
+            font-style: normal;
+            font-size: 11px;
+            font-weight: 400;
+            margin-left: 2px;
+            color: var(--ink-3);
+        }
+
+        tr.odds-group td {
+            background: var(--surface-3) !important;
+            color: var(--accent-ink);
+            font-weight: 600;
+            letter-spacing: .04em;
+        }
+
         .card-groups {
             display: grid;
             grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -4359,16 +4405,13 @@
                     </div>
                 </div>
                 <div id="cardPityHint" class="hint-text">上传集卡 CSV 后，这里出「几抽出新卡」的分布图和明细。</div>
-                <label style="font-size:12.5px;margin-top:14px;">📐 规则 · 概率 · 预计几抽出新卡 <span class="card-sub">内置「百戏锦囊说明」的基本规则与概率说明</span></label>
+                <label style="font-size:12.5px;margin-top:14px;">🔥 我要烟牌~</label>
                 <div class="stat-chips" id="cardOddsChips"></div>
-                <div class="career-scroll" style="max-height:340px;">
-                    <table class="career-table" id="cardOddsTable"></table>
-                </div>
-                <div id="cardOddsHint" class="hint-text">预计 = （保底连续重复张数 + 1）÷ 单包期望张数，按保底最坏情况估；实际看手气，活动结束所有指标重置。</div>
+                <div class="odds-cards" id="cardOddsCards"></div>
                 <details class="stat-fold">
-                    <summary>📦 每种锦囊的出货概率（概率说明原文数值）</summary>
-                    <div class="career-scroll" style="max-height:340px;">
-                        <table class="career-table" id="cardPackOddsTable"></table>
+                    <summary>📦 保底规则 · 卡包说明 · 概率（点开看）</summary>
+                    <div class="career-scroll" style="max-height:460px;">
+                        <table class="career-table" id="cardOddsTable"></table>
                     </div>
                 </details>
             </div>
@@ -9347,11 +9390,30 @@
                                         return own + ' · ' + (rule.capAltPack || '普通包') + '最多 ' + rule.capAlt + ' 包';
                                     }
 
+                                    // 一条规则算出来的东西（卡片和收起里的表共用同一份口径）
+                                    function cardRuleInfo(rule) {
+                                        const label = rule.star + '星' + (rule.key.charAt(0) === 'x' ? '霞光' : rule.key.charAt(0) === 'h' ? '幻狐' : '普通');
+                                        const packs = rule.routes.map(r => ({ pack: r.pack, note: r.note || '', p: cardPackExpect(r.pack, label) }));
+                                        const usable = packs.filter(x => x.p > 0);
+                                        const expectText = !usable.length
+                                            ? '概率未公布'
+                                            : (rule.pity
+                                                ? usable.map(x => cardNum1((rule.pity + 1) / x.p) + ' 抽'
+                                                    + (x.note ? '（' + x.note + '）' : '')).join(' / ')
+                                                : '无保底规则（只给集齐上限）');
+                                        const pText = usable.length
+                                            ? usable.map(x => String(Math.round(x.p * 100) / 100)).join(' / ')
+                                            : '—';
+                                        return {
+                                            label: label, usable: usable, expectText: expectText, pText: pText,
+                                            expectOne: (usable.length && rule.pity) ? cardNum1((rule.pity + 1) / usable[0].p) : '',
+                                        };
+                                    }
+
                                     function cardOddsRender(model) {
                                         const chips = document.getElementById('cardOddsChips');
+                                        const cards = document.getElementById('cardOddsCards');
                                         const table = document.getElementById('cardOddsTable');
-                                        const packTable = document.getElementById('cardPackOddsTable');
-                                        const hint = document.getElementById('cardOddsHint');
                                         if (!chips || !table) return;
                                         const pulls = (model && model.totalPulls) || 0;
                                         const tier = cardTierCounts(model);
@@ -9362,56 +9424,51 @@
                                             cardChipHtml('预计只按保底规则推算', 'k-plain', '只有写了「连续 N 张重复 → 下一张必新」的星级才算得出；没有保底规则的（如五星霞光）只给集齐上限'),
                                         ].join('');
 
+                                        // 预计结果 = 5 个小卡片（一星…五星普通；霞光/幻狐在下面收起的表里看）
+                                        const starCn = ['一', '二', '三', '四', '五'];
+                                        if (cards) {
+                                            cards.innerHTML = CARD_DRAW_RULES.filter(rule => rule.key.charAt(0) === 's').map(rule => {
+                                                const info = cardRuleInfo(rule);
+                                                const tip = info.label + '：预计 ' + info.expectText + ' · ' + cardPityRuleText(rule)
+                                                    + ' · ' + cardCapText(rule);
+                                                return '<div class="odds-card" title="' + escapeHtml(tip) + '">'
+                                                    + '<div class="oc-star">' + escapeHtml((starCn[rule.star - 1] || rule.star) + '星') + '</div>'
+                                                    + '<div class="oc-num">' + escapeHtml(info.expectOne || '—') + '<i>抽</i></div>'
+                                                    + '</div>';
+                                            }).join('');
+                                        }
+
+                                        // 收起来的那张表：保底规则 + 卡包（锦囊）说明 + 概率，全在一张表里
                                         const head = '<thead><tr><th>星级</th><th>保底</th><th>单包期望</th><th>预计几抽出新卡</th><th>活动上限</th><th>本日志实测</th></tr></thead>';
-                                        const body = CARD_DRAW_RULES.map(rule => {
-                                            const label = rule.star + '星' + (rule.key.charAt(0) === 'x' ? '霞光' : rule.key.charAt(0) === 'h' ? '幻狐' : '普通');
-                                            const packs = rule.routes.map(r => {
-                                                const p = cardPackExpect(r.pack, label);
-                                                return { pack: r.pack, note: r.note || '', p: p };
-                                            });
-                                            const usable = packs.filter(x => x.p > 0);
-                                            const expectText = !usable.length
-                                                ? '概率未公布'
-                                                : (rule.pity
-                                                    ? usable.map(x => cardNum1((rule.pity + 1) / x.p) + ' 抽'
-                                                        + (x.note ? '（' + x.note + '）' : '')).join(' / ')
-                                                    : '无保底规则（只给集齐上限）');
-                                            const pText = usable.length
-                                                ? usable.map(x => String(Math.round(x.p * 100) / 100)).join(' / ')
-                                                : '—';
+                                        const ruleRows = CARD_DRAW_RULES.map(rule => {
+                                            const info = cardRuleInfo(rule);
                                             const t = tier[rule.key];
                                             const realText = (t && t.news)
                                                 ? cardNum1(pulls / t.news) + ' 抽（新 ' + t.news + ' / 出 ' + t.seen + '）'
                                                 : (t && t.seen ? '还没出过新卡（出现 ' + t.seen + ' 次）' : '—');
                                             return '<tr><td><b>' + escapeHtml(rule.label) + '</b></td>'
                                                 + '<td>' + escapeHtml(cardPityRuleText(rule)) + '</td>'
-                                                + '<td>' + escapeHtml(pText) + ' 张</td>'
-                                                + '<td>' + escapeHtml(expectText) + '</td>'
+                                                + '<td>' + escapeHtml(info.pText) + ' 张</td>'
+                                                + '<td>' + escapeHtml(info.expectText) + '</td>'
                                                 + '<td>' + escapeHtml(cardCapText(rule)) + '</td>'
                                                 + '<td>' + escapeHtml(realText) + '</td></tr>';
                                         }).join('');
-                                        table.innerHTML = head + '<tbody>' + body + '</tbody>';
-
-                                        if (packTable) {
-                                            const pHead = '<thead><tr><th>锦囊</th><th>开牌数</th><th>各牌位概率（原文数值）</th></tr></thead>';
-                                            const pBody = CARD_PACK_ODDS.map(pack => {
-                                                let idx = 1;
-                                                const parts = pack.slots.map(slot => {
-                                                    const from = idx;
-                                                    idx += slot.n;
-                                                    const to = idx - 1;
-                                                    const pos = from === to ? ('牌' + from) : ('牌' + from + '–' + to);
-                                                    return pos + '：' + slot.opts.map(o => o[0] + ' ' + o[1] + '%').join(' / ');
-                                                });
-                                                return '<tr><td><b>' + escapeHtml(pack.name) + '</b></td><td>' + pack.cards + ' 张</td><td>' + escapeHtml(parts.join('；')) + '</td></tr>';
-                                            }).join('');
-                                            packTable.innerHTML = pHead + '<tbody>' + pBody + '</tbody>';
-                                        }
-                                        if (hint) {
-                                            hint.textContent = '「预计几抽出新卡」= （保底连续重复张数 + 1）÷ 单包期望张数，按保底最坏情况估，只对写了「连续 N 张重复 → 下一张必新」的星级成立；'
-                                                + '「活动上限」是文档里的保底上限（最多开几包集齐一系列），不是均匀分布 —— 比如五星霞光最多 48 个普通 5星包集齐 8 张，前几抽更容易出、别按 6 抽一张算。'
-                                                + '幻狐锦囊的概率说明页没公布，所以只给保底与活动上限。';
-                                        }
+                                        const packTitleRow = '<tr class="odds-group"><td colspan="6">'
+                                            + '卡包说明 · 每种锦囊的出货概率（概率说明原文数值）</td></tr>';
+                                        const packRows = CARD_PACK_ODDS.map(pack => {
+                                            let idx = 1;
+                                            const parts = pack.slots.map(slot => {
+                                                const from = idx;
+                                                idx += slot.n;
+                                                const to = idx - 1;
+                                                const pos = from === to ? ('牌' + from) : ('牌' + from + '–' + to);
+                                                return pos + '：' + slot.opts.map(o => o[0] + ' ' + o[1] + '%').join(' / ');
+                                            });
+                                            return '<tr class="pack-row"><td><b>' + escapeHtml(pack.name) + '</b></td>'
+                                                + '<td>' + pack.cards + ' 张</td>'
+                                                + '<td colspan="4">' + escapeHtml(parts.join('；')) + '</td></tr>';
+                                        }).join('');
+                                        table.innerHTML = head + '<tbody>' + ruleRows + packTitleRow + packRows + '</tbody>';
                                     }
 
                                     // ---------------- 卡组收藏（按游戏内卡牌页：15 组 × 9 张）----------------
