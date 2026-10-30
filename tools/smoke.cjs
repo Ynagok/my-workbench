@@ -539,14 +539,14 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     && ![...$('cardPityCard').querySelectorAll('label .card-sub')].some(el => /百戏锦囊说明/.test(el.textContent)),
     '这一块的标题就叫「我要烟牌~」，标题底下那行小字不显示');
   const oddsCards = [...$('cardOddsCards').querySelectorAll('.odds-card')];
-  check(oddsCards.length === 8 && oddsCards.every(c => /^(霞光)?[一二三四五]星(\d+抽(出 1 张新卡|必出 1 张)|—没保底数据)(普通包 ≈\d+ 抽\/张（含重复）)?$/.test(c.textContent))
-    && oddsCards[0].textContent === '五星2抽出 1 张新卡' && oddsCards[1].textContent === '四星5抽出 1 张新卡'
-    && oddsCards[2].textContent === '三星2抽出 1 张新卡' && oddsCards[3].textContent === '二星8抽出 1 张新卡'
-    && oddsCards[4].textContent === '一星10抽出 1 张新卡',
-    '预计卡片：普通 5 个星级都在（五星 2 / 四星 5 / 三星 2 / 二星 8 / 一星 10），全是整数',
+  check(oddsCards.length === 8 && oddsCards.every(c => /^(霞光)?[一二三四五]星(\d+抽(出 1 张新卡(（模型）)?|必出 1 张)|—没保底数据)(普通包 ≈\d+ 抽\/张（含重复）)?$/.test(c.textContent))
+    && oddsCards[0].textContent === '五星2抽出 1 张新卡（模型）' && oddsCards[1].textContent === '四星8抽出 1 张新卡（模型）'
+    && oddsCards[2].textContent === '三星2抽出 1 张新卡（模型）' && oddsCards[3].textContent === '二星6抽出 1 张新卡（模型）'
+    && oddsCards[4].textContent === '一星6抽出 1 张新卡（模型）',
+    '预计卡片：普通 5 个星级都在（五星 2 / 四星 8 / 三星 2 / 二星 6 / 一星 6），全是整数',
     oddsCards.map(c => c.textContent).join(' | '));
-  check(oddsCards[5].textContent === '霞光五星1抽必出 1 张普通包 ≈6 抽/张（含重复）' && oddsCards[6].textContent === '霞光四星2抽出 1 张新卡普通包 ≈13 抽/张（含重复）'
-    && oddsCards[7].textContent === '霞光三星5抽出 1 张新卡普通包 ≈15 抽/张（含重复）',
+  check(oddsCards[5].textContent === '霞光五星1抽必出 1 张普通包 ≈6 抽/张（含重复）' && oddsCards[6].textContent === '霞光四星2抽出 1 张新卡（模型）普通包 ≈13 抽/张（含重复）'
+    && oddsCards[7].textContent === '霞光三星5抽出 1 张新卡（模型）普通包 ≈15 抽/张（含重复）',
     '霞光两条路都算：霞光锦囊 1 / 2 / 5 抽，普通包（正态近似）≈6 / 13 / 15 抽',
     oddsCards.slice(5, 8).map(c => c.textContent).join(' | '));
   check(!/幻狐/.test($('cardOddsCards').textContent) && !/幻狐/.test($('cardOddsTable').textContent),
@@ -554,14 +554,14 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
   check(!/保底/.test($('cardOddsCards').textContent) && !$('cardOddsHint') && !$('cardPackOddsTable'),
     '卡片里不再塞保底 / 期望 / 上限，底下那段说明小字与旧的概率表都撤了');
   const fastCards = [...$('cardOddsCards').querySelectorAll('.odds-card.is-fast')];
-  check(fastCards.length === 1 && fastCards[0].textContent === '五星2抽出 1 张新卡',
+  check(fastCards.length === 1 && fastCards[0].textContent === '五星2抽出 1 张新卡（模型）',
     '最快的普通星级（五星 2 抽）单独标成 is-fast（霞光不参与比较）', fastCards.map(c => c.textContent).join(' | '));
   const barWidths = oddsCards.map(c => (c.querySelector('.oc-bar i') || {}).style ? c.querySelector('.oc-bar i').style.width : '');
   check(barWidths[0] === '100%' && barWidths[5] === '100%' && barWidths.every(w => /^\d+%$/.test(w)),
     '每张卡片都有进度条，系列内最快的那张满格（普通五星 / 霞光五星 都是 100%），其余按比例缩短',
     barWidths.join(' | '));
-  check(/预计取整数/.test($('cardOddsChips').textContent),
-    '口径芯片写明「预计取整数」及其依据', $('cardOddsChips').textContent);
+  check(/预计 = 规则 \+ 概率模型/.test($('cardOddsChips').textContent),
+    '口径芯片写明「预计 = 规则 + 概率模型」及其依据', $('cardOddsChips').textContent);
   // 收起来的那一张表：8 条保底规则（幻狐先不展示）+ 14 种锦囊概率
   const oddsRows = () => [...$('cardOddsTable').querySelectorAll('tbody tr')]
     .filter(tr => !tr.classList.contains('odds-group') && !tr.classList.contains('pack-row'));
@@ -570,11 +570,12 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
   check(!!oddsSheet && oddsSheet.open === false && oddsRows().length === 8
     && /预计几抽出新卡/.test($('cardOddsTable').textContent),
     '保底规则 8 条（普通 5 + 霞光 3，幻狐先不展示）收在底下的 details.stat-fold 里，默认不展开', String(oddsRows().length));
-  check(/2 抽（按保底规则）/.test(oddsRow('五星普通').textContent),
-    '五星普通：日志里还没出过五星新卡 → 预计按保底规则 = 2 抽（1 张重复 + 1）', oddsRow('五星普通').textContent);
-  check(/10 抽（按保底规则）/.test(oddsRow('一星普通').textContent)
-    && /5 抽（本日志实测）/.test(oddsRow('四星普通').textContent),
-    '一星普通按保底 10 抽 · 四星普通按实测 5 抽（表里标明依据、都是整数）', oddsRow('一星普通').textContent);
+  check(/2 抽（规则 \+ 概率模型）/.test(oddsRow('五星普通').textContent)
+    && /每抽 0\.833 张 × 2 张\/新卡（没重复率数据，按保底最坏算）/.test(oddsRow('五星普通').textContent),
+    '五星普通：没出过五星新卡 → 按模型（每抽 0.83 张 × 保底最坏 2 张/新卡）≈ 2 抽', oddsRow('五星普通').textContent);
+  check(/6 抽（规则 \+ 概率模型）/.test(oddsRow('一星普通').textContent)
+    && /8 抽（规则 \+ 概率模型）/.test(oddsRow('四星普通').textContent),
+    '一星普通 6 抽 · 四星普通 8 抽（都是模型算出来的整数，且标了依据）', oddsRow('一星普通').textContent);
   check(/1 抽（每包必出，重复也算）/.test(oddsRow('五星霞光').textContent)
     && /普通包 ≈6 抽\/张（牌1 16\.7%，\*\*含重复\*\*；约 84% 要 11 抽；集齐 8 张最坏 48 包）/.test(oddsRow('五星霞光').textContent)
     && /8 包集齐 8 张 · 普通 5星包最多 48 包/.test(oddsRow('五星霞光').textContent),
@@ -721,10 +722,10 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
   $('uploadCsvBtn').click();
   await sleep(250);
   const mixTexts = [...$('cardOddsCards').querySelectorAll('.odds-card')].map(c => c.textContent);
-  check(mixTexts[0] === '五星1抽出 1 张（含重复）' && mixTexts[1] === '四星4抽出 1 张新卡'
-    && mixTexts[2] === '三星4抽出 1 张（含重复）' && mixTexts[3] === '二星1抽出 1 张（含重复）'
-    && /按你开过的卡包加权（含重复）/.test($('cardOddsTable').textContent),
-    '只开 5星百戏锦囊时，五星/三星/二星/一星也有预计（4星包掉的低星算进来了，按卡包加权取整）',
+  check(mixTexts[0] === '五星2抽出 1 张新卡（模型）' && mixTexts[1] === '四星2抽出 1 张新卡（模型）'
+    && mixTexts[2] === '三星27抽出 1 张新卡（模型）' && mixTexts[3] === '二星10抽出 1 张新卡（模型）'
+    && /规则 \+ 概率模型/.test($('cardOddsTable').textContent),
+    '只开 5星百戏锦囊时，五星/三星/二星/一星也有预计（5星包掉的低星按概率算进来了）',
     mixTexts.join(' | '));
   check(posts.length === postsBeforeCard2, '抽卡详情 / 卡组收藏全程只在本机（0 请求）',
     posts.slice(postsBeforeCard2).map(p => p.url).join(' | '));

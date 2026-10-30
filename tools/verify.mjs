@@ -118,13 +118,16 @@ ok(/class="oc-bar"/.test(s) && /class="oc-note"/.test(s) && /minNBySeries/.test(
   && /'必出 1 张'[\s\S]{0,400}?'出 1 张新卡'/.test(s)
   && /\.odds-card \.oc-bar \{/.test(s) && /\.odds-card \.oc-note \{/.test(s)
   && /style="width:' \+ barPct \+ '%;"/.test(s),
-  '预计卡片更直观：每张一条进度条（**同系列内**最快那张满格、其余按比例缩短）+ 一句「出 1 张新卡 / 必出 1 张」说明这个数是什么');// 预计必须是整数：按玩家这份日志的实际开卡情况算，没数据才退回保底规则 / 每包必出
-ok(/n = Math\.max\(1, Math\.round\(pulls \/ t\.news\)\);/.test(s)
-  && /n = rule\.pity \+ 1;/.test(s) && /n = 1;/.test(s) && /from = 'pack';/.test(s)
-  && /from = 'log';/.test(s) && /from = 'rule';/.test(s)
-  && /'本日志实测' : from === 'mix' \? '按你开过的卡包加权（含重复）' : from === 'pack' \? '每包必出' : '按保底规则'/.test(s)
-  && /预计取整数/.test(s),
-  '「预计几抽出新卡」= **整数**：优先按玩家日志实测（总抽数 ÷ 该星级新卡数，四舍五入、至少 1 抽），没出过该星级新卡时按保底规则（pity + 1），每包必出的星级（霞光五星）按 1 抽，并在表里标明依据');
+  '预计卡片更直观：每张一条进度条（**同系列内**最快那张满格、其余按比例缩短）+ 一句「出 1 张新卡 / 必出 1 张」说明这个数是什么');// 预计 = 数学预测模型（卡包概率 × 保底规则 × 玩家重复率），结果取整
+ok(/let perPull = 0;/.test(s) && /if \(mix && mix\.perPull && mix\.perPull\[rule\.key\] > 0\)/.test(s)
+  && /else if \(seen > 0 && pulls > 0\) perPull = seen \/ pulls;/.test(s)
+  && /const dupRate = seen > 0 \? \(Math\.max\(0, seen - news\) \+ 2\) \/ \(seen \+ 4\) : null;/.test(s)
+  && /cardsPerNew = \(1 - Math\.pow\(dupRate, rule\.pity \+ 1\)\) \/ \(1 - dupRate\);/.test(s)
+  && /else cardsPerNew = 1 \/ \(1 - dupRate\);/.test(s)
+  && /if \(dupRate === null\) cardsPerNew = rule\.pity \? rule\.pity \+ 1 : 0;/.test(s)
+  && /n = Math\.max\(1, Math\.round\(cardsPerNew \/ perPull\)\);/.test(s)
+  && /from = 'model';/.test(s) && /预计 = 规则 \+ 概率模型/.test(s),
+  '「预计几抽出新卡」= **数学预测模型**：每抽该星级张数（按开过的卡包加权、含别的星级卡包）× 拿到 1 张新卡平均要摸几张（保底 pity 与日志重复率的几何期望 (1−d^(p+1))/(1−d)），结果取整、至少 1 抽，并在表里写出「每抽 X 张 × Y 张/新卡」');
 // 新卡明细的时间要带秒
 ok(/function cardTimeFull\(ms\)/.test(s) && /return base \+ ':' \+ sec;/.test(s)
   && /ms: row\.ms, timeText: cardTimeFull\(row\.ms\)/.test(s),

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="x-build" content="2026-10-30 我要烟牌-v11-卡包加权">
+    <meta name="x-build" content="2026-10-30 我要烟牌-v12-预测模型">
     <title>客服冷静演绎工作台</title>
     <link rel="icon" type="image/gif" href="/my-icon.gif">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -9484,7 +9484,9 @@
                                                 packs[rule.key][row.packName] = (packs[rule.key][row.packName] || 0) + 1;
                                             });
                                         });
-                                        return { pulls: n, total: total, packs: packs };
+                                        const perPull = {};
+                                        Object.keys(total).forEach(k => { if (n > 0) perPull[k] = total[k] / n; });
+                                        return { pulls: n, total: total, perPull: perPull, packs: packs };
                                     }
 
                                     // 一条规则算出来的东西（卡片和收起里的表共用同一份口径）
@@ -9498,23 +9500,43 @@
                                             ? usable.map(x => String(Math.round(x.p * 100) / 100)).join(' / ')
                                             : '—（概率未公布）';
                                         const t = (tier || {})[rule.key];
+                                        const seen = t ? (t.seen || 0) : 0;
+                                        const news = t ? (t.news || 0) : 0;
+
+                                        // ① 每抽平均能摸到几张「该星级」的牌（**含别的星级卡包掉这个星级**）：
+                                        //    有卡包组合 → 按概率表加权；日志里见过 → 用日志频率；都没有 → 用参考锦囊的单包期望。
+                                        let perPull = 0;
+                                        if (mix && mix.perPull && mix.perPull[rule.key] > 0) perPull = mix.perPull[rule.key];
+                                        else if (seen > 0 && pulls > 0) perPull = seen / pulls;
+                                        else perPull = usable.reduce((m, x) => Math.max(m, x.p), 0);
+                                        perPull = Math.round(perPull * 1000) / 1000;
+
+                                        // ② 摸到的这张牌「是重复」的概率：用日志估，样本少就朝最坏情况（全重复）收缩 +2 / +4。
+                                        const dupRate = seen > 0 ? (Math.max(0, seen - news) + 2) / (seen + 4) : null;
+
+                                        // ③ 拿到 1 张新卡，平均要先摸到几张该星级的牌：
+                                        //    有保底 → 最多连 pity 张重复，期望 = 1 + d + d² + … + d^pity = (1 − d^(pity+1)) / (1 − d)
+                                        //    没保底 → 纯几何 = 1 / (1 − d)；没有重复率数据 → 按保底最坏情况 pity + 1
+                                        let cardsPerNew = 0;
+                                        if (dupRate === null) cardsPerNew = rule.pity ? rule.pity + 1 : 0;
+                                        else if (dupRate <= 0) cardsPerNew = 1;
+                                        else if (rule.pity) cardsPerNew = (1 - Math.pow(dupRate, rule.pity + 1)) / (1 - dupRate);
+                                        else cardsPerNew = 1 / (1 - dupRate);
+
                                         let n = 0, from = '';
-                                        const mixN = mix && mix.total ? mix.total[rule.key] : 0;
-                                        if (t && t.news) {
-                                            n = Math.max(1, Math.round(pulls / t.news));
-                                            from = 'log';
-                                        } else if (mixN > 0 && mix.pulls > 0) {
-                                            n = Math.max(1, Math.round(mix.pulls / mixN));
-                                            from = 'mix';
-                                        } else if (rule.pity) {
-                                            n = rule.pity + 1;
-                                            from = 'rule';
+                                        if (perPull > 0 && cardsPerNew > 0) {
+                                            n = Math.max(1, Math.round(cardsPerNew / perPull));
+                                            from = 'model';
                                         } else if (rule.routes.length) {
-                                            // pity 0 且有参考锦囊 → 该锦囊每包必出一张该星级（可能是重复，重复换戏符点）
+                                            // pity 0 又没有重复率数据 → 只能给「该锦囊每包必出一张」（含重复）
                                             n = 1;
                                             from = 'pack';
                                         }
-                                        const fromText = from === 'log' ? '本日志实测' : from === 'mix' ? '按你开过的卡包加权（含重复）' : from === 'pack' ? '每包必出' : '按保底规则';
+                                        const fromText = from === 'model' ? '规则 + 概率模型' : from === 'pack' ? '每包必出' : '按保底规则';
+                                        const detail = from === 'model'
+                                            ? ('每抽 ' + perPull + ' 张 × ' + (Math.round(cardsPerNew * 10) / 10) + ' 张/新卡')
+                                                + (dupRate === null ? '（没重复率数据，按保底最坏算）' : '（重复率 ' + Math.round(dupRate * 100) + '%）')
+                                            : '';
                                         // 霞光还有第二条路：开**同星级的普通包**也可能出霞光（概率说明里牌1 的那一小档）。
                                         // 这条没有保底，按正态近似算：等待时间 ~ 均值 1/p、标准差 √(1−p)/p
                                         //   期望抽数 = round(1/p)（至少 1），约 84% 概率能拿到 = round(1/p + 标准差)
@@ -9533,7 +9555,7 @@
                                             };
                                         })();
                                         const expectText = (n
-                                            ? (n + ' 抽（' + fromText + (from === 'pack' ? '，重复也算' : '') + '）')
+                                            ? (n + ' 抽（' + fromText + (from === 'pack' ? '，重复也算' : '') + '）' + (detail ? '\n' + detail : ''))
                                             : '无保底规则（只给集齐上限）')
                                             + (alt ? '\n普通包 ≈' + alt.mean + ' 抽/张（牌1 ' + Math.round(alt.p * 1000) / 10 + '%，**含重复**；约 84% 要 ' + alt.band + ' 抽；集齐 ' + (rule.series || 8) + ' 张最坏 ' + (rule.capAlt || 48) + ' 包）' : '');
                                         return {
@@ -9555,7 +9577,7 @@
                                             cardChipHtml('数据来源：百戏锦囊说明', 'k-plain', '基本规则 + 概率说明（2026-10 用户提供的活动说明页）'),
                                             cardChipHtml('重复牌换戏符：<b>1–5</b> 星 = 1–5 点', 'k-plain', '活动期间重复牌按星数等额换戏符点；活动结束戏符匣清零，不延续到下次'),
                                             cardChipHtml('集齐上限 ≠ 均匀分布', 'k-op', '「最多 N 包集齐一系列」只是保底上限：比如五星霞光最多 48 个普通 5星包集齐 8 张，不代表每 6 抽 1 张，前几抽通常更容易出'),
-                                            cardChipHtml('预计取整数', 'k-op', '按这份日志的实际开卡情况算（总抽数 ÷ 该星级新卡数，四舍五入、至少 1 抽）；还没出过该星级新卡时按保底规则的 pity + 1 抽；每包必出的星级（霞光五星）按 1 抽算，但可能是重复牌'),
+                                            cardChipHtml('预计 = 规则 + 概率模型', 'k-op', '每抽能摸到几张该星级牌（按你开过的卡包加权，别的星级卡包掉的也算）× 拿到 1 张新卡平均要摸几张（保底 pity 与日志里的重复率）；结果取整、至少 1 抽'),
                                             cardChipHtml('霞光两条路', 'k-plain', '霞光除了开霞光锦囊，开同星级的普通包也可能出（概率说明里牌1 的一小档）。普通包没有保底，按正态近似算：期望 ≈ 1÷该档概率，约 84% 概率要 期望 + 标准差'),
                                         ].join('');
 
@@ -9593,7 +9615,7 @@
                                                     : 0;
                                                 // 这句说明「这个数是几抽一张什么」：普通星级是「出新卡」，每包必出的霞光五星是「必出一张（可能重复）」
                                                 const note = info.from === 'pack' ? '必出 1 张'
-                                                    : info.from === 'mix' ? '出 1 张（含重复）'
+                                                    : info.from === 'model' ? '出 1 张新卡（模型）'
                                                     : '出 1 张新卡';
                                                 const altLine = info.alt
                                                     ? '<div class="oc-alt">普通包 ≈' + escapeHtml(String(info.alt.mean)) + ' 抽/张（含重复）</div>'
