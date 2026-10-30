@@ -516,12 +516,12 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     && /兑换重复点数写/.test($('cardSkipHint').textContent),
     '集卡话术不再跳过兑换记录（6 条：5 条开包 + 1 条兑换），抬头下面写明那条按「兑换重复点数」写',
     $('cardSkipHint').textContent + ' / ' + $('recordCount').textContent);
-  // 一次开包 61 张（星级 [1]）→ 话术写成「兑换重复卡牌 61 张，获得重复点数 61 点」，不再写成「开启【未知卡包】获得 61 张卡牌」
+  // 一次开包 61 张（星级 [1]）→ 话术只写「兑换重复点数 61 点」，不再写成「开启【未知卡包】获得 61 张卡牌」
   const cardSentences = $('cardResultArea').value.split('\n\n');
   const exSentence = cardSentences[cardSentences.length - 1] || '';
-  check(/^在2026\/11\/01 10:30:00，兑换重复卡牌 61 张，获得重复点数 61 点$/.test(exSentence)
-    && !/未知卡包/.test(exSentence) && !/开启/.test(exSentence),
-    '10 多张的记录话术 = 「兑换重复卡牌 N 张，获得重复点数 P 点」（P = 星级 × 张数），不写「开启【未知卡包】」',
+  check(/^在2026\/11\/01 10:30:00，兑换重复点数 61 点$/.test(exSentence)
+    && !/未知卡包/.test(exSentence) && !/开启/.test(exSentence) && !/张/.test(exSentence),
+    '10 多张的记录话术 = 「在<时间>，兑换重复点数 P 点」（P = 星级 × 张数），直接写点数、不写卡包也不写张数',
     exSentence);
   check(/平均\s*1\.3\s*抽/.test(pityChips()), '平均 1.3 抽出一张新卡（5 抽 ÷ 4 张）', pityChips());
   check(/最长空档\s*2\s*抽/.test(pityChips()) && /当前连续\s*0\s*抽/.test(pityChips()),

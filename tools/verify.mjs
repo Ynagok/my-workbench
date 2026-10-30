@@ -81,7 +81,7 @@ ok(/const CARD_EXCHANGE_MAX_CARDS = 10;/.test(s) && /function cardIsExchangeReco
   && /function generateCardExchangeSentence\(record\)/.test(s)
   && /return cardIsExchangeRecord\(r\) \? generateCardExchangeSentence\(r\) : generateCardSentence\(r\);/.test(s)
   && /const filtered = filterRecordsByStar\(allRecords, star\);/.test(s)
-  && /'，获得重复点数 ' \+ points \+ ' 点'/.test(s)
+  && /'兑换重复点数 ' \+ points \+ ' 点'/.test(s)
   && /const exchanges = filtered\.filter\(r => cardIsExchangeRecord\(r\)\)\.length;/.test(s)
   && /const exchanges = allRows\.filter\(r => r\.ids\.length > CARD_EXCHANGE_MAX_CARDS\);/.test(s)
   && /const rows = allRows\.filter\(r => r\.ids\.length <= CARD_EXCHANGE_MAX_CARDS\);/.test(s)

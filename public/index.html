@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="x-build" content="2026-10-30 我要烟牌-v16-兑换写重复点数">
+    <meta name="x-build" content="2026-10-30 我要烟牌-v17-只写兑换点数">
     <title>客服冷静演绎工作台</title>
     <link rel="icon" type="image/gif" href="/my-icon.gif">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -9105,9 +9105,9 @@
                                         return Object.keys(afterData).length > CARD_EXCHANGE_MAX_CARDS;
                                     }
 
-                                    // 兑换重复卡牌的话术（2026-10 用户：「开启【未知卡包】10多张的的话术应该为兑换重复点数」）：
-                                    // 这种记录不是开包，不写「开启【未知卡包】获得 N 张卡牌」，写成「兑换重复卡牌 N 张，获得重复点数 P 点」
-                                    // P = 每张按星级折算（1–5 星 = 1–5 点/张，跟 CARD_DUPE_POINTS 同一套）；星级码缺的时候取第一个补。
+                                    // 兑换重复卡牌的话术（2026-10 用户：「开启【未知卡包】10多张的的话术应该为兑换重复点数」，
+                                    // 随后又说「直接兑换重复点数就好」）→ 这一条只写「时间 + 兑换重复点数」，不写卡包、不写张数。
+                                    // 点数 = 每张按星级折算之和（1–5 星 = 1–5 点/张，跟 CARD_DUPE_POINTS 同一套）；星级码缺的时候取第一个补。
                                     function generateCardExchangeSentence(record) {
                                         const afterData = parseAfter(record['after']);
                                         const ids = Object.keys(afterData);
@@ -9119,8 +9119,9 @@
                                             if (star) points += (CARD_DUPE_POINTS[star] || 0);
                                         });
                                         const timeRaw = String(record['创建时间']).replace(/-/g, '/');
-                                        const raw = '在' + timeRaw + '，兑换重复卡牌 ' + ids.length + ' 张'
-                                            + (points ? '，获得重复点数 ' + points + ' 点' : '');
+                                        // 一个星级码都没有 → 算不出点数，退回写「兑换重复卡牌 N 张」（不瞎编点数）
+                                        const raw = '在' + timeRaw + '，'
+                                            + (points ? '兑换重复点数 ' + points + ' 点' : '兑换重复卡牌 ' + ids.length + ' 张');
                                         return { text: raw, html: escapeHtml(raw) };
                                     }
 
