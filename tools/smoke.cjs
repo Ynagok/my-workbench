@@ -492,13 +492,15 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
 
   $('dailyTabOverseas').click();          // 海外表单要先切过去才渲染
   await sleep(40);
-  check($('dailyFormOverseas').querySelectorAll('[data-key]').length === 17
+  check($('dailyFormOverseas').querySelectorAll('[data-key]').length === 19
     && !!$('dailyFormOverseas').querySelector('[data-key="fb_yl"]')
     && !!$('dailyFormOverseas').querySelector('[data-key="email_mh"]')
     && !!$('dailyFormOverseas').querySelector('[data-key="email_ajs"]')
     && !!$('dailyFormOverseas').querySelector('[data-key="email_yl"]')
+    && !!$('dailyFormOverseas').querySelector('[data-key="email_mnl"]')
+    && !!$('dailyFormOverseas').querySelector('[data-key="sdk_mnl"]')
     && !$('dailyFormOverseas').querySelector('[data-key="email"]'),
-    '海外日报表单 17 个字段（SDk 三项 + FB 梦幻/月光分开 + 邮箱梦幻/爱江山/月光分开）',
+    '海外日报表单 19 个字段（SDk 四项（含猫旅馆）+ FB 梦幻/月光分开 + 邮箱四项（含猫旅馆））',
     $('dailyFormOverseas').querySelectorAll('[data-key]').length);
 
   // 工单栏：g7=异世界群维系(3+1)、①②⑤群维系(只为只存档层)、sso=SSO国内(5)
@@ -582,10 +584,10 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     '工单侧只剩 2 个分组标题行（工单/后台〔含 CP后台 + 群维系〕· 在线客服）',
     doc.querySelectorAll('#careerSideTicket td.career-group-cell[colspan]').length);
   check(/SDk 明细/.test(sideOverseas) && /SDk工单·梦幻/.test(sideOverseas) && /SDk工单·爱江山/.test(sideOverseas)
-    && /SDk工单·月光/.test(sideOverseas),
-    '海外侧多出一组 SDk 三项明细（可分别查看）', sideOverseas.slice(-90));
-  check(doc.querySelectorAll('#careerSideOverseas tr.career-sub-row').length === 6,
-    'SDk 三项 + 邮箱三项明细各占一行（都是「其中项」，不重复计入合计）',
+    && /SDk工单·月光/.test(sideOverseas) && /SDk工单·猫旅馆/.test(sideOverseas),
+    '海外侧多出 SDk 明细（梦幻 / 爱江山 / 月光 / 猫旅馆，可分别查看）', sideOverseas.slice(-110));
+  check(doc.querySelectorAll('#careerSideOverseas tr.career-sub-row').length === 8,
+    'SDk / 邮箱明细各占一行（都是「其中项」，不重复计入合计），含猫旅馆',
     doc.querySelectorAll('#careerSideOverseas tr.career-sub-row').length);
   check(/邮箱明细/.test(sideOverseas) && /邮箱·梦幻/.test(sideOverseas) && /邮箱·爱江山/.test(sideOverseas)
     && /邮箱·月光/.test(sideOverseas),
@@ -1788,16 +1790,16 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     check(ovForm.querySelectorAll('.daily-group').length === 7,
       '海外日报分成 7 组（基础 / 评价来访 / 邮箱 / SDk / 工单 / 监控 / 群维系）', ovForm.querySelectorAll('.daily-group').length);
     const sdkKeys = Array.from(ovForm.querySelectorAll('[data-group="sdk"] [data-key]')).map(el => el.dataset.key);
-    check(sdkKeys.join(',') === 'sdk_mh,sdk_ajs,sdk_yl',
-      'SDk 工单三项在同一片里（梦幻 / 爱江山 / 月光）', sdkKeys.join(','));
-    check(ovForm.querySelectorAll('[data-key]').length === 17,
-      '海外 17 个字段都在（分组没吞字段）', ovForm.querySelectorAll('[data-key]').length);
+    check(sdkKeys.join(',') === 'sdk_mh,sdk_ajs,sdk_yl,sdk_mnl',
+      'SDk 工单四项在同一片里（梦幻 / 爱江山 / 月光 / 猫旅馆）', sdkKeys.join(','));
+    check(ovForm.querySelectorAll('[data-key]').length === 19,
+      '海外 18 个字段都在（分组没吞字段）', ovForm.querySelectorAll('[data-key]').length);
     const reviewKeys = Array.from(ovForm.querySelectorAll('[data-group="review"] [data-key]')).map(el => el.dataset.key);
     check(reviewKeys.join(',') === 'ios,google,fb,fb_yl',
       '「评价与来访」只留 商店评价 + 两个 FB', reviewKeys.join(','));
     const emailKeys = Array.from(ovForm.querySelectorAll('[data-group="email"] [data-key]')).map(el => el.dataset.key);
-    check(emailKeys.join(',') === 'email_mh,email_ajs,email_yl',
-      '邮箱三项（梦幻 / 爱江山 / 月光）单独占一片、各一个输入框', emailKeys.join(','));
+    check(emailKeys.join(',') === 'email_mh,email_ajs,email_yl,email_mnl',
+      '邮箱四项（梦幻 / 爱江山 / 月光 / 猫旅馆）单独占一片、各一个输入框', emailKeys.join(','));
     $('dailyTabTicket').click();
     await sleep(40);
     check($('dailyFormTicket').querySelectorAll('.daily-group').length === 10
@@ -2832,28 +2834,23 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
       '吉运节节高解析全程只在本机（不碰服务端）', posts.slice(posts8y).map(p => p.url).join(' | '));
   }
 
-  console.log('--- 8z. 游戏数据 · 03 棋盘镜像（镜像 JSON → 主棋盘 / 背包 / 仓库 + 在哪几个话术）---');
+  console.log('--- 8z. 棋盘镜像（镜像 JSON → 主棋盘 / 背包 / 仓库 + 在哪几个话术）---');
   {
     const posts8z = posts.length;
     const gdTab = doc.querySelector('.tab-btn[data-tab="gamedata"]');
     check(!!gdTab && gdTab.classList.contains('tab-btn-sub')
       && /梦幻消除站/.test((gdTab.parentElement.querySelector('.tab-group-title') || {}).textContent || ''),
-      '「游戏数据」是「梦幻消除站」那组的子项（跟话术生成 / 集卡分析 同级）');
-    check(gdTab.textContent.trim() === '游戏数据',
-      '标签上就是「游戏数据」，不挂图标', JSON.stringify(gdTab.textContent));
+      '「棋盘镜像」是「梦幻消除站」那组的子项（跟话术生成 / 集卡分析 同级）');
+    check(gdTab.textContent.trim() === '棋盘镜像',
+      '标签上就是「棋盘镜像」，不挂图标', JSON.stringify(gdTab.textContent));
     gdTab.click();
     await sleep(60);
     check(!!$('tab-gamedata') && $('tab-gamedata').classList.contains('active'),
-      '点进去就是游戏数据页（纯前端，不碰服务端）');
-    check(doc.querySelectorAll('#tab-gamedata .seg-btn').length === 2
-      && !doc.querySelector('#tab-gamedata .seg-btn[data-seg="activity"]')
-      && $('tab-gamedata').dataset.seg === 'resource',
-      '页内两段（01 资源核对 / 02 棋盘镜像），默认停在资源核对；活动进度已删',
-      doc.querySelectorAll('#tab-gamedata .seg-btn').length + ' 段');
-    doc.querySelector('#tab-gamedata .seg-btn[data-seg="mirror"]').click();
-    await sleep(60);
-    check($('tab-gamedata').dataset.seg === 'mirror',
-      '切到「02 棋盘镜像」这一段（棋盘那几块都收在这一段里）');
+      '点进去就是棋盘镜像页（纯前端，不碰服务端）');
+    check(doc.querySelectorAll('#tab-gamedata .seg-btn').length === 0
+      && !!$('boardInput') && !$('mergeInput') && !$('gdItemInput') && !$('gdFlowBox') && !$('gdBanner'),
+      '页内不再有分段条，资源核对那套（MergeState / 流水 / 操作记录 / 横幅）都没了',
+      doc.querySelectorAll('#tab-gamedata .seg-btn').length + ' 个 seg-btn');
     check($('boardMainCard').style.display === 'none' && $('boardBagCard').style.display === 'none'
       && $('boardAskCard').style.display === 'none',
       '还没解析时「棋盘 / 背包仓库 / 查询」三块都收着');
@@ -2952,599 +2949,6 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
 
     check(posts.slice(posts8z).filter(p => /careerData|board|dailyData/.test(p.url) || /board/i.test(p.url)).length === 0,
       '镜像解析全程只在本机（0 请求）', posts.slice(posts8z).map(p => p.url).join(' | '));
-  }
-
-  console.log('--- 8z-2. 游戏数据 · 01 资源核对（流水 + 镜像，不使用存档）---');
-  {
-    const postsGd = posts.length;
-    doc.querySelector('#tab-gamedata .seg-btn[data-seg="resource"]').click();
-    await sleep(60);
-    check($('tab-gamedata').dataset.seg === 'resource' && $('mergeSummary').innerHTML === '',
-      '还没贴数据时摘要芯片是空的');
-    check($('gdItemOut').value === '' && $('gdItemVerdict').innerHTML === '',
-      '还没查道具时话术 / 判定芯片都空着');
-
-    // 棋盘镜像（体力 16 / 铜钱 86130 + 一个订单 + 最近一次操作）
-    $('boardInput').value = JSON.stringify({
-      chessboardDataList: [{
-        cellTotalNum: 2, chessboardId: 1, cellNumH: 1, cellNumW: 2,
-        cells: [{ cellIdx: 0, lockState: 2, pieceData: { pieceType: 2, goodsId: 21108, itemCodeStr: 21108 } }, { cellIdx: 1, lockState: 2 }]
-      }],
-      warehouseData: { pieceDataList: [] },
-      backpack: {},
-      currencies: { '102': 86130, '101': 16 },
-      orderData: { orderDojoMap: { '1001': { id: 1001, createTime: 1793247000, slotId: 3, consume: [{ num: 1, goodsId: 102 }], rewards: [{ num: 62, goodsId: 103 }] } } },
-      lastInstruction: {
-        sTime: 1793247130,
-        orderDojosStr: JSON.stringify([{ id: 2002, createTime: '2026-10-29 04:12:10', type: 9, consume: [{ num: 5, goodsId: 102 }], rewards: [{ num: 62, goodsId: 103 }, { num: 1, goodsId: 105 }] }])
-      }
-    });
-    $('boardParseBtn').click();
-    await sleep(90);
-    check(/主棋盘/.test($('boardSummary').textContent), '镜像先解析好（棋盘 / 货币都在）', $('boardSummary').textContent.slice(0, 80));
-
-    // 资源流水：铜钱 +100 之后被棋盘上传扣了 99（差 1 也算）
-    $('mergeInput').value = [
-      '2026-10-29 10:00:00\tG1\t铜钱\t+100\t86030\t86130\t每日任务奖励\t0-货币',
-      '2026-10-29 10:01:00\tG2\t铜钱\t-99\t86130\t86031\t棋盘上传\t0-货币'
-    ].join('\n');
-    $('mergeParseBtn').click();
-    await sleep(90);
-    check(/认出 2 条资源流水/.test($('mergeHint').textContent), '流水贴进页头大框就自动认', $('mergeHint').textContent);
-
-    $('gdItemInput').value = '铜钱';
-    $('gdItemBtn').click();
-    await sleep(80);
-    check(/【游戏数据 · 铜钱（102）】/.test($('gdItemOut').value)
-      && /当前数量：86031（流水最后余额 · 2026-10-29 10:01:00）/.test($('gdItemOut').value)
-      && /棋盘镜像：棋盘上 0 个、临时背包 0 个、仓库 0 个。/.test($('gdItemOut').value),
-      '当前数量取「流水最后余额」（不再用存档的最后变动那套）',
-      $('gdItemOut').value.replace(/\n/g, ' | ').slice(0, 200));
-    check(/—— 异常自查 ——/.test($('gdItemOut').value) && /流水窗口：2026-10-29 10:00:00 ~ 2026-10-29 10:01:00（2 条，净 \+1）/.test($('gdItemOut').value)
-      && /订单消耗：在 1 个当前订单的消耗里（订单 1001 收 1 个）/.test($('gdItemOut').value)
-      && /最近一次操作：2026-10-29 04:12:10 消耗了它 5 个/.test($('gdItemOut').value)
-      && /不使用存档数据/.test($('gdItemOut').value)
-      && !/记录值 vs 当前值/.test($('gdItemOut').value) && !/最后变动：/.test($('gdItemOut').value),
-      '异常自查改成流水口径：流水窗口 / 订单消耗 / 最近一次操作 / 明写「不使用存档数据」',
-      $('gdItemOut').value.replace(/\n/g, ' | ').slice(0, 260));
-    check(/—— 资源流水对账（铜钱）——/.test($('gdItemOut').value) && /共 1 组/.test($('gdItemOut').value),
-      '流水对账：+100 之后被棋盘上传扣 99，算 1 组', $('gdItemOut').value.slice(-160));
-    check(/镜像 − 流水 差 \+99/.test($('gdReconChips').textContent),
-      '对账：镜像（16）与流水余额（86031）差多少直接写出来', $('gdReconChips').textContent);
-
-    // 结论横幅 / 图例 / 对比条（同事说数据看不懂 → 一眼看出有没有异常）
-    check($('gdBanner').style.display === '' && $('gdBanner').classList.contains('is-bad')
-      && /⚠️/.test($('gdBanner').textContent) && /发现 1 组可疑/.test($('gdBanner').textContent)
-      && /被「棋盘上传」扣了 -99/.test($('gdBanner').textContent),
-      '顶部结论横幅最显眼：⚠️ 发现 1 组可疑 + 哪一笔被棋盘上传扣掉',
-      $('gdBanner').textContent.replace(/\s+/g, ' ').slice(0, 140));
-    check($('gdLegend').style.display === '' && $('gdLegend').querySelectorAll('i').length === 4
-      && /对得上/.test($('gdLegend').textContent) && /被棋盘上传扣掉的那笔/.test($('gdLegend').textContent),
-      '配一行图例：什么颜色代表对得上 / 对不上 / 被吞的扣除 / 没数据',
-      $('gdLegend').textContent.replace(/\s+/g, ' ').slice(0, 120));
-    check($('gdBars').style.display === '' && $('gdBars').querySelectorAll('.gd-bar').length >= 2
-      && /流水余额/.test($('gdBars').textContent) && /镜像合计/.test($('gdBars').textContent)
-      && $('gdBars').querySelectorAll('.gd-bar.is-warn').length >= 1,
-      '三条对比条：流水余额 / 镜像合计 / 操作净，对不上的那条标橙',
-      $('gdBars').textContent.replace(/\s+/g, ' ').slice(0, 120));
-    check(/结论：⚠️ 发现 1 组可疑/.test($('gdItemOut').value)
-      && /建议：把上面这组「\+N → 棋盘上传 −N」提研发核对服务端流水/.test($('gdItemOut').value)
-      && /别直接说「系统吞了」/.test($('gdItemOut').value),
-      '话术开头先给结论、结尾给建议（能直接照着回玩家）',
-      $('gdItemOut').value.replace(/\n/g, ' | ').slice(0, 160));
-
-    // 换成「没有配对」的流水 → 横幅变绿、建议变「不用升级」
-    $('mergeInput').value = '2026-10-29 10:00:00\tG1\t铜钱\t+100\t86030\t86130\t每日任务奖励\t0-货币';
-    $('mergeParseBtn').click();
-    await sleep(90);
-    check($('gdBanner').classList.contains('is-ok') && /没发现异常/.test($('gdBanner').textContent)
-      && /建议：目前没发现问题，不用升级处理。/.test($('gdItemOut').value),
-      '没有可疑配对时：横幅变绿 ✅「没发现异常」、建议写「不用升级处理」',
-      $('gdBanner').textContent.replace(/\s+/g, ' ').slice(0, 120));
-
-    // 时间点：比流水最后一条晚 → 那之后没动过
-    $('gdItemTime').value = '2026-10-30T00:00';
-    $('gdItemBtn').click();
-    await sleep(60);
-    check(/玩家说的时间（2026-10-30 00:00:00）之后：流水里一条都没动过它。/.test($('gdItemOut').value)
-      && /那之后没变过：不是被吞/.test($('gdItemVerdict').textContent),
-      '填了比流水晚的时间 → 「那之后没变过：不是被吞」', $('gdItemVerdict').textContent);
-    $('gdItemTime').value = '2026-10-29T09:00';
-    $('gdItemBtn').click();
-    await sleep(60);
-    check(/玩家说的时间之后动过它 \d+ 次/.test($('gdItemOut').value)
-      && /那个时段之后还动过它/.test($('gdItemVerdict').textContent),
-      '填了比流水早的时间 → 「那个时段之后还动过它」', $('gdItemVerdict').textContent);
-
-    $('gdItemInput').value = '压根没有的东西';
-    $('gdItemBtn').click();
-    await sleep(60);
-    check(/数据里没找到「压根没有的东西」/.test($('gdItemOut').value),
-      '查不到的道具直说没找到', $('gdItemOut').value.slice(0, 60));
-
-    // 坏 JSON / 清空
-    $('mergeInput').value = '{ 这不是 JSON }';
-    $('mergeParseBtn').click();
-    await sleep(60);
-    check(/JSON 解析失败/.test($('mergeHint').textContent) && $('mergeSummary').innerHTML === '',
-      '贴的不是 JSON → 只提示解析失败，页面不炸', $('mergeHint').textContent.slice(0, 60));
-    $('mergeInput').value = '2026-10-29 10:00:00\tG1\t铜钱\t+100\t86030\t86130\t每日任务奖励\t0-货币';
-    $('mergeParseBtn').click();
-    await sleep(80);
-    $('mergeClearBtn').click();
-    $('boardClearBtn').click();
-    await sleep(60);
-    check($('mergeInput').value === '' && $('mergeSummary').innerHTML === ''
-      && $('gdItemTime').value === '' && $('gdItemVerdict').innerHTML === ''
-      && $('gdFlowBox').style.display === 'none' && $('gdRecon').style.display === 'none',
-      '「清空」把输入 / 芯片 / 判定 / 流水块 / 对账块一起清掉');
-    $('gdItemInput').value = '铜钱';
-    $('gdItemBtn').click();
-    await sleep(40);
-    check(/先在页头把资源流水 \/ 棋盘镜像贴进来/.test($('gdItemHint').textContent),
-      '清空后查道具会提示先贴数据', $('gdItemHint').textContent);
-    check(posts.slice(postsGd).filter(p => /careerData|dailyData|gamedata|merge|flow/i.test(p.url)).length === 0,
-      '资源核对全程只在本机（0 请求）', posts.slice(postsGd).map(p => p.url).join(' | '));
-  }
-
-  console.log('--- 8z-3. 游戏数据 · 操作记录（合并 / 订单消耗 / 产出 → 道具到底被谁拿走）---');
-  {
-    const postsOp = posts.length;
-    $('gdItemInput').value = '';
-    // 用户给的真实操作记录（截 5 条代表：棋盘操作 / 格子解锁 / 订单初始化 / 母体产出 / 棋子合并）
-    const opPayload = [
-      { uid: 46926873, op: 30, sTime: 1793241739, opId: 173329, cbId: 1 },
-      { diamondAdd: 0, opId: 173330, uid: 46926873, op: 701, isByBuy: 0, sTime: 1793241739, cellIdx: 1, cbId: 1 },
-      {
-        orderDojosStr: JSON.stringify([{
-          rewards: [{ goodsId: 103, num: 25, from: 0 }, { goodsId: 101, num: 200, from: 0 }],
-          rookieId: 505, type: 5, createTime: '2026-10-26 10:37:09', slotId: 8, id: 5126362062,
-          consume: [{ num: 1, goodsId: 21510 }], chessboardId: 1
-        }]),
-        from: 'ChessboardInitialize', op: 1030, uid: 46926873, sTime: 1793241739, opId: 173332, cbId: 1
-      },
-      { childNum: 2, momUniqueId: 1793241739540052, sTime: 1793241739, cbId: 1, op: 201, uid: 46926873, momCellIdx: 1, opId: 173333, momGoodsId: 10606 },
-      { momCellIdx: 1, momGoodsId: 10606, goodsId: 20801, cbId: 1, uid: 46926873, op: 281, opId: 173334, cellIdies: [2, 9], sTime: 1793241739 }
-    ];
-    $('gdOpInput').value = JSON.stringify(opPayload);
-    $('gdOpBtn').click();
-    await sleep(80);
-    check(/认出 5 条操作/.test($('gdOpHint').textContent) && /5 条 · 2026-10-29 10:42/.test($('gdOpCount').textContent),
-      '操作记录解析：认出 5 条 + 时间范围（sTime 是秒，跟存档同一套 UTC 口径）',
-      $('gdOpHint').textContent + ' / ' + $('gdOpCount').textContent);
-    check(/操作 5 条/.test($('gdOpSummary').textContent) && /棋子合并（op 281） × 1/.test($('gdOpSummary').textContent)
-      && /格子解锁（op 701） × 1/.test($('gdOpSummary').textContent),
-      '类型芯片按 op 归类（合并 / 母体产出 / 格子解锁 …），op 号一起写出来', $('gdOpSummary').textContent.slice(0, 160));
-    check($('gdOpTable').querySelectorAll('tbody tr').length === 5
-      && /格 2\/9/.test($('gdOpTable').textContent) && /订单 1 个/.test($('gdOpTable').textContent)
-      && /订单 .+×25/.test($('gdOpTable').textContent),
-      '流水表：时间 / 操作 / 消耗 / 获得 / 格子，订单快照另标「订单 N 个」',
-      $('gdOpTable').textContent.replace(/\s+/g, ' ').slice(0, 160));
-
-    // 重新贴一份 MergeState（上一段末尾清空过），让话术能跑
-    const opState = {
-      diamond: 911, recordDiamond: 911, gold: 86130, recordGold: 86130, hpData: 16, recordHp: 16,
-      recordID: 178288, syncTime: 1793248480,
-      others: JSON.stringify({
-        resource: [{ num: 911, timestamp: 1793247056, id: '103' }, { num: 16, timestamp: 1793248480, id: '101' }],
-        meta: [], activities: []
-      })
-    };
-    $('mergeInput').value = JSON.stringify(opState);
-    $('mergeParseBtn').click();
-    await sleep(80);
-
-    // 查红宝石（103）：订单奖励里给过它
-    $('gdItemInput').value = '103';
-    $('gdItemBtn').click();
-    await sleep(60);
-    check(/—— 操作记录（5 条）——/.test($('gdItemOut').value)
-      && /覆盖时间：2026-10-29 10:42 ~ 2026-10-29 10:42/.test($('gdItemOut').value)
-      && /订单奖励里给过 1 次、共 25 个/.test($('gdItemOut').value)
-      && /不使用存档数据/.test($('gdItemOut').value) && /要定责仍以服务端全量流水为准/.test($('gdItemOut').value),
-      '资源话术自动接上「操作记录」：覆盖时间 / 获得次数与数量；能力边界改成「覆盖不到的时段仍要拉全量流水」',
-      $('gdItemOut').value.replace(/\n/g, ' | ').slice(-220));
-    check($('gdOpTable').querySelectorAll('tbody tr').length === 1,
-      '表跟着查询词过滤：只留跟「红宝石」有关的操作（1 条）',
-      $('gdOpTable').querySelectorAll('tbody tr').length);
-
-    // 查 21510：被订单消耗 → 直说「不是被吞」
-    $('gdItemInput').value = '21510';
-    $('gdItemBtn').click();
-    await sleep(60);
-    check(/订单收走 1 单、共 1 个/.test($('gdItemOut').value)
-      && /订单 5126362062 收 1 个（2026-10-26 10:37:09）/.test($('gdItemOut').value),
-      '被订单收走的道具：记录里写清「订单收走 N 单、共 X 个（订单号 + 时间）」',
-      $('gdItemOut').value.replace(/\n/g, ' | ').slice(-220));
-    check(/操作记录里被订单收走 1 个：不是被吞/.test($('gdItemVerdict').textContent),
-      '判定芯片：记录里被订单收走 → 直接判「不是被吞」',
-      $('gdItemVerdict').textContent);
-
-    // 时间点比对：比流水晚 → 那之后一条都没动过它
-    $('gdItemTime').value = '2026-10-30T00:00';
-    $('gdItemBtn').click();
-    await sleep(60);
-    check(/玩家说的时间之后：这段记录里一条都没动过它。/.test($('gdItemOut').value),
-      '玩家说的时间比流水晚 → 直说「那之后一段记录里一次都没动过它」',
-      $('gdItemOut').value.replace(/\n/g, ' | ').slice(-160));
-
-    // 清空记录：话术里那条流水跟着没了
-    $('gdOpClearBtn').click();
-    await sleep(60);
-    check($('gdOpInput').value === '' && $('gdOpTable').innerHTML === '' && $('gdOpSummary').innerHTML === ''
-      && /已清空操作记录/.test($('gdOpHint').textContent)
-      && !/—— 操作记录（/.test($('gdItemOut').value),
-      '「清空记录」把流水框 / 表 / 芯片清掉，重生成的话术里也不再有那一段',
-      $('gdOpHint').textContent);
-
-    // 坏 JSON
-    $('gdOpInput').value = '{ 这不还是 JSON }';
-    $('gdOpBtn').click();
-    await sleep(60);
-    check(/JSON 解析失败/.test($('gdOpHint').textContent) && $('gdOpTable').innerHTML === '',
-      '贴的不是 JSON → 只提示解析失败，页面不炸', $('gdOpHint').textContent.slice(0, 60));
-    check(posts.slice(postsOp).filter(p => /careerData|dailyData|op|merge/i.test(p.url)).length === 0,
-      '操作记录全程只在本机（0 请求）', posts.slice(postsOp).map(p => p.url).join(' | '));
-  }
-
-  console.log('--- 8z-4. 游戏数据 · 资源核对思维导图 + 万能粘贴 ---');
-  {
-    const postsMap = posts.length;
-    // 先把上面留下的东西理一遍：清掉操作记录、时间点，重新贴一份 MergeState
-    $('gdOpInput').value = '';
-    $('gdOpClearBtn').click();
-    await sleep(60);
-    $('gdItemInput').value = '';
-    $('gdItemBtn').click();
-    await sleep(60);
-    const mapState = {
-      diamond: 911, recordDiamond: 911, gold: 86130, recordGold: 86130, hpData: 16, recordHp: 16,
-      recordID: 178288, syncTime: 1793248480,
-      others: JSON.stringify({
-        resource: [{ num: 911, timestamp: 1793247056, id: '103' }, { num: 16, timestamp: 1793248480, id: '101' }],
-        meta: [], activities: []
-      })
-    };
-    $('mergeInput').value = JSON.stringify(mapState);
-    $('mergeParseBtn').click();
-    await sleep(80);
-    check($('gdItemMap').style.display === 'none' && $('gdItemMap').innerHTML === '',
-      '还没查道具时没有导图（不占版面）', $('gdItemMap').innerHTML);
-
-    // 存档不再参与判断：导图 / 对账都按「流水 + 镜像」摆，这里先把这两份备好
-    $('mergeInput').value = '2026-10-29 09:00:00\tM1\t红宝石\t+911\t0\t911\t每日任务奖励\t0-货币';
-    $('mergeParseBtn').click();
-    await sleep(80);
-    $('boardInput').value = JSON.stringify({
-      chessboardDataList: [{ cellTotalNum: 2, chessboardId: 1, cellNumH: 1, cellNumW: 2, cells: [{ cellIdx: 0, lockState: 2 }, { cellIdx: 1, lockState: 2 }] }],
-      warehouseData: { pieceDataList: [] }, backpack: {}, currencies: { '103': 911 },
-      orderData: { orderDojoMap: { '1001': { id: 1001, createTime: 1793247000, slotId: 3, consume: [{ num: 1, goodsId: 103 }], rewards: [{ num: 62, goodsId: 102 }] } } },
-      lastInstruction: { sTime: 1793247130, orderDojosStr: JSON.stringify([{ id: 2002, createTime: '2026-10-29 04:12:10', type: 9, consume: [{ num: 5, goodsId: 103 }], rewards: [{ num: 62, goodsId: 102 }, { num: 1, goodsId: 105 }] }]) }
-    });
-    $('boardParseBtn').click();
-    await sleep(80);
-    $('gdItemInput').value = '103';
-    $('gdItemTime').value = '2026-10-30T00:00';
-    $('gdItemBtn').click();
-    await sleep(80);
-    const mapBox = $('gdItemMap');
-    const rootTxt = mapBox.querySelector('.gd-map-root').textContent;
-    check(mapBox.style.display === '' && mapBox.querySelectorAll('.gd-map-node').length === 6
-      && /红宝石/.test(rootTxt) && /103/.test(rootTxt) && /余额 911 个/.test(rootTxt),
-      '输道具 → 导图出来：根节点是「道具名 / id / 存档数量」，右边挂 6 个分支（含「流水对账」）',
-      rootTxt + ' / nodes=' + mapBox.querySelectorAll('.gd-map-node').length);
-    const mapTxt = mapBox.textContent;
-    check(/存档/.test(mapTxt) && /没贴存档 · 流水最后余额 911/.test(mapTxt)
-      && /棋盘镜像/.test(mapTxt) && /棋盘上 0 · 临时背包 0 · 仓库 0/.test(mapTxt),
-      '前两个分支：当前数量（取自流水余额 / 存档只做兜底）+ 棋盘镜像三处数量', mapTxt.replace(/\s+/g, ' ').slice(0, 140));
-    check(/当前订单 1001 收 1 个/.test(mapTxt) && /最近一次操作 收 5 个/.test(mapTxt),
-      '订单分支把「当前订单收走 / 最近一次操作收走」都列出来', mapTxt.replace(/\s+/g, ' ').slice(0, 160));
-    check(/还没贴 —— 贴上能看出是被合成吃了还是交了订单/.test(mapTxt),
-      '没贴操作记录时那一片直说「还没贴」，不装懂', mapTxt.slice(0, 200));
-    check(/获得 1 次，后面没有棋盘上传扣除 → 不是被吞/.test(mapTxt),
-      '结论分支一句话给判断（只贴流水 → 按流水口径判「不是被吞」）', mapTxt.slice(-80));
-
-    // 存档口径已经不用了：结论永远只看流水 / 镜像
-    $('gdItemTime').value = '';
-    $('gdItemBtn').click();
-    await sleep(60);
-    check(/获得 1 次，后面没有棋盘上传扣除 → 不是被吞/.test($('gdItemMap').textContent)
-      && !/最后变动/.test($('gdItemMap').textContent),
-      '结论只按流水 / 镜像口径，不再出现存档的「最后变动」', $('gdItemMap').textContent.slice(-90));
-
-    // 万能粘贴 1：把操作记录贴到页头那个大框 → 自动转到「操作记录」
-    $('gdItemInput').value = '';
-    $('mergeInput').value = JSON.stringify([
-      { uid: 1, op: 30, sTime: 1793241739, opId: 1, cbId: 1 },
-      { momCellIdx: 1, momGoodsId: 10606, goodsId: 20801, cbId: 1, uid: 1, op: 281, opId: 2, cellIdies: [2, 9], sTime: 1793241739 }
-    ]);
-    $('mergeParseBtn').click();
-    await sleep(80);
-    check(/认出来是操作记录/.test($('mergeHint').textContent)
-      && $('gdOpTable').querySelectorAll('tbody tr').length === 2
-      && $('gdOpInput').value.indexOf('"op":281') !== -1,
-      '大框里贴操作记录 → 自动转到「操作记录」并解析（2 条），不用换框重贴',
-      $('mergeHint').textContent);
-    $('gdItemInput').value = '103';
-    $('gdItemBtn').click();
-    await sleep(60);
-    check(/2 条 · 没动过它/.test($('gdItemMap').textContent),
-      '导图的「操作记录」分支跟着更新（2 条、没动过红宝石）', $('gdItemMap').textContent.slice(0, 200));
-
-    // 万能粘贴 2：把棋盘镜像贴到页头大框 → 自动转到「03 棋盘镜像」
-    $('mergeInput').value = JSON.stringify({
-      chessboardDataList: [{
-        cellTotalNum: 2, chessboardId: 1, cellNumH: 1, cellNumW: 2,
-        cells: [{ cellIdx: 0, lockState: 2, pieceData: { pieceType: 2, goodsId: 21108, itemCodeStr: 21108 } }, { cellIdx: 1, lockState: 2 }]
-      }],
-      warehouseData: { pieceDataList: [] }, backpack: {}, currencies: { '103': 911 }
-    });
-    $('mergeParseBtn').click();
-    await sleep(80);
-    check(/认出来是棋盘镜像/.test($('mergeHint').textContent) && $('boardMainCard').style.display === ''
-      && /主棋盘 2×1/.test($('boardSummary').textContent),
-      '大框里贴棋盘镜像 → 自动转到「03 棋盘镜像」并把主棋盘画出来', $('mergeHint').textContent);
-
-    // 粘完自动解析（不点按钮）：派发 input 事件，等去抖过去
-    $('mergeInput').value = JSON.stringify({
-      diamond: 5, gold: 6, hpData: 7, recordID: 999,
-      others: JSON.stringify({ resource: [{ num: 5, timestamp: 1793247056, id: '103' }], meta: [], activities: [] })
-    });
-    fire($('mergeInput'), 'input');
-    await sleep(700);
-    check(/认出资源 1 项/.test($('mergeHint').textContent) && /红宝石 5/.test($('mergeSummary').textContent),
-      '不用点按钮：粘完 400ms 自动解析（输入框派发 input 就生效）', $('mergeHint').textContent);
-
-    // 清空 → 导图收起
-    $('mergeClearBtn').click();
-    await sleep(60);
-    check($('gdItemMap').style.display === 'none' && $('gdItemMap').innerHTML === '',
-      '「清空」把思维导图一起收掉', $('gdItemMap').innerHTML);
-    check(posts.slice(postsMap).filter(p => /careerData|dailyData|gamedata|merge/i.test(p.url)).length === 0,
-      '导图 / 万能粘贴全程只在本机（0 请求）', posts.slice(postsMap).map(p => p.url).join(' | '));
-  }
-
-  console.log('--- 8z-5. 游戏数据 · 英文 / 代号换成中文（物品名）---');
-  {
-    const postsCn = posts.length;
-    const cnState = {
-      diamond: 1, gold: 1, hpData: 1, recordID: 1, syncTime: 1793248480,
-      others: JSON.stringify({
-        resource: [{ num: 1, timestamp: 1793247056, id: '103' }],
-        meta: [],
-        activities: [
-          { name: 'some_unknown_activity', extra: JSON.stringify({ id: { value: 67 } }) },
-          { name: 'unknown_flying_thing', extra: JSON.stringify({ id: { value: 900 } }) },
-          { name: 'sign_rewards', extra: JSON.stringify({ id: { value: 999999 }, CumulativeNum: { value: 20 }, ContinuousNum: { value: 3 } }) }
-        ]
-      })
-    };
-    $('mergeInput').value = JSON.stringify(cnState);
-    $('mergeParseBtn').click();
-    await sleep(90);
-    // 操作记录里不在映射表的道具 id → 「道具 N」
-    $('gdItemInput').value = '';
-    $('mergeInput').value = JSON.stringify([{ uid: 1, op: 30, sTime: 1793241739, opId: 1, cbId: 1, rewards: [{ goodsId: 99999999, num: 3 }] }]);
-    $('mergeParseBtn').click();
-    await sleep(90);
-    check(/道具 99999999×3/.test($('gdOpTable').textContent),
-      '操作记录里的未知道具 id 也不直接吐数字（显示「道具 99999999×3」）',
-      $('gdOpTable').textContent.replace(/\s+/g, ' ').slice(0, 120));
-    check(posts.slice(postsCn).filter(p => /careerData|dailyData|gamedata|merge/i.test(p.url)).length === 0,
-      '中文化全程只在本机（0 请求）', posts.slice(postsCn).map(p => p.url).join(' | '));
-  }
-
-  console.log('--- 8z-6. 游戏数据 · 资源流水对账（+获得 之后有没有 −棋盘上传）---');
-  {
-    const postsFlow = posts.length;
-    // 用户给的口径：+100 之后跟着 −100（或 −99）棋盘上传 = 被吞
-    const flowOf = (lossNum, lossSrc) => [
-      '2026-10-29 10:00:00\tF1\t体力\t+100\t200\t300\t每日任务奖励\t0-货币',
-      '2026-10-29 10:01:00\tF2\t体力\t' + lossNum + '\t300\t200\t' + lossSrc + '\t0-货币',
-      '2026-10-29 10:05:00\tF3\t体力\t+50\t200\t250\t活动奖励\t0-货币',
-      '2026-10-29 10:06:00\tF4\t体力\t-50\t250\t200\t棋盘操作-使用消耗棋子\t0-货币'
-    ].join('\n');
-    // 先把存档贴好（话术要读 resource），再贴流水
-    $('mergeInput').value = JSON.stringify({
-      diamond: 1, gold: 1, hpData: 200, recordID: 1, syncTime: 1793248480,
-      others: JSON.stringify({ resource: [{ num: 200, timestamp: 1793248480, id: '101' }], meta: [], activities: [] })
-    });
-    $('mergeParseBtn').click();
-    await sleep(70);
-    $('gdItemInput').value = '体力';
-    $('mergeInput').value = flowOf('-100', '棋盘上传');
-    $('mergeParseBtn').click();
-    await sleep(90);
-    check(/认出 4 条资源流水/.test($('mergeHint').textContent),
-      '流水贴到页头大框里就自动认（不用挑框）', $('mergeHint').textContent);
-    check(/扫了 1 个道具 · 4 条流水/.test($('gdFlowScan').textContent)
-      && /疑似被吞 1 组/.test($('gdFlowScan').textContent),
-      '贴完流水先做「全量体检」：整份日志一次扫完，直接说有几组可疑（不用一个个道具去查）',
-      $('gdFlowScan').textContent.replace(/\s+/g, ' ').slice(0, 120));
-    check(/体力/.test($('gdFlowScan').textContent) && /\+100/.test($('gdFlowScan').textContent)
-      && /-100/.test($('gdFlowScan').textContent),
-      '体检明细写清：哪个道具 / 什么时候 +N / 什么时候被棋盘上传扣掉',
-      $('gdFlowScan').textContent.replace(/\s+/g, ' ').slice(0, 160));
-    check($('gdFlowBox').style.display === '' && $('gdFlowTable').querySelectorAll('tbody tr').length === 4,
-      '一贴完流水 + 查道具 → 直接列出这个道具的流水（时间 / 变动 / 余额 / 来源）',
-      $('gdFlowTable').textContent.replace(/\s+/g, ' ').slice(0, 140));
-    check($('gdFlowTable').querySelectorAll('tr.is-pair').length === 1
-      && $('gdFlowTable').querySelectorAll('tr.is-loss').length === 1
-      && /被吞的扣除/.test($('gdFlowTable').textContent),
-      '配对的两行直接高亮：+100 那行标「获得」、−100 棋盘上传那行标「被吞的扣除」',
-      $('gdFlowTable').textContent.replace(/\s+/g, ' ').slice(0, 160));
-    check(/对上 1 组「\+N → 棋盘上传 −N」/.test($('gdFlowChips').textContent),
-      '结论芯片直说「对上 1 组」', $('gdFlowChips').textContent);
-    check(/—— 资源流水对账（体力）——/.test($('gdItemOut').value)
-      && /获得 \+100（每日任务奖励） → 2026-10-29 10:01:00 「棋盘上传」扣了 -100 ← 数量对得上，这就是被吞的特征/.test($('gdItemOut').value)
-      && /共 1 组/.test($('gdItemOut').value),
-      '话术里单起一段「资源流水对账」：+100 → 棋盘上传 −100 一行说清',
-      $('gdItemOut').value.replace(/\n/g, ' | ').slice(-240));
-    check(/找到 1 组「\+100 → 棋盘上传 -100」→ 被吞的特征/.test($('gdItemMap').textContent)
-      && /对上 1 组/.test($('gdItemMap').textContent),
-      '导图里也有「流水对账」这一片，结论直接指向被吞', $('gdItemMap').textContent.slice(-160));
-    check(/获得 \+50/.test($('gdItemOut').value) === false && /共 1 组/.test($('gdItemOut').value),
-      '只认「棋盘上传」的扣除：+50 后面那条「棋盘操作-使用消耗棋子」的 −50 不算被吞');
-
-    // −99 也认（差 1 个数）
-    $('mergeInput').value = flowOf('-99', '棋盘上传');
-    $('mergeParseBtn').click();
-    await sleep(90);
-    check(/对上 1 组/.test($('gdFlowChips').textContent),
-      '数量差 1 也算对上（+100 → −99 棋盘上传）', $('gdFlowChips').textContent);
-
-    // 换成非棋盘上传的扣除 → 不算被吞
-    $('mergeInput').value = flowOf('-100', '棋盘操作-使用消耗棋子');
-    $('mergeParseBtn').click();
-    await sleep(90);
-    check(/获得 \+100 之后没有棋盘上传扣除|后面都没有棋盘上传/.test($('gdFlowChips').textContent)
-      || /获得 2 次，后面都没有棋盘上传扣除/.test($('gdFlowChips').textContent),
-      '扣除不是「棋盘上传」的来源 → 不算被吞', $('gdFlowChips').textContent);
-    check(/没有「\+N → 棋盘上传 −N」的可疑配对/.test($('gdFlowScan').textContent),
-      '全量体检也跟着翻成「没有可疑配对」', $('gdFlowScan').textContent.slice(0, 120));
-    check(/后面都没有棋盘上传扣除 → 不是被吞/.test($('gdItemMap').textContent),
-      '导图结论跟着翻成「不是被吞」', $('gdItemMap').textContent.slice(-120));
-    check(posts.slice(postsFlow).filter(p => /careerData|dailyData|gamedata|merge|flow/i.test(p.url)).length === 0,
-      '流水对账全程只在本机（0 请求）', posts.slice(postsFlow).map(p => p.url).join(' | '));
-
-    // 只贴流水、不贴存档也能查（同事只想判「有没有被吞」时不用折腾 MergeState）
-    $('mergeClearBtn').click();
-    await sleep(60);
-    $('gdItemInput').value = '体力';
-    $('mergeInput').value = flowOf('-100', '棋盘上传');
-    $('mergeParseBtn').click();
-    await sleep(90);
-    check(/当前数量：200（流水最后余额 · 2026-10-29 10:06:00）/.test($('gdItemOut').value)
-      && /—— 资源流水对账（体力）——/.test($('gdItemOut').value)
-      && /只依据资源流水/.test($('gdItemOut').value),
-      '只用流水也能查：当前值就是流水最后余额，照样出被吞结论',
-      $('gdItemOut').value.replace(/\n/g, ' | ').slice(0, 200));
-    check(/没贴存档 · 流水最后余额 200/.test($('gdItemMap').textContent) && /余额 200 个/.test($('gdItemMap').textContent),
-      '导图的「存档」那片退成「流水最后余额」，不谎称没记录', $('gdItemMap').textContent.slice(0, 120));
-
-    // 2026-10 第三轮快照新增的来源 / 道具，也要在排查界面上认得
-    $('gdItemInput').value = '体力';
-    $('mergeInput').value = [
-      '2026-11-02 10:00:00\tN1\t体力\t+100\t0\t100\t264\t0-货币',
-      '2026-11-02 10:01:00\tN2\t体力\t-100\t100\t0\t16\t0-货币'
-    ].join('\n');
-    $('mergeParseBtn').click();
-    await sleep(90);
-    check(/活动pass卡领取/.test($('gdFlowTable').textContent) && /对上 1 组/.test($('gdFlowChips').textContent),
-      '新来源 id 264 也翻成中文（活动pass卡领取），配对照样成立',
-      $('gdFlowTable').textContent.replace(/\s+/g, ' ').slice(0, 140));
-    // 新道具：贴一份带 840042 的存档再查（上一步「只贴流水」已经把存档清掉了）
-    $('mergeInput').value = JSON.stringify({
-      diamond: 1, gold: 1, hpData: 1, recordID: 2, syncTime: 1793248480,
-      others: JSON.stringify({ resource: [{ num: 3, timestamp: 1793248480, id: '840042' }], meta: [] })
-    });
-    $('mergeParseBtn').click();
-    await sleep(90);
-    $('gdItemInput').value = '840042';
-    $('gdItemBtn').click();
-    await sleep(60);
-    check(/【游戏数据 · 勋章77棋盘图鉴补发道具（840042）】/.test($('gdItemOut').value),
-      '新道具 id 840042 也有中文名（勋章77棋盘图鉴补发道具）', $('gdItemOut').value.slice(0, 80));
-
-    // 清空 → 流水块收起
-    $('mergeClearBtn').click();
-    await sleep(70);
-    check($('gdFlowBox').style.display === 'none' && $('gdFlowTable').innerHTML === '',
-      '「清空」连流水对账一起收掉', $('gdFlowTable').innerHTML);
-  }
-
-  console.log('--- 8z-7. 游戏数据 · 跟「资源流水」解析联动（点解析 / 上传解析就同步过来）---');
-  {
-    const postsSync = posts.length;
-    doc.querySelector('input[name="parseMode"][value="resource"]').checked = true;
-    const syncLog = [
-      '2026-11-01 09:00:00\tX1\t体力\t+100\t0\t100\t每日任务奖励\t0-货币',
-      '2026-11-01 09:01:00\tX2\t体力\t-100\t100\t0\t棋盘上传\t0-货币',
-      '2026-11-01 09:02:00\tX3\t红宝石\t+50\t10\t60\t活动奖励\t0-货币'
-    ].join('\n');
-    $('flowResourceSelect').value = '体力';
-    $('smartPasteInput').value = syncLog;
-    $('smartParseBtn').click();
-    await sleep(140);
-    check(/已把原始流水（3 行）同步给「游戏数据 → 01 资源核对」/.test($('flowDebugConsole').textContent),
-      '点「智能解析」时把**原始日志**同步给游戏数据（同步的是原文，不是筛选后的结果）',
-      $('flowDebugConsole').textContent.slice(-160));
-    check(/扫了 2 个道具 · 3 条流水/.test($('gdFlowScan').textContent)
-      && /来自「智能解析」/.test($('gdFlowScan').textContent)
-      && /疑似被吞 1 组/.test($('gdFlowScan').textContent),
-      '游戏数据按**原始数据**判断：话术那边按「资源类型＝体力」筛过、还忽略了棋盘上传，这里照样 2 个道具 3 行、并认出被吞那一组',
-      $('gdFlowScan').textContent.replace(/\s+/g, ' ').slice(0, 140));
-    $('gdItemInput').value = '体力';
-    $('gdItemBtn').click();
-    await sleep(80);
-    check(/—— 资源流水对账（体力）——/.test($('gdItemOut').value)
-      && /棋盘上传」扣了 -100/.test($('gdItemOut').value),
-      '不用再粘一次：直接输道具名就能出「被吞」话术',
-      $('gdItemOut').value.replace(/\n/g, ' | ').slice(-200));
-    check(posts.slice(postsSync).filter(p => /careerData|dailyData|gamedata|merge|flow/i.test(p.url)).length === 0,
-      '联动全程只在本机（0 请求）', posts.slice(postsSync).map(p => p.url).join(' | '));
-  }
-
-  console.log('--- 8z-8. 游戏数据 · 三口径对账（流水 / 存档 / 镜像 / 操作记录 对不对得上）---');
-  {
-    const postsRecon = posts.length;
-    // 三份都指向体力 16
-    $('mergeInput').value = JSON.stringify({
-      diamond: 1, gold: 1, hpData: 16, recordID: 3, syncTime: 1793248480,
-      others: JSON.stringify({ resource: [{ num: 16, timestamp: 1793248480, id: '101' }], meta: [] })
-    });
-    $('mergeParseBtn').click();
-    await sleep(80);
-    $('boardInput').value = JSON.stringify({
-      chessboardDataList: [{ cellTotalNum: 1, chessboardId: 1, cellNumH: 1, cellNumW: 1, cells: [{ cellIdx: 0, lockState: 2 }] }],
-      warehouseData: { pieceDataList: [] }, backpack: {}, currencies: { '101': 16 }
-    });
-    $('boardParseBtn').click();
-    await sleep(80);
-    $('mergeInput').value = '2026-11-03 10:00:00\tR1\t体力\t+16\t0\t16\t每日任务奖励\t0-货币';
-    $('mergeParseBtn').click();
-    await sleep(90);
-    $('gdItemInput').value = '体力';
-    $('gdItemBtn').click();
-    await sleep(80);
-    check($('gdRecon').style.display === '' && $('gdReconTable').querySelectorAll('tbody tr').length === 3,
-      '流水 + 镜像齐了才出对账表（流水 / 镜像 + 1 个差额行）',
-      $('gdReconTable').textContent.replace(/\s+/g, ' ').slice(0, 160));
-    check(/对账口径 2\/2/.test($('gdReconChips').textContent)
-      && /镜像 − 流水 对得上/.test($('gdReconChips').textContent),
-      '流水余额与镜像都是 16 → 「对得上」', $('gdReconChips').textContent);
-    check(/—— 三口径对账（体力）——/.test($('gdItemOut').value)
-      && /结论：都对得上（差异 0）。/.test($('gdItemOut').value),
-      '话术里也出一段三口径对账，结论写「都对得上」',
-      $('gdItemOut').value.replace(/\n/g, ' | ').slice(-200));
-
-    // 把流水改成 +20（余额 20）→ 镜像 − 流水 差 -4
-    $('mergeInput').value = '2026-11-03 10:00:00\tR1\t体力\t+20\t0\t20\t每日任务奖励\t0-货币';
-    $('mergeParseBtn').click();
-    await sleep(90);
-    check(/镜像 − 流水 差 -4/.test($('gdReconChips').textContent)
-      && /结论：有 1 个口径对不上/.test($('gdItemOut').value),
-      '流水余额和镜像差 4 → 明写「差 -4」+ 结论「有 1 个口径对不上」',
-      $('gdReconChips').textContent);
-
-    // 贴操作记录（获得 16）→ 镜像 − 操作净 也对得上
-    $('gdItemInput').value = '体力';
-    $('mergeInput').value = JSON.stringify([
-      { uid: 1, op: 30, sTime: 1793241739, opId: 1, cbId: 1, rewards: [{ goodsId: 101, num: 16 }] }
-    ]);
-    $('mergeParseBtn').click();
-    await sleep(90);
-    check(/操作记录（窗口内）/.test($('gdReconTable').textContent)
-      && /镜像 − 操作净 对得上/.test($('gdReconChips').textContent),
-      '贴了操作记录还会拿「获得 − 消耗」跟镜像比（本例 16 = 16 对得上）',
-      $('gdReconChips').textContent);
-    check(posts.slice(postsRecon).filter(p => /careerData|dailyData|gamedata|merge|flow/i.test(p.url)).length === 0,
-      '三口径对账全程只在本机（0 请求）', posts.slice(postsRecon).map(p => p.url).join(' | '));
-
-    $('mergeClearBtn').click();
-    await sleep(70);
-    check($('gdRecon').style.display === 'none' && $('gdReconTable').innerHTML === '',
-      '「清空」把对账块一起收掉', $('gdReconTable').innerHTML);
   }
 
   console.log('--- 9. 无未捕获异常 ---');

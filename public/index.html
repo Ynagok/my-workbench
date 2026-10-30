@@ -3817,7 +3817,7 @@
             <div class="tab-group-title">梦幻消除站</div>
             <button class="tab-btn tab-btn-sub active" data-tab="gen"> 话术生成</button>
             <button class="tab-btn tab-btn-sub" data-tab="card"> 集卡分析</button>
-            <button class="tab-btn tab-btn-sub" data-tab="gamedata"> 游戏数据</button>
+            <button class="tab-btn tab-btn-sub" data-tab="gamedata"> 棋盘镜像</button>
 
             <button class="tab-btn" data-tab="reply"> 工单回复</button>
             <button class="tab-btn" data-tab="feedback"> 反馈模板</button>
@@ -4659,84 +4659,16 @@
                 </div>
             </div><!-- /sub-panel-fry -->
         </div><!-- /tab-script -->
-        <!-- ==================== 🎮 游戏数据（MergeState 资源核对 + 棋盘镜像；活动进度 2026-10 按用户要求删除） ==================== -->
+        <!-- ==================== 🧩 棋盘镜像（2026-10 用户：「删掉游戏数据功能，仅保留棋盘镜像」）==================== -->
         <div id="tab-gamedata" class="tab-content">
             <div class="career-report-head" id="gdReportHead">
                 <div>
-                    <div class="crh-kicker">GAME DATA / 游戏数据</div>
-                    <div class="crh-title">游戏数据</div>
-                    <div class="crh-sub" id="gdReportSub">—</div>
+                    <div class="crh-kicker">BOARD MIRROR / 棋盘镜像</div>
+                    <div class="crh-title">棋盘镜像</div>
+                    <div class="crh-sub" id="boardReportSub">—</div>
                 </div>
-                <div class="crh-meta" id="gdReportMeta"></div>
+                <div class="crh-meta" id="boardReportMeta"></div>
             </div>
-
-            <div class="card">
-                <label>① 粘贴数据（这一个框就够）
-                    <span class="card-sub">资源流水 / 棋盘镜像 / 操作记录 —— 贴进来就自动认。<b>判断只用这三份（不再用存档数据）</b>：流水看「+N 之后有没有 −N 棋盘上传」，镜像看棋盘 / 背包 / 仓库，操作记录看棋子层面</span>
-                </label>
-                <textarea id="mergeInput" rows="4" style="margin-top:10px;" placeholder='随便贴：{"diamond":911,…}（MergeState）/ {"chessboardDataList":[…]…}（棋盘镜像）/ [{"op":281,"sTime":…}]（操作记录）'></textarea>
-                <div class="flex-row" style="margin-top:10px;">
-                    <button id="mergeParseBtn">🔍 立即解析</button>
-                    <button id="mergeClearBtn" class="reset-btn">🧹 清空</button>
-                    <span class="hint-text" id="mergeHint"></span>
-                </div>
-                <div class="stat-chips" id="mergeSummary"></div>
-            </div>
-
-            <div class="seg-bar" data-for="tab-gamedata">
-                <button type="button" class="seg-btn active" data-seg="resource" data-n="01">资源核对</button>
-                <button type="button" class="seg-btn" data-seg="mirror" data-n="02">棋盘镜像</button>
-            </div>
-
-            <div class="card" data-seg-card="resource">
-                <label>② 资源核对 <span class="card-sub">输道具名或 id → 左边是道具，右边一张图告诉你它去哪了</span></label>
-                <div class="flex-row" style="margin-top:10px;">
-                    <input id="gdItemInput" placeholder="道具名或 id，如：红宝石 / 103" style="max-width:280px;">
-                    <button id="gdItemBtn">✅ 生成核对话术</button>
-                    <button id="gdItemCopyBtn" class="secondary">📋 复制</button>
-                    <span class="hint-text" id="gdItemHint"></span>
-                </div>
-                <div class="flex-row" style="margin-top:8px;">
-                    <span class="hint-text">玩家说的时间（可选）</span>
-                    <input type="datetime-local" id="gdItemTime" style="max-width:220px;" title="填了就对一下「最后变动」早晚：判断玩家说的时间之后到底有没有变过">
-                </div>
-                <div class="gd-flow" id="gdFlowBox" style="display:none;">
-                    <div class="gd-flow-hint">资源流水对账：<b>+获得</b> 之后有没有跟着一条 <b>−棋盘上传</b>（数量相同或差 1）—— 这就是「被吞」的样子。流水贴到页头「① 粘贴数据」框里就行</div>
-                    <div class="stat-chips" id="gdFlowScan"></div>
-                    <div class="stat-chips" id="gdFlowChips"></div>
-                    <div class="career-scroll" style="margin-top:8px;"><table class="career-table" id="gdFlowTable"></table></div>
-                </div>
-                <div class="gd-banner" id="gdBanner" style="display:none;"></div>
-                <div class="gd-legend" id="gdLegend" style="display:none;">
-                    <span><i class="sw-ok"></i>对得上 / 没异常</span>
-                    <span><i class="sw-warn"></i>差一点 / 对不上</span>
-                    <span><i class="sw-bad"></i>被棋盘上传扣掉的那笔</span>
-                    <span><i class="sw-mute"></i>这份数据没贴</span>
-                </div>
-                <div class="gdBars" id="gdBars" style="display:none;"></div>
-                <div class="gd-map" id="gdItemMap" style="display:none;"></div>
-                <div id="gdRecon" style="display:none; margin-top:12px;">
-                    <div class="gd-flow-hint">三口径对账：<b>资源流水</b>（变动明细）/ <b>存档</b>（MergeState 当前值）/ <b>棋盘镜像</b>（棋盘+背包+仓库+货币）三者能不能对上；贴了操作记录还会拿「获得 − 消耗」跟镜像比</div>
-                    <div class="stat-chips" id="gdReconChips"></div>
-                    <div class="career-scroll" style="margin-top:8px;"><table class="career-table" id="gdReconTable"></table></div>
-                </div>
-                <div class="stat-chips" id="gdItemVerdict"></div>
-                <textarea id="gdItemOut" rows="8" readonly style="margin-top:10px;"></textarea>
-                <details class="stat-fold" style="margin-top:10px;">
-                    <summary>操作记录 <span class="card-sub" id="gdOpCount">可选：合并 / 订单消耗 / 产出都能对到时间</span></summary>
-                    <div class="hint-text" style="margin-top:8px;">把 GM 那边的操作记录（带 op / sTime / consume / rewards 的数组）整段贴进来 —— 能直接看出「这个道具那次是被合成吃了、还是交了订单」；<b>贴到页头那个大框里也行，会自动转到这儿</b></div>
-                    <textarea id="gdOpInput" rows="4" style="margin-top:8px;" placeholder='[{"uid":46926873,"op":281,"sTime":1793241739,"opId":173334,"cellIdies":[2,9],"momGoodsId":10606,"goodsId":20801}]'></textarea>
-                    <div class="flex-row" style="margin-top:8px;">
-                        <button id="gdOpBtn">🔍 解析操作记录</button>
-                        <button id="gdOpClearBtn" class="reset-btn">🧹 清空记录</button>
-                        <span class="hint-text" id="gdOpHint"></span>
-                    </div>
-                    <div class="stat-chips" id="gdOpSummary"></div>
-                    <div class="career-scroll" style="margin-top:8px;"><table class="career-table" id="gdOpTable"></table></div>
-                </details>
-            </div>
-
-            <div data-seg-card="mirror">
 
             <div class="card">
                 <label>① 粘贴镜像数据
@@ -4776,8 +4708,8 @@
                 </div>
                 <textarea id="boardAskOut" rows="6" readonly style="margin-top:10px;"></textarea>
             </div>
-            </div><!-- /mirror 段（棋盘镜像） -->
         </div>
+
 
     </div><!-- /container -->
     <!-- ==================== 模态框集合（移出 tab-content，避免父级 display:none 导致无法弹出） ==================== -->
@@ -7079,9 +7011,9 @@
                                             ios: 0, google: 0,
                                             fb: 0, fb_yl: 0, email: 0,
                                             // 邮箱在表单里分三项填（梦幻 / 爱江山 / 月光），生成日报与统计时合并成一个「海外邮件」
-                                            email_mh: 0, email_ajs: 0, email_yl: 0,
+                                            email_mh: 0, email_ajs: 0, email_yl: 0, email_mnl: 0,
                                             // SDk工单在表单里分三项填（梦幻/爱江山/月光），生成日报与统计总量时合并成一个「SDk工单」
-                                            sdk_mh: 0, sdk_ajs: 0, sdk_yl: 0,
+                                            sdk_mh: 0, sdk_ajs: 0, sdk_yl: 0, sdk_mnl: 0,
                                             sdk: 0,   // [兼容] 旧数据/登记表里的「SDk工单（海外SSO工单量）」合并总量，表单不再直接填
                                             mute: 0, ban: 0,
                                             cp_ticket: 0, cn_ticket: 0, mhl_group: 0, sj_group: 0
@@ -7164,10 +7096,13 @@
                                         { key: 'email_mh', label: '邮箱·梦幻（来访）', type: 'number', group: 'email' },
                                         { key: 'email_ajs', label: '邮箱·爱江山（来访）', type: 'number', group: 'email' },
                                         { key: 'email_yl', label: '邮箱·月光（来访）', type: 'number', group: 'email' },
+                                        // [需求] 2026-10 用户：「海外日报增加猫旅馆的 sdk 和邮箱」→ 邮箱 / SDk 各加一项「猫旅馆」
+                                        { key: 'email_mnl', label: '邮箱·猫旅馆（来访）', type: 'number', group: 'email' },
                                         // SDk工单（来访）按用户要求分三项填；日报正文与统计总量里合并成「SDk工单」一个数
                                         { key: 'sdk_mh', label: 'SDk工单·梦幻', type: 'number', group: 'sdk' },
                                         { key: 'sdk_ajs', label: 'SDk工单·爱江山', type: 'number', group: 'sdk' },
                                         { key: 'sdk_yl', label: 'SDk工单·月光', type: 'number', group: 'sdk' },
+                                        { key: 'sdk_mnl', label: 'SDk工单·猫旅馆', type: 'number', group: 'sdk' },
                                         { key: 'mute', label: '禁言', type: 'number', group: 'monitor' },
                                         { key: 'ban', label: '封号', type: 'number', group: 'monitor' },
                                         { key: 'cp_ticket', label: '海外CP后台工单', type: 'number', group: 'work' },
@@ -7274,14 +7209,16 @@
                                     const CAREER_SDK_BREAKDOWN = [
                                         { key: 'sdk_mh', label: 'SDk工单·梦幻', side: 'overseas', kind: 'SDk 明细（其中项，不重复计入合计）', from: ['overseas.sdk_mh'] },
                                         { key: 'sdk_ajs', label: 'SDk工单·爱江山', side: 'overseas', kind: 'SDk 明细（其中项，不重复计入合计）', from: ['overseas.sdk_ajs'] },
-                                        { key: 'sdk_yl', label: 'SDk工单·月光', side: 'overseas', kind: 'SDk 明细（其中项，不重复计入合计）', from: ['overseas.sdk_yl'] }
+                                        { key: 'sdk_yl', label: 'SDk工单·月光', side: 'overseas', kind: 'SDk 明细（其中项，不重复计入合计）', from: ['overseas.sdk_yl'] },
+                                        { key: 'sdk_mnl', label: 'SDk工单·猫旅馆', side: 'overseas', kind: 'SDk 明细（其中项，不重复计入合计）', from: ['overseas.sdk_mnl'] }
                                     ];
                                     // 邮箱明细：日报表单里分「梦幻 / 爱江山 / 月光」三项填，**合计仍是 ov_email 那一个数**
                                     // （ov_email 读 overseas.email = 三项之和），同样只作明细展示、不重复计入合计。
                                     const CAREER_EMAIL_BREAKDOWN = [
                                         { key: 'email_mh', label: '邮箱·梦幻', side: 'overseas', kind: '邮箱明细（其中项，不重复计入合计）', from: ['overseas.email_mh'] },
                                         { key: 'email_ajs', label: '邮箱·爱江山', side: 'overseas', kind: '邮箱明细（其中项，不重复计入合计）', from: ['overseas.email_ajs'] },
-                                        { key: 'email_yl', label: '邮箱·月光', side: 'overseas', kind: '邮箱明细（其中项，不重复计入合计）', from: ['overseas.email_yl'] }
+                                        { key: 'email_yl', label: '邮箱·月光', side: 'overseas', kind: '邮箱明细（其中项，不重复计入合计）', from: ['overseas.email_yl'] },
+                                        { key: 'email_mnl', label: '邮箱·猫旅馆', side: 'overseas', kind: '邮箱明细（其中项，不重复计入合计）', from: ['overseas.email_mnl'] }
                                     ];
                                     // 所有「其中项」明细（不计入合计，只在表里以子行展示）
                                     const CAREER_BREAKDOWN = CAREER_SDK_BREAKDOWN.concat(CAREER_EMAIL_BREAKDOWN);
@@ -7330,7 +7267,7 @@
                                     function careerSdkTotal(o) {
                                         const parts = (parseFloat(o && o.sdk_mh) || 0)
                                             + (parseFloat(o && o.sdk_ajs) || 0)
-                                            + (parseFloat(o && o.sdk_yl) || 0);
+                                            + (parseFloat(o && o.sdk_yl) || 0) + (parseFloat(o && o.sdk_mnl) || 0);
                                         return parts || (parseFloat(o && o.sdk) || 0);
                                     }
                                     // 邮箱：表单分「梦幻 / 爱江山 / 月光」三项，合计仍是「海外邮件（全产品）」一个数。
@@ -7340,12 +7277,13 @@
                                         const mh = parseFloat(src.email_mh) || 0;
                                         const ajs = parseFloat(src.email_ajs) || 0;
                                         const yl = parseFloat(src.email_yl) || 0;
-                                        if (mh || ajs || yl) return { mh: mh, ajs: ajs, yl: yl };
-                                        return { mh: parseFloat(src.email) || 0, ajs: 0, yl: 0 };
+                                        const mnl = parseFloat(src.email_mnl) || 0;
+                                        if (mh || ajs || yl || mnl) return { mh: mh, ajs: ajs, yl: yl, mnl: mnl };
+                                        return { mh: parseFloat(src.email) || 0, ajs: 0, yl: 0, mnl: 0 };
                                     }
                                     function careerEmailTotal(o) {
                                         const p = careerEmailParts(o);
-                                        return p.mh + p.ajs + p.yl;
+                                        return p.mh + p.ajs + p.yl + (p.mnl || 0);
                                     }
                                     // 登记表 14 列口径（含只存档的那 5 列），用于跟外部表格对账
                                     const careerSheetSum = (items) => CAREER_SHEET_ITEMS.reduce((s, k) => s + (parseFloat(items && items[k]) || 0), 0);
@@ -8477,14 +8415,6 @@
                                         catch (e) { debugConsole.textContent += `\n❌ 解析错误: ${e.message}`; return; }
                                         if (!records.length) { debugConsole.textContent += '\n❌ 无记录（请确认粘贴内容为资源流水格式）'; return; }
                                         debugConsole.textContent += `\n📌 原始记录数: ${records.length}`;
-                                        // 🔗 把**原始日志文本**同步给游戏数据，由那边自己解析判断（不套话术这套忽略 / 筛选 / 类型覆盖）
-                                        if (typeof gdFlowImport === 'function') {
-                                            const synced = gdFlowImport(raw, '智能解析');
-                                            debugConsole.textContent += synced
-                                                ? `\n🎮 已把原始流水（${synced.rows.length} 行）同步给「游戏数据 → 01 资源核对」，去那里输道具名 / 看全量体检`
-                                                : '\n⚠️ 原始流水没认出来（游戏数据只吃制表符表格），可以手动贴到游戏数据那个粘贴框';
-                                        }
-
                                         if (resourceType !== '道具' && resourceType !== '活动奖励') {
                                             const matched = records.filter(r =>
                                                 (r['_资源类型'] || '').includes(resourceType) ||
@@ -8715,12 +8645,6 @@
                                         }
                                         let records = parseFlowCSV(text);
                                         if (!records.length) { appendDebug('\n❌ 无有效记录'); return; }
-                                        if (typeof gdFlowImport === 'function') {
-                                            const synced = gdFlowImport(gdCsvToTabs(text), 'CSV 上传');
-                                            appendDebug(synced
-                                                ? `\n🎮 已把原始流水（${synced.rows.length} 行）同步给「游戏数据 → 01 资源核对」，去那里输道具名 / 看全量体检`
-                                                : '\n⚠️ 原始流水没认出来（游戏数据只吃制表符表格）');
-                                        }
                                         const itemKeywordRaw = document.getElementById('itemKeywordInput').value.trim();
                                         const includeSourcesRaw = document.getElementById('includeSourcesInput').value.trim();
                                         let filtered = records;
@@ -12533,8 +12457,8 @@
                                         if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) { careerSetHint('请先选一个合法日期'); return; }
                                         const items = careerReadEditForm();
                                         // 补录时填了 SDk 三项明细，就把「海外SSO工单量」跟着改成三项之和（跟归档口径一致）
-                                        if (items.sdk_mh || items.sdk_ajs || items.sdk_yl) {
-                                            items.ov_sso = (items.sdk_mh || 0) + (items.sdk_ajs || 0) + (items.sdk_yl || 0);
+                                        if (items.sdk_mh || items.sdk_ajs || items.sdk_yl || items.sdk_mnl) {
+                                            items.ov_sso = (items.sdk_mh || 0) + (items.sdk_ajs || 0) + (items.sdk_yl || 0) + (items.sdk_mnl || 0);
                                         }
                                         const total = careerSum(items);
                                         const prev = careerData.records[d] || {};
@@ -12647,6 +12571,8 @@
                                         m['邮箱·梦幻'] = 'email_mh';
                                         m['邮箱·爱江山'] = 'email_ajs';
                                         m['邮箱·月光'] = 'email_yl';
+                                        m['邮箱·猫旅馆'] = 'email_mnl';
+                                        m['SDk工单·猫旅馆'] = 'sdk_mnl';
                                         return m;
                                     })();
                                     // 在线客服日报的标签 → 字段（53会话量 / 支付宝在线 / 邀评数 / 评价数 / 好评数 / 差评数）
@@ -15539,1237 +15465,6 @@
                                         const totalVotes = list.reduce((a, v) => a + v.shopIds.length, 0);
                                         return { devices: list.length, totalVotes: totalVotes, rows: rows };
                                     }
-                                    // ==================== 🎮 游戏数据（MergeState：资源核对）====================
-                                    // 用户原话：「1和2弄成玩家游戏数据功能，将棋盘镜像作为独立的标签页加在这个功能里，粘贴后同步核对镜像」
-                                    //   （2026-10 用户后来要求把功能名改成「游戏数据」，见 tab / 抬头 / 话术抬头）
-                                    // MergeState = GM 玩家页那块「玩家存档快照」：红宝石 / 铜钱 / 体力、每个资源最后一次变动时间、
-                                    //   当日体力·钻石消耗、礼包弹窗、新手引导…（活动进度 2026-10 按用户要求整块删掉了，activities 也不再解析）
-                                    // ⚠️ others 是「字符串套字符串」（个别还三层），统一用 mergeJson() 一层层剥。
-                                    // ⚠️ 只在本机内存解析（跟棋盘镜像一个规矩），不进 /api/data、不落 localStorage。
-                                    let mergeModel = null;
-                                    function mergeJson(v, dflt) {
-                                        if (v == null) return dflt;
-                                        if (typeof v === 'object') return v;
-                                        try { return JSON.parse(v); } catch (_) { return dflt; }
-                                    }
-                                    // 时间戳（秒）→ 「YYYY-MM-DD HH:MM」北京时间
-                                    // ⚠️ 2026-10 用真实数据核过：操作记录里 sTime=1793241739 对应的订单 createTime 就是「2026-10-29 10:42:19」，
-                                    //   说明服务器时间串是 UTC+8，所以这里统一 +8 显示（原来的 UTC 显示会比 GM 页早 8 小时）。
-                                    function mergeTsText(ts) {
-                                        const n = +ts || 0;
-                                        if (!n) return '—';
-                                        try { return new Date((n + 8 * 3600) * 1000).toISOString().replace('T', ' ').slice(0, 16); } catch (_) { return String(n); }
-                                    }
-                                    function mergeNameOf(id) { return boardNameOf(id) || ('道具 ' + id); }
-                                    // 解析成 { ok, diamond, gold, hp, metaId, syncTime, resource[], meta{}, guides[], gifts[] }
-                                    function mergeParse(raw) {
-                                        const model = {
-                                            ok: false, error: '', diamond: null, gold: null, hp: null, metaId: '', syncTime: 0,
-                                            resource: [], meta: {}, guides: [], gifts: [], stats: null,
-                                            record: { diamond: null, gold: null, hp: null }
-                                        };
-                                        const txt = boardJsonText(raw);
-                                        if (!txt) return model;
-                                        let data = null;
-                                        try { data = JSON.parse(txt); } catch (e) {
-                                            model.error = 'JSON 解析失败：' + String((e && e.message) || e);
-                                            return model;
-                                        }
-                                        if (!data || typeof data !== 'object') { model.error = '贴进来的不是 JSON 对象'; return model; }
-                                        const num = (a, b) => (a != null ? +a : (b != null ? +b : null));
-                                        model.diamond = num(data.diamond, data.recordDiamond);
-                                        model.gold = num(data.gold, data.recordGold);
-                                        model.hp = num(data.hpData, data.recordHp);
-                                        model.metaId = data.recordID != null ? String(data.recordID) : '';
-                                        model.syncTime = +data.syncTime || 0;
-                                        model.record = {
-                                            diamond: data.recordDiamond != null ? +data.recordDiamond : null,
-                                            gold: data.recordGold != null ? +data.recordGold : null,
-                                            hp: data.recordHp != null ? +data.recordHp : null
-                                        };
-                                        model.stats = mergeJson(data.stats, null);
-                                        const others = mergeJson(data.others, null);
-                                        if (!others || typeof others !== 'object') { model.ok = model.diamond != null; return model; }
-                                        model.resource = (mergeJson(others.resource, []) || []).map(r => ({
-                                            id: String((r && r.id) || ''), n: +((r && r.num) || 0), ts: +((r && r.timestamp) || 0)
-                                        })).filter(r => r.id);
-                                        model.resource.sort((a, b) => (b.n - a.n) || (b.ts - a.ts));
-                                        (mergeJson(others.meta, []) || []).forEach(m => { if (m && m.name) model.meta[String(m.name)] = m; });
-                                        model.guides = (mergeJson(others.completeGuides, []) || []).map(g => ({
-                                            id: String((g && g.guideId) || ''), val: g && g.val
-                                        }));
-                                        model.gifts = (mergeJson(others.gifts, []) || []).map(g => ({
-                                            type: String((g && g.giftType) || ''), id: String((g && g.giftId) || ''), pop: +((g && g.nextPopTime) || 0)
-                                        }));
-                                        model.ok = true;
-                                        return model;
-                                    }
-                                    // 当日消耗（体力 / 钻石）—— meta 里那两条 extra 就是消耗量
-                                    function mergeDailyUsage(model) {
-                                        const e = model && model.meta ? model.meta['daily_board_energy_stat'] : null;
-                                        const d = model && model.meta ? model.meta['daily_diamond_consume_stat'] : null;
-                                        return {
-                                            energy: e && e.extra != null && e.extra !== '' ? +e.extra : null,
-                                            diamond: d && d.extra != null && d.extra !== '' ? +d.extra : null
-                                        };
-                                    }
-                                    // MergeState 解析后跟已解析的棋盘镜像对账（红宝石 103 / 铜钱 102 / 体力 101）
-                                    function mergeRender(model) {
-                                        const sum = document.getElementById('mergeSummary');
-                                        const table = document.getElementById('gdResTable');
-                                        const sub = document.getElementById('gdReportSub');
-                                        const meta = document.getElementById('gdReportMeta');
-                                        if (!model || !model.ok) {
-                                            if (sum) sum.innerHTML = '';
-                                            if (table) table.innerHTML = '';
-                                            if (sub) sub.textContent = '—';
-                                            if (meta) meta.innerHTML = '';
-                                            teaSetHint('gdResCount', '');
-                                                return;
-                                        }
-                                        const usage = mergeDailyUsage(model);
-                                        if (sum) {
-                                            const chips = [];
-                                            if (model.diamond != null) chips.push(statChip('红宝石 ' + model.diamond, 'k-accent'));
-                                            if (model.gold != null) chips.push(statChip('铜钱 ' + model.gold));
-                                            if (model.hp != null) chips.push(statChip('体力 ' + model.hp));
-                                            if (usage.energy != null) chips.push(statChip('今日体力 −' + usage.energy, 'k-plain'));
-                                            if (usage.diamond != null) chips.push(statChip('今日钻石 −' + usage.diamond, 'k-plain'));
-                                            chips.push(statChip('资源 ' + model.resource.length + ' 项'));
-                                            sum.innerHTML = chips.join('');
-                                        }
-                                        if (sub) {
-                                            sub.textContent = '存档数据不参与判断（只用资源流水 / 棋盘镜像 / 操作记录）';   // 存档副标不再展示
-                                        }
-                                        if (meta) {
-                                            meta.innerHTML = statChips([
-                                                ['红宝石', model.diamond == null ? '—' : model.diamond],
-                                                ['铜钱', model.gold == null ? '—' : model.gold],
-                                                ['体力', model.hp == null ? '—' : model.hp]
-                                            ]);
-                                        }
-                                        const hasN = model.resource.filter(r => r.n > 0);
-                                        const zeroN = model.resource.length - hasN.length;
-                                        teaSetHint('gdResCount', model.resource.length
-                                            ? ('有数量 ' + hasN.length + ' 项' + (zeroN ? ' · 其余 ' + zeroN + ' 项是 0' : ''))
-                                            : '这份数据里没有 resource 列表');
-                                        if (table) {
-                                            const rows = hasN.slice(0, 200);
-                                            let h = '<thead><tr><th>道具</th><th class="num">数量</th><th>最后变动</th></tr></thead><tbody>';
-                                            h += rows.length ? rows.map(r => '<tr><td>' + escapeHtml(mergeNameOf(r.id))
-                                                + ' <span class="hint-text">' + escapeHtml(r.id) + '</span></td><td class="num">' + r.n
-                                                + '</td><td>' + escapeHtml(mergeTsText(r.ts)) + '</td></tr>').join('')
-                                                : '<tr><td colspan="3" style="color:var(--ink-3);">这份存档里的资源数量都是 0</td></tr>';
-                                            table.innerHTML = h + '</tbody>';
-                                        }
-                                    }
-                                    // 「玩家说的时间」→ 秒（datetime-local 是北京时间，减去 8 小时才是 unix 时间戳，跟数据同口径）
-                                    function mergeTimeToEpoch(v) {
-                                        const m = /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/.exec(String(v == null ? '' : v));
-                                        if (!m) return 0;
-                                        return Math.floor(Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]) / 1000) - 8 * 3600;
-                                    }
-                                    // ==================== 🧾 操作记录（opRecord → 道具到底被谁拿走 / 被合成吃掉）====================
-                                    // 用户：「如果加上这个数据呢」—— MergeState 只说「资源最后一次变动是什么时候」，这份操作记录说的是
-                                    //   「那次变动干了什么」：合成 / 母体产出 / 订单消耗 / 格子解锁，都带 sTime 与涉及格子。
-                                    //   ⚠️ op 号没有官方文档，标签是按「这条记录带了哪些字段」推断的，别当官方定义写进对外话术。
-                                    //   ⚠️ 跟 MergeState / 棋盘镜像一个规矩：只在本机内存里解析，不进 /api/data、也不落 localStorage。
-                                    let opModel = null;
-                                    const MERGE_OP_LABELS = {
-                                        30: '棋盘操作', 201: '母体产出', 281: '棋子合并', 701: '格子解锁', 1030: '订单初始化'
-                                    };
-                                    function mergeOpLabel(op) {
-                                        const n = +op || 0;
-                                        return MERGE_OP_LABELS[n] ? (MERGE_OP_LABELS[n] + '（op ' + n + '）') : ('操作 ' + n);
-                                    }
-                                    // 贴进来的可能是纯数组，也可能是一整块对象里套着数组 → 递归找出「像操作记录」的那个数组
-                                    function mergeOpRowsOf(v) {
-                                        if (Array.isArray(v)) return v;
-                                        if (!v || typeof v !== 'object') return null;
-                                        const keys = Object.keys(v);
-                                        for (let i = 0; i < keys.length; i++) {
-                                            const child = v[keys[i]];
-                                            if (Array.isArray(child) && child.some(x => x && typeof x === 'object'
-                                                && ('op' in x || 'opId' in x || 'sTime' in x))) return child;
-                                            if (child && typeof child === 'object' && !Array.isArray(child)) {
-                                                const deep = mergeOpRowsOf(child);
-                                                if (deep) return deep;
-                                            }
-                                        }
-                                        return null;
-                                    }
-                                    // 解析成 { ok, error, rows[], from, to, ops{} }；rows 按时间正序
-                                    function mergeOpParse(raw) {
-                                        const model = { ok: false, error: '', rows: [], from: 0, to: 0, ops: {} };
-                                        const txt = String(raw == null ? '' : raw).trim();
-                                        if (!txt) return model;
-                                        let data = null;
-                                        try { data = JSON.parse(txt); } catch (e) {
-                                            model.error = 'JSON 解析失败：' + String((e && e.message) || e);
-                                            return model;
-                                        }
-                                        const arr = mergeOpRowsOf(data);
-                                        if (!arr || !arr.length) {
-                                            model.error = '这段里没认出操作记录（应该是带 op / sTime / consume 的对象数组）';
-                                            return model;
-                                        }
-                                        const pair = (list) => (Array.isArray(list) ? list : []).map(x => ({
-                                            id: String(x && x.goodsId != null ? x.goodsId : ''), n: +((x && x.num) || 0)
-                                        })).filter(x => x.id);
-                                        model.rows = arr.map((o, i) => {
-                                            const r = (o && typeof o === 'object') ? o : {};
-                                            const orders = mergeJson(r.orderDojosStr, null);
-                                            return {
-                                                i: i, op: +r.op || 0, opId: +r.opId || 0, ts: +r.sTime || 0,
-                                                cbId: r.cbId != null ? +r.cbId : null,
-                                                cellIdx: r.cellIdx != null ? +r.cellIdx : null,
-                                                cellIdies: Array.isArray(r.cellIdies) ? r.cellIdies.map(x => +x) : [],
-                                                goodsId: r.goodsId != null ? String(r.goodsId) : '',
-                                                momGoodsId: r.momGoodsId != null ? String(r.momGoodsId) : '',
-                                                childNum: +r.childNum || 0,
-                                                consume: pair(r.consume), rewards: pair(r.rewards),
-                                                orders: Array.isArray(orders) ? orders : []
-                                            };
-                                        }).filter(r => r.op || r.opId);
-                                        model.rows.sort((a, b) => (a.ts - b.ts) || (a.opId - b.opId));
-                                        model.rows.forEach(r => { model.ops[r.op] = (model.ops[r.op] || 0) + 1; });
-                                        const stamps = model.rows.map(r => r.ts).filter(Boolean);
-                                        model.from = stamps.length ? Math.min.apply(null, stamps) : 0;
-                                        model.to = stamps.length ? Math.max.apply(null, stamps) : 0;
-                                        model.ok = model.rows.length > 0;
-                                        return model;
-                                    }
-                                    // 这个道具在这段操作记录里出现过几次：被消耗 / 被获得 / 作为合成目标（母子棋）出现
-                                    function mergeOpHits(id) {
-                                        const out = [];
-                                        if (!opModel || !opModel.ok) return out;
-                                        const k = String(id);
-                                        opModel.rows.forEach(r => {
-                                            const c = r.consume.filter(x => x.id === k)[0];
-                                            const g = r.rewards.filter(x => x.id === k)[0];
-                                            if (c) out.push({ kind: 'consume', n: c.n, ts: r.ts, op: r.op, row: r });
-                                            else if (g) out.push({ kind: 'gain', n: g.n, ts: r.ts, op: r.op, row: r });
-                                            else if (r.goodsId === k || r.momGoodsId === k) {
-                                                out.push({ kind: 'touch', n: r.childNum || 1, ts: r.ts, op: r.op, row: r });
-                                            }
-                                        });
-                                        return out;
-                                    }
-                                    // 操作记录里那些订单快照（op 1030 的 orderDojosStr）：这个道具被订单收走（consume）/ 被订单奖励给过（rewards）
-                                    function mergeOpOrderHits(id) {
-                                        const out = [];
-                                        if (!opModel || !opModel.ok) return out;
-                                        const k = String(id);
-                                        const seen = {};
-                                        const take = (list, kind, o, r) => {
-                                            (Array.isArray(list) ? list : []).forEach(x => {
-                                                if (!x || String(x.goodsId) !== k) return;
-                                                const key = kind + '|' + String((o && o.id) || '') + '|' + String(x.num);
-                                                if (seen[key]) return;
-                                                seen[key] = 1;
-                                                out.push({
-                                                    kind: kind, id: String((o && o.id) || ''), n: +x.num || 0,
-                                                    time: String((o && o.createTime) || ''), ts: r.ts, row: r
-                                                });
-                                            });
-                                        };
-                                        opModel.rows.forEach(r => {
-                                            r.orders.forEach(o => {
-                                                take(o && o.consume, 'consume', o, r);
-                                                take(o && o.rewards, 'gain', o, r);
-                                            });
-                                        });
-                                        return out;
-                                    }
-                                    // 话术里那几条：覆盖时间 / 被消耗 / 被获得 / 合成出现 / 订单收走 / 跟时间点对一下
-                                    function mergeOpLines(id) {
-                                        const out = [];
-                                        if (!opModel || !opModel.ok) return out;
-                                        out.push('—— 操作记录（' + opModel.rows.length + ' 条）——');
-                                        out.push('· 覆盖时间：' + mergeTsText(opModel.from) + ' ~ ' + mergeTsText(opModel.to));
-                                        const hits = mergeOpHits(id);
-                                        const used = hits.filter(h => h.kind === 'consume');
-                                        const got = hits.filter(h => h.kind === 'gain');
-                                        const touch = hits.filter(h => h.kind === 'touch');
-                                        const oh = mergeOpOrderHits(id);
-                                        const sum = (list) => list.reduce((a, h) => a + h.n, 0);
-                                        if (!hits.length && !oh.length) {
-                                            out.push('· 这段记录里没有「' + mergeNameOf(id) + '」：既没被消耗、也没产出 —— 只能说这段时间它没动过，要追责得让研发拉完整流水。');
-                                        }
-                                        if (used.length) {
-                                            out.push('· 被消耗 ' + used.length + ' 次、共 ' + sum(used) + ' 个：'
-                                                + used.slice(-3).map(h => mergeTsText(h.ts) + ' ' + mergeOpLabel(h.op) + ' 收 ' + h.n + ' 个').join('；'));
-                                        }
-                                        if (got.length) {
-                                            out.push('· 获得 ' + got.length + ' 次、共 ' + sum(got) + ' 个：'
-                                                + got.slice(-3).map(h => mergeTsText(h.ts) + ' ' + mergeOpLabel(h.op) + ' 给 ' + h.n + ' 个').join('；'));
-                                        }
-                                        if (touch.length) {
-                                            out.push('· 作为棋子参与合成 / 被产出 ' + touch.length + ' 次：'
-                                                + touch.slice(-3).map(h => mergeTsText(h.ts) + ' ' + mergeOpLabel(h.op)
-                                                    + (h.row.cellIdies.length ? '（格 ' + h.row.cellIdies.join('/') + '）' : '')).join('；'));
-                                        }
-                                        const used2 = oh.filter(h => h.kind === 'consume');
-                                        const got2 = oh.filter(h => h.kind === 'gain');
-                                        if (used2.length) {
-                                            out.push('· 订单收走 ' + used2.length + ' 单、共 ' + sum(used2) + ' 个：'
-                                                + used2.slice(0, 4).map(o => '订单 ' + (o.id || '?') + ' 收 ' + o.n + ' 个' + (o.time ? '（' + o.time + '）' : '')).join('、'));
-                                        }
-                                        if (got2.length) {
-                                            out.push('· 订单奖励里给过 ' + got2.length + ' 次、共 ' + sum(got2) + ' 个：'
-                                                + got2.slice(0, 4).map(o => '订单 ' + (o.id || '?') + ' 给 ' + o.n + ' 个' + (o.time ? '（' + o.time + '）' : '')).join('、'));
-                                        }
-                                        const claim = mergeTimeToEpoch((document.getElementById('gdItemTime') || {}).value);
-                                        if (claim) {
-                                            const after = hits.concat(oh).filter(h => h.ts >= claim);
-                                            if (!after.length) out.push('· 玩家说的时间之后：这段记录里一条都没动过它。');
-                                            else {
-                                                const last = after[after.length - 1];
-                                                out.push('· 玩家说的时间之后动过它 ' + after.length + ' 次，最近一次 ' + mergeTsText(last.ts)
-                                                    + (last.op ? '（' + mergeOpLabel(last.op) + '）' : '（订单）'));
-                                            }
-                                        }
-                                        return out;
-                                    }
-                                    // 操作记录表：有查询词就只列跟它有关的，没有就按时间倒序列最近 100 条
-                                    function mergeOpRender() {
-                                        const sum = document.getElementById('gdOpSummary');
-                                        const table = document.getElementById('gdOpTable');
-                                        const cnt = document.getElementById('gdOpCount');
-                                        if (!opModel || !opModel.ok) {
-                                            if (sum) sum.innerHTML = '';
-                                            if (table) table.innerHTML = '';
-                                            if (cnt) cnt.textContent = '可选：合并 / 订单消耗 / 产出都能对到时间';
-                                            return;
-                                        }
-                                        if (cnt) cnt.textContent = opModel.rows.length + ' 条 · ' + mergeTsText(opModel.from) + ' ~ ' + mergeTsText(opModel.to);
-                                        if (sum) {
-                                            const chips = [statChip('操作 ' + opModel.rows.length + ' 条', 'k-accent'),
-                                                statChip('时间 ' + mergeTsText(opModel.from) + ' ~ ' + mergeTsText(opModel.to))];
-                                            Object.keys(opModel.ops).sort((a, b) => opModel.ops[b] - opModel.ops[a]).slice(0, 5)
-                                                .forEach(k => chips.push(statChip(mergeOpLabel(k) + ' × ' + opModel.ops[k])));
-                                            sum.innerHTML = chips.join('');
-                                        }
-                                        if (table) {
-                                            const q = ((document.getElementById('gdItemInput') || {}).value || '').trim();
-                                            const ids = q ? boardIdsOfQuery(q) : [];
-                                            const want = ids.length ? String(ids[0]) : '';
-                                            let rows = opModel.rows;
-                                            if (want) {
-                                                const keep = {};
-                                                mergeOpHits(want).forEach(h => { keep[h.row.i] = 1; });
-                                                mergeOpOrderHits(want).forEach(h => { keep[h.row.i] = 1; });
-                                                rows = opModel.rows.filter(r => keep[r.i]);
-                                            }
-                                            rows = rows.slice(-100).reverse();
-                                            const pairs = (list) => list.map(x => mergeNameOf(x.id) + '×' + x.n).join('、');
-                                            // 订单快照里的消耗 / 奖励也一起列（订单就是「最常把东西收走」的地方）
-                                            const cellOf = (own, ords, label) => {
-                                                const a = pairs(own);
-                                                const b = ords.length ? (label + ' ' + pairs(ords)) : '';
-                                                return [a, b].filter(Boolean).join(' ｜ ') || '—';
-                                            };
-                                            let h = '<thead><tr><th>时间</th><th>操作</th><th>消耗</th><th>获得</th><th>格子</th></tr></thead><tbody>';
-                                            h += rows.length ? rows.map(r => {
-                                                const cellTxt = r.cellIdies.length ? ('格 ' + r.cellIdies.join('/'))
-                                                    : (r.cellIdx != null ? ('格 ' + r.cellIdx)
-                                                        : (r.momGoodsId ? ('母棋 ' + mergeNameOf(r.momGoodsId)) : '—'));
-                                                const ordUse = [], ordGain = [];
-                                                r.orders.forEach(o => {
-                                                    (o && Array.isArray(o.consume) ? o.consume : []).forEach(x => ordUse.push({ id: String(x.goodsId), n: +x.num || 0 }));
-                                                    (o && Array.isArray(o.rewards) ? o.rewards : []).forEach(x => ordGain.push({ id: String(x.goodsId), n: +x.num || 0 }));
-                                                });
-                                                return '<tr><td>' + escapeHtml(mergeTsText(r.ts)) + '</td><td>' + escapeHtml(mergeOpLabel(r.op))
-                                                    + (r.orders.length ? ' <span class="hint-text">订单 ' + r.orders.length + ' 个</span>' : '')
-                                                    + '</td><td>' + escapeHtml(cellOf(r.consume, ordUse, '订单'))
-                                                    + '</td><td>' + escapeHtml(cellOf(r.rewards, ordGain, '订单'))
-                                                    + '</td><td>' + escapeHtml(cellTxt) + '</td></tr>';
-                                            }).join('')
-                                                : '<tr><td colspan="5" style="color:var(--ink-3);">'
-                                                    + (want ? ('这段记录里没有「' + escapeHtml(mergeNameOf(want)) + '」') : '这份记录里没有可展示的操作') + '</td></tr>';
-                                            table.innerHTML = h + '</tbody>';
-                                        }
-                                    }
-                                    function mergeOpRun(rawArg) {
-                                        const input = document.getElementById('gdOpInput');
-                                        const raw = typeof rawArg === 'string' ? rawArg : ((input && input.value) || '');
-                                        const kind = gdRoute(raw);
-                                        if (kind === 'flow') {
-                                            gdFlowRun(raw);
-                                            teaSetHint('gdOpHint', '认出来是资源流水 → 已解析到「01 资源核对」的流水对账');
-                                            return opModel;
-                                        }
-                                        if (kind === 'merge') {
-                                            const el = document.getElementById('mergeInput');
-                                            if (el) el.value = raw;
-                                            mergeRun(raw);
-                                            teaSetHint('gdOpHint', '认出来是 MergeState → 已解析到页头「① 粘贴数据」那块');
-                                            return opModel;
-                                        }
-                                        if (kind === 'board') {
-                                            const el = document.getElementById('boardInput');
-                                            if (el) el.value = raw;
-                                            boardRun(raw);
-                                            teaSetHint('gdOpHint', '认出来是棋盘镜像 → 已解析到「03 棋盘镜像」');
-                                            return opModel;
-                                        }
-                                        if (!raw.trim()) {
-                                            opModel = null;
-                                            mergeOpRender();
-                                            teaSetHint('gdOpHint', '先把操作记录整段贴到上面');
-                                            return null;
-                                        }
-                                        const model = mergeOpParse(raw);
-                                        if (model.error) {
-                                            opModel = null;
-                                            mergeOpRender();
-                                            teaSetHint('gdOpHint', model.error);
-                                            return null;
-                                        }
-                                        opModel = model;
-                                        mergeOpRender();
-                                        teaSetHint('gdOpHint', '认出 ' + model.rows.length + ' 条操作（'
-                                            + mergeTsText(model.from) + ' ~ ' + mergeTsText(model.to) + '）');
-                                        const q = ((document.getElementById('gdItemInput') || {}).value || '').trim();
-                                        if (q && (mergeModel || flowModel || boardModel)) mergeItemRun();
-                                        return model;
-                                    }
-                                    function mergeOpClear() {
-                                        const el = document.getElementById('gdOpInput');
-                                        if (el) el.value = '';
-                                        opModel = null;
-                                        mergeOpRender();
-                                        teaSetHint('gdOpHint', '已清空操作记录');
-                                        const q = ((document.getElementById('gdItemInput') || {}).value || '').trim();
-                                        if (q && (mergeModel || flowModel || boardModel)) mergeItemRun();
-                                    }
-                                    // epoch → 「YYYY-MM-DD HH:MM:SS」北京时间（跟流水里的时间串同口径，直接按字符串比大小）
-                                    function mergeEpochText(sec) {
-                                        const n = +sec || 0;
-                                        if (!n) return '';
-                                        try { return new Date((n + 8 * 3600) * 1000).toISOString().replace('T', ' ').slice(0, 19); } catch (_) { return ''; }
-                                    }
-                                    // 这个道具在「订单消耗 / 最近一次操作」里出现过没有（数据来自棋盘镜像那份 JSON）
-                                    function mergeConsumeHits(id) {
-                                        const out = [];
-                                        const board = boardModel;
-                                        if (!board) return out;
-                                        const od = board.orderData;
-                                        if (od && od.orderDojoMap && typeof od.orderDojoMap === 'object') {
-                                            Object.keys(od.orderDojoMap).forEach(k => {
-                                                const o = od.orderDojoMap[k] || {};
-                                                const hit = (o.consume || []).filter(c => String(c && c.goodsId) === String(id))[0];
-                                                if (hit) out.push({ from: '订单', id: k, n: +hit.num || 0, time: '' });
-                                            });
-                                        }
-                                        const ins = board.lastInstruction;
-                                        if (ins) {
-                                            (mergeJson(ins.orderDojosStr, []) || []).forEach(o => {
-                                                const hit = (o.consume || []).filter(c => String(c && c.goodsId) === String(id))[0];
-                                                if (hit) out.push({ from: '最近操作', id: String(o.id || ''), n: +hit.num || 0, time: String(o.createTime || ''), rewards: o.rewards || [] });
-                                            });
-                                        }
-                                        return out;
-                                    }
-                                    // 异常自查那几行：流水窗口 / 时间点（按流水行比）/ 订单消耗 / 最近一次操作 / 能力边界（不使用存档数据）
-                                    function mergeSelfCheckLines(model, id) {
-                                        const out = ['—— 异常自查 ——'];
-                                        const claim = mergeTimeToEpoch((document.getElementById('gdItemTime') || {}).value);
-                                        const rows = (flowModel && flowModel.ok) ? flowModel.rows.filter(r => gdFlowMatch(r, id)) : [];
-                                        if (!rows.length) {
-                                            out.push('· 没有资源流水：看不出「动过几次、被谁动的」—— 贴一份流水再判。');
-                                        } else {
-                                            const net = rows.reduce((a, r) => a + r.delta, 0);
-                                            out.push('· 流水窗口：' + rows[0].ts + ' ~ ' + rows[rows.length - 1].ts
-                                                + '（' + rows.length + ' 条，净 ' + (net > 0 ? '+' : '') + net + '）');
-                                            if (claim) {
-                                                const ck = mergeEpochText(claim);
-                                                const after = rows.filter(r => String(r.ts) >= ck);
-                                                out.push(after.length
-                                                    ? ('· 玩家说的时间之后动过它 ' + after.length + ' 次，最近一次 ' + after[after.length - 1].ts + '。')
-                                                    : ('· 玩家说的时间（' + ck + '）之后：流水里一条都没动过它。'));
-                                            }
-                                        }
-                                        if (!boardModel) {
-                                            out.push('· 订单消耗 / 最近一次操作：镜像还没解析 —— 把棋盘镜像也贴进来就能对。');
-                                        } else {
-                                            const hits = mergeConsumeHits(id);
-                                            const orderHits = hits.filter(h => h.from === '订单');
-                                            out.push('· 订单消耗：' + (orderHits.length
-                                                ? ('在 ' + orderHits.length + ' 个当前订单的消耗里（' + orderHits.map(h => '订单 ' + h.id + ' 收 ' + h.n + ' 个').join('、') + '）')
-                                                : '当前订单的消耗清单里没有它'));
-                                            const lastHits = hits.filter(h => h.from === '最近操作');
-                                            if (lastHits.length) {
-                                                lastHits.forEach(h => out.push('· 最近一次操作：' + (h.time || '时间未知') + ' 消耗了它 ' + h.n + ' 个'
-                                                    + (h.rewards && h.rewards.length ? '，给了 ' + h.rewards.slice(0, 4).map(r => mergeNameOf(r.goodsId) + '×' + r.num).join('、') : '')));
-                                            } else if (boardModel.lastInstruction) {
-                                                out.push('· 最近一次操作：最近那批指令里没有消耗它');
-                                            }
-                                        }
-                                        out.push('· 注：判断只用上面这几份数据（不使用存档数据）；要定责仍以服务端全量流水为准。');
-                                        return out;
-                                    }
-                                    // ==================== 🔁 万能粘贴（贴哪个框都行，自动认是哪份数据） ====================
-                                    // 用户 2026-10：「操作过于复杂繁琐了，实际会影响工作效率」—— 原来要分别找三个框贴三种数据，
-                                    //   现在任一框（页头大框 / 03 棋盘镜像 / 操作记录）贴任何一份，认出来就转给对应解析器。
-                                    function gdJsonOf(raw) {
-                                        const t = String(raw == null ? '' : raw).trim();
-                                        if (!t) return null;
-                                        try { return JSON.parse(t); } catch (_) { }
-                                        const pick = (a, b) => {
-                                            const i = t.indexOf(a), j = t.lastIndexOf(b);
-                                            if (i < 0 || j <= i) return null;
-                                            try { return JSON.parse(t.slice(i, j + 1)); } catch (_) { return null; }
-                                        };
-                                        return pick('{', '}') || pick('[', ']');
-                                    }
-                                    // 资源流水：不算 JSON，是一行一行的制表符文本（时间 + 制表符 + 带正负号的变化量）
-                                    function gdLooksFlow(raw) {
-                                        const t = String(raw == null ? '' : raw);
-                                        if (t.indexOf('\t') < 0) return false;
-                                        const lines = t.split(/\r?\n/).filter(l => l.trim()).slice(0, 5);
-                                        if (!lines.length) return false;
-                                        return lines.every(l => /\d{4}-\d{2}-\d{2}/.test(l) && l.split('\t').length >= 6);
-                                    }
-                                    // merge / board / op / flow（认不出返回空串）
-                                    function gdDetectKind(v) {
-                                        if (Array.isArray(v)) {
-                                            return v.some(x => x && typeof x === 'object' && ('op' in x || 'sTime' in x)) ? 'op' : '';
-                                        }
-                                        if (!v || typeof v !== 'object') return '';
-                                        if (v.others != null || v.hpData != null || v.recordDiamond != null || v.recordGold != null
-                                            || v.diamond != null || v.gold != null) return 'merge';
-                                        if (v.chessboardDataList || v.warehouseData || v.backpack || v.currencies || v.backpackGoodsIds) return 'board';
-                                        if (mergeOpRowsOf(v)) return 'op';
-                                        return '';
-                                    }
-                                    // 一条路把「贴进来的是什么」认出来（JSON 三兄弟 + 资源流水）
-                                    function gdRoute(raw) {
-                                        const v = gdJsonOf(raw);
-                                        if (v != null) return gdDetectKind(v);
-                                        return gdLooksFlow(raw) ? 'flow' : '';
-                                    }
-                                    // 粘完 400ms 自动解析（认不出就安静不动，不打扰）
-                                    let gdAutoTimer = 0;
-                                    function gdAutoFrom(id) {
-                                        const el = document.getElementById(id);
-                                        const raw = (el && el.value) || '';
-                                        if (raw.trim().length < 12) return false;
-                                        const kind = gdRoute(raw);
-                                        if (!kind) return false;
-                                        if (kind === 'merge') return !!mergeRun(raw);
-                                        if (kind === 'flow') return !!gdFlowRun(raw);
-                                        if (kind === 'board') {
-                                            const b = document.getElementById('boardInput');
-                                            if (b) b.value = raw;
-                                            return !!boardRun(raw);
-                                        }
-                                        const o = document.getElementById('gdOpInput');
-                                        if (o) o.value = raw;
-                                        return !!mergeOpRun(raw);
-                                    }
-                                    // ==================== 🧠 思维导图（道具 → 存档 / 镜像 / 订单 / 操作记录 / 结论） ====================
-                                    function gdMapNodeHtml(cls, title, text, tip) {
-                                        return '<div class="gd-map-node ' + cls + '"' + (tip ? ' title="' + escapeHtml(tip) + '"' : '') + '>'
-                                            + '<b>' + escapeHtml(title) + '</b><span>' + escapeHtml(String(text == null ? '' : text)) + '</span></div>';
-                                    }
-                                    // 一句话结论：芯片那排给细节，这里只给最该看的那句
-                                    function mergeItemConclusion(id, rec) {
-                                        // 有资源流水时，第一优先是用户给的口径：+N 之后有没有 −N 棋盘上传
-                                        if (flowModel && flowModel.ok && flowModel.rows.some(r => gdFlowMatch(r, id))) {
-                                            const fr = gdFlowPairs(id);
-                                            if (fr.pairs.length) {
-                                                const p = fr.pairs[0];
-                                                return { text: '找到 ' + fr.pairs.length + ' 组「+' + p.gain.delta + ' → 棋盘上传 ' + p.loss.delta + '」→ 被吞的特征', cls: 'is-warn' };
-                                            }
-                                            if (fr.gains.length) return { text: '获得 ' + fr.gains.length + ' 次，后面没有棋盘上传扣除 → 不是被吞', cls: 'is-ok' };
-                                        }
-                                        const claim = mergeTimeToEpoch((document.getElementById('gdItemTime') || {}).value);
-                                        const usedN = mergeOpHits(id).filter(h => h.kind === 'consume').reduce((a, h) => a + h.n, 0)
-                                            + mergeOpOrderHits(id).filter(h => h.kind === 'consume').reduce((a, h) => a + h.n, 0);
-                                        if (usedN > 0) return { text: '有 ' + usedN + ' 个消耗记录 → 不是被吞，是消耗掉了', cls: 'is-ok' };
-                                        if (claim && rec && +rec.ts < claim) return { text: '玩家说的时间之后它没再变过 → 不是被吞', cls: 'is-ok' };
-                                        if (claim && rec) return { text: '那个时段确实变过 → 往上看消耗去向', cls: 'is-warn' };
-                                        if (rec) return { text: '最后变动 ' + mergeTsText(rec.ts) + '；要定责得让研发拉服务端流水', cls: 'is-mute' };
-                                        return { text: '这份数据里没有它的记录', cls: 'is-mute' };
-                                    }
-                                    function mergeItemMap(id, rec) {
-                                        if (!id) return '';
-                                        const nodes = [];
-                                        // ① 存档（MergeState）；没贴存档就退成「流水最后余额」
-                                        const fl = gdFlowLast(id);
-                                        if (rec) nodes.push(gdMapNodeHtml('is-ok', '存档', '当前 ' + rec.n + ' 个 · 最后变动 ' + mergeTsText(rec.ts)));
-                                        else if (fl) nodes.push(gdMapNodeHtml('is-ok', '存档', '没贴存档 · 流水最后余额 ' + fl.after + '（' + fl.ts + '）'));
-                                        else nodes.push(gdMapNodeHtml('is-warn', '存档', mergeModel ? '这份存档里没有它的记录' : '没贴存档（只贴了流水就用流水余额）'));
-                                        // ② 棋盘镜像三处
-                                        if (boardModel) {
-                                            const c = (boardModel.counts || {})[id] || { onBoard: 0, inBackpack: 0, inWarehouse: 0 };
-                                            const tot = c.onBoard + c.inBackpack + c.inWarehouse;
-                                            nodes.push(gdMapNodeHtml(tot ? 'is-ok' : '', '棋盘镜像',
-                                                '棋盘上 ' + c.onBoard + ' · 临时背包 ' + c.inBackpack + ' · 仓库 ' + c.inWarehouse));
-                                        } else nodes.push(gdMapNodeHtml('is-mute', '棋盘镜像', '还没解析 —— 把镜像 JSON 也贴进来就行'));
-                                        // ③ 订单（镜像里的订单 + 操作记录里的订单快照）
-                                        const parts = [];
-                                        mergeConsumeHits(id).forEach(h => parts.push((h.from === '最近操作' ? '最近一次操作' : '当前订单 ' + h.id)
-                                            + ' 收 ' + h.n + ' 个' + (h.time ? '（' + h.time + '）' : '')));
-                                        mergeOpOrderHits(id).forEach(h => parts.push('订单 ' + (h.id || '?')
-                                            + (h.kind === 'gain' ? ' 给 ' : ' 收 ') + h.n + ' 个'));
-                                        nodes.push(parts.length
-                                            ? gdMapNodeHtml('is-warn', '订单', parts.slice(0, 3).join('；'))
-                                            : gdMapNodeHtml('is-mute', '订单', '订单 / 最近一次操作里都没动过它'));
-                                        // ④ 资源流水对账（+N 后面有没有 −N 棋盘上传）
-                                        if (flowModel && flowModel.ok && flowModel.rows.some(r => gdFlowMatch(r, id))) {
-                                            const fr = gdFlowPairs(id);
-                                            if (fr.pairs.length) {
-                                                const p = fr.pairs[0];
-                                                nodes.push(gdMapNodeHtml('is-warn', '流水对账', '对上 ' + fr.pairs.length + ' 组：'
-                                                    + p.gain.ts.slice(5) + ' +' + p.gain.delta + ' → ' + String(p.loss.ts).slice(5) + ' 棋盘上传 ' + p.loss.delta));
-                                            } else nodes.push(gdMapNodeHtml('is-ok', '流水对账',
-                                                '获得 ' + fr.gains.length + ' 次，后面都没有棋盘上传扣除 → 不是被吞'));
-                                        } else nodes.push(gdMapNodeHtml('is-mute', '流水对账', '还没贴资源流水 —— 贴了就能看「+N 后面有没有 −N 棋盘上传」'));
-                                        // ⑤ 操作记录
-                                        if (opModel && opModel.ok) {
-                                            const hits = mergeOpHits(id);
-                                            const used = hits.filter(h => h.kind === 'consume').reduce((a, h) => a + h.n, 0);
-                                            const got = hits.filter(h => h.kind === 'gain').reduce((a, h) => a + h.n, 0);
-                                            nodes.push(gdMapNodeHtml(used ? 'is-ok' : '', '操作记录', opModel.rows.length + ' 条 · '
-                                                + (used ? ('被消耗 ' + used + ' 个') : (got ? ('获得 ' + got + ' 个') : '没动过它'))));
-                                        } else nodes.push(gdMapNodeHtml('is-mute', '操作记录', '还没贴 —— 贴上能看出是被合成吃了还是交了订单'));
-                                        // ⑤ 结论
-                                        const c2 = mergeItemConclusion(id, rec);
-                                        nodes.push(gdMapNodeHtml(c2.cls, '结论', c2.text));
-                                        return '<div class="gd-map-root"><b>' + escapeHtml(boardNameOf(id) || ('道具 ' + id)) + '</b>'
-                                            + '<i>' + escapeHtml(id) + '</i><span>'
-                                            + (rec ? ('存档 ' + rec.n + ' 个') : (gdFlowLast(id) ? ('余额 ' + gdFlowLast(id).after + ' 个') : '没有记录'))
-                                            + '</span></div>'
-                                            + '<div class="gd-map-branches">' + nodes.join('') + '</div>';
-                                    }
-                                    function mergeItemMapRender(id, rec) {
-                                        const box = document.getElementById('gdItemMap');
-                                        if (!box) return;
-                                        const html = id ? mergeItemMap(id, rec) : '';
-                                        box.innerHTML = html;
-                                        box.style.display = html ? '' : 'none';
-                                    }
-                                    // ==================== 💧 资源流水对账（用户 2026-10 给的判定口径）====================
-                                    // 用户：「判断有没有被吞是根据玩家获得某个东西的 +数量的数据之后，有没有棋盘上传减掉相同东西的数量的情况，
-                                    //   比如 +100 体力的话，被吞的情况可能是 -100 棋盘上传或者 -99」
-                                    // 所以这里不再绕「最后变动时间 / 订单消耗」那一大圈：直接拿资源流水按时间排，
-                                    //   把「+N 获得」和它后面那条「−N（或 −（N−1））棋盘上传」对上号，对上了就是被吞的特征。
-                                    // 流水格式吃的是「智能解析」那份（制表符分隔，第 3~5 列是变化量/之前/之后，来源在后面第 3 列）：
-                                    //   2026-04-20 16:04:00⇥流水号⇥体力⇥-1⇥326⇥325⇥棋盘操作-临时母棋生产⇥0-货币
-                                    let flowModel = null;
-                                    // 来源 id → 中文（16 = 棋盘上传）
-                                    function gdFlowSource(raw, id) {
-                                        const t = String(raw == null ? '' : raw).trim().replace(/^["']|["']$/g, '');
-                                        if (/^\d+$/.test(t)) return (DEFAULT_SOURCE_ID_MAP[t] || t);
-                                        if (t) return t;
-                                        const k = String(id == null ? '' : id).trim();
-                                        return k ? (DEFAULT_SOURCE_ID_MAP[k] || k) : '';
-                                    }
-                                    // 行里认时间（流水第一列一般是 YYYY-MM-DD HH:MM:SS）
-                                    function gdFlowTimeOf(line) {
-                                        const m = /(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2}(?::\d{2})?)/.exec(line);
-                                        return m ? (m[1] + ' ' + (m[2].length === 5 ? m[2] + ':00' : m[2])) : '';
-                                    }
-                                    // 解析成 { ok, error, rows[] }；rows 按时间正序
-                                    function gdFlowParse(raw) {
-                                        const model = { ok: false, error: '', rows: [] };
-                                        const lines = String(raw == null ? '' : raw).split(/\r?\n/).filter(l => l.trim());
-                                        if (!lines.length) { model.error = '没看到内容'; return model; }
-                                        lines.forEach(line => {
-                                            const cols = line.split('\t').map(x => String(x == null ? '' : x).trim());
-                                            if (cols.length < 6) return;
-                                            // 变化量那列：从第 3 列起找「带正负号的整数」，后面紧跟两个数字（之前 / 之后）
-                                            let at = -1;
-                                            for (let i = 2; i <= 12 && i + 2 < cols.length; i++) {
-                                                if (/^[+-]?\d+$/.test(cols[i]) && /^-?\d+$/.test(cols[i + 1]) && /^-?\d+$/.test(cols[i + 2])) { at = i; break; }
-                                            }
-                                            if (at < 0) return;
-                                            const delta = parseInt(cols[at], 10);
-                                            if (!delta) return;
-                                            const before = parseFloat(cols[at + 1]) || 0;
-                                            const after = parseFloat(cols[at + 2]) || 0;
-                                            const sourceRaw = cols[at + 3] || '';
-                                            const sourceId = cols[at + 4] || '';
-                                            let id = '', name = '';
-                                            if (at === 2) { id = cols[6] || ''; name = cols[7] || cols[6] || ''; }
-                                            else if (at === 3) { name = cols[2] || ''; if (name === '道具' || name === '货币') name = cols[7] || cols[6] || name; }
-                                            else { id = cols[3] || ''; name = cols[4] || ''; if (!name || name === '道具' || name === '货币') name = cols[5] || id; }
-                                            model.rows.push({
-                                                ts: gdFlowTimeOf(line), delta: delta, before: before, after: after,
-                                                name: String(name || '').replace(/\s/g, ''), id: String(id || ''),
-                                                source: gdFlowSource(sourceRaw, sourceId), sourceRaw: String(sourceRaw || '')
-                                            });
-                                        });
-                                        if (!model.rows.length) { model.error = '这段里没认出资源流水（要有时间 + 制表符分列 + 带正负号的变化量）'; return model; }
-                                        model.rows.sort((a, b) => String(a.ts).localeCompare(String(b.ts)));
-                                        model.ok = true;
-                                        return model;
-                                    }
-                                    // 这条流水是不是这个道具的
-                                    function gdFlowMatch(row, id) {
-                                        if (!row) return false;
-                                        const nm = boardNameOf(id);
-                                        if (row.id && String(row.id) === String(id)) return true;
-                                        if (!row.name) return false;
-                                        if (nm && row.name === nm) return true;
-                                        return row.name === String(id);
-                                    }
-                                    function gdFlowIsUpload(row) {
-                                        return /棋盘上传/.test(row.source || '') || /棋盘上传/.test(row.sourceRaw || '')
-                                            || String(row.sourceRaw) === '16';
-                                    }
-                                    // 这个道具的流水 + 「+N 后面有没有 −N 棋盘上传」的配对结果
-                                    function gdFlowPairs(id) {
-                                        const out = { gains: [], losses: [], pairs: [] };
-                                        if (!flowModel || !flowModel.ok) return out;
-                                        flowModel.rows.forEach(r => {
-                                            if (!gdFlowMatch(r, id)) return;
-                                            if (r.delta > 0) out.gains.push(r);
-                                            else out.losses.push(r);
-                                        });
-                                        const used = {};
-                                        out.gains.forEach(g => {
-                                            // 只找「获得之后」、同数量（或差 1）的棋盘上传扣除，取最近的一条
-                                            const hit = out.losses.filter((l, i) => {
-                                                if (used[i]) return false;
-                                                if (String(l.ts) < String(g.ts)) return false;
-                                                if (!gdFlowIsUpload(l)) return false;
-                                                const n = Math.abs(l.delta);
-                                                return n === g.delta || n === g.delta - 1;
-                                            })[0];
-                                            if (!hit) return;
-                                            used[out.losses.indexOf(hit)] = 1;
-                                            out.pairs.push({ gain: g, loss: hit });
-                                        });
-                                        out.used = used;
-                                        return out;
-                                    }
-                                    // 全量体检：一次扫完这份流水里**所有**道具的「+N → 棋盘上传 −N」（后台日志里人眼要一行行找）
-                                    function gdFlowScan() {
-                                        const res = { items: 0, pairs: [] };
-                                        if (!flowModel || !flowModel.ok) return res;
-                                        const byItem = {};
-                                        flowModel.rows.forEach(r => {
-                                            const key = r.id ? ('id:' + r.id) : ('nm:' + r.name);
-                                            (byItem[key] = byItem[key] || []).push(r);
-                                        });
-                                        res.items = Object.keys(byItem).length;
-                                        Object.keys(byItem).forEach(k => {
-                                            const rows = byItem[k];
-                                            const gains = rows.filter(r => r.delta > 0);
-                                            const losses = rows.filter(r => r.delta < 0 && gdFlowIsUpload(r));
-                                            if (!gains.length || !losses.length) return;
-                                            const used = {};
-                                            gains.forEach(g => {
-                                                let at = -1;
-                                                for (let i = 0; i < losses.length; i++) {
-                                                    if (used[i]) continue;
-                                                    const l = losses[i];
-                                                    if (String(l.ts) < String(g.ts)) continue;
-                                                    const n = Math.abs(l.delta);
-                                                    if (n !== g.delta && n !== g.delta - 1) continue;
-                                                    at = i; break;
-                                                }
-                                                if (at < 0) return;
-                                                used[at] = 1;
-                                                res.pairs.push({ name: rows[0].name || '', id: rows[0].id || '', gain: g, loss: losses[at] });
-                                            });
-                                        });
-                                        return res;
-                                    }
-                                    // 表格 + 结论芯片（用户抱怨「数据太晕」→ 只列这个道具的行，配对的两行高亮）
-                                    function gdFlowRender() {
-                                        const box = document.getElementById('gdFlowBox');
-                                        const table = document.getElementById('gdFlowTable');
-                                        const chips = document.getElementById('gdFlowChips');
-                                        const q = ((document.getElementById('gdItemInput') || {}).value || '').trim();
-                                        const ids = q ? boardIdsOfQuery(q) : [];
-                                        const id = ids.length ? String(ids[0]) : '';
-                                        const scan = document.getElementById('gdFlowScan');
-                                        const hasFlow = !!(flowModel && flowModel.ok);
-                                        if (!hasFlow) {
-                                            if (box) box.style.display = 'none';
-                                            if (table) table.innerHTML = '';
-                                            if (chips) chips.innerHTML = '';
-                                            if (scan) scan.innerHTML = '';
-                                            return;
-                                        }
-                                        // 全量体检永远先摆出来：贴完流水就能看到「整份日志里有几组可疑」
-                                        if (scan) {
-                                            const sr = gdFlowScan();
-                                            const head = [statChip('扫了 ' + sr.items + ' 个道具 · ' + flowModel.rows.length + ' 条流水', 'k-plain')];
-                                            if (flowModel.origin) head.push(statChip('来自「' + flowModel.origin + '」', 'k-plain'));
-                                            if (sr.pairs.length) head.push(statChip('疑似被吞 ' + sr.pairs.length + ' 组', 'k-warn'));
-                                            else head.push(statChip('没有「+N → 棋盘上传 −N」的可疑配对', 'k-accent'));
-                                            let list = '';
-                                            if (sr.pairs.length) {
-                                                list = '<details class="stat-fold" style="flex-basis:100%; margin-top:8px;"><summary>看这 ' + sr.pairs.length + ' 组</summary>'
-                                                    + '<div class="career-scroll" style="margin-top:8px;"><table class="career-table"><thead><tr><th>道具</th><th>获得</th><th>棋盘上传扣除</th><th class="num">差</th></tr></thead><tbody>'
-                                                    + sr.pairs.slice(0, 100).map(p => '<tr><td>' + escapeHtml(p.name || ('道具 ' + p.id)) + '</td><td>'
-                                                        + escapeHtml(p.gain.ts) + ' +' + p.gain.delta + '</td><td>' + escapeHtml(p.loss.ts) + ' '
-                                                        + p.loss.delta + '</td><td class="num">' + (p.gain.delta - Math.abs(p.loss.delta)) + '</td></tr>').join('')
-                                                    + '</tbody></table></div></details>';
-                                            }
-                                            scan.innerHTML = head.join('') + list;
-                                        }
-                                        const rows = id ? flowModel.rows.filter(r => gdFlowMatch(r, id)) : [];
-                                        if (!rows.length) {
-                                            if (box) box.style.display = '';
-                                            if (table) table.innerHTML = '';
-                                            if (chips) chips.innerHTML = '';
-                                            return;
-                                        }
-                                        const res = gdFlowPairs(id);
-                                        if (box) box.style.display = '';
-                                        if (chips) {
-                                            const list = [];
-                                            if (res.pairs.length) {
-                                                list.push(statChip('对上 ' + res.pairs.length + ' 组「+N → 棋盘上传 −N」', 'k-warn',
-                                                    '获得之后紧跟一条同数量的棋盘上传扣除 —— 这就是「被吞」的特征'));
-                                                const p = res.pairs[0].gain, l = res.pairs[0].loss;
-                                                list.push(statChip('例：' + p.ts.slice(5) + ' +' + p.delta + ' → ' + String(l.ts).slice(5) + ' 棋盘上传 ' + l.delta, 'k-warn'));
-                                            } else if (res.gains.length) {
-                                                list.push(statChip('获得 ' + res.gains.length + ' 次，后面都没有棋盘上传扣除', 'k-accent'));
-                                            } else {
-                                                list.push(statChip('这段时间没有获得记录', 'k-plain'));
-                                            }
-                                            list.push(statChip('共 ' + rows.length + ' 条流水'));
-                                            chips.innerHTML = list.join('');
-                                        }
-                                        if (table) {
-                                            const isPair = {}, isLoss = {};
-                                            res.pairs.forEach(p => {
-                                                isPair[p.gain.ts + '|' + p.gain.delta] = 1;
-                                                isLoss[p.loss.ts + '|' + p.loss.delta] = 1;
-                                            });
-                                            const show = rows.slice(-100).reverse();
-                                            let h = '<thead><tr><th>时间</th><th class="num">变动</th><th class="num">余额</th><th>来源</th><th>对账</th></tr></thead><tbody>';
-                                            h += show.map(r => {
-                                                const key = r.ts + '|' + r.delta;
-                                                const cls = isLoss[key] ? 'is-loss' : (isPair[key] ? 'is-pair' : '');
-                                                const mark = isLoss[key] ? '被吞的扣除' : (isPair[key] ? '获得' : '');
-                                                return '<tr class="' + cls + '"><td>' + escapeHtml(r.ts) + '</td><td class="num">'
-                                                    + (r.delta > 0 ? '+' : '') + r.delta + '</td><td class="num">' + r.after + '</td><td>'
-                                                    + escapeHtml(r.source || '—') + '</td><td>' + (mark ? '<b>' + mark + '</b>' : '') + '</td></tr>';
-                                            }).join('');
-                                            table.innerHTML = h + '</tbody>';
-                                        }
-                                    }
-                                    function gdFlowRun(raw) {
-                                        const model = gdFlowParse(raw);
-                                        if (model.error) {
-                                            flowModel = null;
-                                            gdFlowRender();
-                                            teaSetHint('mergeHint', model.error);
-                                            return null;
-                                        }
-                                        flowModel = model;
-                                        const q = ((document.getElementById('gdItemInput') || {}).value || '').trim();
-                                        if (q.trim() && (mergeModel || flowModel)) mergeItemRun(); else gdFlowRender();
-                                        teaSetHint('mergeHint', '认出 ' + model.rows.length + ' 条资源流水（' + model.rows[0].ts + ' ~ '
-                                            + model.rows[model.rows.length - 1].ts + '）');
-                                        return model;
-                                    }
-                                    // 🔗 和「资源 & 活动奖励流水」解析联动（2026-10 用户：「点击解析或者上传解析，可以将日志数据同步更新给游戏数据这里」）
-                                    //   智能解析（smartParseAndFill）/ CSV 上传（processFlowCsv）解析出来的 records 直接灌进来，
-                                    //   不用再复制一遍粘到页头那个大框；灌完就能在「01 资源核对」里输道具名排查。
-                                    //   ⚠️ 传进来的是**原始日志文本**，不是「智能解析」那边解析/筛选/转换过的 records ——
-                                    //   话术那套会忽略「棋盘上传」、按筛选覆盖道具名、做来源转换，拿来做排查就失真了；
-                                    //   这里用游戏数据自己的严格解析（gdFlowParse），原样保留每一行、每一列。
-                                    function gdFlowImport(raw, fromLabel) {
-                                        const model = gdFlowParse(raw);
-                                        if (!model.ok) return null;
-                                        model.origin = fromLabel || '';
-                                        flowModel = model;
-                                        gdFlowRender();
-                                        const q = ((document.getElementById('gdItemInput') || {}).value || '').trim();
-                                        if (q && (mergeModel || flowModel || boardModel)) mergeItemRun();
-                                        return model;
-                                    }
-                                    // CSV 上传：只把分隔符换成制表符（引号里的不动），内容一个字不改，交给游戏数据自己判断
-                                    function gdCsvToTabs(text) {
-                                        return String(text == null ? '' : text).split(/\r?\n/).map(line => {
-                                            if (!line.trim()) return '';
-                                            let vals = [], cur = '', inq = false;
-                                            const delim = line.indexOf('\t') >= 0 ? '\t' : (line.indexOf(';') > 0 && line.indexOf(',') < 0 ? ';' : ',');
-                                            for (const ch of line) {
-                                                if (ch === '"') { inq = !inq; continue; }
-                                                if (ch === delim && !inq) { vals.push(cur.trim()); cur = ''; } else cur += ch;
-                                            }
-                                            vals.push(cur.trim());
-                                            return vals.join('\t');
-                                        }).filter(l => l).join('\n');
-                                    }
-                                    // 流水中该道具的最后一条（余额 = 当前值）—— 没贴 MergeState 时用它顶上
-                                    function gdFlowLast(id) {
-                                        if (!flowModel || !flowModel.ok) return null;
-                                        const rows = flowModel.rows.filter(r => gdFlowMatch(r, id));
-                                        return rows.length ? rows[rows.length - 1] : null;
-                                    }
-                                    // 只贴了流水、没贴 MergeState 时的话术（够回答「有没有被吞」）
-                                    function gdFlowOnlyScript(q) {
-                                        const ids = boardIdsOfQuery(q);
-                                        const t = String(q == null ? '' : q).trim();
-                                        if (!ids.length) return '流水里没找到「' + t + '」这个道具 —— 换个名字或直接输 id。';
-                                        const id = ids[0];
-                                        const rows = flowModel.rows.filter(r => gdFlowMatch(r, id));
-                                        if (!rows.length) return '流水里没找到「' + mergeNameOf(id) + '」的记录 —— 确认一下贴的流水时间范围。';
-                                        const last = rows[rows.length - 1];
-                                        const out = ['【游戏数据 · ' + mergeNameOf(id) + '（' + id + '）】'];
-                                        out.push('流水最后余额：' + last.after + '（' + last.ts + '）');
-                                        gdFlowLines(id).forEach(l => out.push(l));
-                                        gdReconLines(id).forEach(l => out.push(l));
-                                        out.push('· 注：这份话术只依据资源流水；要看存档记录值，再把玩家数据（MergeState）贴进来。');
-                                        return out.join('\n');
-                                    }
-                                    // 流水有没有「+N 之后被棋盘上传扣掉」的证据（导图 / 结论 / 话术共用）
-                                    function gdFlowLines(id) {
-                                        if (!flowModel || !flowModel.ok) return [];
-                                        const rows = flowModel.rows.filter(r => gdFlowMatch(r, id));
-                                        if (!rows.length) return [];
-                                        const res = gdFlowPairs(id);
-                                        const out = ['—— 资源流水对账（' + mergeNameOf(id) + '）——'];
-                                        if (!res.pairs.length) {
-                                            out.push('· 这段流水里没有「+N 之后被棋盘上传扣掉」的记录'
-                                                + (res.gains.length ? '（有 ' + res.gains.length + ' 次获得，后面都没跟着棋盘上传扣除）' : '')
-                                                + '。');
-                                        } else {
-                                            res.pairs.slice(0, 5).forEach(p => {
-                                                out.push('· ' + p.gain.ts + ' 获得 +' + p.gain.delta
-                                                    + (p.gain.source ? '（' + p.gain.source + '）' : '')
-                                                    + ' → ' + p.loss.ts + ' 「' + (p.loss.source || '棋盘上传') + '」扣了 ' + p.loss.delta
-                                                    + ' ← 数量对得上，这就是被吞的特征');
-                                            });
-                                            if (res.pairs.length > 5) out.push('· …另有 ' + (res.pairs.length - 5) + ' 组');
-                                            out.push('· 共 ' + res.pairs.length + ' 组「+N → 棋盘上传 −N」，建议按这 ' + res.pairs.length
-                                                + ' 条提研发核对服务端流水。');
-                                        }
-                                        return out;
-                                    }
-
-                                    // ==================== 🚦 一句话结论（横幅 / 对比条 / 话术共用）====================
-                                    // 用户 2026-10：「同事说数据呈现看不懂，想要一眼就明白有没有异常，结尾文本再清楚点」
-                                    // 所以先给一句人话结论（✅ 没异常 / ⚠️ 可疑 / ❕ 对不上 / ❔ 资料不足），再给可视化，最后才是明细。
-                                    function gdVerdict(id) {
-                                        const p = gdReconParts(id);
-                                        const rows = (flowModel && flowModel.ok) ? flowModel.rows.filter(r => gdFlowMatch(r, id)) : [];
-                                        const pairs = gdFlowPairs(id).pairs;
-                                        const name = mergeNameOf(id);
-                                        if (!rows.length && !p.mirror) {
-                                            return { level: 'mute', icon: '❔', title: '资料不足：贴一份资源流水再看', desc: '有棋盘镜像的话会一起对' };
-                                        }
-                                        if (pairs.length) {
-                                            const x = pairs[0];
-                                            return {
-                                                level: 'bad', icon: '⚠️',
-                                                title: '发现 ' + pairs.length + ' 组可疑：东西到手后又被「棋盘上传」扣掉了',
-                                                desc: String(x.gain.ts).slice(5) + ' 获得 +' + x.gain.delta + ' → ' + String(x.loss.ts).slice(5) + ' 被「棋盘上传」扣了 ' + x.loss.delta
-                                            };
-                                        }
-                                        const bad = gdReconDiffs(p).filter(d => d.d !== 0);
-                                        if (bad.length) {
-                                            return {
-                                                level: 'warn', icon: '❕',
-                                                title: '数据对不上：' + bad.map(d => d.label + ' 差 ' + (d.d > 0 ? '+' : '') + d.d).join('；'),
-                                                desc: '几份数据不是同一时刻抓的，或者中间有没记录到的变动'
-                                            };
-                                        }
-                                        if (rows.length) {
-                                            return {
-                                                level: 'ok', icon: '✅',
-                                                title: '没发现异常：没有「+N 之后被棋盘上传扣掉」的记录',
-                                                desc: '流水最后余额 ' + p.flow.n + '（' + p.flow.ts + '）' + (p.mirror ? '，和棋盘镜像对得上（' + p.mirror.n + '）' : '')
-                                            };
-                                        }
-                                        return { level: 'ok', icon: '✅', title: '没发现异常', desc: '流水里没有它的记录，镜像里有 ' + p.mirror.n };
-                                    }
-                                    // 横幅 + 图例 + 三条对比条（流水 / 镜像 / 操作净）
-                                    function gdRenderVerdict(id) {
-                                        const box = document.getElementById('gdBanner');
-                                        const legend = document.getElementById('gdLegend');
-                                        const bars = document.getElementById('gdBars');
-                                        if (!box) return;
-                                        if (!id) {
-                                            box.style.display = 'none';
-                                            if (legend) legend.style.display = 'none';
-                                            if (bars) bars.style.display = 'none';
-                                            return;
-                                        }
-                                        const v = gdVerdict(id);
-                                        box.className = 'gd-banner'; box.classList.add('is-' + v.level);
-                                        box.innerHTML = '<span class="ic">' + v.icon + '</span><div><b>' + escapeHtml(v.title) + '</b>'
-                                            + (v.desc ? '<span>' + escapeHtml(v.desc) + '</span>' : '') + '</div>';
-                                        box.style.display = '';
-                                        if (legend) legend.style.display = '';
-                                        const p = gdReconParts(id);
-                                        const items = [];
-                                        if (p.flow) items.push({ label: '流水余额', n: p.flow.n, cls: 'is-ok' });
-                                        if (p.mirror) items.push({ label: '镜像合计', n: p.mirror.n, cls: (p.flow && p.mirror.n !== p.flow.n) ? 'is-warn' : 'is-ok' });
-                                        if (p.op) items.push({ label: '操作净变动', n: p.op.gained - p.op.used, cls: 'is-ok' });
-                                        if (bars) {
-                                            if (items.length < 2) { bars.style.display = 'none'; bars.innerHTML = ''; }
-                                            else {
-                                                const max = Math.max.apply(null, items.map(x => Math.abs(x.n)).concat([1]));
-                                                bars.innerHTML = items.map(x => '<div class="gd-bar ' + x.cls + '"><b>' + escapeHtml(x.label) + '</b>'
-                                                    + '<span class="track"><i class="fill" style="width:' + Math.max(2, Math.round(Math.abs(x.n) / max * 100)) + '%;"></i></span>'
-                                                    + '<em>' + x.n + '</em></div>').join('');
-                                                bars.style.display = '';
-                                            }
-                                        }
-                                    }
-                                    // ==================== 🧾 三口径对账（流水 / 存档 / 镜像 / 操作记录）====================
-                                    // 用户 2026-10：「能不能根据游戏数据某个道具或者棋子的增加和消耗的情况，和镜像棋盘的数据对比，看看对不对的上」
-                                    // 三个口径本来就是三次不同时刻的抓数，对不上很常见 —— 所以不判「谁对谁错」，只把差额摆出来让人看。
-                                    function gdReconParts(id) {
-                                        const out = { flow: null, mirror: null, op: null };
-                                        const fl = gdFlowLast(id);
-                                        if (fl) {
-                                            const rows = flowModel.rows.filter(r => gdFlowMatch(r, id));
-                                            out.flow = { n: fl.after, ts: fl.ts, net: rows.reduce((a, r) => a + r.delta, 0) };
-                                        }
-                                        if (boardModel) {
-                                            const c = (boardModel.counts || {})[id] || { onBoard: 0, inBackpack: 0, inWarehouse: 0 };
-                                            const cur = (boardModel.currencies || []).filter(x => String(x.id) === String(id))[0];
-                                            const total = c.onBoard + c.inBackpack + c.inWarehouse + (cur ? cur.n : 0);
-                                            out.mirror = { n: total, board: c.onBoard, bag: c.inBackpack, ware: c.inWarehouse, cur: cur ? cur.n : null };
-                                        }
-                                        if (opModel && opModel.ok) {
-                                            const hits = mergeOpHits(id), oh = mergeOpOrderHits(id);
-                                            const sum = (list) => list.reduce((a, h) => a + h.n, 0);
-                                            out.op = {
-                                                gained: sum(hits.filter(h => h.kind === 'gain')) + sum(oh.filter(h => h.kind === 'gain')),
-                                                used: sum(hits.filter(h => h.kind === 'consume')) + sum(oh.filter(h => h.kind === 'consume'))
-                                            };
-                                        }
-                                        return out;
-                                    }
-                                    // 差额清单（对得上 / 差多少）
-                                    function gdReconDiffs(p) {
-                                        const out = [];
-                                        if (p.flow && p.mirror) out.push({ label: '镜像 − 流水', d: p.mirror.n - p.flow.n });
-                                        if (p.op && p.mirror) out.push({ label: '镜像 − 操作净', d: p.mirror.n - (p.op.gained - p.op.used) });
-                                        return out;
-                                    }
-                                    function gdReconRows(p) {
-                                        const rows = [];
-                                        rows.push(['资源流水', p.flow ? String(p.flow.n) : '—',
-                                            p.flow ? ('最后余额 · ' + p.flow.ts + ' · 窗口净变动 ' + (p.flow.net > 0 ? '+' : '') + p.flow.net) : '没贴流水']);
-                                        rows.push(['棋盘镜像', p.mirror ? String(p.mirror.n) : '—',
-                                            p.mirror ? ('棋盘上 ' + p.mirror.board + ' / 背包 ' + p.mirror.bag + ' / 仓库 ' + p.mirror.ware
-                                                + (p.mirror.cur != null ? ' / 货币 ' + p.mirror.cur : '')) : '没贴镜像']);
-                                        if (p.op) rows.push(['操作记录（窗口内）', (p.op.gained - p.op.used > 0 ? '+' : '') + (p.op.gained - p.op.used),
-                                            '获得 ' + p.op.gained + ' · 消耗 ' + p.op.used]);
-                                        gdReconDiffs(p).forEach(d => rows.push(['差额', (d.d > 0 ? '+' : '') + d.d, d.label + (d.d === 0 ? ' 对得上' : ' 对不上')]));
-                                        return rows;
-                                    }
-                                    function gdReconRender(id) {
-                                        const box = document.getElementById('gdRecon');
-                                        const chips = document.getElementById('gdReconChips');
-                                        const table = document.getElementById('gdReconTable');
-                                        if (!box) return;
-                                        const p = id ? gdReconParts(id) : null;
-                                        const count = p ? [p.flow, p.mirror].filter(Boolean).length : 0;
-                                        if (!p || count < 2) {
-                                            box.style.display = 'none';
-                                            if (chips) chips.innerHTML = '';
-                                            if (table) table.innerHTML = '';
-                                            return;
-                                        }
-                                        box.style.display = '';
-                                        const diffs = gdReconDiffs(p);
-                                        if (chips) {
-                                            const list = [statChip('对账口径 ' + count + '/2', 'k-plain')];
-                                            diffs.forEach(d => list.push(statChip(d.label + (d.d === 0 ? ' 对得上' : ' 差 ' + (d.d > 0 ? '+' : '') + d.d),
-                                                d.d === 0 ? 'k-accent' : 'k-warn')));
-                                            if (!diffs.length) list.push(statChip('资料不足：至少贴两份才能对', 'k-plain'));
-                                            chips.innerHTML = list.join('');
-                                        }
-                                        if (table) {
-                                            let h = '<thead><tr><th>口径</th><th class="num">数量</th><th>说明</th></tr></thead><tbody>';
-                                            h += gdReconRows(p).map(r => '<tr><td>' + escapeHtml(r[0]) + '</td><td class="num">'
-                                                + escapeHtml(r[1]) + '</td><td>' + escapeHtml(r[2]) + '</td></tr>').join('');
-                                            table.innerHTML = h + '</tbody>';
-                                        }
-                                    }
-                                    // 话术里那一段
-                                    function gdReconLines(id) {
-                                        const p = id ? gdReconParts(id) : null;
-                                        if (!p) return [];
-                                        const count = [p.flow, p.mirror].filter(Boolean).length;
-                                        if (count < 2) return [];
-                                        const out = ['—— 三口径对账（' + mergeNameOf(id) + '）——'];
-                                        gdReconRows(p).forEach(r => {
-                                            if (r[0] === '差额') out.push('· ' + r[2] + '（' + r[1] + '）');
-                                            else out.push('· ' + r[0] + '：' + r[1] + (r[2] && r[2] !== '—' ? '（' + r[2] + '）' : ''));
-                                        });
-                                        const bad = gdReconDiffs(p).filter(d => d.d !== 0);
-                                        out.push(bad.length
-                                            ? '· 结论：有 ' + bad.length + ' 个口径对不上 —— 三份数据不是同一时刻抓的，或者中间有没记录到的变动；要定责仍以服务端流水为准。'
-                                            : '· 结论：都对得上（差异 0）。');
-                                        return out;
-                                    }
-
-                                    // 判定芯片：先回答「那个时间之后到底有没有变过」，再说有没有找到消耗去向
-                                    function mergeItemVerdict(model, id, rec, q) {
-                                        const chips = [];
-                                        const ids = boardIdsOfQuery(q);
-                                        if (!ids.length) { chips.push(statChip('数据里没这个名字', 'k-warn')); return chips; }
-                                        const claim = mergeTimeToEpoch((document.getElementById('gdItemTime') || {}).value);
-                                        const rows = (flowModel && flowModel.ok) ? flowModel.rows.filter(r => gdFlowMatch(r, id)) : [];
-                                        if (!rows.length) chips.push(statChip('没贴资源流水', 'k-plain'));
-                                        else if (claim) {
-                                            const ck = mergeEpochText(claim);
-                                            const after = rows.filter(r => String(r.ts) >= ck);
-                                            chips.push(after.length ? statChip('那个时段之后还动过它', 'k-warn') : statChip('那之后没变过：不是被吞', 'k-accent'));
-                                        }
-                                        if (boardModel) {
-                                            const hits = mergeConsumeHits(id);
-                                            if (hits.some(h => h.from === '最近操作')) chips.push(statChip('最近一次操作消耗过它', 'k-warn'));
-                                            else if (hits.length) chips.push(statChip('在当前订单的消耗里', 'k-warn'));
-                                            else chips.push(statChip('订单 / 最近操作里都没消耗它', 'k-plain'));
-                                        }
-                                        if (opModel && opModel.ok) {
-                                            const usedN = mergeOpHits(id).filter(h => h.kind === 'consume').reduce((a, h) => a + h.n, 0);
-                                            const oh = mergeOpOrderHits(id);
-                                            const oUsed = oh.filter(h => h.kind === 'consume').reduce((a, h) => a + h.n, 0);
-                                            const oGot = oh.filter(h => h.kind === 'gain').reduce((a, h) => a + h.n, 0);
-                                            if (usedN > 0) chips.push(statChip('操作记录里被消耗 ' + usedN + ' 个：不是被吞', 'k-accent'));
-                                            else if (oUsed > 0) chips.push(statChip('操作记录里被订单收走 ' + oUsed + ' 个：不是被吞', 'k-accent'));
-                                            else chips.push(statChip('操作记录里没消耗过它', 'k-plain'));
-                                            if (oGot > 0) chips.push(statChip('记录里订单奖励给过 ' + oGot + ' 个', 'k-plain'));
-                                        }
-                                        const c = boardModel ? ((boardModel.counts || {})[id] || { onBoard: 0, inBackpack: 0, inWarehouse: 0 }) : null;
-                                        if (c && (c.onBoard + c.inBackpack + c.inWarehouse) > 0) chips.push(statChip('镜像里还在 ' + (c.onBoard + c.inBackpack + c.inWarehouse) + ' 个', 'k-accent'));
-                                        if (!chips.length) chips.push(statChip('资料不足，需要服务端流水', 'k-plain'));
-                                        return chips;
-                                    }
-                                    // 资源核对话术（用户要的第 1 件）
-                                    function mergeItemScript(model, q) {
-                                        const ids = boardIdsOfQuery(q);
-                                        const t = String(q == null ? '' : q).trim();
-                                        if (!ids.length) return '数据里没找到「' + t + '」这个道具 —— 换个名字或直接输 id。';
-                                        const id = ids[0];
-                                        const out = ['【游戏数据 · ' + mergeNameOf(id) + '（' + id + '）】'];
-                                        // ⚠️ 用户 2026-10：「不使用存档数据」—— 当前值一律取「流水最后余额」，MergeState 不再参与判断
-                                        const fl = gdFlowLast(id);
-                                        const v = gdVerdict(id);
-                                        out.push('结论：' + v.icon + ' ' + v.title);
-                                        if (v.desc) out.push('　　　' + v.desc);
-                                        out.push('当前数量：' + (fl ? (fl.after + '（流水最后余额 · ' + fl.ts + '）') : '流水里没有它（贴一份流水就能算余额）'));
-                                        if (boardModel) {
-                                            const c = (boardModel.counts || {})[id] || { onBoard: 0, inBackpack: 0, inWarehouse: 0 };
-                                            out.push('棋盘镜像：棋盘上 ' + c.onBoard + ' 个、临时背包 ' + c.inBackpack + ' 个、仓库 ' + c.inWarehouse + ' 个。');
-                                        }
-                                        mergeSelfCheckLines(model, id).forEach(l => out.push(l));
-                                        mergeOpLines(id).forEach(l => out.push(l));
-                                        gdFlowLines(id).forEach(l => out.push(l));
-                                        gdReconLines(id).forEach(l => out.push(l));
-                                        out.push('· 注：这份话术只依据资源流水 / 棋盘镜像 / 操作记录（不使用存档数据）。');
-                                        const vv = gdVerdict(id);
-                                        out.push('建议：' + (vv.level === 'bad'
-                                            ? '把上面这组「+N → 棋盘上传 −N」提研发核对服务端流水；跟玩家沟通时别直接说「系统吞了」，说「这边帮您核实一下」。'
-                                            : (vv.level === 'warn'
-                                                ? '先确认几份数据是不是同一时刻抓的，再提研发核对。'
-                                                : '目前没发现问题，不用升级处理。')));
-                                        return out.join('\n');
-                                    }
-                                    function mergeRun(rawArg) {
-                                        const input = document.getElementById('mergeInput');
-                                        const raw = typeof rawArg === 'string' ? rawArg : ((input && input.value) || '');
-                                        // 🔁 贴的是棋盘镜像 / 操作记录也认，直接转给对应解析器（不用再找地方重贴一遍）
-                                        const kind = gdRoute(raw);
-                                        if (kind === 'flow') {
-                                            gdFlowRun(raw);
-                                            return mergeModel;
-                                        }
-                                        if (kind === 'board') {
-                                            const el = document.getElementById('boardInput');
-                                            if (el) el.value = raw;
-                                            boardRun(raw);
-                                            teaSetHint('mergeHint', '认出来是棋盘镜像 → 已解析到「03 棋盘镜像」，对账行也刷新了');
-                                            return mergeModel;
-                                        }
-                                        if (kind === 'op') {
-                                            const el = document.getElementById('gdOpInput');
-                                            if (el) el.value = raw;
-                                            mergeOpRun(raw);
-                                            teaSetHint('mergeHint', '认出来是操作记录 → 已解析到「01 资源核对」下面的操作记录');
-                                            return mergeModel;
-                                        }
-                                        if (!raw.trim()) {
-                                            mergeModel = null;
-                                            mergeRender(null);
-                                            teaSetHint('mergeHint', '先把 MergeState JSON 整段贴到上面');
-                                            return null;
-                                        }
-                                        const model = mergeParse(raw);
-                                        if (model.error) {
-                                            mergeModel = null;
-                                            mergeRender(null);
-                                            teaSetHint('mergeHint', model.error);
-                                            return null;
-                                        }
-                                        mergeModel = model;
-                                        mergeRender(model);
-                                        teaSetHint('mergeHint', model.ok
-                                            ? ('认出资源 ' + model.resource.length + ' 项'
-                                                + (model.syncTime ? ' · 快照 ' + mergeTsText(model.syncTime) : ''))
-                                            : '认出来了，但里面没有 others（资源 / 活动那块）');
-                                        return model;
-                                    }
-                                    function mergeItemRun() {
-                                        const input = document.getElementById('gdItemInput');
-                                        const out = document.getElementById('gdItemOut');
-                                        const q = (input && input.value) || '';
-                                        const hasFlow = !!(flowModel && flowModel.ok);
-                                        if (!mergeModel && !hasFlow && !boardModel && !opModel) { teaSetHint('gdItemHint', '先在页头把资源流水 / 棋盘镜像贴进来'); if (out) out.value = ''; mergeItemMapRender('', null); return; }
-                                        if (!q.trim()) { teaSetHint('gdItemHint', '输个道具名或 id'); if (out) out.value = ''; mergeItemMapRender('', null); return; }
-                                        const text = mergeItemScript(mergeModel, q);
-                                        if (out) out.value = text;
-                                        const ids = boardIdsOfQuery(q);
-                                        const rec = null;   // ⚠️ 不使用存档数据：判定芯片已改成看流水 / 镜像 / 操作记录
-                                        const box = document.getElementById('gdItemVerdict');
-                                        if (box) box.innerHTML = mergeItemVerdict(mergeModel, ids[0], rec, q).join('');
-                                        mergeItemMapRender(ids.length ? ids[0] : '', rec);
-                                        gdRenderVerdict(ids.length ? ids[0] : '');
-                                        gdReconRender(ids.length ? ids[0] : '');
-                                        mergeOpRender();
-                                        gdFlowRender();
-                                        teaSetHint('gdItemHint', /没找到/.test(text) ? '这份存档里没有这个名字，换个写法或直接输 id' : '话术已生成（含异常自查）');
-                                    }
-                                    function mergeCopy(id, hintId) {
-                                        const out = document.getElementById(id);
-                                        const t = (out && out.value) || '';
-                                        if (!t.trim()) { teaSetHint(hintId, '还没生成话术'); return; }
-                                        safeCopy(t);
-                                        teaSetHint(hintId, '话术已复制');
-                                    }
-                                    function mergeClear() {
-                                        ['mergeInput', 'gdItemOut'].forEach(id => {
-                                            const el = document.getElementById(id);
-                                            if (el) el.value = '';
-                                        });
-                                        teaSetHint('gdItemHint', '');
-                                        const vBox = document.getElementById('gdItemVerdict');
-                                        if (vBox) vBox.innerHTML = '';
-                                        mergeItemMapRender('', null);
-                                        gdRenderVerdict('');
-                                        gdReconRender('');
-                                        flowModel = null;
-                                        gdFlowRender();
-                                        const tInput = document.getElementById('gdItemTime');
-                                        if (tInput) tInput.value = '';
-                                        mergeModel = null;
-                                        mergeRender(null);
-                                        opModel = null;
-                                        const opEl = document.getElementById('gdOpInput');
-                                        if (opEl) opEl.value = '';
-                                        mergeOpRender();
-                                        teaSetHint('mergeHint', '已清空');
-                                    }
-
                                     // ==================== 🧩 棋盘镜像（GM 镜像 JSON → 主棋盘 / 背包 / 仓库 + 位置话术）====================
                                     // 用户：「增加一个棋盘镜像功能，可以粘贴棋盘镜像数据生成类似展示主棋盘，背包，仓库的页面，
                                     //   还可以输入道具名称或者id，来生成有几个xx在棋盘上，几个xx在临时背包，几个xx在仓库这样的话术」
@@ -16994,26 +15689,6 @@
                                         const input = document.getElementById('boardInput');
                                         const out = document.getElementById('boardAskOut');
                                         const raw = typeof rawArg === 'string' ? rawArg : ((input && input.value) || '');
-                                        const kind = gdRoute(raw);
-                                        if (kind === 'flow') {
-                                            gdFlowRun(raw);
-                                            teaSetHint('boardHint', '认出来是资源流水 → 已解析到「01 资源核对」的流水对账');
-                                            return boardModel;
-                                        }
-                                        if (kind === 'merge') {
-                                            const el = document.getElementById('mergeInput');
-                                            if (el) el.value = raw;
-                                            mergeRun(raw);
-                                            teaSetHint('boardHint', '认出来是 MergeState → 已解析到页头「① 粘贴数据」那块');
-                                            return boardModel;
-                                        }
-                                        if (kind === 'op') {
-                                            const el = document.getElementById('gdOpInput');
-                                            if (el) el.value = raw;
-                                            mergeOpRun(raw);
-                                            teaSetHint('boardHint', '认出来是操作记录 → 已解析到「01 资源核对」下面的操作记录');
-                                            return boardModel;
-                                        }
                                         if (!raw.trim()) {
                                             teaSetHint('boardHint', '先把棋盘镜像 JSON 整段贴到上面');
                                             boardModel = null;
@@ -18279,32 +16954,21 @@
                                         setClick('teaInfoParseBtn', teaInfoRun);
                                         setClick('teaInfoCopyBtn', teaInfoCopy);
                                         setClick('teaInfoClearBtn', teaInfoClear);
-                                        // 🎮 游戏数据（MergeState → 资源核对；棋盘镜像在第二段）
-                                        setClick('mergeParseBtn', mergeRun);
-                                        setClick('mergeClearBtn', mergeClear);
-                                        setClick('gdItemBtn', mergeItemRun);
-                                        setClick('gdItemCopyBtn', () => mergeCopy('gdItemOut', 'gdItemHint'));
-                                        addEvent('gdItemInput', 'keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); mergeItemRun(); } });
-                                        addEvent('gdItemTime', 'change', () => {
-                                            const q = (document.getElementById('gdItemInput') || {}).value || '';
-                                            if (q.trim() && (mergeModel || flowModel || boardModel)) mergeItemRun();
-                                        });
-                                        setClick('gdOpBtn', mergeOpRun);
-                                        setClick('gdOpClearBtn', mergeOpClear);
-                                        // 粘完 400ms 自动解析（三个框都认，不用点按钮）
-                                        ['mergeInput', 'boardInput', 'gdOpInput'].forEach(function (bid) {
-                                            addEvent(bid, 'input', function () {
-                                                if (gdAutoTimer) clearTimeout(gdAutoTimer);
-                                                gdAutoTimer = setTimeout(function () { gdAutoFrom(bid); }, 400);
-                                            });
-                                        });
-
                                         // 🧩 棋盘镜像（粘镜像 JSON → 主棋盘 / 背包 / 仓库 + 「在哪几个」话术）
                                         setClick('boardParseBtn', boardRun);
                                         setClick('boardClearBtn', boardClear);
                                         setClick('boardAskBtn', boardAskRun);
                                         setClick('boardAskCopyBtn', boardAskCopy);
                                         addEvent('boardAskInput', 'keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); boardAskRun(); } });
+                                        // 粘完 400ms 自动解析（镜像 JSON 不用点按钮）
+                                        let boardAutoTimer = 0;
+                                        addEvent('boardInput', 'input', function () {
+                                            if (boardAutoTimer) clearTimeout(boardAutoTimer);
+                                            boardAutoTimer = setTimeout(function () {
+                                                const el = document.getElementById('boardInput');
+                                                if (el && String(el.value || '').trim().length > 12) boardRun();
+                                            }, 400);
+                                        });
                                         // 反馈模板（模板 / 来源选择片 + 生成 / 复制 / 清空）
                                         fbLoadState();
                                         fbRenderChips();

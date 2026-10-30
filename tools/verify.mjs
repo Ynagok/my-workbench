@@ -110,8 +110,8 @@ ok(/data-tab="career"/.test(s) && /id="tab-career"/.test(s), '客服生涯标签
   const ovCovered = new Set();
   for (const m of (ovBlk + sdkBlk + emailBlk).matchAll(/'overseas\.([a-zA-Z0-9_]+)'/g)) ovCovered.add(m[1]);
   const ovMissed = ovFields.filter(k => !ovCovered.has(k));
-  ok(ovFields.length === 16 && !ovMissed.length,
-    `海外侧覆盖海外日报全部 ${ovFields.length} 个数值字段（含 SDk 三项 + 梦幻/月光两个 FB + 梦幻/爱江山/月光三个邮箱）` + (ovMissed.length ? '，漏：' + ovMissed.join('/') : ''));
+  ok(ovFields.length === 18 && !ovMissed.length,
+    `海外侧覆盖海外日报全部 ${ovFields.length} 个数值字段（含 SDk 四项（多一个猫旅馆）+ 梦幻/月光两个 FB + 梦幻/爱江山/月光/猫旅馆四个邮箱）` + (ovMissed.length ? '，漏：' + ovMissed.join('/') : ''));
   const ovN = (ovBlk.match(/side: 'overseas'/g) || []).length;
   ok(ovN === 11, `海外侧 = ${ovN} 项（含异世界群维系 + （梦幻/繁花/乐缤纷）群维系 + 梦幻/月光两个 FB）`);
   ok(/const CAREER_ITEMS = CAREER_TICKET_ITEMS\.concat\(CAREER_OVERSEAS_ITEMS\)/.test(s),
@@ -212,10 +212,16 @@ ok(/key: 'sdk_mh', label: 'SDk工单·梦幻'/.test(s) && /key: 'sdk_ajs', label
 ok(/function careerSdkTotal\(o\)/.test(s) && /SDk工单：\$\{careerSdkTotal\(d\)\}例/.test(s)
   && /function careerEmailTotal\(o\)/.test(s) && /careerEmailTotal\(d\) \+ careerSdkTotal\(d\)/.test(s),
   '生成日报时 SDk / 邮箱 三项各自合并成一个总量（来访总计也跟着合并）');
-ok(/const CAREER_SDK_BREAKDOWN = \[/.test(s) && ((s.match(/const CAREER_SDK_BREAKDOWN = \[[\s\S]*?\r?\n\s*\];/) || [''])[0].match(/side: 'overseas'/g) || []).length === 3
-  && /const CAREER_EMAIL_BREAKDOWN = \[/.test(s) && ((s.match(/const CAREER_EMAIL_BREAKDOWN = \[[\s\S]*?\r?\n\s*\];/) || [''])[0].match(/side: 'overseas'/g) || []).length === 3
+ok(/{ key: 'email_mnl', label: '邮箱·猫旅馆（来访）', type: 'number', group: 'email' }/.test(s)
+  && /{ key: 'sdk_mnl', label: 'SDk工单·猫旅馆', type: 'number', group: 'sdk' }/.test(s)
+  && /email_mnl: 0,/.test(s) && /sdk_mnl: 0,/.test(s)
+  && /\+ \(parseFloat\(o && o\.sdk_mnl\) \|\| 0\)/.test(s) && /mnl: mnl/.test(s)
+  && /m\['邮箱·猫旅馆'\] = 'email_mnl'/.test(s) && /m\['SDk工单·猫旅馆'\] = 'sdk_mnl'/.test(s),
+  '海外日报加了「猫旅馆」的邮箱 / SDk 两项：表单（邮箱片 + SDk 片各一项）、默认数据、SDk 与邮箱合计、老日报导入映射都接上了');
+ok(/const CAREER_SDK_BREAKDOWN = \[/.test(s) && ((s.match(/const CAREER_SDK_BREAKDOWN = \[[\s\S]*?\r?\n\s*\];/) || [''])[0].match(/side: 'overseas'/g) || []).length === 4
+  && /const CAREER_EMAIL_BREAKDOWN = \[/.test(s) && ((s.match(/const CAREER_EMAIL_BREAKDOWN = \[[\s\S]*?\r?\n\s*\];/) || [''])[0].match(/side: 'overseas'/g) || []).length === 4
   && /const CAREER_BREAKDOWN = CAREER_SDK_BREAKDOWN\.concat\(CAREER_EMAIL_BREAKDOWN\);/.test(s),
-  '生涯里 SDk 三项 / 邮箱三项明细都可单独查看（CAREER_SDK_BREAKDOWN + CAREER_EMAIL_BREAKDOWN 各 3 项）');
+  '生涯里 SDk / 邮箱明细都可单独查看（CAREER_SDK_BREAKDOWN + CAREER_EMAIL_BREAKDOWN 各 4 项，含猫旅馆）');
 ok(/const careerAllItems = \(\) => CAREER_ITEMS\.concat\(CAREER_BREAKDOWN\)\.concat\(CAREER_HIDDEN_ITEMS\)/.test(s)
   && /const careerSum = \(items\) => CAREER_ITEMS\.reduce/.test(s)
   && /const careerEditableItems = \(\) => CAREER_ITEMS\.concat\(CAREER_BREAKDOWN\)/.test(s),
@@ -598,18 +604,19 @@ ok(/const TEA_ITEM_ALIAS = \{ '2000049': '随机奖励宝箱' \};/.test(s) && /T
   '奖励名按映射换人话（2000049 先写「随机奖励宝箱」）；话术里不出现价格（内部价）；数量一律用粘进来的数据');
 
 // ---- 3g-3. 🧩 棋盘镜像（粘镜像 JSON → 主棋盘 / 背包 / 仓库 + 「在哪几个」话术）----
-ok(/class="tab-btn tab-btn-sub" data-tab="gamedata"> 游戏数据</.test(s) && /id="tab-gamedata"/.test(s)
-  && !/data-tab="board"/.test(s) && !/id="tab-board"/.test(s)
+// 2026-10 用户：「删掉游戏数据功能，仅保留棋盘镜像」——资源核对 / 资源流水 / 操作记录 / 判定芯片 /
+// 思维导图 / 结论横幅那一整套全删了，页面只剩棋盘镜像；下面既有正向断言，也有反向断言锁着「别加回来」。
+ok(/class="tab-btn tab-btn-sub" data-tab="gamedata"> 棋盘镜像</.test(s) && /id="tab-gamedata"/.test(s)
+  && !/data-tab="board"/.test(s)
   && /id="boardInput"/.test(s) && /id="boardParseBtn"/.test(s) && /id="boardClearBtn"/.test(s)
   && /id="boardSummary"/.test(s) && /id="boardMainGrid"/.test(s) && /id="boardOtherGrids"/.test(s)
   && /id="boardBagList"/.test(s) && /id="boardWareList"/.test(s)
   && /id="boardAskInput"/.test(s) && /id="boardAskBtn"/.test(s) && /id="boardAskCopyBtn"/.test(s) && /id="boardAskOut"/.test(s)
   && /setClick\('boardParseBtn', boardRun\)/.test(s) && /setClick\('boardAskBtn', boardAskRun\)/.test(s)
   && /setClick\('boardAskCopyBtn', boardAskCopy\)/.test(s) && /setClick\('boardClearBtn', boardClear\)/.test(s),
-  '「游戏数据」是「梦幻消除站」那组的子项（跟话术生成 / 集卡分析 同级、不带图标）：MergeState 粘贴 + 资源核对 / 活动进度 / 棋盘镜像 三段 + 主棋盘、背包仓库、道具查询都在，按钮都挂上了');
-ok(/data-tab="gen"> 话术生成<\/button>\s*<button class="tab-btn tab-btn-sub" data-tab="card"> 集卡分析<\/button>\s*<button class="tab-btn tab-btn-sub" data-tab="gamedata"> 游戏数据<\/button>/.test(s)
-  && !/data-tab="\w+">🧩/.test(s) && !/data-tab="board"/.test(s),
-  '「梦幻消除站」那一组现在是三张：话术生成 / 集卡分析 / 游戏数据（都不带图标）');
+  '「棋盘镜像」是「梦幻消除站」那组的子项（不带图标）：粘镜像 → 主棋盘 / 背包仓库 / 查道具都在，按钮都挂上了');
+ok(/id="boardReportSub"/.test(s) && /id="boardReportMeta"/.test(s) && /BOARD MIRROR \/ 棋盘镜像/.test(s),
+  '抬头换成「BOARD MIRROR / 棋盘镜像」，右上元数据跟着走');
 ok(/const BOARD_JSON_MAX = 4000000;/.test(s) && /function boardJsonText\(raw\)/.test(s)
   && /function boardParse\(raw\)/.test(s) && /function boardRender\(model\)/.test(s)
   && /function boardGridHtml\(board\)/.test(s) && /function boardCellHtml\(c\)/.test(s)
@@ -627,101 +634,25 @@ ok(/model\.counts\[k\] = \{ onBoard: 0, inBackpack: 0, inWarehouse: 0 \}/.test(s
   '三处数量分开数：棋盘上（每格 1 个）/ 仓库（每件 1 个）/ 临时背包（数量）；查询支持 id，也支持用物品名表反查名字（只认「真名包含查询」，避免误命中）');
 ok(/棋盘上有 ' \+ onBoard \+ ' 个，临时背包有 ' \+ inBag \+ ' 个，仓库有 ' \+ inWare \+ ' 个。/.test(s)
   && /镜像里没找到「'/.test(s) && /【棋盘镜像 · '/.test(s),
-  '确认话术就是用户要的三段式：棋盘上有 X 个，临时背包有 Y 个，仓库有 Z 个；查不到时直说没找到');
-ok(/class="seg-bar" data-for="tab-gamedata"/.test(s) && /data-seg="resource" data-n="01">资源核对</.test(s)
-  && /data-seg="mirror" data-n="02">棋盘镜像</.test(s)
-  && !/data-seg="activity"/.test(s) && !/data-seg-card="activity"/.test(s)
-  && /<div data-seg-card="mirror">/.test(s) && /statsSetSeg\('tab-gamedata', 'resource'\)/.test(s)
-  && /id="mergeInput"/.test(s) && /id="mergeParseBtn"/.test(s) && /id="mergeClearBtn"/.test(s)
-  && /id="mergeSummary"/.test(s)
-  && !/id="gdResTable"/.test(s) && !/id="gdResCount"/.test(s) && !/id="mergeDiff"/.test(s) && /id="gdItemInput"/.test(s) && /id="gdItemBtn"/.test(s) && /id="gdItemOut"/.test(s)
-  && !/gdActChips/.test(s) && !/id="gdActInput"/.test(s) && !/id="gdActOut"/.test(s),
-  '「游戏数据」页：MergeState 粘贴 + 两段（01 资源核对 / 02 棋盘镜像）；活动进度 2026-10 按用户要求整块删掉（含反向断言）');
-ok(/function mergeParse\(raw\)/.test(s) && /function mergeJson\(v, dflt\)/.test(s) && /function mergeDailyUsage\(model\)/.test(s)
-  && !/function mergeRenderDiff/.test(s) && /function mergeItemScript\(model, q\)/.test(s)
-  && !/function mergeActivityScript/.test(s) && !/others\.activities/.test(s)
-  && /data\.others/.test(s) && /others\.resource/.test(s) && /others\.meta/.test(s),
-  'MergeState 解析：diamond/gold/hp + others（resource 资源 / meta 元数据）两层字符串都剥开；（存档只解析不参与判断：页面不再展示资源明细 / 当日消耗；activities 也不再解析）');
-ok(/当前数量：/.test(s) && /流水最后余额/.test(s) && /棋盘镜像：棋盘上 /.test(s) && /数据里没找到「/.test(s)
-  && !/今日体力消耗：/.test(s) && !/最后变动：/.test(s)
-  && /id="gdItemTime"/.test(s) && /id="gdItemVerdict"/.test(s)
-  && /function mergeTimeToEpoch\(v\)/.test(s) && /function mergeConsumeHits\(id\)/.test(s)
-  && /function mergeSelfCheckLines\(model, id\)/.test(s) && /function mergeItemVerdict\(model, id, rec, q\)/.test(s)
-  && /orderDojoMap/.test(s) && /orderDojosStr/.test(s),
-  '资源核对话术：当前数量（取流水最后余额）/ 棋盘镜像三处数量 / 查不到直说；**不再输出存档的最后变动与当日消耗**');
-ok(/—— 异常自查 ——/.test(s) && /流水窗口：/.test(s) && /订单消耗：/.test(s) && /最近一次操作：/.test(s)
-  && /玩家说的时间（/.test(s) && !/记录值 vs 当前值/.test(s) && !/最后变动（/.test(s)
-  && /那之后没变过：不是被吞/.test(s) && /那个时段之后还动过它/.test(s) && /不使用存档数据/.test(s),
-  '异常自查融进资源核对：流水窗口 / 时间点（按流水行比）/ 订单消耗 / 最近一次操作（含奖励）/ 明写「不使用存档数据」，并给判定芯片');
+  '确认话术就是三段式：棋盘上有 X 个，临时背包有 Y 个，仓库有 Z 个；查不到时直说没找到');
 ok(!/saveData\('board/.test(s) && !/localStorage\.setItem\('boardMirror/.test(s),
-  '游戏数据 / 棋盘镜像都只在本机内存里解析（不写 /api/data、也不塞 localStorage）');
-ok(/id="gdOpInput"/.test(s) && /id="gdOpBtn"/.test(s) && /id="gdOpClearBtn"/.test(s)
-  && /id="gdOpHint"/.test(s) && /id="gdOpSummary"/.test(s) && /id="gdOpTable"/.test(s)
-  && /setClick\('gdOpBtn', mergeOpRun\)/.test(s) && /setClick\('gdOpClearBtn', mergeOpClear\)/.test(s),
-  '资源核对里多一块「操作记录」（折进 details）：粘 GM 的操作记录 → 解析按钮挂上了');
-ok(/let opModel = null;/.test(s) && /const MERGE_OP_LABELS = \{/.test(s) && /281: '棋子合并'/.test(s)
-  && /function mergeOpLabel\(op\)/.test(s) && /function mergeOpRowsOf\(v\)/.test(s)
-  && /function mergeOpParse\(raw\)/.test(s) && /function mergeOpHits\(id\)/.test(s)
-  && /function mergeOpOrderHits\(id\)/.test(s) && /function mergeOpLines\(id\)/.test(s)
-  && /function mergeOpRender\(\)/.test(s) && /function mergeOpRun\(rawArg\)/.test(s) && /function mergeOpClear\(\)/.test(s),
-  '操作记录：纯数组 / 对象里套数组都认（递归找带 op·sTime 的那组），op 号 → 中文标签（合并 / 订单初始化 / 母体产出 …），命中分「消耗 / 获得 / 合成出现 / 订单收走」四类');
-ok(/被消耗 ' \+ used\.length \+ ' 次、共 '/.test(s) && /获得 ' \+ got\.length \+ ' 次、共 '/.test(s)
-  && /订单收走 ' \+ used2\.length \+ ' 单、共 '/.test(s) && /订单奖励里给过 ' \+ got2\.length \+ ' 次、共 '/.test(s)
-  && /玩家说的时间之后：这段记录里一条都没动过它/.test(s)
-  && /操作记录里被消耗 ' \+ usedN \+ ' 个：不是被吞/.test(s)
-  && /操作记录里被订单收走 ' \+ oUsed \+ ' 个：不是被吞/.test(s)
-  && /记录里订单奖励给过 ' \+ oGot \+ ' 个/.test(s),
-  '资源话术接上操作记录：覆盖时间 / 被消耗 / 获得 / 合成出现 / 订单收走 / 订单奖励 / 跟玩家说的时间点对一遍；判定芯片直说「不是被吞」');
-ok(/nm\.indexOf\('--'\) === 0/.test(s) && /\+ '类'\)/.test(s)
-  && /const pairs = \(list\) => list\.map\(x => mergeNameOf\(x\.id\)/.test(s)
-  && /'母棋 ' \+ mergeNameOf\(r\.momGoodsId\)/.test(s),
-  '物品名不吐代码：分类占位（--货币）显示成「货币类」，操作记录里的未知道具显示「道具 N」（不再直接是一串数字）');
-ok(/function mergeTsText\(ts\)/.test(s) && /\(n \+ 8 \* 3600\) \* 1000/.test(s) && /\) - 8 \* 3600;/.test(s),
-  '时间统一按北京时间（UTC+8）显示与比较：真实数据里 sTime 与订单 createTime 差 8 小时，原来的 UTC 显示会比 GM 页早 8 小时');
-ok(/function gdFlowImport\(raw, fromLabel\)/.test(s) && /gdFlowImport\(raw, '智能解析'\)/.test(s)
-  && /gdFlowImport\(gdCsvToTabs\(text\), 'CSV 上传'\)/.test(s) && /function gdCsvToTabs\(text\)/.test(s)
-  && /已把原始流水（\$\{synced\.rows\.length\} 行）同步给/.test(s) && !/parseSmartLog\(raw, \{ keepIgnored/.test(s),
-  '流水解析联动：同步给游戏数据的是**原始日志文本**（CSV 上传只把分隔符换成制表符），由游戏数据用自己的严格解析判断，不套话术那套忽略 / 筛选 / 类型覆盖');
-ok(/id="gdBanner"/.test(s) && /id="gdLegend"/.test(s) && /id="gdBars"/.test(s)
-  && /function gdVerdict\(id\)/.test(s) && /function gdRenderVerdict\(id\)/.test(s)
-  && /\.gd-banner\.is-bad/.test(s) && /\.gdBars \.gd-bar \.fill/.test(s) && /\.gd-legend i\.sw-bad/.test(s)
-  && /结论：' \+ v\.icon/.test(s) && /建议：' \+ \(vv\.level/.test(s),
-  '资源核对多了「一眼看异常」的三件套：顶部结论横幅（✅/❕/⚠️/❔ 一句话）/ 颜色图例 / 流水余额 vs 镜像合计 vs 操作净 三条对比条；话术开头先给结论、结尾给建议');
-ok(/id="gdRecon"/.test(s) && /id="gdReconChips"/.test(s) && /id="gdReconTable"/.test(s)
-  && /function gdReconParts\(id\)/.test(s) && /function gdReconDiffs\(p\)/.test(s)
-  && /function gdReconRender\(id\)/.test(s) && /function gdReconLines\(id\)/.test(s)
-  && /镜像 − 流水/.test(s) && /镜像 − 操作净/.test(s)
-  && !/存档 − 流水/.test(s) && !/镜像 − 存档/.test(s) && !/p\.rec/.test(s),
-  '对账（不使用存档数据）：资源流水最后余额 / 棋盘镜像（棋盘上+背包+仓库+货币）/ 操作记录（获得−消耗）互相求差，对不上就写「差 ±n」');
-ok(/id="gdFlowBox"/.test(s) && /id="gdFlowChips"/.test(s) && /id="gdFlowTable"/.test(s)
-  && /function gdLooksFlow\(raw\)/.test(s) && /function gdFlowParse\(raw\)/.test(s)
-  && /function gdFlowPairs\(id\)/.test(s) && /function gdFlowRun\(raw\)/.test(s)
-  && /function gdFlowLines\(id\)/.test(s) && /function gdRoute\(raw\)/.test(s)
-  && /function gdFlowScan\(\)/.test(s) && /id="gdFlowScan"/.test(s)
-  && /疑似被吞 ' \+ sr\.pairs\.length \+ ' 组/.test(s)
-  && /function gdFlowOnlyScript\(q\)/.test(s) && /function gdFlowLast\(id\)/.test(s)
-  && /没贴存档 · 流水最后余额/.test(s) && /只依据资源流水/.test(s)
-  && /#gdFlowTable tr\.is-loss/.test(s),
-  '资源核对多一块「资源流水对账」：流水（制表符 + 时间 + 带符号变化量）贴进页头大框就自动认，配上道具名直接出「时间 / 变动 / 余额 / 来源」表，配对的两行高亮');
-ok(/n === g\.delta \|\| n === g\.delta - 1/.test(s) && /function gdFlowIsUpload\(row\)/.test(s)
-  && /\/棋盘上传\//.test(s) && /这就是被吞的特征/.test(s) && /后面都没有棋盘上传扣除 → 不是被吞/.test(s),
-  '判定口径就是用户给的那条：+N 获得之后跟着 −N（或 −(N−1)）的「棋盘上传」扣除 → 被吞的特征；不是棋盘上传来源的扣除不算');
-ok(/gdFlowLines\(id\)\.forEach\(l => out\.push\(l\)\)/.test(s) && /gdFlowRender\(\);/.test(s)
-  && /'流水对账'/.test(s) && /被吞的扣除/.test(s),
-  '流水对账接进三方：话术里单独一段「资源流水对账」、导图多一片「流水对账」、出话术时自动重画表格');
-ok(/<div class="gd-map" id="gdItemMap" style="display:none;"><\/div>/.test(s) && /\.gd-map-root/.test(s)
-  && /\.gd-map-branches::before/.test(s) && /\.gd-map-node::before/.test(s) && /function mergeItemMap\(id, rec\)/.test(s)
-  && /function mergeItemMapRender\(id, rec\)/.test(s) && /function mergeItemConclusion\(id, rec\)/.test(s)
-  && /function gdMapNodeHtml\(cls, title, text, tip\)/.test(s),
-  '资源核对多了「思维导图」：左边道具根节点、右边一条干线挂 存档 / 棋盘镜像 / 订单 / 操作记录 / 结论，连接线是 ::before 画的（不用 SVG），窄屏自动竖排');
-ok(/function gdJsonOf\(raw\)/.test(s) && /function gdDetectKind\(v\)/.test(s) && /function gdAutoFrom\(id\)/.test(s)
-  && /function mergeRun\(rawArg\)/.test(s) && /function boardRun\(rawArg\)/.test(s)
-  && /认出来是棋盘镜像/.test(s) && /认出来是操作记录/.test(s) && /认出来是 MergeState/.test(s)
-  && /\['mergeInput', 'boardInput', 'gdOpInput'\]\.forEach/.test(s) && /gdAutoTimer = setTimeout/.test(s),
-  '万能粘贴：三个框任一贴任何一份数据都自动认（MergeState / 棋盘镜像 / 操作记录）并转给对应解析器，粘完 400ms 自动解析（不用点按钮）');
-ok(/不使用存档数据/.test(s) && /要定责仍以服务端全量流水为准/.test(s)
-  && /mergeOpLines\(id\)\.forEach\(l => out\.push\(l\)\);/.test(s),
-  '有了操作记录就把「定责要服务端流水」那句改成「覆盖不到的时段仍要研发拉全量流水」，并接在异常自查后面');
+  '棋盘镜像只在本机内存里解析（不写 /api/data、也不塞 localStorage）');
+// ---- 反向断言：资源核对那一整套已经删干净 ----
+ok(!/id="mergeInput"/.test(s) && !/id="mergeParseBtn"/.test(s) && !/id="mergeSummary"/.test(s)
+  && !/id="gdItemInput"/.test(s) && !/id="gdItemTime"/.test(s) && !/id="gdItemVerdict"/.test(s) && !/id="gdItemOut"/.test(s)
+  && !/id="gdItemMap"/.test(s) && !/id="gdFlowBox"/.test(s) && !/id="gdFlowTable"/.test(s)
+  && !/id="gdBanner"/.test(s) && !/id="gdBars"/.test(s) && !/id="gdLegend"/.test(s)
+  && !/id="gdRecon"/.test(s) && !/id="gdOpInput"/.test(s) && !/id="gdResTable"/.test(s),
+  '资源核对那套 DOM（MergeState 粘贴 / 资源流水 / 操作记录 / 判定芯片 / 导图 / 横幅 / 图例 / 对比条 / 对账）整块删干净了');
+ok(!/data-seg="mirror"|data-seg="resource"|data-seg-card="resource"|data-seg-card="mirror"/.test(s),
+  '页内分段条也去掉了（棋盘镜像现在是这一页唯一的内容）');
+ok(!/function gdFlowParse/.test(s) && !/function gdFlowImport/.test(s) && !/function gdRecon/.test(s)
+  && !/function gdVerdict/.test(s) && !/function mergeParse/.test(s) && !/function mergeItemScript/.test(s)
+  && !/function mergeOpParse/.test(s) && !/function gdRoute/.test(s) && !/function gdAutoFrom/.test(s)
+  && !/gdAutoTimer/.test(s) && !/gdCsvToTabs/.test(s) && !/MERGE_OP_LABELS/.test(s) && !/mergeTsText/.test(s),
+  '资源核对的 JS（流水解析 / 操作记录 / 对账 / 横幅 / 万能粘贴转交 / MergeState 解析）都删了，没留死代码');
+ok(!/parseSmartLog\(raw, \{ keepIgnored/.test(s),
+  '跟「资源流水解析」的联动也一起删掉（那条流程现在没消费方）');
 
 // ---- 3h. SOP 助手已整块删除（2026-10，用户要求）；服务端的 sop 口令关与 seed 工具保留 ----
 ok(!/sop/i.test(s),
