@@ -443,11 +443,11 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
   console.log('--- 8b. 集卡分析：幻狐（卡包 176-179 / 星级码 32-35） ---');
   const cardCsv = [
     '卡包ID,卡包星级,after,创建时间',
-    '176,[32],{1003201:1},2026-04-20 16:04:00',
-    '177,[33],{1003301:0},2026-04-20 16:05:00',
-    '179,[35],{1003501:1},2026-04-20 16:07:00',
-    '173,[23],{1002301:1},2026-04-20 16:08:00',
-    '175,[25],{1002501:1},2026-04-20 16:09:00',
+    '176,[32],{1003201:1},2026-11-05 16:04:00',
+    '177,[33],{1003301:0},2026-11-05 16:05:00',
+    '179,[35],{1003501:1},2026-11-05 16:07:00',
+    '173,[23],{1002301:1},2026-11-05 16:08:00',
+    '175,[25],{1002501:1},2026-11-05 16:09:00',
   ].join('\n');
   Object.defineProperty($('csvFileInput'), 'files', { value: [new window.File([cardCsv], 'cards.csv', { type: 'text/csv' })], configurable: true });
   $('uploadCsvBtn').click();
@@ -494,12 +494,12 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
   const batchAfter = '{' + batchIds.map(id => id + ':1').join(',') + '}';
   const cardCsv2 = [
     '卡包ID,卡包星级,after,创建时间',
-    '201,[3],{2010102:1},2026-10-01 10:10:00',
-    '201,[3],{2010101:1},2026-10-01 10:00:00',
-    '201,"[3,4]","{2010103:1,2010104:1}",2026-10-01 10:20:00',
-    '201,[3],{2010101:0},2026-10-01 10:05:00',
-    '201,[3],{2010102:0},2026-10-01 10:15:00',
-    '999,"[1]","' + batchAfter + '",2026-10-01 10:30:00',
+    '201,[3],{2010102:1},2026-11-01 10:10:00',
+    '201,[3],{2010101:1},2026-11-01 10:00:00',
+    '201,"[3,4]","{2010103:1,2010104:1}",2026-11-01 10:20:00',
+    '201,[3],{2010101:0},2026-11-01 10:05:00',
+    '201,[3],{2010102:0},2026-11-01 10:15:00',
+    '999,"[1]","' + batchAfter + '",2026-11-01 10:30:00',
   ].join('\n');
   Object.defineProperty($('csvFileInput'), 'files', { value: [new window.File([cardCsv2], 'cards2.csv', { type: 'text/csv' })], configurable: true });
   $('uploadCsvBtn').click();
@@ -574,7 +574,7 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     '展开后 9 张：4 张已收集 / 5 张灰的', String(cells.filter(c => c.classList.contains('is-on')).length));
   check(/未收集/.test(cells[8].textContent) && !cells[8].classList.contains('is-on'),
     '没获得的卡是灰底 + 写「未收集」', cells[8].textContent);
-  check(/10-01 10:05/.test(cells[0].textContent),
+  check(/11-01 10:05/.test(cells[0].textContent),
     '已获得的卡标最近一次获得时间（2010101 在 10:00 首次、10:05 重复 → 取 10:05）', cells[0].textContent);
   check(/兑换记录\s*1\s*条/.test($('cardGroupChips').textContent) && /10:05/.test(cells[0].title) && !/10:30/.test(cells[0].title),
     '兑换记录在卡组收藏里也不采信：记 1 条，获得时间仍是 10:05（没被 10:30 的兑换覆盖）',
@@ -627,8 +627,8 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
   // 认不出卡包 + 只开 1 张 = 使用了无相牌
   const wxCsv = [
     '卡包ID,卡包星级,after,创建时间',
-    '176,[32],{2010101:1},2026-10-02 10:00:00',
-    '999,[1],{2010105:1},2026-10-02 10:01:00',
+    '176,[32],{2010101:1},2026-11-02 10:00:00',
+    '999,[1],{2010105:1},2026-11-02 10:01:00',
   ].join('\n');
   Object.defineProperty($('csvFileInput'), 'files', { value: [new window.File([wxCsv], 'wx.csv', { type: 'text/csv' })], configurable: true });
   $('uploadCsvBtn').click();
@@ -641,6 +641,34 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     && /开包 1 次 \+ 无相牌 1 次/.test($('cardPityHint').textContent),
     '抽卡详情把这一条记成「无相牌 1 次」：总抽数 2（开包 1 + 无相牌 1）',
     pityChips() + ' / ' + $('cardPityHint').textContent);
+  // 本期卡牌活动的时间窗是内置的：2026-10-30 11:00 开、为期 40 天 → 2026-12-09 11:00
+  check(/本期卡牌活动：2026-10-30 11:00 – 2026-12-09 11:00（40 天）/.test($('cardSeasonHint').textContent)
+    && /往期记录自动排除/.test($('cardSeasonHint').textContent),
+    '上传框上方内置本期时间窗（2026-10-30 11:00 开、为期 40 天 → 2026-12-09 11:00），并写明往期不混算',
+    $('cardSeasonHint').textContent);
+  check(/本期\s*10-30 11:00 → 12-09 11:00/.test(pityChips())
+    && /本期\s*10-30 11:00 → 12-09 11:00/.test($('cardGroupChips').textContent),
+    '抽卡详情与卡组收藏的芯片都写明本期时间窗',
+    pityChips() + ' / ' + $('cardGroupChips').textContent);
+  // 往期记录整条排除（窗口前 / 窗口后都不算这一期；窗口开头 11:00 那一条算本期）
+  const seasonCsv = [
+    '卡包ID,卡包星级,after,创建时间',
+    '201,[3],{2010101:1},2026-10-30 10:59:00',
+    '201,[3],{2010102:1},2026-10-30 11:00:00',
+    '201,[3],{2010103:1},2026-12-09 10:59:00',
+    '201,[3],{2010104:1},2026-12-09 11:00:00',
+    '201,[3],{2010105:1},2026-09-01 10:00:00',
+  ].join('\n');
+  Object.defineProperty($('csvFileInput'), 'files', { value: [new window.File([seasonCsv], 'season.csv', { type: 'text/csv' })], configurable: true });
+  $('uploadCsvBtn').click();
+  await sleep(250);
+  check($('recordCount').textContent === '2' && /已排除 3 条往期记录/.test($('cardSkipHint').textContent),
+    '混合 CSV 里往期 3 条（10-30 10:59 / 12-09 11:00 / 09-01）被排除，话术只剩本期 2 条',
+    $('recordCount').textContent + ' / ' + $('cardSkipHint').textContent);
+  check(/总抽数\s*2/.test(pityChips()) && /已排除往期\s*3\s*条/.test(pityChips()),
+    '抽卡详情只算本期 2 抽（10-30 11:00 那条算、12-09 11:00 那条不算），芯片写「已排除往期 3 条」', pityChips());
+  check(/已排除往期\s*3\s*条/.test($('cardGroupChips').textContent),
+    '卡组收藏也不掺往期：芯片写「已排除往期 3 条」', $('cardGroupChips').textContent);
   check(posts.length === postsBeforeCard2, '抽卡详情 / 卡组收藏全程只在本机（0 请求）',
     posts.slice(postsBeforeCard2).map(p => p.url).join(' | '));
 

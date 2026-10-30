@@ -4321,6 +4321,7 @@
             </div>
             <div class="form-group">
                 <label>上传集卡CSV文件</label>
+                <div id="cardSeasonHint" class="hint-text"></div>
                 <input type="file" id="csvFileInput" accept=".csv,.txt" />
                 <button id="uploadCsvBtn" style="margin-top:8px;">📂 上传并解析</button>
                 <button id="debugCardBtn" class="secondary">🔍 调试</button>
@@ -9012,9 +9013,35 @@
                                         return !PACK_NAME_MAP[parseInt(record['卡包ID'])] && ids.length === 1;
                                     }
 
+                                    // 这一期卡牌活动的时间窗（内置）：2026-10-30 11:00 开、为期 40 天 → 2026-12-09 11:00 截止
+                                    // 「不和往期混合计算」：窗口外的记录在集卡话术 / 抽卡详情 / 卡组收藏三处一起排除
+                                    const CARD_SEASON_START_MS = new Date(2026, 9, 30, 11, 0, 0, 0).getTime();
+                                    const CARD_SEASON_DAYS = 40;
+                                    const CARD_SEASON_END_MS = CARD_SEASON_START_MS + CARD_SEASON_DAYS * 86400000;
+                                    let cardOutSeasonCount = 0;
+
+                                    function cardSeasonText() {
+                                        return cardTimeLabel(CARD_SEASON_START_MS) + ' – ' + cardTimeLabel(CARD_SEASON_END_MS) + '（' + CARD_SEASON_DAYS + ' 天）';
+                                    }
+
+                                    function cardSeasonShort() {
+                                        return cardTimeShort(CARD_SEASON_START_MS) + ' → ' + cardTimeShort(CARD_SEASON_END_MS);
+                                    }
+
+                                    // 没写时间的记录没法判断，留着（不然会把整份日志都丢掉）
+                                    function cardInSeason(record) {
+                                        const ms = cardTimeValue(record && record['创建时间']);
+                                        if (!isFinite(ms)) return true;
+                                        return ms >= CARD_SEASON_START_MS && ms < CARD_SEASON_END_MS;
+                                    }
+
                                     async function processCardCsv() {
                                         const f = document.getElementById('csvFileInput').files[0]; if (!f) return;
-                                        const text = await f.text(); currentCardRecords = parseCSVEnhanced(text);
+                                        const text = await f.text();
+                                        const allRecords = parseCSVEnhanced(text);
+                                        // 只留本期记录：往期活动的抽卡不掺进这一期
+                                        currentCardRecords = allRecords.filter(cardInSeason);
+                                        cardOutSeasonCount = allRecords.length - currentCardRecords.length;
                                         const star = document.getElementById('starFilterSelect').value;
                                         const draws = currentCardRecords.filter(r => !cardIsExchangeRecord(r));
                                         const exchanges = currentCardRecords.length - draws.length;
@@ -9037,9 +9064,10 @@
                                         document.getElementById('recordCount').textContent = texts.length;
                                         const skipHint = document.getElementById('cardSkipHint');
                                         if (skipHint) {
-                                            skipHint.textContent = exchanges
-                                                ? '已跳过 ' + exchanges + ' 条「兑换重复卡牌」记录（一次开包超过 ' + CARD_EXCHANGE_MAX_CARDS + ' 张，不算开包，不出开包话术）'
-                                                : '';
+                                            const skipParts = [];
+                                            if (exchanges) skipParts.push('已跳过 ' + exchanges + ' 条「兑换重复卡牌」记录（一次开包超过 ' + CARD_EXCHANGE_MAX_CARDS + ' 张，不算开包，不出开包话术）');
+                                            if (cardOutSeasonCount) skipParts.push('已排除 ' + cardOutSeasonCount + ' 条往期记录（本期 ' + cardSeasonText() + '，不和这一期混算）');
+                                            skipHint.textContent = skipParts.join(' · ');
                                         }
                                         cardPityRender(currentCardRecords);
                                         cardGroupRender();
@@ -9203,18 +9231,25 @@
                                         if (!chips || !body || !chart || !table || !hint) return null;
                                         const model = cardPityModel(records);
                                         cardOddsRender(model);
+                                        const seasonChip = cardChipHtml('本期 <b>' + cardSeasonShort() + '</b>', 'k-plain', '这一期卡牌活动：' + cardSeasonText() + '，往期记录自动排除、不和这一期混算');
+                                        const outSeasonChip = cardOutSeasonCount
+                                            ? cardChipHtml('已排除往期 <b>' + cardOutSeasonCount + '</b> 条', 'k-plain', '本期时间窗 ' + cardSeasonText() + ' 之外的记录不算这一期')
+                                            : '';
                                         if (!model.totalPulls) {
-                                            chips.innerHTML = model.skippedPulls
-                                                ? cardChipHtml('兑换记录已排除 <b>' + model.skippedPulls + '</b> 条（' + model.skippedCards + ' 张）', 'k-plain')
-                                                : '';
+                                            chips.innerHTML = [
+                                                seasonChip,
+                                                model.skippedPulls ? cardChipHtml('兑换记录已排除 <b>' + model.skippedPulls + '</b> 条（' + model.skippedCards + ' 张）', 'k-plain') : '',
+                                                outSeasonChip,
+                                            ].join('');
                                             body.style.display = 'none';
-                                            hint.textContent = model.skippedPulls
+                                            hint.textContent = '本期 ' + cardSeasonText() + '。' + (model.skippedPulls
                                                 ? '这份日志里只有「兑换重复卡牌」记录（一次超过 10 张），它们不是开包 —— 没有可统计的抽卡记录。'
-                                                : '上传集卡 CSV 后，这里出「几抽出新卡」的分布图和明细。';
+                                                : '上传集卡 CSV 后，这里出「几抽出新卡」的分布图和明细。');
                                             return model;
                                         }
                                         body.style.display = 'block';
                                         chips.innerHTML = [
+                                            seasonChip,
                                             cardChipHtml('总抽数 <b>' + model.totalPulls + '</b>', 'k-plain'),
                                             model.wuxiangCount ? cardChipHtml('其中无相牌 <b>' + model.wuxiangCount + '</b> 次', 'k-plain', '认不出卡包、只开了 1 张的记录 = 使用了无相牌') : '',
                                             cardChipHtml('新卡 <b>' + model.totalNew + '</b> 张', 'k-accent'),
@@ -9222,6 +9257,7 @@
                                             cardChipHtml('最长空档 <b>' + model.maxGap + '</b> 抽没出新卡', model.maxGap >= 20 ? 'k-warn' : 'k-plain'),
                                             cardChipHtml('当前连续 <b>' + model.streak + '</b> 抽未出新卡', model.streak >= 20 ? 'k-warn' : 'k-plain'),
                                             model.skippedPulls ? cardChipHtml('兑换记录已排除 <b>' + model.skippedPulls + '</b> 条（' + model.skippedCards + ' 张）', 'k-plain', '一次开包超过 ' + CARD_EXCHANGE_MAX_CARDS + ' 张 = 兑换重复卡牌，不算开包，也不进抽数') : '',
+                                            outSeasonChip,
                                         ].join('');
                                         const peak = model.buckets.reduce((m, b) => Math.max(m, b.count), 0) || 1;
                                         chart.innerHTML = model.buckets.map(b => {
@@ -9587,6 +9623,7 @@
                                         cardGroupModel = model;
                                         const pct = model.cardTotal ? Math.round((model.ownedTotal / model.cardTotal) * 100) : 0;
                                         chips.innerHTML = [
+                                            cardChipHtml('本期 <b>' + cardSeasonShort() + '</b>', 'k-plain', '这一期卡牌活动：' + cardSeasonText() + '，往期记录自动排除、不和这一期混算'),
                                             cardChipHtml('卡组 <b>' + model.groups.length + '</b> 组', 'k-plain'),
                                             cardChipHtml('已收集 <b>' + model.ownedTotal + '</b>/' + model.cardTotal + ' 张', 'k-accent'),
                                             cardChipHtml('完成度 <b>' + pct + '%</b>', 'k-op'),
@@ -9594,6 +9631,7 @@
                                             model.timed ? cardChipHtml('有获得时间 <b>' + model.timed + '</b> 张', 'k-plain') : '',
                                             model.conflict ? cardChipHtml('CSV 与未收集表冲突 <b>' + model.conflict + '</b> 张（以 CSV 为准）', 'k-warn') : '',
                                             model.exchangeCount ? cardChipHtml('兑换记录 <b>' + model.exchangeCount + '</b> 条（不算获得，时间不覆盖）', 'k-plain', '一次开包超过 ' + CARD_EXCHANGE_MAX_CARDS + ' 张 = 兑换重复卡牌，收集状态与获得时间都不采信它') : '',
+                                            cardOutSeasonCount ? cardChipHtml('已排除往期 <b>' + cardOutSeasonCount + '</b> 条', 'k-plain', '本期时间窗 ' + cardSeasonText() + ' 之外的记录不算这一期') : '',
                                         ].join('');
                                         grid.innerHTML = model.groups.map(g => {
                                             const total = g.total || 9;
@@ -9613,7 +9651,9 @@
                                             model.hasProgress ? '未收集表：已解析' : '未收集表：没粘（只按 CSV 判断）',
                                             model.hasCsv ? ('集卡 CSV：' + model.csvCardCount + ' 张卡出现过') : '集卡 CSV：还没解析',
                                         ];
-                                        hint.textContent = src.join(' · ') + ' —— 点一组展开，灰的是未收集'
+                                        hint.textContent = src.join(' · ') + ' · 本期 ' + cardSeasonShort()
+                                            + (cardOutSeasonCount ? '（已排除往期 ' + cardOutSeasonCount + ' 条）' : '')
+                                            + ' —— 点一组展开，灰的是未收集'
                                             + (model.hasCsv ? '，有时间的写最近一次获得时间（多张取最新）' : '');
                                         return model;
                                     }
@@ -17492,6 +17532,12 @@
                                         setClick('cardGroupClearBtn', cardGroupClear);
                                         // 集卡 · 抽卡规则表（还没传 CSV 也先画出来）
                                         cardOddsRender(null);
+                                        // 集卡 · 本期时间窗（内置）：上传框与抽卡详情先把规则写出来
+                                        const seasonHintEl = document.getElementById('cardSeasonHint');
+                                        if (seasonHintEl) {
+                                            seasonHintEl.textContent = '本期卡牌活动：' + cardSeasonText() + ' · 往期记录自动排除，不和这一期混合计算';
+                                        }
+                                        cardPityRender([]);
                                         addEvent('cardGroupGrid', 'click', (e) => {
                                             const t = e.target;
                                             const btn = t && t.closest ? t.closest('.card-group-btn') : null;

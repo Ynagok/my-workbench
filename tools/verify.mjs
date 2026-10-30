@@ -113,6 +113,16 @@ ok(/function cardPackNameOf\(packId, cards\)/.test(s) && /cards === 1 \? '无相
   && /isWuxiang: !PACK_NAME_MAP\[packId\] && ids\.length === 1/.test(s)
   && /其中无相牌 <b>/.test(s) && /开包 1 次|' 次 \+ 无相牌 '/.test(s),
   '认不出卡包但只开了 1 张 → 识别成「使用了无相牌」：话术不写「开启【未知卡包】」，抽卡详情多一片「其中无相牌 N 次」、提示写「开包 X 次 + 无相牌 Y 次」');
+// 这一期卡牌活动的时间窗内置 + 不和往期混合计算
+ok(/const CARD_SEASON_START_MS = new Date\(2026, 9, 30, 11, 0, 0, 0\)\.getTime\(\);/.test(s)
+  && /const CARD_SEASON_DAYS = 40;/.test(s)
+  && /const CARD_SEASON_END_MS = CARD_SEASON_START_MS \+ CARD_SEASON_DAYS \* 86400000;/.test(s)
+  && /function cardInSeason\(record\)/.test(s) && /ms >= CARD_SEASON_START_MS && ms < CARD_SEASON_END_MS/.test(s)
+  && /currentCardRecords = allRecords\.filter\(cardInSeason\);/.test(s)
+  && /cardOutSeasonCount = allRecords\.length - currentCardRecords\.length;/.test(s)
+  && /已排除 ' \+ cardOutSeasonCount \+ ' 条往期记录/.test(s)
+  && /id="cardSeasonHint"/.test(s) && /已排除往期 <b>/.test(s),
+  '内置本期卡牌活动时间窗（2026-10-30 11:00 开、为期 40 天 → 2026-12-09 11:00）：CSV 里窗口外的往期记录在话术 / 抽卡详情 / 卡组收藏三处一起排除，不跟这一期混算');
 ok(/"253": "联动分享活动-首次赠送"/.test(s) && /"257": "打怪棋盘-消耗步数"/.test(s), '来源/物品映射已补 253–257');
 ok(/"264": "活动pass卡领取"/.test(s) && /"265": "活动pass卡购买"/.test(s)
   && /"266": "1\+4礼包购买"/.test(s) && /"267": "1\+4礼包免费领取"/.test(s),
