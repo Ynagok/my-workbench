@@ -97,20 +97,27 @@ ok(/const CARD_PACK_ODDS = \[/.test(s) && (s.match(/\{ name: '\d星[^']*锦囊'/
   && /opts: \[\['5星普通', 83\.3\], \['5星霞光', 16\.7\]\]/.test(s),
   '概率说明内置：14 种锦囊的开牌数与每个牌位的出货概率（5星百戏锦囊的 83.3% / 16.7% 等原文数值）');
 ok(/function cardPackExpect\(packName, label\)/.test(s) && /function cardTierOfStarCode\(code\)/.test(s)
-  && /cardNum1\(\(rule\.pity \+ 1\) \/ x\.p\)/.test(s) && /预计几抽出新卡/.test(s)
+  && /预计几抽出新卡/.test(s)
   && /const CARD_DUPE_POINTS = \{ 1: 1, 2: 2, 3: 3, 4: 4, 5: 5 \};/.test(s)
   && /id="cardOddsCards"/.test(s) && /id="cardOddsTable"/.test(s) && /cardOddsRender\(null\)/.test(s),
-  '预计几抽出新卡 = （保底重复张数 + 1）÷ 单包期望张数；表里同时给保底 / 单包期望 / 活动上限 / 本日志实测，重复牌 1–5 星 = 1–5 戏符点');
-// 「我要烟牌~」：只出 5 个小卡片（星级 + 预计几抽），保底规则 + 卡包说明 + 概率收在底下一张表里
+  '表里同时给保底 / 单包期望 / 预计几抽出新卡 / 活动上限 / 本日志实测，重复牌 1–5 星 = 1–5 戏符点');
+// 「我要烟牌~」：只出 5 个小卡片（星级 + 预计几抽，整数），保底规则 + 卡包说明 + 概率收在底下一张表里
 ok(/🔥 我要烟牌~/.test(s) && /id="cardOddsCards"/.test(s) && /class="odds-cards"/.test(s)
-  && /function cardRuleInfo\(rule\)/.test(s)
+  && /function cardRuleInfo\(rule, tier, pulls\)/.test(s)
   && /CARD_DRAW_RULES\.filter\(rule => rule\.key\.charAt\(0\) === 's'\)/.test(s)
-  && /class="oc-star"/.test(s) && /class="oc-num"/.test(s) && /odds-card' \+ \(isFast \? ' is-fast' : ''\)/.test(s)
+  && /class="oc-star"/.test(s) && /class="oc-num"/.test(s) && /' is-fast' : ''\)/.test(s)
   && /name="x-build"/.test(s)
   && /class="odds-group"/.test(s) && /class="pack-row"/.test(s)
   && /table\.innerHTML = head \+ '<tbody>' \+ ruleRows \+ packTitleRow \+ packRows/.test(s)
   && !/id="cardPackOddsTable"/.test(s) && !/id="cardOddsHint"/.test(s),
   '「我要烟牌~」这一块：预计结果只出 5 个小卡片（只有星级 + 预计几抽），保底规则 / 卡包说明 / 概率合到收起的**同一张表**里（旧的概率表与说明小字都撤了）');
+// 预计必须是整数：按玩家这份日志的实际开卡情况算，没数据才退回保底规则
+ok(/n = Math\.max\(1, Math\.round\(pulls \/ t\.news\)\);/.test(s)
+  && /n = rule\.pity \+ 1;/.test(s)
+  && /from = 'log';/.test(s) && /from = 'rule';/.test(s)
+  && /本日志实测' : '按保底规则'/.test(s)
+  && /预计取整数/.test(s),
+  '「预计几抽出新卡」= **整数**：优先按玩家日志实测（总抽数 ÷ 该星级新卡数，四舍五入、至少 1 抽），日志里没出过该星级新卡时退回保底规则（pity + 1 抽），并在表里标明依据');
 ok(/function cardCapText\(rule\)/.test(s) && /集齐上限 ≠ 均匀分布/.test(s)
   && /rule\.series \? '集齐 ' \+ rule\.series \+ ' 张' : '集齐系列'/.test(s)
   && /capAlt: 48, capAltPack: '普通 5星包'/.test(s)

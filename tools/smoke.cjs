@@ -536,18 +536,20 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     && ![...$('cardPityCard').querySelectorAll('label .card-sub')].some(el => /百戏锦囊说明/.test(el.textContent)),
     '这一块的标题就叫「我要烟牌~」，标题底下那行小字不显示');
   const oddsCards = [...$('cardOddsCards').querySelectorAll('.odds-card')];
-  check(oddsCards.length === 5 && oddsCards[0].textContent === '五星2.4抽'
-    && oddsCards[4].textContent === '一星5.7抽',
-    '预计结果只出 5 个小卡片（五星…一星普通），卡片里只有星级 + 预计几抽',
+  check(oddsCards.length === 5 && oddsCards.every(c => /^[一二三四五]星\d+抽$/.test(c.textContent))
+    && oddsCards[0].textContent === '五星2抽' && oddsCards[4].textContent === '一星10抽',
+    '预计结果只出 5 个小卡片（五星…一星普通），卡片里只有星级 + 整数抽数',
+    oddsCards.map(c => c.textContent).join(' | '));
+  check(oddsCards[2].textContent === '三星2抽' && oddsCards[1].textContent === '四星5抽',
+    '预计按玩家这份日志算：三星 5 抽出 3 张新卡 → 2 抽；四星 5 抽才 1 张 → 5 抽',
     oddsCards.map(c => c.textContent).join(' | '));
   check(!/保底/.test($('cardOddsCards').textContent) && !$('cardOddsHint') && !$('cardPackOddsTable'),
     '卡片里不再塞保底 / 期望 / 上限，底下那段说明小字与旧的概率表都撤了');
   const fastCards = [...$('cardOddsCards').querySelectorAll('.odds-card.is-fast')];
-  check(fastCards.length === 1 && fastCards[0].textContent === '五星2.4抽',
-    '预计最快的星级（五星 2.4 抽）单独标成 is-fast', fastCards.map(c => c.textContent).join(' | '));
-  check(/集齐上限 ≠ 均匀分布/.test($('cardOddsChips').textContent)
-    && /只按保底规则推算/.test($('cardOddsChips').textContent),
-    '口径收在芯片里：集齐上限 ≠ 均匀分布 · 预计只按保底规则推算', $('cardOddsChips').textContent);
+  check(fastCards.length === 1 && fastCards[0].textContent === '五星2抽',
+    '预计最快的星级（五星 2 抽）单独标成 is-fast', fastCards.map(c => c.textContent).join(' | '));
+  check(/预计取整数/.test($('cardOddsChips').textContent),
+    '口径芯片写明「预计取整数」及其依据', $('cardOddsChips').textContent);
   // 收起来的那一张表：12 条保底规则 + 14 种锦囊概率
   const oddsRows = () => [...$('cardOddsTable').querySelectorAll('tbody tr')]
     .filter(tr => !tr.classList.contains('odds-group') && !tr.classList.contains('pack-row'));
@@ -556,18 +558,19 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
   check(!!oddsSheet && oddsSheet.open === false && oddsRows().length === 12
     && /预计几抽出新卡/.test($('cardOddsTable').textContent),
     '保底规则 12 条收在底下的 details.stat-fold 里，默认不展开', String(oddsRows().length));
-  check(/2\.4 抽/.test(oddsRow('五星普通').textContent),
-    '五星普通：保底 1 张重复、单包 0.83 张 → 预计 2.4 抽一张新卡', oddsRow('五星普通').textContent);
-  check(/5\.7 抽/.test(oddsRow('一星普通').textContent) && /5\.4 抽/.test(oddsRow('四星普通').textContent),
-    '一星普通 5.7 抽 · 四星普通 5.4 抽（保底 9 / 4 张重复）', oddsRow('一星普通').textContent);
+  check(/2 抽（按保底规则）/.test(oddsRow('五星普通').textContent),
+    '五星普通：日志里还没出过五星新卡 → 预计按保底规则 = 2 抽（1 张重复 + 1）', oddsRow('五星普通').textContent);
+  check(/10 抽（按保底规则）/.test(oddsRow('一星普通').textContent)
+    && /5 抽（本日志实测）/.test(oddsRow('四星普通').textContent),
+    '一星普通按保底 10 抽 · 四星普通按实测 5 抽（表里标明依据、都是整数）', oddsRow('一星普通').textContent);
   check(/无保底规则（只给集齐上限）/.test(oddsRow('五星霞光').textContent)
     && /8 包集齐 8 张 · 普通 5星包最多 48 包/.test(oddsRow('五星霞光').textContent),
-    '五星霞光没有「连续 N 张重复」的保底规则 → 不给「6 抽」这种数，只写 8 包集齐 8 张 / 普通包最多 48 包',
+    '五星霞光没有「连续 N 张重复」的保底规则 → 不给「几抽」的数，只写 8 包集齐 8 张 / 普通包最多 48 包',
     oddsRow('五星霞光').textContent);
-  check(/概率未公布/.test(oddsRow('五星幻狐').textContent) && /概率未公布/.test(oddsRow('二星幻狐').textContent),
-    '幻狐锦囊的概率页没公布 → 只给保底与活动上限', oddsRow('五星幻狐').textContent);
-  check(/1\.7 抽（新 3 \/ 出 5）/.test(oddsRow('三星普通').textContent),
-    '本日志实测列：三星普通 5 抽里出现 5 次、3 张新 → 1.7 抽', oddsRow('三星普通').textContent);
+  check(/概率未公布/.test(oddsRow('五星幻狐').textContent) && /3 抽（按保底规则）/.test(oddsRow('二星幻狐').textContent),
+    '幻狐的概率没公布（单包期望写「概率未公布」），预计仍按保底规则给整数', oddsRow('二星幻狐').textContent);
+  check(/3 张新卡 \/ 出现 5 次/.test(oddsRow('三星普通').textContent),
+    '本日志实测列写清明细：三星普通 3 张新卡 / 出现 5 次', oddsRow('三星普通').textContent);
   const packRows = [...$('cardOddsTable').querySelectorAll('tbody tr.pack-row')];
   check(packRows.length === 14 && /卡包说明 · 每种锦囊的出货概率/.test($('cardOddsTable').textContent)
     && /5星百戏超大锦囊/.test($('cardOddsTable').textContent)

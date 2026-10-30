@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="x-build" content="2026-10-30 我要烟牌-v2">
+    <meta name="x-build" content="2026-10-30 我要烟牌-v3-整数预计">
     <title>客服冷静演绎工作台</title>
     <link rel="icon" type="image/gif" href="/my-icon.gif">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -9402,22 +9402,32 @@
                                     }
 
                                     // 一条规则算出来的东西（卡片和收起里的表共用同一份口径）
-                                    function cardRuleInfo(rule) {
+                                    // 「预计几抽出新卡」= **整数**：优先按玩家这份日志的实际开卡情况（总抽数 ÷ 该星级新卡数，四舍五入、至少 1 抽），
+                                    // 日志里还没有该星级的新卡时退回保底规则（连续 pity 张重复 → 下一张必新，所以保底是 pity + 1 抽）
+                                    function cardRuleInfo(rule, tier, pulls) {
                                         const label = rule.star + '星' + (rule.key.charAt(0) === 'x' ? '霞光' : rule.key.charAt(0) === 'h' ? '幻狐' : '普通');
                                         const packs = rule.routes.map(r => ({ pack: r.pack, note: r.note || '', p: cardPackExpect(r.pack, label) }));
                                         const usable = packs.filter(x => x.p > 0);
-                                        const expectText = !usable.length
-                                            ? '概率未公布'
-                                            : (rule.pity
-                                                ? usable.map(x => cardNum1((rule.pity + 1) / x.p) + ' 抽'
-                                                    + (x.note ? '（' + x.note + '）' : '')).join(' / ')
-                                                : '无保底规则（只给集齐上限）');
                                         const pText = usable.length
                                             ? usable.map(x => String(Math.round(x.p * 100) / 100)).join(' / ')
-                                            : '—';
+                                            : '—（概率未公布）';
+                                        const t = (tier || {})[rule.key];
+                                        let n = 0, from = '';
+                                        if (t && t.news) {
+                                            n = Math.max(1, Math.round(pulls / t.news));
+                                            from = 'log';
+                                        } else if (rule.pity) {
+                                            n = rule.pity + 1;
+                                            from = 'rule';
+                                        }
+                                        const fromText = from === 'log' ? '本日志实测' : '按保底规则';
+                                        const expectText = n
+                                            ? (n + ' 抽（' + fromText + '）')
+                                            : '无保底规则（只给集齐上限）';
                                         return {
-                                            label: label, usable: usable, expectText: expectText, pText: pText,
-                                            expectOne: (usable.length && rule.pity) ? cardNum1((rule.pity + 1) / usable[0].p) : '',
+                                            label: label, usable: usable, pText: pText, from: from, fromText: fromText,
+                                            expectNum: n, expectText: expectText,
+                                            expectOne: n ? String(n) : '',
                                         };
                                     }
 
@@ -9432,24 +9442,24 @@
                                             cardChipHtml('数据来源：百戏锦囊说明', 'k-plain', '基本规则 + 概率说明（2026-10 用户提供的活动说明页）'),
                                             cardChipHtml('重复牌换戏符：<b>1–5</b> 星 = 1–5 点', 'k-plain', '活动期间重复牌按星数等额换戏符点；活动结束戏符匣清零，不延续到下次'),
                                             cardChipHtml('集齐上限 ≠ 均匀分布', 'k-op', '「最多 N 包集齐一系列」只是保底上限：比如五星霞光最多 48 个普通 5星包集齐 8 张，不代表每 6 抽 1 张，前几抽通常更容易出'),
-                                            cardChipHtml('预计只按保底规则推算', 'k-plain', '只有写了「连续 N 张重复 → 下一张必新」的星级才算得出；没有保底规则的（如五星霞光）只给集齐上限'),
+                                            cardChipHtml('预计取整数', 'k-op', '按这份日志的实际开卡情况算（总抽数 ÷ 该星级新卡数，四舍五入、至少 1 抽）；日志里还没出过该星级新卡时，按保底规则的 pity + 1 抽算'),
                                         ].join('');
 
                                         // 预计结果 = 5 个小卡片（一星…五星普通；霞光/幻狐在下面收起的表里看）
                                         const starCn = ['一', '二', '三', '四', '五'];
                                         const starCards = CARD_DRAW_RULES.filter(rule => rule.key.charAt(0) === 's')
-                                            .map(rule => ({ rule: rule, info: cardRuleInfo(rule) }));
-                                        const fastVal = starCards.reduce((m, c) => {
-                                            const v = parseFloat(c.info.expectOne);
-                                            return (isFinite(v) && v < m) ? v : m;
-                                        }, Infinity);
+                                            .map(rule => ({ rule: rule, info: cardRuleInfo(rule, tier, pulls) }));
+                                        let fastIdx = -1, fastVal = Infinity;
+                                        starCards.forEach((c, i) => {
+                                            const v = c.info.expectNum;
+                                            if (v > 0 && v < fastVal) { fastVal = v; fastIdx = i; }
+                                        });
                                         if (cards) {
-                                            cards.innerHTML = starCards.map(c => {
+                                            cards.innerHTML = starCards.map((c, i) => {
                                                 const rule = c.rule, info = c.info;
-                                                const tip = info.label + '：预计 ' + info.expectText + ' · ' + cardPityRuleText(rule)
-                                                    + ' · ' + cardCapText(rule);
-                                                const isFast = isFinite(fastVal) && parseFloat(info.expectOne) === fastVal;
-                                                return '<div class="odds-card' + (isFast ? ' is-fast' : '') + '" title="' + escapeHtml(tip) + '">'
+                                                const tip = info.label + '：预计 ' + (info.expectNum || '—') + ' 抽（' + info.fromText + '）'
+                                                    + ' · ' + cardPityRuleText(rule) + ' · ' + cardCapText(rule);
+                                                return '<div class="odds-card' + (i === fastIdx ? ' is-fast' : '') + '" title="' + escapeHtml(tip) + '">'
                                                     + '<div class="oc-star">' + escapeHtml((starCn[rule.star - 1] || rule.star) + '星') + '</div>'
                                                     + '<div class="oc-num">' + escapeHtml(info.expectOne || '—') + '<i>抽</i></div>'
                                                     + '</div>';
@@ -9459,14 +9469,14 @@
                                         // 收起来的那张表：保底规则 + 卡包（锦囊）说明 + 概率，全在一张表里
                                         const head = '<thead><tr><th>星级</th><th>保底</th><th>单包期望</th><th>预计几抽出新卡</th><th>活动上限</th><th>本日志实测</th></tr></thead>';
                                         const ruleRows = CARD_DRAW_RULES.map(rule => {
-                                            const info = cardRuleInfo(rule);
+                                            const info = cardRuleInfo(rule, tier, pulls);
                                             const t = tier[rule.key];
                                             const realText = (t && t.news)
-                                                ? cardNum1(pulls / t.news) + ' 抽（新 ' + t.news + ' / 出 ' + t.seen + '）'
+                                                ? (t.news + ' 张新卡 / 出现 ' + t.seen + ' 次')
                                                 : (t && t.seen ? '还没出过新卡（出现 ' + t.seen + ' 次）' : '—');
                                             return '<tr><td><b>' + escapeHtml(rule.label) + '</b></td>'
                                                 + '<td>' + escapeHtml(cardPityRuleText(rule)) + '</td>'
-                                                + '<td>' + escapeHtml(info.pText) + ' 张</td>'
+                                                + '<td>' + escapeHtml(info.pText) + (info.usable.length ? ' 张' : '') + '</td>'
                                                 + '<td>' + escapeHtml(info.expectText) + '</td>'
                                                 + '<td>' + escapeHtml(cardCapText(rule)) + '</td>'
                                                 + '<td>' + escapeHtml(realText) + '</td></tr>';
