@@ -113,17 +113,20 @@ ok(/🔥 我要烟牌~/.test(s) && /id="cardOddsCards"/.test(s) && /class="odds-
   && /table\.innerHTML = head \+ '<tbody>' \+ ruleRows \+ packTitleRow \+ packRows/.test(s)
   && !/id="cardPackOddsTable"/.test(s) && !/id="cardOddsHint"/.test(s),
   '「我要烟牌~」这一块：预计结果出小卡片（普通 5 + 霞光 3 + 幻狐 4，只有星级 + 预计几抽），保底规则 / 卡包说明 / 概率合到收起的**同一张表**里（旧的概率表与说明小字都撤了）');
-// 卡片进度条 = 该星级的收集率（2026-10 用户：「卡片上的进度条的作用改为显示该星级卡牌的收集情况」）
+// 卡片进度条 = 该星级的收集率（2026-10 用户：「卡片上的进度条的作用改为显示该星级卡牌的收集情况」，
+// 随即又要求「卡组收藏不用粘贴，直接根据解析就好」→ 拥有数从抽卡 CSV 解析，只有分母内置）
 ok(/class="oc-bar"/.test(s) && /class="oc-note"/.test(s)
   && /const CARD_STAR_TOTAL = \{ 1: 37, 2: 29, 3: 22, 23: 5, 4: 18, 24: 6, 5: 10, 25: 8 \};/.test(s)
-  && /function cardStarStatParse\(text\)/.test(s) && /function cardStarStatOf\(rule\)/.test(s)
+  && /function cardStarOwnedMap\(records\)/.test(s) && /function cardStarStatOf\(rule, ownedMap\)/.test(s)
+  && /const starOwned = cardStarOwnedMap\(currentCardRecords\);/.test(s)
+  && /cardStarStatOf\(c\.rule, starOwned\)/.test(s) && /cardStarStatOf\(rule, starOwned\)/.test(s)
   && /const note = '已收集 ' \+ stat\.owned \+ '\/' \+ stat\.total;/.test(s)
   && /const barPct = stat\.pct;/.test(s)
-  && /'已收集 ' \+ stat\.owned \+ '\/' \+ stat\.total/.test(s)
-  && /id="cardStarStatInput"/.test(s) && /id="cardStarStatBtn"/.test(s) && /id="cardStarStatClearBtn"/.test(s)
-  && /setClick\('cardStarStatBtn', cardStarStatRun\)/.test(s)
+  && !/id="cardStarStatInput"/.test(s) && !/cardStarStatParse/.test(s)
+  && !/cardStarStatRun/.test(s) && !/cardStarStatClear/.test(s)
   && /\.odds-card \.oc-bar \{/.test(s) && /style="width:' \+ barPct \+ '%;"/.test(s),
-  '卡片进度条 = **该星级的收集率**（粘 GM 的「卡牌星级 / 拥有 / 全部」表，CARD_STAR_TOTAL 内置各星级总数共 135 张）；卡片下方写「已收集 X/Y」，收集率最高的那格高亮');// 预计 = 数学预测模型（卡包概率 × 保底规则 × 玩家重复率），结果取整
+  '卡片进度条 = **该星级的收集率**（全部张数内置 CARD_STAR_TOTAL 共 135 张；「拥有」直接从抽卡 CSV 解析 —— 不用粘 GM 表）；卡片下方写「已收集 X/Y」，收集率最高的那格高亮');
+// 预计 = 数学预测模型（卡包概率 × 保底规则 × 玩家重复率），结果取整；卡片上不再写「模型」字样（2026-10 用户要求）
 ok(/let perPull = 0;/.test(s) && /if \(mix && mix\.perPull && mix\.perPull\[rule\.key\] > 0\)/.test(s)
   && /else if \(seen > 0 && pulls > 0\) perPull = seen \/ pulls;/.test(s)
   && /const dupRate = seen > 0 \? \(Math\.max\(0, seen - news\) \+ 2\) \/ \(seen \+ 4\) : null;/.test(s)
@@ -131,7 +134,8 @@ ok(/let perPull = 0;/.test(s) && /if \(mix && mix\.perPull && mix\.perPull\[rule
   && /else cardsPerNew = 1 \/ \(1 - dupRate\);/.test(s)
   && /if \(dupRate === null\) cardsPerNew = rule\.pity \? rule\.pity \+ 1 : 0;/.test(s)
   && /n = Math\.max\(1, Math\.round\(cardsPerNew \/ perPull\)\);/.test(s)
-  && /from = 'model';/.test(s) && /预计 = 规则 \+ 概率模型/.test(s),
+  && /from = 'model';/.test(s) && /const fromText = from === 'model' \? '规则 \+ 概率'/.test(s)
+  && /预计 = 规则 \+ 概率'/.test(s) && !/概率模型'/.test(s),
   '「预计几抽出新卡」= **数学预测模型**：每抽该星级张数（按开过的卡包加权、含别的星级卡包）× 拿到 1 张新卡平均要摸几张（保底 pity 与日志重复率的几何期望 (1−d^(p+1))/(1−d)），结果取整、至少 1 抽，并在表里写出「每抽 X 张 × Y 张/新卡」');
 // 新卡明细的时间要带秒
 ok(/function cardTimeFull\(ms\)/.test(s) && /return base \+ ':' \+ sec;/.test(s)

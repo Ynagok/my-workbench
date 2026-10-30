@@ -540,10 +540,11 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     '这一块的标题就叫「我要烟牌~」，标题底下那行小字不显示');
   const oddsCards = [...$('cardOddsCards').querySelectorAll('.odds-card')];
   check(oddsCards.length === 8 && oddsCards.every(c => /^(霞光)?[一二三四五]星(\d+抽已收集 \d+\/\d+)(普通包 ≈\d+ 抽\/张（含重复）)?$/.test(c.textContent))
-    && oddsCards[0].textContent === '五星2抽已收集 0/10' && oddsCards[1].textContent === '四星8抽已收集 0/18'
-    && oddsCards[2].textContent === '三星2抽已收集 0/22' && oddsCards[3].textContent === '二星6抽已收集 0/29'
+    && oddsCards[0].textContent === '五星2抽已收集 0/10' && oddsCards[1].textContent === '四星8抽已收集 1/18'
+    && oddsCards[2].textContent === '三星2抽已收集 3/22' && oddsCards[3].textContent === '二星6抽已收集 0/29'
     && oddsCards[4].textContent === '一星6抽已收集 0/37',
-    '预计卡片：普通 5 个星级都在（五星 2 / 四星 8 / 三星 2 / 二星 6 / 一星 6），全是整数',
+    '预计卡片：普通 5 个星级都在（五星 2 / 四星 8 / 三星 2 / 二星 6 / 一星 6），全是整数；'
+    + '「已收集」按这份 CSV 解析（四星 1 张 / 三星 3 张）',
     oddsCards.map(c => c.textContent).join(' | '));
   check(oddsCards[5].textContent === '霞光五星1抽已收集 0/8普通包 ≈6 抽/张（含重复）' && oddsCards[6].textContent === '霞光四星2抽已收集 0/6普通包 ≈13 抽/张（含重复）'
     && oddsCards[7].textContent === '霞光三星5抽已收集 0/5普通包 ≈15 抽/张（含重复）',
@@ -554,31 +555,16 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
   check(!/保底/.test($('cardOddsCards').textContent) && !$('cardOddsHint') && !$('cardPackOddsTable'),
     '卡片里不再塞保底 / 期望 / 上限，底下那段说明小字与旧的概率表都撤了');
   const barWidths0 = oddsCards.map(c => c.querySelector('.oc-bar i').style.width);
-  check(barWidths0.every(w => w === '0%') && [...$('cardOddsCards').querySelectorAll('.odds-card.is-fast')].length === 0,
-    '没粘星级收集表时：进度条都是 0%、没有高亮（"全部卡牌数量"内置、拥有按 0 算）',
+  const fastCards0 = [...$('cardOddsCards').querySelectorAll('.odds-card.is-fast')];
+  check(barWidths0.slice(0, 5).join(',') === '0%,6%,14%,0%,0%' && barWidths0.slice(5).every(w => w === '0%')
+    && fastCards0.length === 1 && fastCards0[0].querySelector('.oc-star').textContent === '三星',
+    '进度条 = 该星级的收集率，直接按 CSV 解析：三星 3/22 = 14% 最满、四星 1/18 = 6%、其余 0%，最满那格带 is-fast',
     barWidths0.join(' | '));
-  // 粘 GM 的「卡牌星级 / 拥有卡牌数量 / 全部卡牌数量」表 → 进度条 = 该星级收集率
-  $('cardStarStatInput').value = ['卡牌星级\t拥有卡牌数量\t全部卡牌数量',
-    '1\t2\t37', '2\t0\t29', '3\t1\t22', '23\t0\t5', '4\t0\t18', '24\t0\t6', '5\t0\t10', '25\t0\t8'].join('\n');
-  $('cardStarStatBtn').click();
-  await sleep(120);
-  const statCards = [...$('cardOddsCards').querySelectorAll('.odds-card')];
-  const statWidths = statCards.map(c => c.querySelector('.oc-bar i').style.width);
-  check(statCards[4].textContent === '一星6抽已收集 2/37' && statCards[2].textContent === '三星2抽已收集 1/22'
-    && statWidths[4] === '5%' && statWidths[2] === '5%' && statWidths[0] === '0%'
-    && /星级收集表已解析/.test($('cardStarStatHint').textContent),
-    '粘「星级 / 拥有 / 全部」表 → 进度条改成该星级的收集率（1星 2/37 = 5% · 3星 1/22 = 5%）',
-    statCards[4].textContent + ' / ' + statWidths.join(' | '));
-  check([...$('cardOddsCards').querySelectorAll('.odds-card.is-fast')].length === 1,
-    '收集率最高的那格带 is-fast 高亮');
-  $('cardStarStatClearBtn').click();
-  await sleep(120);
-  check($('cardStarStatInput').value === '' && /内置/.test($('cardStarStatHint').textContent)
-    && [...$('cardOddsCards').querySelectorAll('.odds-card')].every(c => /已收集 0\//.test(c.textContent)),
-    '清空星级收集 → 回到「拥有 0 / 全部内置」',
-    $('cardStarStatHint').textContent);
-  check(/预计 = 规则 \+ 概率模型/.test($('cardOddsChips').textContent),
-    '口径芯片写明「预计 = 规则 + 概率模型」及其依据', $('cardOddsChips').textContent);
+  check(!$('cardStarStatInput') && !$('cardStarStatBtn') && !$('cardStarStatClearBtn') && !$('cardStarStatHint')
+    && !/各星级收集情况/.test($('cardGroupCard').textContent),
+    '卡组收藏里不再有「各星级收集情况」的粘贴框 / 按钮（收集情况直接按解析算，不用粘 GM 表）');
+  check(/预计 = 规则 \+ 概率(?!模型)/.test($('cardOddsChips').textContent) && !/模型/.test($('cardOddsChips').textContent),
+    '口径芯片写成「预计 = 规则 + 概率」（卡片上不再出现「模型」字样）', $('cardOddsChips').textContent);
   // 收起来的那一张表：8 条保底规则（幻狐先不展示）+ 14 种锦囊概率
   const oddsRows = () => [...$('cardOddsTable').querySelectorAll('tbody tr')]
     .filter(tr => !tr.classList.contains('odds-group') && !tr.classList.contains('pack-row'));
@@ -587,11 +573,11 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
   check(!!oddsSheet && oddsSheet.open === false && oddsRows().length === 8
     && /预计几抽出新卡/.test($('cardOddsTable').textContent),
     '保底规则 8 条（普通 5 + 霞光 3，幻狐先不展示）收在底下的 details.stat-fold 里，默认不展开', String(oddsRows().length));
-  check(/2 抽（规则 \+ 概率模型）/.test(oddsRow('五星普通').textContent)
+  check(/2 抽（规则 \+ 概率）/.test(oddsRow('五星普通').textContent)
     && /每抽 0\.833 张 × 2 张\/新卡（没重复率数据，按保底最坏算）/.test(oddsRow('五星普通').textContent),
-    '五星普通：没出过五星新卡 → 按模型（每抽 0.83 张 × 保底最坏 2 张/新卡）≈ 2 抽', oddsRow('五星普通').textContent);
-  check(/6 抽（规则 \+ 概率模型）/.test(oddsRow('一星普通').textContent)
-    && /8 抽（规则 \+ 概率模型）/.test(oddsRow('四星普通').textContent),
+    '五星普通：没出过五星新卡 → 按概率模型（每抽 0.83 张 × 保底最坏 2 张/新卡）≈ 2 抽', oddsRow('五星普通').textContent);
+  check(/6 抽（规则 \+ 概率）/.test(oddsRow('一星普通').textContent)
+    && /8 抽（规则 \+ 概率）/.test(oddsRow('四星普通').textContent),
     '一星普通 6 抽 · 四星普通 8 抽（都是模型算出来的整数，且标了依据）', oddsRow('一星普通').textContent);
   check(/1 抽（每包必出，重复也算）/.test(oddsRow('五星霞光').textContent)
     && /普通包 ≈6 抽\/张（牌1 16\.7%，\*\*含重复\*\*；约 84% 要 11 抽；集齐 8 张最坏 48 包）/.test(oddsRow('五星霞光').textContent)
@@ -739,10 +725,10 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
   $('uploadCsvBtn').click();
   await sleep(250);
   const mixTexts = [...$('cardOddsCards').querySelectorAll('.odds-card')].map(c => c.textContent);
-  check(mixTexts[0] === '五星2抽已收集 0/10' && mixTexts[1] === '四星2抽已收集 0/18'
+  check(mixTexts[0] === '五星2抽已收集 0/10' && mixTexts[1] === '四星2抽已收集 3/18'
     && mixTexts[2] === '三星27抽已收集 0/22' && mixTexts[3] === '二星10抽已收集 0/29'
-    && /规则 \+ 概率模型/.test($('cardOddsTable').textContent),
-    '只开 5星百戏锦囊时，五星/三星/二星/一星也有预计（5星包掉的低星按概率算进来了）',
+    && /规则 \+ 概率/.test($('cardOddsTable').textContent),
+    '只开 5星百戏锦囊时，五星/三星/二星/一星也有预计（5星包掉的低星按概率算进来了）；重传 CSV 后收集情况自动跟着变（四星 3/18）',
     mixTexts.join(' | '));
   check(posts.length === postsBeforeCard2, '抽卡详情 / 卡组收藏全程只在本机（0 请求）',
     posts.slice(postsBeforeCard2).map(p => p.url).join(' | '));

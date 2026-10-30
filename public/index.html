@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="x-build" content="2026-10-30 我要烟牌-v13-进度条收集率">
+    <meta name="x-build" content="2026-10-30 我要烟牌-v14-收集率按CSV解析">
     <title>客服冷静演绎工作台</title>
     <link rel="icon" type="image/gif" href="/my-icon.gif">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -4492,13 +4492,6 @@
                     <label id="cardGroupDetailLabel">—</label>
                     <div class="card-cells" id="cardGroupCells"></div>
                 </div>
-                <label style="font-size:12.5px;margin-top:14px;">📊 各星级收集情况 <span class="card-sub">粘 GM 的「卡牌星级 / 拥有卡牌数量 / 全部卡牌数量」表，进度条按收集率算</span></label>
-                <textarea id="cardStarStatInput" rows="3" placeholder="卡牌星级	拥有卡牌数量	全部卡牌数量&#10;1	2	37&#10;2	0	29 …"></textarea>
-                <div class="flex-row" style="margin-top:8px;">
-                    <button id="cardStarStatBtn">📊 解析星级收集</button>
-                    <button id="cardStarStatClearBtn" class="secondary">🧹 清空</button>
-                </div>
-                <div id="cardStarStatHint" class="hint-text">不粘也能看：每个星级的「全部卡牌数量」内置（合计 135 = 15 组 × 9 张），只是「拥有」按 0 算。</div>
             </div>
         </div>
 
@@ -9275,9 +9268,8 @@
                                         { key: 'h2', label: '二星幻狐', star: 2, pity: 2, cap: 24, routes: [] },
                                     ];
                                     // 这一期每个星级一共多少张（2026-10 用户给的 GM 表；合计 135 = 15 组 × 9 张）
+                                    // 「拥有」不用粘表，按抽卡 CSV 解析（cardStarOwnedMap），这里只提供分母
                                     const CARD_STAR_TOTAL = { 1: 37, 2: 29, 3: 22, 23: 5, 4: 18, 24: 6, 5: 10, 25: 8 };
-                                    let cardStarStat = null;    // { 星级码: { owned, total } }，粘了统计表就用它
-                                    let cardLastModel = null;   // 最近一次抽卡详情模型（粘统计表后重画用）
 
                                     // 星级码：普通 1–5；霞光 23/24/25（20 + 星）；幻狐 32–35（30 + 星）
                                     function cardStarCodeOf(rule) {
@@ -9287,52 +9279,28 @@
                                         return rule.star;
                                     }
 
-                                    // 解析 GM 的「卡牌星级 / 拥有卡牌数量 / 全部卡牌数量」表（制表符 / 逗号 / 空格都认，表头行自动跳过）
-                                    function cardStarStatParse(text) {
+                                    // 各星级「已拥有」：**不粘表**，直接从抽卡 CSV 解析 ——
+                                    // 该星级在日志里被开出来过的「不同卡」数量（同一张开多次只算 1 张；兑换重复卡牌那条整条不算）
+                                    function cardStarOwnedMap(records) {
+                                        const csv = cardCsvIndex(records);
                                         const out = {};
-                                        String(text || '').split(/\r?\n/).forEach(line => {
-                                            const nums = (line.match(/\d+/g) || []).map(Number);
-                                            if (nums.length < 3) return;
-                                            const code = nums[0];
-                                            if (!CARD_STAR_TOTAL[code]) return;
-                                            out[code] = { owned: nums[1], total: nums[2] || CARD_STAR_TOTAL[code] };
+                                        Object.keys(csv).forEach(id => {
+                                            const code = csv[id].star || 0;
+                                            if (!code || !CARD_STAR_TOTAL[code]) return;
+                                            out[code] = (out[code] || 0) + 1;
                                         });
-                                        return Object.keys(out).length ? out : null;
+                                        return out;
                                     }
 
-                                    // 某个星级「拥有 / 全部」：粘了统计表以表为准，没粘就 拥有 0、全部用内置
-                                    function cardStarStatOf(rule) {
+                                    // 某个星级「拥有 / 全部」：全部张数内置（CARD_STAR_TOTAL），拥有数按日志解析、不超过全部
+                                    function cardStarStatOf(rule, ownedMap) {
                                         const code = cardStarCodeOf(rule);
-                                        const hit = cardStarStat && cardStarStat[code];
-                                        const total = hit ? hit.total : (CARD_STAR_TOTAL[code] || 0);
-                                        const owned = hit ? hit.owned : 0;
+                                        const total = CARD_STAR_TOTAL[code] || 0;
+                                        const owned = Math.min(total, (ownedMap && ownedMap[code]) || 0);
                                         return {
-                                            code: code, owned: owned, total: total, hasData: !!hit,
+                                            code: code, owned: owned, total: total, hasData: owned > 0,
                                             pct: total ? Math.max(0, Math.min(100, Math.round(owned / total * 100))) : 0,
                                         };
-                                    }
-
-                                    function cardStarStatRun() {
-                                        const input = document.getElementById('cardStarStatInput');
-                                        cardStarStat = cardStarStatParse(input ? input.value : '');
-                                        const hint = document.getElementById('cardStarStatHint');
-                                        if (hint) {
-                                            hint.textContent = cardStarStat
-                                                ? '星级收集表已解析（' + Object.keys(CARD_STAR_TOTAL)
-                                                    .map(code => '第 ' + code + ' 码 ' + (cardStarStat[code] ? cardStarStat[code].owned + '/' + cardStarStat[code].total : '未给'))
-                                                    .join(' · ') + '）—— 卡片进度条按收集率显示'
-                                                : '没认出星级收集表：一行三列（卡牌星级 / 拥有数量 / 全部数量），表头可一起粘。';
-                                        }
-                                        cardOddsRender(cardLastModel);
-                                    }
-
-                                    function cardStarStatClear() {
-                                        cardStarStat = null;
-                                        const input = document.getElementById('cardStarStatInput');
-                                        if (input) input.value = '';
-                                        const hint = document.getElementById('cardStarStatHint');
-                                        if (hint) hint.textContent = '不粘也能看：每个星级的「全部卡牌数量」内置（合计 135 = 15 组 × 9 张），只是「拥有」按 0 算。';
-                                        cardOddsRender(cardLastModel);
                                     }
 
                                     // 2026-10 用户：「幻狐暂时不用展示」—— 数据留着（CARD_DRAW_RULES 里别删），
@@ -9600,7 +9568,7 @@
                                             n = 1;
                                             from = 'pack';
                                         }
-                                        const fromText = from === 'model' ? '规则 + 概率模型' : from === 'pack' ? '每包必出' : '按保底规则';
+                                        const fromText = from === 'model' ? '规则 + 概率' : from === 'pack' ? '每包必出' : '按保底规则';
                                         const detail = from === 'model'
                                             ? ('每抽 ' + perPull + ' 张 × ' + (Math.round(cardsPerNew * 10) / 10) + ' 张/新卡')
                                                 + (dupRate === null ? '（没重复率数据，按保底最坏算）' : '（重复率 ' + Math.round(dupRate * 100) + '%）')
@@ -9641,12 +9609,13 @@
                                         const pulls = (model && model.totalPulls) || 0;
                                         const tier = cardTierCounts(model);
                                         const mix = cardPackMix(model);
-                                        cardLastModel = model;
+                                        // 收集情况直接从这份日志解析（不粘表）：该星级出现过的不同卡 / 该星级全部张数
+                                        const starOwned = cardStarOwnedMap(currentCardRecords);
                                         chips.innerHTML = [
                                             cardChipHtml('数据来源：百戏锦囊说明', 'k-plain', '基本规则 + 概率说明（2026-10 用户提供的活动说明页）'),
                                             cardChipHtml('重复牌换戏符：<b>1–5</b> 星 = 1–5 点', 'k-plain', '活动期间重复牌按星数等额换戏符点；活动结束戏符匣清零，不延续到下次'),
                                             cardChipHtml('集齐上限 ≠ 均匀分布', 'k-op', '「最多 N 包集齐一系列」只是保底上限：比如五星霞光最多 48 个普通 5星包集齐 8 张，不代表每 6 抽 1 张，前几抽通常更容易出'),
-                                            cardChipHtml('预计 = 规则 + 概率模型', 'k-op', '每抽能摸到几张该星级牌（按你开过的卡包加权，别的星级卡包掉的也算）× 拿到 1 张新卡平均要摸几张（保底 pity 与日志里的重复率）；结果取整、至少 1 抽'),
+                                            cardChipHtml('预计 = 规则 + 概率', 'k-op', '每抽能摸到几张该星级牌（按你开过的卡包加权，别的星级卡包掉的也算）× 拿到 1 张新卡平均要摸几张（保底 pity 与日志里的重复率）；结果取整、至少 1 抽'),
                                             cardChipHtml('霞光两条路', 'k-plain', '霞光除了开霞光锦囊，开同星级的普通包也可能出（概率说明里牌1 的一小档）。普通包没有保底，按正态近似算：期望 ≈ 1÷该档概率，约 84% 概率要 期望 + 标准差'),
                                         ].join('');
 
@@ -9663,10 +9632,10 @@
                                         });
                                         if (cards) {
                                             // 进度条 = **该星级的收集率**（2026-10 用户：「卡片上的进度条的作用改为显示该星级卡牌的收集情况」）
-                                            // 高亮给收集率最高的那一格（粘了星级统计表才算）
+                                            // 高亮给收集率最高的那一格（按这份日志解析出来的才算）
                                             let fastIdx = -1, fastPct = -1;
                                             starCards.forEach((c, i) => {
-                                                const st = cardStarStatOf(c.rule);
+                                                const st = cardStarStatOf(c.rule, starOwned);
                                                 if (!st.hasData) return;
                                                 if (st.pct > fastPct) { fastPct = st.pct; fastIdx = i; }
                                             });
@@ -9678,7 +9647,7 @@
                                                     + (info.expectNum ? '预计 ' + info.expectNum + ' 抽（' + info.fromText + '）' : '无保底规则（只给集齐上限）')
                                                     + (info.alt ? ' · 开普通包：' + info.alt.pack + ' 牌1 出霞光 ' + (Math.round(info.alt.p * 1000) / 10) + '%，正态近似期望 ≈' + info.alt.mean + ' 抽、约 84% 要 ' + info.alt.band + ' 抽' : '')
                                                     + ' · ' + cardPityRuleText(rule) + ' · ' + cardCapText(rule);
-                                                const stat = cardStarStatOf(rule);
+                                                const stat = cardStarStatOf(rule, starOwned);
                                                 const barPct = stat.pct;
                                                 // 卡片下方这行 = 该星级的收集进度（拥有 / 全部）
                                                 const note = '已收集 ' + stat.owned + '/' + stat.total;
@@ -17852,9 +17821,6 @@
                                         // 集卡 · 卡组收藏：解析 / 清空 / 点组展开
                                         setClick('cardGroupParseBtn', cardGroupRun);
                                         setClick('cardGroupClearBtn', cardGroupClear);
-                                        // 集卡 · 各星级收集情况（进度条按收集率）
-                                        setClick('cardStarStatBtn', cardStarStatRun);
-                                        setClick('cardStarStatClearBtn', cardStarStatClear);
                                         // 集卡 · 抽卡规则表（还没传 CSV 也先画出来）
                                         cardOddsRender(null);
                                         // 集卡 · 本期时间窗（内置）：上传框与抽卡详情先把规则写出来
