@@ -101,6 +101,11 @@ ok(/function cardPackExpect\(packName, label\)/.test(s) && /function cardTierOfS
   && /const CARD_DUPE_POINTS = \{ 1: 1, 2: 2, 3: 3, 4: 4, 5: 5 \};/.test(s)
   && /id="cardOddsTable"/.test(s) && /id="cardPackOddsTable"/.test(s) && /cardOddsRender\(null\)/.test(s),
   '预计几抽出新卡 = （保底重复张数 + 1）÷ 单包期望张数；表里同时给保底 / 单包期望 / 活动上限 / 本日志实测，重复牌 1–5 星 = 1–5 戏符点');
+ok(/function cardCapText\(rule\)/.test(s) && /集齐上限 ≠ 均匀分布/.test(s)
+  && /rule\.series \? '集齐 ' \+ rule\.series \+ ' 张' : '集齐系列'/.test(s)
+  && /capAlt: 48, capAltPack: '普通 5星包'/.test(s)
+  && /rule\.pity[\s\S]{0,400}?'无保底规则（只给集齐上限）'/.test(s),
+  '「集齐上限」只当保底上限写（五星霞光：8 包集齐 8 张 / 普通 5星包最多 48 包），没有保底规则的星级不给「几抽一张」的数，并注明不是均匀分布');
 ok(/"253": "联动分享活动-首次赠送"/.test(s) && /"257": "打怪棋盘-消耗步数"/.test(s), '来源/物品映射已补 253–257');
 ok(/"264": "活动pass卡领取"/.test(s) && /"265": "活动pass卡购买"/.test(s)
   && /"266": "1\+4礼包购买"/.test(s) && /"267": "1\+4礼包免费领取"/.test(s),

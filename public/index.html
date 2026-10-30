@@ -9099,10 +9099,10 @@
                                         { key: 's3', label: '三星普通', star: 3, pity: 6, cap: 170, routes: [{ pack: '3星百戏锦囊' }] },
                                         { key: 's2', label: '二星普通', star: 2, pity: 7, cap: 240, routes: [{ pack: '2星百戏锦囊' }] },
                                         { key: 's1', label: '一星普通', star: 1, pity: 9, cap: 370, routes: [{ pack: '1星百戏锦囊' }] },
-                                        { key: 'x5', label: '五星霞光', star: 5, pity: 0, cap: 8, routes: [{ pack: '5星霞光锦囊' }, { pack: '5星百戏锦囊', note: '普通包转化' }] },
-                                        { key: 'x4', label: '四星霞光', star: 4, pity: 1, cap: 12, routes: [{ pack: '4星霞光锦囊' }, { pack: '4星百戏锦囊', note: '普通包转化' }] },
-                                        { key: 'x3', label: '三星霞光', star: 3, pity: 4, cap: 25, routes: [{ pack: '3星霞光锦囊' }, { pack: '3星百戏锦囊', note: '普通包转化' }] },
-                                        { key: 'h5', label: '五星幻狐', star: 5, pity: 0, cap: 5, routes: [] },
+                                        { key: 'x5', label: '五星霞光', star: 5, pity: 0, cap: 8, series: 8, capAlt: 48, capAltPack: '普通 5星包', routes: [{ pack: '5星霞光锦囊' }, { pack: '5星百戏锦囊', note: '普通包转化' }] },
+                                        { key: 'x4', label: '四星霞光', star: 4, pity: 1, cap: 12, capAlt: 170, capAltPack: '普通 4星包', routes: [{ pack: '4星霞光锦囊' }, { pack: '4星百戏锦囊', note: '普通包转化' }] },
+                                        { key: 'x3', label: '三星霞光', star: 3, pity: 4, cap: 25, capAlt: 400, capAltPack: '普通 3星包', routes: [{ pack: '3星霞光锦囊' }, { pack: '3星百戏锦囊', note: '普通包转化' }] },
+                                        { key: 'h5', label: '五星幻狐', star: 5, pity: 0, cap: 5, series: 5, routes: [] },
                                         { key: 'h4', label: '四星幻狐', star: 4, pity: 1, cap: 12, routes: [] },
                                         { key: 'h3', label: '三星幻狐', star: 3, pity: 1, cap: 16, routes: [] },
                                         { key: 'h2', label: '二星幻狐', star: 2, pity: 2, cap: 24, routes: [] },
@@ -9278,6 +9278,14 @@
                                         return '连续 ' + rule.pity + ' 张重复 → 下一张必新';
                                     }
 
+                                    // 活动上限：文档写的是「最多几包**集齐一系列**」，不是均匀分布 —— 别再拿它÷张数当期望
+                                    function cardCapText(rule) {
+                                        const own = rule.cap + ' 包'
+                                            + (rule.series ? '集齐 ' + rule.series + ' 张' : '集齐系列');
+                                        if (!rule.capAlt) return own;
+                                        return own + ' · ' + (rule.capAltPack || '普通包') + '最多 ' + rule.capAlt + ' 包';
+                                    }
+
                                     function cardOddsRender(model) {
                                         const chips = document.getElementById('cardOddsChips');
                                         const table = document.getElementById('cardOddsTable');
@@ -9289,7 +9297,8 @@
                                         chips.innerHTML = [
                                             cardChipHtml('数据来源：百戏锦囊说明', 'k-plain', '基本规则 + 概率说明（2026-10 用户提供的活动说明页）'),
                                             cardChipHtml('重复牌换戏符：<b>1–5</b> 星 = 1–5 点', 'k-plain', '活动期间重复牌按星数等额换戏符点；活动结束戏符匣清零，不延续到下次'),
-                                            cardChipHtml('保底按最坏情况估', 'k-op', '预计 =（保底连续重复张数 + 1）÷ 单包期望张数'),
+                                            cardChipHtml('集齐上限 ≠ 均匀分布', 'k-op', '「最多 N 包集齐一系列」只是保底上限：比如五星霞光最多 48 个普通 5星包集齐 8 张，不代表每 6 抽 1 张，前几抽通常更容易出'),
+                                            cardChipHtml('预计只按保底规则推算', 'k-plain', '只有写了「连续 N 张重复 → 下一张必新」的星级才算得出；没有保底规则的（如五星霞光）只给集齐上限'),
                                         ].join('');
 
                                         const head = '<thead><tr><th>星级</th><th>保底</th><th>单包期望</th><th>预计几抽出新卡</th><th>活动上限</th><th>本日志实测</th></tr></thead>';
@@ -9299,12 +9308,15 @@
                                                 const p = cardPackExpect(r.pack, label);
                                                 return { pack: r.pack, note: r.note || '', p: p };
                                             });
-                                            const expectText = packs.length
-                                                ? packs.filter(x => x.p > 0).map(x => cardNum1((rule.pity + 1) / x.p) + ' 抽'
-                                                    + (x.note ? '（' + x.note + '）' : '')).join(' / ')
-                                                : '概率未公布';
-                                            const pText = packs.length
-                                                ? packs.filter(x => x.p > 0).map(x => String(Math.round(x.p * 100) / 100)).join(' / ')
+                                            const usable = packs.filter(x => x.p > 0);
+                                            const expectText = !usable.length
+                                                ? '概率未公布'
+                                                : (rule.pity
+                                                    ? usable.map(x => cardNum1((rule.pity + 1) / x.p) + ' 抽'
+                                                        + (x.note ? '（' + x.note + '）' : '')).join(' / ')
+                                                    : '无保底规则（只给集齐上限）');
+                                            const pText = usable.length
+                                                ? usable.map(x => String(Math.round(x.p * 100) / 100)).join(' / ')
                                                 : '—';
                                             const t = tier[rule.key];
                                             const realText = (t && t.news)
@@ -9314,7 +9326,7 @@
                                                 + '<td>' + escapeHtml(cardPityRuleText(rule)) + '</td>'
                                                 + '<td>' + escapeHtml(pText) + ' 张</td>'
                                                 + '<td>' + escapeHtml(expectText) + '</td>'
-                                                + '<td>' + rule.cap + ' 包</td>'
+                                                + '<td>' + escapeHtml(cardCapText(rule)) + '</td>'
                                                 + '<td>' + escapeHtml(realText) + '</td></tr>';
                                         }).join('');
                                         table.innerHTML = head + '<tbody>' + body + '</tbody>';
@@ -9335,8 +9347,9 @@
                                             packTable.innerHTML = pHead + '<tbody>' + pBody + '</tbody>';
                                         }
                                         if (hint) {
-                                            hint.textContent = '预计 =（保底连续重复张数 + 1）÷ 单包期望张数，按保底最坏情况估；'
-                                                + '幻狐锦囊的概率说明页里没有公布，所以只给保底与活动上限。实际看手气，活动结束所有指标重置。';
+                                            hint.textContent = '「预计几抽出新卡」= （保底连续重复张数 + 1）÷ 单包期望张数，按保底最坏情况估，只对写了「连续 N 张重复 → 下一张必新」的星级成立；'
+                                                + '「活动上限」是文档里的保底上限（最多开几包集齐一系列），不是均匀分布 —— 比如五星霞光最多 48 个普通 5星包集齐 8 张，前几抽更容易出、别按 6 抽一张算。'
+                                                + '幻狐锦囊的概率说明页没公布，所以只给保底与活动上限。';
                                         }
                                     }
 

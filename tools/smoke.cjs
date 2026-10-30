@@ -541,8 +541,14 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     '五星普通：保底 1 张重复、单包 0.83 张 → 预计 2.4 抽一张新卡', oddsRow('五星普通').textContent);
   check(/5\.7 抽/.test(oddsRow('一星普通').textContent) && /5\.4 抽/.test(oddsRow('四星普通').textContent),
     '一星普通 5.7 抽 · 四星普通 5.4 抽（保底 9 / 4 张重复）', oddsRow('一星普通').textContent);
-  check(/1 抽 \/ 6 抽（普通包转化）/.test(oddsRow('五星霞光').textContent),
-    '五星霞光：霞光锦囊 1 抽 / 普通锦囊转化 6 抽', oddsRow('五星霞光').textContent);
+  check(/无保底规则（只给集齐上限）/.test(oddsRow('五星霞光').textContent)
+    && /8 包集齐 8 张 · 普通 5星包最多 48 包/.test(oddsRow('五星霞光').textContent),
+    '五星霞光没有「连续 N 张重复」的保底规则 → 不给「6 抽」这种数，只写 8 包集齐 8 张 / 普通包最多 48 包',
+    oddsRow('五星霞光').textContent);
+  check(/集齐上限 ≠ 均匀分布/.test($('cardOddsChips').textContent)
+    && /不是均匀分布/.test($('cardOddsHint').textContent),
+    '规则表上方与说明里都点明「集齐上限 ≠ 均匀分布」（48 包集齐 8 张 ≠ 每 6 抽一张）',
+    $('cardOddsChips').textContent);
   check(/概率未公布/.test(oddsRow('五星幻狐').textContent) && /概率未公布/.test(oddsRow('二星幻狐').textContent),
     '幻狐锦囊的概率页没公布 → 只给保底与活动上限', oddsRow('五星幻狐').textContent);
   check(/1\.7 抽（新 3 \/ 出 5）/.test(oddsRow('三星普通').textContent),
