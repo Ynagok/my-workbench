@@ -469,7 +469,29 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
 
   console.log('--- 8b-2. 集卡 · 抽卡详情（几抽出新卡）+ 卡组收藏（15 组 × 9 张） ---');
   const postsBeforeCard2 = posts.length;
+  // 集卡分析分三段：集卡话术 / 抽卡详情 / 卡组收藏（共用上面的上传框）
+  const cardSegBtns = [...$('tab-card').querySelectorAll('.seg-btn')];
+  const cardSegOn = () => [...$('tab-card').querySelectorAll('[data-seg-card]')]
+    .filter(el => el.classList.contains('seg-on')).map(el => el.dataset.segCard).join(',');
+  check(cardSegBtns.length === 3 && cardSegBtns.map(b => b.dataset.seg).join(',') === 'speech,pity,group'
+    && $('tab-card').dataset.seg === 'speech' && cardSegOn() === 'speech',
+    '集卡分析分三段（集卡话术 / 抽卡详情 / 卡组收藏），默认只显示「集卡话术」', cardSegOn());
+  cardSegBtns[1].click();
+  await sleep(60);
+  check($('tab-card').dataset.seg === 'pity' && cardSegOn() === 'pity' && $('cardPityCard').classList.contains('seg-on'),
+    '点「抽卡详情」→ 只显示抽卡详情那一块', cardSegOn());
+  cardSegBtns[2].click();
+  await sleep(60);
+  check($('tab-card').dataset.seg === 'group' && cardSegOn() === 'group' && $('cardGroupCard').classList.contains('seg-on'),
+    '点「卡组收藏」→ 只显示卡组收藏那一块', cardSegOn());
+  cardSegBtns[0].click();
+  await sleep(60);
+  check($('tab-card').dataset.seg === 'speech' && cardSegOn() === 'speech', '点回「集卡话术」');
   // 故意把 CSV 行打乱：验证按「创建时间」排成抽卡顺序
+  // 最后一行是「批量发卡」（一次 61 张、卡包认不出），不能算抽卡
+  const batchIds = [];
+  for (let i = 1; i <= 61; i++) batchIds.push(9900000 + i);
+  const batchAfter = '{' + batchIds.map(id => id + ':1').join(',') + '}';
   const cardCsv2 = [
     '卡包ID,卡包星级,after,创建时间',
     '201,[3],{2010102:1},2026-10-01 10:10:00',
@@ -477,6 +499,7 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     '201,"[3,4]","{2010103:1,2010104:1}",2026-10-01 10:20:00',
     '201,[3],{2010101:0},2026-10-01 10:05:00',
     '201,[3],{2010102:0},2026-10-01 10:15:00',
+    '999,"[1]","' + batchAfter + '",2026-10-01 10:30:00',
   ].join('\n');
   Object.defineProperty($('csvFileInput'), 'files', { value: [new window.File([cardCsv2], 'cards2.csv', { type: 'text/csv' })], configurable: true });
   $('uploadCsvBtn').click();
@@ -486,7 +509,9 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
   check(!!$('cardPityCard') && !!$('cardPityChart') && !!$('cardPityTable') && !!$('cardGroupGrid'),
     '集卡页有「抽卡详情」（芯片 / 图表 / 明细表）与「卡组收藏」（网格）');
   check(/总抽数\s*5/.test(pityChips()) && /新卡\s*4\s*张/.test(pityChips()),
-    '抽卡详情：总抽数 5 · 新卡 4 张', pityChips());
+    '抽卡详情：总抽数 5 · 新卡 4 张（那一行 61 张的批量发卡没算进去）', pityChips());
+  check(/批量发卡已排除\s*1\s*条（61 张）/.test(pityChips()) && /没算进抽数/.test($('cardPityHint').textContent),
+    '一次开包 61 张的「未知卡包」被当批量发卡排除，芯片与提示都写出来', pityChips());
   check(/平均\s*1\.3\s*抽/.test(pityChips()), '平均 1.3 抽出一张新卡（5 抽 ÷ 4 张）', pityChips());
   check(/最长空档\s*2\s*抽/.test(pityChips()) && /当前连续\s*0\s*抽/.test(pityChips()),
     '最长空档 2 抽 · 当前连续 0 抽（最后一抽就出了新卡）', pityChips());

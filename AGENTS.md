@@ -48,7 +48,7 @@ npm run verify     # 改完代码、push 前的完整自检
 
 | 命令 | 内容 |
 |---|---|
-| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 564 项 + 「接口挂起时界面仍可用」+ 服务端冒烟 42 项 |
+| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 569 项 + 「接口挂起时界面仍可用」+ 服务端冒烟 42 项 |
 | `npm run verify:static` | 只要静态校验 + 语法检查（最快） |
 | `npm run report` | 打印一份真实生成的日报，肉眼确认排版（含 ⑥伙伴弹途 / ⑦异世界勇者） |
 | `npm run build:data` | 从 GM 玩家页快照提取 4 张权威映射表 + 与硬编码常量的**差异报告**（见下「游戏数据管线」） |
@@ -58,7 +58,7 @@ npm run verify     # 改完代码、push 前的完整自检
 | `npm run smoke:pmc` | **生管物料订单工作台**（`public/pmc.html`）自检，123 项（含加工周期工作日推算 + 在途锁定/调整建议 + 真实 8.5MB xlsx 端到端导入）；**不在 verify 里**，见下「生管物料订单工作台」一节 |
 | `npm test` | = `npm run verify` |
 
-`npm run verify` 失败就不要提交。它一共 5 段：静态结构 → 语法 → jsdom 集成冒烟 **564 项** → 接口挂起时界面仍可用 → 服务端冒烟 **42 项**。
+`npm run verify` 失败就不要提交。它一共 5 段：静态结构 → 语法 → jsdom 集成冒烟 **569 项** → 接口挂起时界面仍可用 → 服务端冒烟 **42 项**。
 
 - jsdom 未安装时前端冒烟会自动回落到本机 DSH 自带的那份。
 - `tools/smoke-server.cjs` 用 `PORT` + `DATA_FILE` 环境变量把服务端指到随机端口和 `tools/out/` 里的临时文件，**不会碰真实 `data.json`**；子进程 stdio 必须用 `ignore`/`inherit`（沙箱禁管道，`pipe` 会 EPERM）。
@@ -145,6 +145,7 @@ npm run verify     # 改完代码、push 前的完整自检
   - **开关机制**：卡片上挂 `data-seg-card="overview|detail|trend|data"`，`statsSetSeg(tabId, seg)` 只给当前段的卡片加 `.seg-on`；CSS `[data-seg-card]{display:none}` / `[data-seg-card].seg-on{display:block}`。⚠️ **内联 `style.display` 仍然优先**（排班休息面板靠这个收起，`renderCareer` 按身份隐藏两侧卡片也靠它），所以别把显示逻辑全搬进 CSS。
   - **切标签页回第一段**：`.tab-btn` 的 onclick 里对 `career` / `overseas` 调 `statsSetSeg(…, 'overview')`，免得停在上次的明细段。
   - **「话术生成」页也用了这套**（2026-10）：`.seg-bar[data-for="tab-gen"]` **三段** —— `01 话术生成`（原来的两块 `data-seg-card="reply"`）/ `02 七日任务进度`（`#genSevendayPane` + `data-seg-card="sevenday"`）/ `03 吉运节节高（下午茶）`（`#genTeaInfoPane` + `data-seg-card="teainfo"`，见下一节）；`bindSegBar` 末尾 `statsSetSeg('tab-gen', 'reply')` 初始化。⚠️ 这几段**不在**「回第一段」名单里（切回话术生成时停在用户上次看的那段）。⚠️ **这一页的分段条不吸顶**（`#tab-gen > .seg-bar { position: static; }`）：`.seg-bar` 默认 `position: sticky; top: 0`，而这条夹在卡片中间，吸顶时滚动会把下面的文本框 / 卡片切成两半（2026-10 用户截图「网页的这个条感觉有点奇怪」）；统计页那两条**仍然吸顶**（长页面用得上）。
+  - **「集卡分析」页也用了这套**（2026-10 用户：「抽卡详情和卡组收藏要在集卡分析里单开一页」）：`.seg-bar[data-for="tab-card"]` **三段** —— `01 集卡话术`（生成结果卡 `data-seg-card="speech"`）/ `02 抽卡详情`（`#cardPityCard` + `pity`）/ `03 卡组收藏`（`#cardGroupCard` + `group`）；上传 CSV 与星级筛选两块**不分段**（三段共用），`statsSetSeg('tab-card', 'speech')` 初始化。详见上面「集卡分析」一节。
   - ⚠️ **旧的 `.jump-bar` / `.jump-chip` / `bindJumpBar()` 已整段删除**（冒烟/静态断言锁着「不该再出现」），别再捡回来。
 
   - `.career-scroll table.career-table` 现在**表头吸顶 + 首列吸左**（宽表横向拖动时不跟丢）。
@@ -426,10 +427,12 @@ npm run verify     # 改完代码、push 前的完整自检
 页面原来只有「上传集卡 CSV → 出话术」。2026-10 用户要求加两块：**抽卡详情（几抽出新卡，像小黑盒那种抽卡分析）** 与 **卡组收藏（按游戏内卡牌页：15 组 × 9 张，每行 3 个，点开看卡）**。
 
 - **数据模型**：集卡 CSV 一行 = 开一次卡包 = **1 抽**；列固定 `卡包ID / 卡包星级 / after / 创建时间`（`parseCSVEnhanced`）。`after` 是 `{卡id: 1|0}`，`1` = 这一抽是该卡的**新卡**；`卡包星级` 是等长的星级码数组（`1–5` 普通星、`23–25` 霞光 3/4/5 星、`32–35` 幻狐 2–5 星）。
+- **页内三段（2026-10 用户：「抽卡详情和卡组收藏要在集卡分析里单开一页」）**：`#tab-card` 顶部 `.seg-bar[data-for="tab-card"]` —— `01 集卡话术`（`data-seg-card="speech"`：生成结果卡）/ `02 抽卡详情`（`pity`）/ `03 卡组收藏`（`group`），`bindSegBar` 末尾 `statsSetSeg('tab-card', 'speech')` 初始化。⚠️ **上传 CSV + 星级筛选这两块不分段**（没有 `data-seg-card`），三段共用，所以在 02/03 也能直接传文件。切换靠既有的 `.seg-btn` + `[data-seg-card].seg-on`，别给这三块写 `display` 内联样式。
 - **星级标签统一走 `cardStarLabel(code)`**（原来嵌在 `generateCardSentence` 里，2026-10 抽出来给卡组页共用）；话术输出一个字没变。
 - **🎯 抽卡详情**：
   - `cardPullRows()` 先按 `创建时间` **升序**排（CSV 导出顺序常是乱的；认 `YYYY-MM-DD HH:mm:ss` / `YYYY/MM/DD` / unix 秒，`cardTimeValue`），没有时间的排最前保持原顺序。
-  - `cardPityModel()`：「第几抽」= 行号；**「几抽出新卡」= 出新卡这一抽 − 上一次出新卡的那一抽**（第一次从 0 算，所以第 1 抽出新卡就是「1 抽」）；**一抽出多张新卡时各占一行、gap 相同**。
+  - ⚠️ **批量发卡不算抽卡**（2026-10 用户给了截图：一条「开启【未知卡包】获得 61 张卡牌」的记录，不能计入抽卡详情）：`CARD_PITY_MAX_PER_PULL = 10`，**一次开包超过 10 张就当补发 / 活动发卡整条排除**，既不算抽数也不出新卡；`cardPityModel()` 里的 `allRows` → `rows` 就是这一步，`skippedPulls / skippedCards` 进芯片「批量发卡已排除 N 条（M 张）」和提示尾巴「…没算进抽数」。**集卡话术那一段照旧输出这条**（只是统计口径不用它）。
+  - `cardPityModel()`：「第几抽」= 排除批量发卡后的行号；**「几抽出新卡」= 出新卡这一抽 − 上一次出新卡的那一抽**（第一次从 0 算，所以第 1 抽出新卡就是「1 抽」）；**一抽出多张新卡时各占一行、gap 相同**。
   - 芯片 5 片：总抽数 / 新卡张数 / 平均几抽出一张（总抽数 ÷ 新卡数）/ 最长空档 / 当前连续未出新卡（≥20 片变 `k-warn`）。
   - 分布图 `#cardPityChart`：`CARD_PITY_BUCKETS` = `1 / 2 / 3 / 4 / 5 / 6-10 / 11-20 / 21-30 / 31-50 / 51-100 / 101+`，只渲染到「至少 5 档」与最大间隔为止；柱高按该档张数，0 张的档画一根灰条（`.pity-col.is-zero`），`title` 写是第几抽出新卡。
   - 明细表 `#cardPityTable`：第几抽 / 卡牌（`NN组第MM张`，title 带完整 id）/ 星级 / 距上次新卡 / 时间，放在 `.career-scroll`（300px）里滚动。
@@ -444,7 +447,7 @@ npm run verify     # 改完代码、push 前的完整自检
   - **版式**：`.card-groups` 是 `repeat(3, minmax(0, 1fr))`（严格每行 3 组），每组一格按钮（`.card-group-btn`，9 个 `.cg-bar i` 小条 + `已收集/总数`）；点一格在下面 `.card-group-detail` 展开 9 张（`aria-expanded` 跟着变，再点收起）。已收集卡 `.card-cell.is-on`（实线黄边 + `MM-DD HH:mm`），未收集是灰虚线 + 「未收集」。
   - ⚠️ `.card-group-btn` 用 `!important` 盖掉全局按钮样式（否则 hover 变黄底黑字、`clip-path` 切角）——别删。
 - **只在本机**：两块都只读内存里的 `currentCardRecords`（CSV 解析结果），**不写 localStorage、不请求服务端**，刷新后要重新上传 CSV / 重粘未收集表。
-- **测试**：`tools/smoke.cjs` 第 **8b-2** 节 **23 条**（DOM 都在 / 乱序 CSV 按时间排成第 1·3·5·5 抽 / 总抽 5·新卡 4·平均 1.3 抽 / 最长空档与当前连续 / 5 个分档且 1 抽档 1 张·2 抽档 3 张 / 明细 4 行 / 同一抽出两张的组·张号与 gap / 内置 15 组 / 按 CSV 算 4/9 / 点开展开 9 张 4 已收集 5 灰 / 未收集写「未收集」/ 重复获得取最新时间 10:05 / 再点收起 / 粘未收集表 → 提示写「内置 15 组 + 未收集表已解析」/ 冲突 1 张以 CSV 为准 / 内置数据能画出 CSV 里没有的组（20102 九张、不在未收集表 → 9/9）/ 只粘未收集 → 并集 18 组 / 20101 组 8/9 与 20116 组 0/9 / 把卡组数据一起粘也照样认 / 清空 / 全程 0 请求）；`tools/verify.mjs` 另有 **7 条**静态断言（DOM、抽卡顺序与分档、芯片与明细列、星级标签共用、**内置 `CARD_GROUP_DATA` 15 组与取值顺序**、两个 JSON 的整段判定、每行 3 个的 CSS、展开/收起与「没时间不编时间」）。
+- **测试**：`tools/smoke.cjs` 第 **8b-2** 节 **28 条**（分段 3 按钮 + 默认集卡话术 + 点抽卡详情 / 卡组收藏来回切 4 条 / DOM 都在 / 乱序 CSV 按时间排成第 1·3·5·5 抽 / 总抽 5·新卡 4·平均 1.3 抽 / **一次 61 张的批量发卡被排除（芯片 + 提示都写）** / 最长空档与当前连续 / 5 个分档且 1 抽档 1 张·2 抽档 3 张 / 明细 4 行 / 同一抽出两张的组·张号与 gap / 内置 15 组 / 按 CSV 算 4/9 / 点开展开 9 张 4 已收集 5 灰 / 未收集写「未收集」/ 重复获得取最新时间 10:05 / 再点收起 / 粘未收集表 → 提示写「内置 15 组 + 未收集表已解析」/ 冲突 1 张以 CSV 为准 / 内置数据能画出 CSV 里没有的组（20102 九张、不在未收集表 → 9/9）/ 只粘未收集 → 并集 18 组 / 20101 组 8/9 与 20116 组 0/9 / 把卡组数据一起粘也照样认 / 清空 / 全程 0 请求）；`tools/verify.mjs` 另有 **11 条**静态断言（DOM、抽卡顺序与分档、芯片与明细列、星级标签共用、**内置 `CARD_GROUP_DATA` 15 组与取值顺序**、两个 JSON 的整段判定、每行 3 个的 CSS、展开/收起与「没时间不编时间」、**集卡三段的分段条与三块 `data-seg-card`**、**批量发卡排除的常量与过滤**、棋盘页那条分段初始化已删）。
 
 
 

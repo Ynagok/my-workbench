@@ -67,6 +67,20 @@ ok(/\.card-groups \{[\s\S]{0,200}?grid-template-columns: repeat\(3, minmax\(0, 1
 ok(/aria-expanded/.test(s) && /closest\('\.card-group-btn'\)/.test(s) && /'未收集'/.test(s)
   && /已收集（日志里没有获得时间）/.test(s) && /CSV 与未收集表冲突/.test(s),
   '点组展开 / 收起（aria-expanded）；未收集写「未收集」、没时间数据不编时间、跟未收集表打架时以 CSV 为准');
+// 集卡分析分段（一个页签里三页）+ 批量发卡不计入抽卡详情
+ok(/<div class="seg-bar" data-for="tab-card">/.test(s)
+  && /data-for="tab-card"[\s\S]{0,400}?data-seg="speech"[\s\S]{0,200}?data-seg="pity"[\s\S]{0,200}?data-seg="group"/.test(s)
+  && /statsSetSeg\('tab-card', 'speech'\)/.test(s),
+  '集卡分析页内分段：01 集卡话术 / 02 抽卡详情 / 03 卡组收藏（共用上面的上传框），默认停在第 1 段');
+ok(/data-seg-card="speech"/.test(s) && /id="cardPityCard" data-seg-card="pity"/.test(s) && /id="cardGroupCard" data-seg-card="group"/.test(s),
+  '三段各挂一块卡片：生成结果 = speech / 抽卡详情 = pity / 卡组收藏 = group');
+ok(!/statsSetSeg\('tab-gamedata', 'resource'\)/.test(s),
+  '棋盘镜像页的分段初始化调用也删掉了（那一页已经没有分段条）');
+ok(/const CARD_PITY_MAX_PER_PULL = 10;/.test(s)
+  && /const skipped = allRows\.filter\(r => r\.ids\.length > CARD_PITY_MAX_PER_PULL\);/.test(s)
+  && /const rows = allRows\.filter\(r => r\.ids\.length <= CARD_PITY_MAX_PER_PULL\);/.test(s)
+  && /批量发卡已排除 <b>/.test(s),
+  '抽卡详情排除「批量发卡」：一次开包超过 10 张（如补发 61 张）不算抽卡、不进抽数，芯片里写明排除了几条几张');
 ok(/"253": "联动分享活动-首次赠送"/.test(s) && /"257": "打怪棋盘-消耗步数"/.test(s), '来源/物品映射已补 253–257');
 ok(/"264": "活动pass卡领取"/.test(s) && /"265": "活动pass卡购买"/.test(s)
   && /"266": "1\+4礼包购买"/.test(s) && /"267": "1\+4礼包免费领取"/.test(s),

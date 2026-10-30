@@ -4314,6 +4314,11 @@
 
         <!-- ==================== 集卡页 card ==================== -->
         <div id="tab-card" class="tab-content">
+            <div class="seg-bar" data-for="tab-card">
+                <button type="button" class="seg-btn active" data-seg="speech" data-n="01">集卡话术</button>
+                <button type="button" class="seg-btn" data-seg="pity" data-n="02">抽卡详情</button>
+                <button type="button" class="seg-btn" data-seg="group" data-n="03">卡组收藏</button>
+            </div>
             <div class="form-group">
                 <label>上传集卡CSV文件</label>
                 <input type="file" id="csvFileInput" accept=".csv,.txt" />
@@ -4332,7 +4337,7 @@
                 </select>
                 <button id="applyFilterBtn" style="margin-left:8px;">应用筛选</button>
             </div>
-            <div class="card">
+            <div class="card" data-seg-card="speech">
                 <label>生成结果（共 <span id="recordCount">0</span> 条）</label>
                 <div id="cardResultPreview" class="card-preview"></div>
                 <textarea id="cardResultArea" rows="12" readonly style="display:none;"></textarea>
@@ -4341,7 +4346,7 @@
                     <button id="exportCardBtn">💾 导出TXT</button>
                 </div>
             </div>
-            <div class="card" id="cardPityCard">
+            <div class="card" id="cardPityCard" data-seg-card="pity">
                 <label>🎯 抽卡详情 <span class="card-sub">一次开包算 1 抽 · 出新卡的那一抽记「第几抽」</span></label>
                 <div class="stat-chips" id="cardPityChips"></div>
                 <div id="cardPityBody" style="display:none;">
@@ -4353,7 +4358,7 @@
                 </div>
                 <div id="cardPityHint" class="hint-text">上传集卡 CSV 后，这里出「几抽出新卡」的分布图和明细。</div>
             </div>
-            <div class="card" id="cardGroupCard">
+            <div class="card" id="cardGroupCard" data-seg-card="group">
                 <label>🗂️ 卡组收藏 <span class="card-sub">按游戏内卡牌页：15 组已内置 · 每行 3 组 · 点一组展开 9 张</span></label>
                 <textarea id="cardGroupInput" rows="4" placeholder="只需粘「未收集的卡组信息」的 JSON（卡组数据已内置）；把「卡组数据」也一起粘进来同样认"></textarea>
                 <div class="flex-row" style="margin-top:8px;">
@@ -9055,9 +9060,14 @@
 
                                     // 间隔分布的分档：1–5 抽逐档，之后按区间
                                     const CARD_PITY_BUCKETS = [[1, 1], [2, 2], [3, 3], [4, 4], [5, 5], [6, 10], [11, 20], [21, 30], [31, 50], [51, 100], [101, Infinity]];
+                                    // 一次开包最多 10 张（十连）；一次出几十张的是批量发卡（补发 / 活动发卡），不算「抽卡」——别让它污染抽数
+                                    const CARD_PITY_MAX_PER_PULL = 10;
 
                                     function cardPityModel(records) {
-                                        const rows = cardPullRows(records);
+                                        const allRows = cardPullRows(records);
+                                        const skipped = allRows.filter(r => r.ids.length > CARD_PITY_MAX_PER_PULL);
+                                        const rows = allRows.filter(r => r.ids.length <= CARD_PITY_MAX_PER_PULL);
+                                        const skippedCards = skipped.reduce((a, r) => a + r.ids.length, 0);
                                         const events = [];
                                         let lastNewPull = 0;
                                         rows.forEach((row, i) => {
@@ -9090,6 +9100,7 @@
                                             rows: rows, events: events,
                                             totalPulls: totalPulls, totalNew: totalNew, avg: avg,
                                             maxGap: maxGap, streak: totalPulls - lastNewPull, buckets: buckets,
+                                            skippedPulls: skipped.length, skippedCards: skippedCards,
                                         };
                                     }
 
@@ -9106,9 +9117,13 @@
                                         if (!chips || !body || !chart || !table || !hint) return null;
                                         const model = cardPityModel(records);
                                         if (!model.totalPulls) {
-                                            chips.innerHTML = '';
+                                            chips.innerHTML = model.skippedPulls
+                                                ? cardChipHtml('批量发卡已排除 <b>' + model.skippedPulls + '</b> 条（' + model.skippedCards + ' 张）', 'k-plain')
+                                                : '';
                                             body.style.display = 'none';
-                                            hint.textContent = '上传集卡 CSV 后，这里出「几抽出新卡」的分布图和明细。';
+                                            hint.textContent = model.skippedPulls
+                                                ? '这份日志里只有批量发卡（一次几十张的补发 / 活动发卡），不算抽卡 —— 没有可统计的抽卡记录。'
+                                                : '上传集卡 CSV 后，这里出「几抽出新卡」的分布图和明细。';
                                             return model;
                                         }
                                         body.style.display = 'block';
@@ -9118,6 +9133,7 @@
                                             cardChipHtml('平均 <b>' + (model.totalNew ? (Math.round(model.avg * 10) / 10) + ' 抽' : '—') + '</b>出 1 张新卡', 'k-op', '总抽数 ÷ 新卡张数'),
                                             cardChipHtml('最长空档 <b>' + model.maxGap + '</b> 抽没出新卡', model.maxGap >= 20 ? 'k-warn' : 'k-plain'),
                                             cardChipHtml('当前连续 <b>' + model.streak + '</b> 抽未出新卡', model.streak >= 20 ? 'k-warn' : 'k-plain'),
+                                            model.skippedPulls ? cardChipHtml('批量发卡已排除 <b>' + model.skippedPulls + '</b> 条（' + model.skippedCards + ' 张）', 'k-plain', '一次开包超过 ' + CARD_PITY_MAX_PER_PULL + ' 张 = 补发 / 活动发卡，不算抽卡，也不进抽数') : '',
                                         ].join('');
                                         const peak = model.buckets.reduce((m, b) => Math.max(m, b.count), 0) || 1;
                                         chart.innerHTML = model.buckets.map(b => {
@@ -9140,7 +9156,8 @@
                                                 + '<td>' + escapeHtml(e.timeText || '—') + '</td></tr>';
                                         }).join('');
                                         table.innerHTML = head + '<tbody>' + (bodyRows || '<tr><td colspan="5">这份日志里没有新卡记录</td></tr>') + '</tbody>';
-                                        hint.textContent = '共 ' + model.totalPulls + ' 抽（开包 ' + model.totalPulls + ' 次）· 新卡 ' + model.totalNew + ' 张 · 按 CSV 的「创建时间」排序';
+                                        hint.textContent = '共 ' + model.totalPulls + ' 抽（开包 ' + model.totalPulls + ' 次）· 新卡 ' + model.totalNew + ' 张 · 按 CSV 的「创建时间」排序'
+                                            + (model.skippedPulls ? ' · 批量发卡 ' + model.skippedPulls + ' 条（' + model.skippedCards + ' 张）没算进抽数' : '');
                                         return model;
                                     }
 
@@ -17288,7 +17305,7 @@
                                             statsSetSeg('tab-career', 'overview');
                                             statsSetSeg('tab-overseas', 'overview');
                                             statsSetSeg('tab-gen', 'reply');   // 话术生成页也分两段：话术生成 / 七日任务进度
-                                            statsSetSeg('tab-gamedata', 'resource');   // 游戏数据页两段：资源核对 / 棋盘镜像
+                                            statsSetSeg('tab-card', 'speech');  // 集卡分析分三段：集卡话术 / 抽卡详情 / 卡组收藏
                                         })();
 
                                         // 规则搜索
