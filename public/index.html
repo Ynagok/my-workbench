@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="x-build" content="2026-10-30 我要烟牌-v18-结算写卡包过期">
+    <meta name="x-build" content="2026-10-30 我要烟牌-v19-来源252即结算">
     <title>客服冷静演绎工作台</title>
     <link rel="icon" type="image/gif" href="/my-icon.gif">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -9122,9 +9122,15 @@
                                         try { return resolveSource(raw, raw) || raw; } catch (_) { return raw; }
                                     }
 
-                                    // 来源是「集卡活动-结算」（含「集卡活动-幻狐牌集结算」）→ 这一期的卡包她没在当期用掉，
-                                    // 到了新的一期不能保留（2026-10 用户：「来源是集卡活动-结算的话……生成的话术就写上一期卡包已过期」）
+                                    // 来源是「集卡活动-结算」→ 这一期的卡包她没在当期用掉，到了新的一期不能保留
+                                    // （2026-10 用户：「来源是集卡活动-结算的话……生成的话术就写上一期卡包已过期」，并确认「表格里来源的 252 就是指的集卡活动-结算」）
+                                    // 判定两条路：① 来源列直接是 id 252（默认映射就是「集卡活动-结算」，映射改过名也照样认）
+                                    // ② 来源名里同时含「集卡活动」和「结算」（252 / 251「集卡活动-幻狐牌集结算」这类同族都算）
+                                    const CARD_SETTLED_SOURCE_IDS = [252, 251];
                                     function cardIsSettledRecord(record) {
+                                        if (!record) return false;
+                                        const raw = record['来源'] == null ? '' : String(record['来源']).trim();
+                                        if (/^\d+$/.test(raw) && CARD_SETTLED_SOURCE_IDS.indexOf(parseInt(raw, 10)) !== -1) return true;
                                         const name = cardSourceNameOf(record);
                                         return !!name && name.indexOf('集卡活动') !== -1 && name.indexOf('结算') !== -1;
                                     }

@@ -95,6 +95,9 @@ ok(/const srcCols = \['来源', '来源ID', '来源id', '来源 ID', 'opFrom', '
   && /for \(let n of srcCols\) \{ const i = headers\.findIndex\(h => h === n\); if \(i !== -1\) \{ srcIdx = i; break; \} \}/.test(s)
   && /if \(srcIdx !== -1\) rec\['来源'\] = vals\[srcIdx\];/.test(s)
   && /function cardSourceNameOf\(record\)/.test(s) && /function cardIsSettledRecord\(record\)/.test(s)
+  // 来源 id 252 = 集卡活动-结算（用户 2026-10 确认）：直接按 id 认，映射改过名也照样判成结算
+  && /const CARD_SETTLED_SOURCE_IDS = \[252, 251\];/.test(s)
+  && /if \(\/\^\\d\+\$\/\.test\(raw\) && CARD_SETTLED_SOURCE_IDS\.indexOf\(parseInt\(raw, 10\)\) !== -1\) return true;/.test(s)
   && /function generateCardExpiredSentence\(record\)/.test(s)
   && /'，上一期卡包已过期'/.test(s)
   && /条来源是「集卡活动-结算」/.test(s),
