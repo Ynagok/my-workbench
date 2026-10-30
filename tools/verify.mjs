@@ -105,7 +105,8 @@ ok(/function cardPackExpect\(packName, label\)/.test(s) && /function cardTierOfS
 ok(/🔥 我要烟牌~/.test(s) && /id="cardOddsCards"/.test(s) && /class="odds-cards"/.test(s)
   && /function cardRuleInfo\(rule\)/.test(s)
   && /CARD_DRAW_RULES\.filter\(rule => rule\.key\.charAt\(0\) === 's'\)/.test(s)
-  && /class="oc-star"/.test(s) && /class="oc-num"/.test(s)
+  && /class="oc-star"/.test(s) && /class="oc-num"/.test(s) && /odds-card' \+ \(isFast \? ' is-fast' : ''\)/.test(s)
+  && /name="x-build"/.test(s)
   && /class="odds-group"/.test(s) && /class="pack-row"/.test(s)
   && /table\.innerHTML = head \+ '<tbody>' \+ ruleRows \+ packTitleRow \+ packRows/.test(s)
   && !/id="cardPackOddsTable"/.test(s) && !/id="cardOddsHint"/.test(s),

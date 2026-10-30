@@ -542,6 +542,9 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     oddsCards.map(c => c.textContent).join(' | '));
   check(!/保底/.test($('cardOddsCards').textContent) && !$('cardOddsHint') && !$('cardPackOddsTable'),
     '卡片里不再塞保底 / 期望 / 上限，底下那段说明小字与旧的概率表都撤了');
+  const fastCards = [...$('cardOddsCards').querySelectorAll('.odds-card.is-fast')];
+  check(fastCards.length === 1 && fastCards[0].textContent === '五星2.4抽',
+    '预计最快的星级（五星 2.4 抽）单独标成 is-fast', fastCards.map(c => c.textContent).join(' | '));
   check(/集齐上限 ≠ 均匀分布/.test($('cardOddsChips').textContent)
     && /只按保底规则推算/.test($('cardOddsChips').textContent),
     '口径收在芯片里：集齐上限 ≠ 均匀分布 · 预计只按保底规则推算', $('cardOddsChips').textContent);

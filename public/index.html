@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="x-build" content="2026-10-30 我要烟牌-v2">
     <title>客服冷静演绎工作台</title>
     <link rel="icon" type="image/gif" href="/my-icon.gif">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1532,6 +1533,16 @@
             border-radius: var(--r-md);
             background: var(--surface-2);
             text-align: center;
+        }
+
+        /* 最快的那个星级（预计抽数最小）标一下，一眼看出最划算 */
+        .odds-card.is-fast {
+            border-color: var(--accent-line);
+            background: var(--accent-dim);
+        }
+
+        .odds-card.is-fast .oc-star {
+            color: var(--accent-ink);
         }
 
         .odds-card .oc-star {
@@ -8672,7 +8683,7 @@
                                         try { records = parseSmartLog(raw); }
                                         catch (e) { debugConsole.textContent += `\n❌ 解析错误: ${e.message}`; return; }
                                         if (!records.length) { debugConsole.textContent += '\n❌ 无记录（请确认粘贴内容为资源流水格式）'; return; }
-                                        debugConsole.textContent += `\n📌 原始记录数: ${records.length}`;
+                                        debugConsole.textContent += `\n 原始记录数: ${records.length}`;
                                         if (resourceType !== '道具' && resourceType !== '活动奖励') {
                                             const matched = records.filter(r =>
                                                 (r['_资源类型'] || '').includes(resourceType) ||
@@ -9426,12 +9437,19 @@
 
                                         // 预计结果 = 5 个小卡片（一星…五星普通；霞光/幻狐在下面收起的表里看）
                                         const starCn = ['一', '二', '三', '四', '五'];
+                                        const starCards = CARD_DRAW_RULES.filter(rule => rule.key.charAt(0) === 's')
+                                            .map(rule => ({ rule: rule, info: cardRuleInfo(rule) }));
+                                        const fastVal = starCards.reduce((m, c) => {
+                                            const v = parseFloat(c.info.expectOne);
+                                            return (isFinite(v) && v < m) ? v : m;
+                                        }, Infinity);
                                         if (cards) {
-                                            cards.innerHTML = CARD_DRAW_RULES.filter(rule => rule.key.charAt(0) === 's').map(rule => {
-                                                const info = cardRuleInfo(rule);
+                                            cards.innerHTML = starCards.map(c => {
+                                                const rule = c.rule, info = c.info;
                                                 const tip = info.label + '：预计 ' + info.expectText + ' · ' + cardPityRuleText(rule)
                                                     + ' · ' + cardCapText(rule);
-                                                return '<div class="odds-card" title="' + escapeHtml(tip) + '">'
+                                                const isFast = isFinite(fastVal) && parseFloat(info.expectOne) === fastVal;
+                                                return '<div class="odds-card' + (isFast ? ' is-fast' : '') + '" title="' + escapeHtml(tip) + '">'
                                                     + '<div class="oc-star">' + escapeHtml((starCn[rule.star - 1] || rule.star) + '星') + '</div>'
                                                     + '<div class="oc-num">' + escapeHtml(info.expectOne || '—') + '<i>抽</i></div>'
                                                     + '</div>';
