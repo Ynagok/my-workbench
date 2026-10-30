@@ -113,12 +113,17 @@ ok(/🔥 我要烟牌~/.test(s) && /id="cardOddsCards"/.test(s) && /class="odds-
   && /table\.innerHTML = head \+ '<tbody>' \+ ruleRows \+ packTitleRow \+ packRows/.test(s)
   && !/id="cardPackOddsTable"/.test(s) && !/id="cardOddsHint"/.test(s),
   '「我要烟牌~」这一块：预计结果出小卡片（普通 5 + 霞光 3 + 幻狐 4，只有星级 + 预计几抽），保底规则 / 卡包说明 / 概率合到收起的**同一张表**里（旧的概率表与说明小字都撤了）');
-// 预计卡片要「直观」：进度条 + 一句人话说明
-ok(/class="oc-bar"/.test(s) && /class="oc-note"/.test(s) && /minNBySeries/.test(s)
-  && /'必出 1 张'[\s\S]{0,400}?'出 1 张新卡'/.test(s)
-  && /\.odds-card \.oc-bar \{/.test(s) && /\.odds-card \.oc-note \{/.test(s)
-  && /style="width:' \+ barPct \+ '%;"/.test(s),
-  '预计卡片更直观：每张一条进度条（**同系列内**最快那张满格、其余按比例缩短）+ 一句「出 1 张新卡 / 必出 1 张」说明这个数是什么');// 预计 = 数学预测模型（卡包概率 × 保底规则 × 玩家重复率），结果取整
+// 卡片进度条 = 该星级的收集率（2026-10 用户：「卡片上的进度条的作用改为显示该星级卡牌的收集情况」）
+ok(/class="oc-bar"/.test(s) && /class="oc-note"/.test(s)
+  && /const CARD_STAR_TOTAL = \{ 1: 37, 2: 29, 3: 22, 23: 5, 4: 18, 24: 6, 5: 10, 25: 8 \};/.test(s)
+  && /function cardStarStatParse\(text\)/.test(s) && /function cardStarStatOf\(rule\)/.test(s)
+  && /const note = '已收集 ' \+ stat\.owned \+ '\/' \+ stat\.total;/.test(s)
+  && /const barPct = stat\.pct;/.test(s)
+  && /'已收集 ' \+ stat\.owned \+ '\/' \+ stat\.total/.test(s)
+  && /id="cardStarStatInput"/.test(s) && /id="cardStarStatBtn"/.test(s) && /id="cardStarStatClearBtn"/.test(s)
+  && /setClick\('cardStarStatBtn', cardStarStatRun\)/.test(s)
+  && /\.odds-card \.oc-bar \{/.test(s) && /style="width:' \+ barPct \+ '%;"/.test(s),
+  '卡片进度条 = **该星级的收集率**（粘 GM 的「卡牌星级 / 拥有 / 全部」表，CARD_STAR_TOTAL 内置各星级总数共 135 张）；卡片下方写「已收集 X/Y」，收集率最高的那格高亮');// 预计 = 数学预测模型（卡包概率 × 保底规则 × 玩家重复率），结果取整
 ok(/let perPull = 0;/.test(s) && /if \(mix && mix\.perPull && mix\.perPull\[rule\.key\] > 0\)/.test(s)
   && /else if \(seen > 0 && pulls > 0\) perPull = seen \/ pulls;/.test(s)
   && /const dupRate = seen > 0 \? \(Math\.max\(0, seen - news\) \+ 2\) \/ \(seen \+ 4\) : null;/.test(s)

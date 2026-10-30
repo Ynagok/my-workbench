@@ -539,27 +539,44 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     && ![...$('cardPityCard').querySelectorAll('label .card-sub')].some(el => /百戏锦囊说明/.test(el.textContent)),
     '这一块的标题就叫「我要烟牌~」，标题底下那行小字不显示');
   const oddsCards = [...$('cardOddsCards').querySelectorAll('.odds-card')];
-  check(oddsCards.length === 8 && oddsCards.every(c => /^(霞光)?[一二三四五]星(\d+抽(出 1 张新卡(（模型）)?|必出 1 张)|—没保底数据)(普通包 ≈\d+ 抽\/张（含重复）)?$/.test(c.textContent))
-    && oddsCards[0].textContent === '五星2抽出 1 张新卡（模型）' && oddsCards[1].textContent === '四星8抽出 1 张新卡（模型）'
-    && oddsCards[2].textContent === '三星2抽出 1 张新卡（模型）' && oddsCards[3].textContent === '二星6抽出 1 张新卡（模型）'
-    && oddsCards[4].textContent === '一星6抽出 1 张新卡（模型）',
+  check(oddsCards.length === 8 && oddsCards.every(c => /^(霞光)?[一二三四五]星(\d+抽已收集 \d+\/\d+)(普通包 ≈\d+ 抽\/张（含重复）)?$/.test(c.textContent))
+    && oddsCards[0].textContent === '五星2抽已收集 0/10' && oddsCards[1].textContent === '四星8抽已收集 0/18'
+    && oddsCards[2].textContent === '三星2抽已收集 0/22' && oddsCards[3].textContent === '二星6抽已收集 0/29'
+    && oddsCards[4].textContent === '一星6抽已收集 0/37',
     '预计卡片：普通 5 个星级都在（五星 2 / 四星 8 / 三星 2 / 二星 6 / 一星 6），全是整数',
     oddsCards.map(c => c.textContent).join(' | '));
-  check(oddsCards[5].textContent === '霞光五星1抽必出 1 张普通包 ≈6 抽/张（含重复）' && oddsCards[6].textContent === '霞光四星2抽出 1 张新卡（模型）普通包 ≈13 抽/张（含重复）'
-    && oddsCards[7].textContent === '霞光三星5抽出 1 张新卡（模型）普通包 ≈15 抽/张（含重复）',
+  check(oddsCards[5].textContent === '霞光五星1抽已收集 0/8普通包 ≈6 抽/张（含重复）' && oddsCards[6].textContent === '霞光四星2抽已收集 0/6普通包 ≈13 抽/张（含重复）'
+    && oddsCards[7].textContent === '霞光三星5抽已收集 0/5普通包 ≈15 抽/张（含重复）',
     '霞光两条路都算：霞光锦囊 1 / 2 / 5 抽，普通包（正态近似）≈6 / 13 / 15 抽',
     oddsCards.slice(5, 8).map(c => c.textContent).join(' | '));
   check(!/幻狐/.test($('cardOddsCards').textContent) && !/幻狐/.test($('cardOddsTable').textContent),
     '幻狐暂时不展示：卡片和收起表里都没有幻狐（数据还留在 CARD_DRAW_RULES 里）');
   check(!/保底/.test($('cardOddsCards').textContent) && !$('cardOddsHint') && !$('cardPackOddsTable'),
     '卡片里不再塞保底 / 期望 / 上限，底下那段说明小字与旧的概率表都撤了');
-  const fastCards = [...$('cardOddsCards').querySelectorAll('.odds-card.is-fast')];
-  check(fastCards.length === 1 && fastCards[0].textContent === '五星2抽出 1 张新卡（模型）',
-    '最快的普通星级（五星 2 抽）单独标成 is-fast（霞光不参与比较）', fastCards.map(c => c.textContent).join(' | '));
-  const barWidths = oddsCards.map(c => (c.querySelector('.oc-bar i') || {}).style ? c.querySelector('.oc-bar i').style.width : '');
-  check(barWidths[0] === '100%' && barWidths[5] === '100%' && barWidths.every(w => /^\d+%$/.test(w)),
-    '每张卡片都有进度条，系列内最快的那张满格（普通五星 / 霞光五星 都是 100%），其余按比例缩短',
-    barWidths.join(' | '));
+  const barWidths0 = oddsCards.map(c => c.querySelector('.oc-bar i').style.width);
+  check(barWidths0.every(w => w === '0%') && [...$('cardOddsCards').querySelectorAll('.odds-card.is-fast')].length === 0,
+    '没粘星级收集表时：进度条都是 0%、没有高亮（"全部卡牌数量"内置、拥有按 0 算）',
+    barWidths0.join(' | '));
+  // 粘 GM 的「卡牌星级 / 拥有卡牌数量 / 全部卡牌数量」表 → 进度条 = 该星级收集率
+  $('cardStarStatInput').value = ['卡牌星级\t拥有卡牌数量\t全部卡牌数量',
+    '1\t2\t37', '2\t0\t29', '3\t1\t22', '23\t0\t5', '4\t0\t18', '24\t0\t6', '5\t0\t10', '25\t0\t8'].join('\n');
+  $('cardStarStatBtn').click();
+  await sleep(120);
+  const statCards = [...$('cardOddsCards').querySelectorAll('.odds-card')];
+  const statWidths = statCards.map(c => c.querySelector('.oc-bar i').style.width);
+  check(statCards[4].textContent === '一星6抽已收集 2/37' && statCards[2].textContent === '三星2抽已收集 1/22'
+    && statWidths[4] === '5%' && statWidths[2] === '5%' && statWidths[0] === '0%'
+    && /星级收集表已解析/.test($('cardStarStatHint').textContent),
+    '粘「星级 / 拥有 / 全部」表 → 进度条改成该星级的收集率（1星 2/37 = 5% · 3星 1/22 = 5%）',
+    statCards[4].textContent + ' / ' + statWidths.join(' | '));
+  check([...$('cardOddsCards').querySelectorAll('.odds-card.is-fast')].length === 1,
+    '收集率最高的那格带 is-fast 高亮');
+  $('cardStarStatClearBtn').click();
+  await sleep(120);
+  check($('cardStarStatInput').value === '' && /内置/.test($('cardStarStatHint').textContent)
+    && [...$('cardOddsCards').querySelectorAll('.odds-card')].every(c => /已收集 0\//.test(c.textContent)),
+    '清空星级收集 → 回到「拥有 0 / 全部内置」',
+    $('cardStarStatHint').textContent);
   check(/预计 = 规则 \+ 概率模型/.test($('cardOddsChips').textContent),
     '口径芯片写明「预计 = 规则 + 概率模型」及其依据', $('cardOddsChips').textContent);
   // 收起来的那一张表：8 条保底规则（幻狐先不展示）+ 14 种锦囊概率
@@ -722,8 +739,8 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
   $('uploadCsvBtn').click();
   await sleep(250);
   const mixTexts = [...$('cardOddsCards').querySelectorAll('.odds-card')].map(c => c.textContent);
-  check(mixTexts[0] === '五星2抽出 1 张新卡（模型）' && mixTexts[1] === '四星2抽出 1 张新卡（模型）'
-    && mixTexts[2] === '三星27抽出 1 张新卡（模型）' && mixTexts[3] === '二星10抽出 1 张新卡（模型）'
+  check(mixTexts[0] === '五星2抽已收集 0/10' && mixTexts[1] === '四星2抽已收集 0/18'
+    && mixTexts[2] === '三星27抽已收集 0/22' && mixTexts[3] === '二星10抽已收集 0/29'
     && /规则 \+ 概率模型/.test($('cardOddsTable').textContent),
     '只开 5星百戏锦囊时，五星/三星/二星/一星也有预计（5星包掉的低星按概率算进来了）',
     mixTexts.join(' | '));
