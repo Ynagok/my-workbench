@@ -104,25 +104,25 @@ ok(/function cardPackExpect\(packName, label\)/.test(s) && /function cardTierOfS
 // 「我要烟牌~」：只出 5 个小卡片（星级 + 预计几抽，整数），保底规则 + 卡包说明 + 概率收在底下一张表里
 ok(/🔥 我要烟牌~/.test(s) && /id="cardOddsCards"/.test(s) && /class="odds-cards"/.test(s)
   && /function cardRuleInfo\(rule, tier, pulls\)/.test(s)
-  && /CARD_DRAW_RULES\.filter\(rule => rule\.key\.charAt\(0\) === 's'\)/.test(s)
+  && /const starCards = CARD_DRAW_RULES\.map\(rule => \(\{ rule: rule, info: cardRuleInfo\(rule, tier, pulls\) \}\)\)/.test(s)
   && /class="oc-star"/.test(s) && /class="oc-num"/.test(s) && /' is-fast' : ''\)/.test(s)
   && /name="x-build"/.test(s)
   && /class="odds-group"/.test(s) && /class="pack-row"/.test(s)
   && /table\.innerHTML = head \+ '<tbody>' \+ ruleRows \+ packTitleRow \+ packRows/.test(s)
   && !/id="cardPackOddsTable"/.test(s) && !/id="cardOddsHint"/.test(s),
-  '「我要烟牌~」这一块：预计结果只出 5 个小卡片（只有星级 + 预计几抽），保底规则 / 卡包说明 / 概率合到收起的**同一张表**里（旧的概率表与说明小字都撤了）');
-// 预计必须是整数：按玩家这份日志的实际开卡情况算，没数据才退回保底规则
+  '「我要烟牌~」这一块：预计结果出小卡片（普通 5 + 霞光 3 + 幻狐 4，只有星级 + 预计几抽），保底规则 / 卡包说明 / 概率合到收起的**同一张表**里（旧的概率表与说明小字都撤了）');
+// 预计必须是整数：按玩家这份日志的实际开卡情况算，没数据才退回保底规则 / 每包必出
 ok(/n = Math\.max\(1, Math\.round\(pulls \/ t\.news\)\);/.test(s)
-  && /n = rule\.pity \+ 1;/.test(s)
+  && /n = rule\.pity \+ 1;/.test(s) && /n = 1;/.test(s) && /from = 'pack';/.test(s)
   && /from = 'log';/.test(s) && /from = 'rule';/.test(s)
-  && /本日志实测' : '按保底规则'/.test(s)
+  && /'本日志实测' : from === 'pack' \? '每包必出' : '按保底规则'/.test(s)
   && /预计取整数/.test(s),
-  '「预计几抽出新卡」= **整数**：优先按玩家日志实测（总抽数 ÷ 该星级新卡数，四舍五入、至少 1 抽），日志里没出过该星级新卡时退回保底规则（pity + 1 抽），并在表里标明依据');
+  '「预计几抽出新卡」= **整数**：优先按玩家日志实测（总抽数 ÷ 该星级新卡数，四舍五入、至少 1 抽），没出过该星级新卡时按保底规则（pity + 1），每包必出的星级（霞光五星）按 1 抽，并在表里标明依据');
 ok(/function cardCapText\(rule\)/.test(s) && /集齐上限 ≠ 均匀分布/.test(s)
   && /rule\.series \? '集齐 ' \+ rule\.series \+ ' 张' : '集齐系列'/.test(s)
   && /capAlt: 48, capAltPack: '普通 5星包'/.test(s)
-  && /rule\.pity[\s\S]{0,400}?'无保底规则（只给集齐上限）'/.test(s),
-  '「集齐上限」只当保底上限写（五星霞光：8 包集齐 8 张 / 普通 5星包最多 48 包），没有保底规则的星级不给「几抽一张」的数，并注明不是均匀分布');
+  && /无保底规则（只给集齐上限）/.test(s) && /from === 'pack'/.test(s),
+  '「集齐上限」只当保底上限写（五星霞光：8 包集齐 8 张 / 普通 5星包最多 48 包），既没保底也没概率的星级（幻狐五星）不给「几抽一张」的数，并注明不是均匀分布');
 // 未知卡包 + 只开 1 张 = 使用了无相牌
 ok(/function cardPackNameOf\(packId, cards\)/.test(s) && /cards === 1 \? '无相牌' : '未知卡包'/.test(s)
   && /function cardIsWuxiangRecord\(record\)/.test(s)

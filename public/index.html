@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="x-build" content="2026-10-30 我要烟牌-v3-整数预计">
+    <meta name="x-build" content="2026-10-30 我要烟牌-v4-含霞光幻狐">
     <title>客服冷静演绎工作台</title>
     <link rel="icon" type="image/gif" href="/my-icon.gif">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1519,10 +1519,10 @@
                     margin-bottom: 3px;
                 }
 
-        /* 「我要烟牌~」：预计几抽出新卡 = 5 个小卡片（一行 5 个，窄屏自动换行） */
+        /* 「我要烟牌~」：预计几抽出新卡 = 小卡片（普通 5 张 + 霞光 3 张 + 幻狐 4 张，窄屏自动换行） */
         .odds-cards {
             display: grid;
-            grid-template-columns: repeat(5, minmax(0, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
             gap: 8px;
             margin-top: 10px;
         }
@@ -9419,10 +9419,14 @@
                                         } else if (rule.pity) {
                                             n = rule.pity + 1;
                                             from = 'rule';
+                                        } else if (rule.routes.length) {
+                                            // pity 0 且有参考锦囊 → 该锦囊每包必出一张该星级（可能是重复，重复换戏符点）
+                                            n = 1;
+                                            from = 'pack';
                                         }
-                                        const fromText = from === 'log' ? '本日志实测' : '按保底规则';
+                                        const fromText = from === 'log' ? '本日志实测' : from === 'pack' ? '每包必出' : '按保底规则';
                                         const expectText = n
-                                            ? (n + ' 抽（' + fromText + '）')
+                                            ? (n + ' 抽（' + fromText + (from === 'pack' ? '，重复也算' : '') + '）')
                                             : '无保底规则（只给集齐上限）';
                                         return {
                                             label: label, usable: usable, pText: pText, from: from, fromText: fromText,
@@ -9442,26 +9446,29 @@
                                             cardChipHtml('数据来源：百戏锦囊说明', 'k-plain', '基本规则 + 概率说明（2026-10 用户提供的活动说明页）'),
                                             cardChipHtml('重复牌换戏符：<b>1–5</b> 星 = 1–5 点', 'k-plain', '活动期间重复牌按星数等额换戏符点；活动结束戏符匣清零，不延续到下次'),
                                             cardChipHtml('集齐上限 ≠ 均匀分布', 'k-op', '「最多 N 包集齐一系列」只是保底上限：比如五星霞光最多 48 个普通 5星包集齐 8 张，不代表每 6 抽 1 张，前几抽通常更容易出'),
-                                            cardChipHtml('预计取整数', 'k-op', '按这份日志的实际开卡情况算（总抽数 ÷ 该星级新卡数，四舍五入、至少 1 抽）；日志里还没出过该星级新卡时，按保底规则的 pity + 1 抽算'),
+                                            cardChipHtml('预计取整数', 'k-op', '按这份日志的实际开卡情况算（总抽数 ÷ 该星级新卡数，四舍五入、至少 1 抽）；还没出过该星级新卡时按保底规则的 pity + 1 抽；每包必出的星级（霞光五星）按 1 抽算，但可能是重复牌'),
                                         ].join('');
 
-                                        // 预计结果 = 5 个小卡片（一星…五星普通；霞光/幻狐在下面收起的表里看）
+                                        // 预计结果 = 小卡片（普通一星…五星 + 霞光三星/四星/五星 + 幻狐二星…五星）
                                         const starCn = ['一', '二', '三', '四', '五'];
-                                        const starCards = CARD_DRAW_RULES.filter(rule => rule.key.charAt(0) === 's')
-                                            .map(rule => ({ rule: rule, info: cardRuleInfo(rule, tier, pulls) }));
+                                        const starCards = CARD_DRAW_RULES.map(rule => ({ rule: rule, info: cardRuleInfo(rule, tier, pulls) }));
                                         let fastIdx = -1, fastVal = Infinity;
                                         starCards.forEach((c, i) => {
+                                            // 只在普通星级之间比「最快」（霞光的 pity 0 是「每包必出，重复也算」，口径不同）
+                                            if (c.rule.key.charAt(0) !== 's') return;
                                             const v = c.info.expectNum;
                                             if (v > 0 && v < fastVal) { fastVal = v; fastIdx = i; }
                                         });
                                         if (cards) {
                                             cards.innerHTML = starCards.map((c, i) => {
                                                 const rule = c.rule, info = c.info;
-                                                const tip = info.label + '：预计 ' + (info.expectNum || '—') + ' 抽（' + info.fromText + '）'
+                                                const series = rule.key.charAt(0) === 'x' ? '霞光' : rule.key.charAt(0) === 'h' ? '幻狐' : '';
+                                                const starText = series + (starCn[rule.star - 1] || rule.star) + '星';
+                                                const tip = info.label + '：' + (info.expectNum ? '预计 ' + info.expectNum + ' 抽（' + info.fromText + '）' : '无保底规则（只给集齐上限）')
                                                     + ' · ' + cardPityRuleText(rule) + ' · ' + cardCapText(rule);
                                                 return '<div class="odds-card' + (i === fastIdx ? ' is-fast' : '') + '" title="' + escapeHtml(tip) + '">'
-                                                    + '<div class="oc-star">' + escapeHtml((starCn[rule.star - 1] || rule.star) + '星') + '</div>'
-                                                    + '<div class="oc-num">' + escapeHtml(info.expectOne || '—') + '<i>抽</i></div>'
+                                                    + '<div class="oc-star">' + escapeHtml(starText) + '</div>'
+                                                    + '<div class="oc-num">' + (info.expectNum ? escapeHtml(String(info.expectNum)) + '<i>抽</i>' : '—') + '</div>'
                                                     + '</div>';
                                             }).join('');
                                         }
