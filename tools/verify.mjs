@@ -119,6 +119,10 @@ ok(/n = Math\.max\(1, Math\.round\(pulls \/ t\.news\)\);/.test(s)
   && /'本日志实测' : from === 'pack' \? '每包必出' : '按保底规则'/.test(s)
   && /预计取整数/.test(s),
   '「预计几抽出新卡」= **整数**：优先按玩家日志实测（总抽数 ÷ 该星级新卡数，四舍五入、至少 1 抽），没出过该星级新卡时按保底规则（pity + 1），每包必出的星级（霞光五星）按 1 抽，并在表里标明依据');
+// 新卡明细的时间要带秒
+ok(/function cardTimeFull\(ms\)/.test(s) && /return base \+ ':' \+ sec;/.test(s)
+  && /ms: row\.ms, timeText: cardTimeFull\(row\.ms\)/.test(s),
+  '新卡明细的时间精确到秒（`cardTimeFull` → `YYYY-MM-DD HH:mm:ss`），其他地方「分钟级」的时间（本期窗口 / 卡组收藏）不变');
 // 霞光还要算「开同星级普通包」那条路（正态近似）
 ok(/const alt = \(function \(\) \{/.test(s) && /if \(rule\.key\.charAt\(0\) !== 'x'\) return null;/.test(s)
   && /const route = rule\.routes\.filter\(r => r\.note\)\[0\];/.test(s)

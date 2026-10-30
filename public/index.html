@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="x-build" content="2026-10-30 我要烟牌-v6-幻狐暂隐">
+    <meta name="x-build" content="2026-10-30 我要烟牌-v7-明细秒">
     <title>客服冷静演绎工作台</title>
     <link rel="icon" type="image/gif" href="/my-icon.gif">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -9150,6 +9150,14 @@
                                         return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
                                     }
 
+                                    // 新卡明细要看到「几点几分几秒」（2026-10 用户：「新卡明细的时间加上秒」）
+                                    function cardTimeFull(ms) {
+                                        const base = cardTimeLabel(ms);
+                                        if (!base) return '';
+                                        const sec = String(new Date(ms).getSeconds()).padStart(2, '0');
+                                        return base + ':' + sec;
+                                    }
+
                                     function cardTimeShort(ms) {
                                         const full = cardTimeLabel(ms);
                                         return full ? full.slice(5) : '';
@@ -9255,7 +9263,7 @@
                                             const gap = pull - lastNewPull;
                                             news.forEach(n => events.push({
                                                 card: n.id, star: n.star, pull: pull, gap: gap,
-                                                ms: row.ms, timeText: cardTimeLabel(row.ms), packName: row.packName,
+                                                ms: row.ms, timeText: cardTimeFull(row.ms), packName: row.packName,
                                             }));
                                             lastNewPull = pull;
                                         });

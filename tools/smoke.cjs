@@ -530,6 +530,9 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
   check(pityRows[2].children[1].textContent === '01组第03张' && pityRows[2].children[3].textContent === '2 抽',
     '同一抽里出两张新卡：组/张号与「距上次新卡 2 抽」都对',
     pityRows[2].textContent);
+  check(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(pityRows[0].children[4].textContent)
+    && pityRows[0].children[4].textContent === '2026-11-01 10:00:00',
+    '新卡明细的时间带秒（2026-11-01 10:00:00）', pityRows[0].children[4].textContent);
 
   // 内置「百戏锦囊说明」：预计几抽出新卡 = 5 个小卡片，规则 / 卡包说明 / 概率收在底下一张表里
   check(/我要烟牌/.test($('cardPityCard').textContent)
