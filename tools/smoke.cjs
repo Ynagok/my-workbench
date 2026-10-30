@@ -512,7 +512,7 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     '抽卡详情：总抽数 5 · 新卡 4 张（那一行 61 张的兑换记录没算进去）', pityChips());
   check(/兑换记录已排除\s*1\s*条（61 张）/.test(pityChips()) && /没算进抽数/.test($('cardPityHint').textContent),
     '一次开包 61 张 = 兑换重复卡牌 → 抽卡详情排除，芯片与提示都写出来', pityChips());
-  check(/其中 1 条是「兑换重复卡牌」/.test($('cardSkipHint').textContent) && $('recordCount').textContent === '6'
+  check(/1 条是「兑换重复卡牌」/.test($('cardSkipHint').textContent) && $('recordCount').textContent === '6'
     && /兑换重复点数写/.test($('cardSkipHint').textContent),
     '集卡话术不再跳过兑换记录（6 条：5 条开包 + 1 条兑换），抬头下面写明那条按「兑换重复点数」写',
     $('cardSkipHint').textContent + ' / ' + $('recordCount').textContent);
@@ -739,6 +739,23 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     && /规则 \+ 概率/.test($('cardOddsTable').textContent),
     '只开 5星百戏锦囊时，五星/三星/二星/一星也有预计（5星包掉的低星按概率算进来了）；重传 CSV 后收集情况自动跟着变（四星 3/18）',
     mixTexts.join(' | '));
+  // CSV 带「来源」列：来源 = 集卡活动-结算（id 252 或直接写名字）→ 说明卡包没在当期用掉，话术写「上一期卡包已过期」
+  const settledCsv = [
+    '卡包ID,卡包星级,after,创建时间,来源',
+    '201,[3],{2010101:1},2026-12-20 10:00:00,252',
+    '159,"[4,4]","{2010102:1,2010103:1}",2026-12-20 10:01:00,集卡活动-开卡包',
+  ].join('\n');
+  Object.defineProperty($('csvFileInput'), 'files', { value: [new window.File([settledCsv], 'settled.csv', { type: 'text/csv' })], configurable: true });
+  $('uploadCsvBtn').click();
+  await sleep(250);
+  const settledSents = $('cardResultArea').value.split('\n\n');
+  check(settledSents.length === 2 && settledSents[0] === '在2026/12/20 10:00:00，上一期卡包已过期',
+    '来源=集卡活动-结算（来源 id 252）→ 话术写「上一期卡包已过期」，不写开包',
+    settledSents[0]);
+  check(/1 条来源是「集卡活动-结算」/.test($('cardSkipHint').textContent) && /上一期卡包已过期/.test($('cardSkipHint').textContent)
+    && /^在2026\/12\/20 10:01:00，开启【5星百戏锦囊】获得2张卡牌/.test(settledSents[1]),
+    '来源不是结算的那条照旧写开包话术；抬头下面写明有 1 条结算记录按「上一期卡包已过期」写',
+    $('cardSkipHint').textContent + ' | ' + settledSents[1]);
   check(posts.length === postsBeforeCard2, '抽卡详情 / 卡组收藏全程只在本机（0 请求）',
     posts.slice(postsBeforeCard2).map(p => p.url).join(' | '));
 

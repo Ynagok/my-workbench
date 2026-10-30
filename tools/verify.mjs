@@ -77,18 +77,28 @@ ok(/data-seg-card="speech"/.test(s) && /id="cardPityCard" data-seg-card="pity"/.
 ok(!/statsSetSeg\('tab-gamedata', 'resource'\)/.test(s),
   '棋盘镜像页的分段初始化调用也删掉了（那一页已经没有分段条）');
 ok(/const CARD_EXCHANGE_MAX_CARDS = 10;/.test(s) && /function cardIsExchangeRecord\(record\)/.test(s)
-  // 话术不再跳过兑换记录：那一条单独写成「兑换重复卡牌 N 张，获得重复点数 P 点」（2026-10 用户：「10多张的话术应该为兑换重复点数」）
+  // 话术不再跳过兑换记录：那一条单独写成「兑换重复点数 N 点」（2026-10 用户：「10多张的话术应该为兑换重复点数」→「直接兑换重复点数就好」）
   && /function generateCardExchangeSentence\(record\)/.test(s)
-  && /return cardIsExchangeRecord\(r\) \? generateCardExchangeSentence\(r\) : generateCardSentence\(r\);/.test(s)
+  && /if \(cardIsSettledRecord\(r\)\) return generateCardExpiredSentence\(r\);/.test(s)
+  && /if \(cardIsExchangeRecord\(r\)\) return generateCardExchangeSentence\(r\);/.test(s)
   && /const filtered = filterRecordsByStar\(allRecords, star\);/.test(s)
   && /'兑换重复点数 ' \+ points \+ ' 点'/.test(s)
-  && /const exchanges = filtered\.filter\(r => cardIsExchangeRecord\(r\)\)\.length;/.test(s)
+  && /const exchanges = filtered\.filter\(r => !cardIsSettledRecord\(r\) && cardIsExchangeRecord\(r\)\)\.length;/.test(s)
   && /const exchanges = allRows\.filter\(r => r\.ids\.length > CARD_EXCHANGE_MAX_CARDS\);/.test(s)
   && /const rows = allRows\.filter\(r => r\.ids\.length <= CARD_EXCHANGE_MAX_CARDS\);/.test(s)
   && /if \(cardIsExchangeRecord\(r\)\) return;/.test(s)
   && /id="cardSkipHint"/.test(s) && /兑换记录已排除 <b>/.test(s)
   && !/const draws = allRecords\.filter\(r => !cardIsExchangeRecord\(r\)\);/.test(s),
-  '「一次开包 > 10 张 = 兑换重复卡牌」：**话术**里那条写成「兑换重复卡牌 N 张，获得重复点数 P 点」（不再跳过、也不写「开启【未知卡包】」）；**统计**里仍不算开包 —— 抽卡详情不算抽数、卡组收藏不用它的时间/数量算收集');
+  '「一次开包 > 10 张 = 兑换重复卡牌」：**话术**里那条只写「在<时间>，兑换重复点数 N 点」（不再跳过、不写「开启【未知卡包】」、不写张数）；**统计**里仍不算开包 —— 抽卡详情不算抽数、卡组收藏不用它的时间/数量算收集');
+// 集卡 CSV 的「来源」列（可选）：来源=集卡活动-结算 → 卡包没在当期用掉、到新一期不保留 → 话术写「上一期卡包已过期」
+ok(/const srcCols = \['来源', '来源ID', '来源id', '来源 ID', 'opFrom', 'from', 'source'\];/.test(s)
+  && /for \(let n of srcCols\) \{ const i = headers\.findIndex\(h => h === n\); if \(i !== -1\) \{ srcIdx = i; break; \} \}/.test(s)
+  && /if \(srcIdx !== -1\) rec\['来源'\] = vals\[srcIdx\];/.test(s)
+  && /function cardSourceNameOf\(record\)/.test(s) && /function cardIsSettledRecord\(record\)/.test(s)
+  && /function generateCardExpiredSentence\(record\)/.test(s)
+  && /'，上一期卡包已过期'/.test(s)
+  && /条来源是「集卡活动-结算」/.test(s),
+  '集卡 CSV 可选「来源」列（来源 / 来源ID / opFrom / from / source，id 走来源映射）：来源=集卡活动-结算（含幻狐牌集结算）说明卡包没在当期用掉、到新一期不能保留 → 话术写「在<时间>，上一期卡包已过期」，抬头下面写明条数');
 // 内置「百戏锦囊说明」：规则 + 概率 + 预计几抽出新卡
 ok(/const CARD_DRAW_RULES = \[/.test(s) && (s.match(/\{ key: '[sxh]\d', label:/g) || []).length === 12
   && /key: 's5'[^}]*pity: 1, cap: 24/.test(s) && /key: 's4'[^}]*pity: 4, cap: 100/.test(s)

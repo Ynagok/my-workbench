@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="x-build" content="2026-10-30 我要烟牌-v17-只写兑换点数">
+    <meta name="x-build" content="2026-10-30 我要烟牌-v18-结算写卡包过期">
     <title>客服冷静演绎工作台</title>
     <link rel="icon" type="image/gif" href="/my-icon.gif">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -9008,8 +9008,13 @@
                                         let delim = lines[0].includes('\t') ? '\t' : (lines[0].includes(';') ? ';' : ',');
                                         let headers = lines[0].split(delim).map(h => h.trim().replace(/^"|"$/g, ''));
                                         const colMap = { '卡包ID': ['卡包ID', 'pack_id'], '卡包星级': ['卡包星级', 'stars'], 'after': ['after'], '创建时间': ['创建时间', 'time'] };
+                                        // 可选列：来源（GM 导出里可能叫 来源 / 来源ID / opFrom / from / source，值可能是 id 也可能是名字）——
+                                        // 2026-10 用户：「来源是集卡活动-结算的话，说明她的卡包没有在当期使用」→ 话术要写「上一期卡包已过期」
+                                        const srcCols = ['来源', '来源ID', '来源id', '来源 ID', 'opFrom', 'from', 'source'];
                                         const idx = {};
                                         for (let [k, arr] of Object.entries(colMap)) for (let n of arr) { let i = headers.findIndex(h => h === n); if (i !== -1) { idx[k] = i; break; } }
+                                        let srcIdx = -1;
+                                        for (let n of srcCols) { const i = headers.findIndex(h => h === n); if (i !== -1) { srcIdx = i; break; } }
 
                                         const missing = Object.keys(colMap).filter(k => idx[k] === undefined);
                                         if (missing.length) {
@@ -9029,7 +9034,11 @@
                                             let cur = '', inq = false;
                                             for (let ch of line) { if (ch === '"') inq = !inq; else if (ch === delim && !inq) { vals.push(cur.trim().replace(/^"|"$/g, '')); cur = ''; } else cur += ch; }
                                             vals.push(cur.trim().replace(/^"|"$/g, ''));
-                                            if (vals.length > Math.max(...Object.values(idx))) records.push({ '卡包ID': vals[idx['卡包ID']], '卡包星级': vals[idx['卡包星级']], 'after': vals[idx['after']], '创建时间': vals[idx['创建时间']] });
+                                            if (vals.length > Math.max(...Object.values(idx))) {
+                                                const rec = { '卡包ID': vals[idx['卡包ID']], '卡包星级': vals[idx['卡包星级']], 'after': vals[idx['after']], '创建时间': vals[idx['创建时间']] };
+                                                if (srcIdx !== -1) rec['来源'] = vals[srcIdx];
+                                                records.push(rec);
+                                            }
                                         }
                                         return records;
                                     }
@@ -9105,6 +9114,27 @@
                                         return Object.keys(afterData).length > CARD_EXCHANGE_MAX_CARDS;
                                     }
 
+                                    // 来源列（可选）→ 名字：值可能是来源 id（252）也可能是名字，走同一套来源映射
+                                    function cardSourceNameOf(record) {
+                                        if (!record) return '';
+                                        const raw = record['来源'] == null ? '' : String(record['来源']).trim();
+                                        if (!raw) return '';
+                                        try { return resolveSource(raw, raw) || raw; } catch (_) { return raw; }
+                                    }
+
+                                    // 来源是「集卡活动-结算」（含「集卡活动-幻狐牌集结算」）→ 这一期的卡包她没在当期用掉，
+                                    // 到了新的一期不能保留（2026-10 用户：「来源是集卡活动-结算的话……生成的话术就写上一期卡包已过期」）
+                                    function cardIsSettledRecord(record) {
+                                        const name = cardSourceNameOf(record);
+                                        return !!name && name.indexOf('集卡活动') !== -1 && name.indexOf('结算') !== -1;
+                                    }
+
+                                    function generateCardExpiredSentence(record) {
+                                        const timeRaw = String(record['创建时间']).replace(/-/g, '/');
+                                        const raw = '在' + timeRaw + '，上一期卡包已过期';
+                                        return { text: raw, html: escapeHtml(raw) };
+                                    }
+
                                     // 兑换重复卡牌的话术（2026-10 用户：「开启【未知卡包】10多张的的话术应该为兑换重复点数」，
                                     // 随后又说「直接兑换重复点数就好」）→ 这一条只写「时间 + 兑换重复点数」，不写卡包、不写张数。
                                     // 点数 = 每张按星级折算之和（1–5 星 = 1–5 点/张，跟 CARD_DUPE_POINTS 同一套）；星级码缺的时候取第一个补。
@@ -9166,18 +9196,22 @@
                                         const text = await f.text();
                                         const allRecords = parseCSVEnhanced(text);
                                         // 集卡话术**不看时间窗**：CSV 里有什么记录就出什么话术。
-                                        // 「一次开包 > 10 张 = 兑换重复卡牌」不写成开包话术，单独写成「兑换重复点数」（2026-10 用户要求）
+                                        // 三种特殊记录各写各的：① 来源=集卡活动-结算 → 上一期卡包已过期
+                                        // ② 一次开包 > 10 张 = 兑换重复卡牌 → 兑换重复点数 ③ 其余 → 正常开包话术
                                         const star = document.getElementById('starFilterSelect').value;
                                         const filtered = filterRecordsByStar(allRecords, star);
                                         const results = filtered.map(r => {
                                             try {
-                                                return cardIsExchangeRecord(r) ? generateCardExchangeSentence(r) : generateCardSentence(r);
+                                                if (cardIsSettledRecord(r)) return generateCardExpiredSentence(r);
+                                                if (cardIsExchangeRecord(r)) return generateCardExchangeSentence(r);
+                                                return generateCardSentence(r);
                                             }
                                             catch { return { text: '[解析失败]', html: '[解析失败]' }; }
                                         });
                                         const texts = results.map(r => r.text);
                                         const htmls = results.map(r => r.html);
-                                        const exchanges = filtered.filter(r => cardIsExchangeRecord(r)).length;
+                                        const settled = filtered.filter(r => cardIsSettledRecord(r)).length;
+                                        const exchanges = filtered.filter(r => !cardIsSettledRecord(r) && cardIsExchangeRecord(r)).length;
 
                                         document.getElementById('cardResultArea').value = texts.join('\n\n');
 
@@ -9190,9 +9224,10 @@
                                         document.getElementById('recordCount').textContent = texts.length;
                                         const skipHint = document.getElementById('cardSkipHint');
                                         if (skipHint) {
-                                            skipHint.textContent = exchanges
-                                                ? '其中 ' + exchanges + ' 条是「兑换重复卡牌」（一次开包超过 ' + CARD_EXCHANGE_MAX_CARDS + ' 张），话术按兑换重复点数写；统计里仍不算开包'
-                                                : '';
+                                            const notes = [];
+                                            if (settled) notes.push(settled + ' 条来源是「集卡活动-结算」（卡包没在当期用掉），话术写「上一期卡包已过期」');
+                                            if (exchanges) notes.push(exchanges + ' 条是「兑换重复卡牌」（一次开包超过 ' + CARD_EXCHANGE_MAX_CARDS + ' 张），话术按兑换重复点数写，统计里仍不算开包');
+                                            skipHint.textContent = notes.join('；');
                                         }
                                         // 抽卡详情 / 卡组收藏是统计：只算本期，往期记录不掺进来
                                         currentCardRecords = allRecords.filter(cardInSeason);
