@@ -539,14 +539,14 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     && ![...$('cardPityCard').querySelectorAll('label .card-sub')].some(el => /百戏锦囊说明/.test(el.textContent)),
     '这一块的标题就叫「我要烟牌~」，标题底下那行小字不显示');
   const oddsCards = [...$('cardOddsCards').querySelectorAll('.odds-card')];
-  check(oddsCards.length === 8 && oddsCards.every(c => /^(霞光)?[一二三四五]星(\d+抽(出 1 张新卡|必出 1 张)|—没保底数据)(普通包 ≈\d+ 抽)?$/.test(c.textContent))
+  check(oddsCards.length === 8 && oddsCards.every(c => /^(霞光)?[一二三四五]星(\d+抽(出 1 张新卡|必出 1 张)|—没保底数据)(普通包 ≈\d+ 抽\/张（含重复）)?$/.test(c.textContent))
     && oddsCards[0].textContent === '五星2抽出 1 张新卡' && oddsCards[1].textContent === '四星5抽出 1 张新卡'
     && oddsCards[2].textContent === '三星2抽出 1 张新卡' && oddsCards[3].textContent === '二星8抽出 1 张新卡'
     && oddsCards[4].textContent === '一星10抽出 1 张新卡',
     '预计卡片：普通 5 个星级都在（五星 2 / 四星 5 / 三星 2 / 二星 8 / 一星 10），全是整数',
     oddsCards.map(c => c.textContent).join(' | '));
-  check(oddsCards[5].textContent === '霞光五星1抽必出 1 张普通包 ≈6 抽' && oddsCards[6].textContent === '霞光四星2抽出 1 张新卡普通包 ≈13 抽'
-    && oddsCards[7].textContent === '霞光三星5抽出 1 张新卡普通包 ≈15 抽',
+  check(oddsCards[5].textContent === '霞光五星1抽必出 1 张普通包 ≈6 抽/张（含重复）' && oddsCards[6].textContent === '霞光四星2抽出 1 张新卡普通包 ≈13 抽/张（含重复）'
+    && oddsCards[7].textContent === '霞光三星5抽出 1 张新卡普通包 ≈15 抽/张（含重复）',
     '霞光两条路都算：霞光锦囊 1 / 2 / 5 抽，普通包（正态近似）≈6 / 13 / 15 抽',
     oddsCards.slice(5, 8).map(c => c.textContent).join(' | '));
   check(!/幻狐/.test($('cardOddsCards').textContent) && !/幻狐/.test($('cardOddsTable').textContent),
@@ -576,12 +576,12 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     && /5 抽（本日志实测）/.test(oddsRow('四星普通').textContent),
     '一星普通按保底 10 抽 · 四星普通按实测 5 抽（表里标明依据、都是整数）', oddsRow('一星普通').textContent);
   check(/1 抽（每包必出，重复也算）/.test(oddsRow('五星霞光').textContent)
-    && /普通包 ≈6 抽（牌1 16\.7%，正态近似：约 84% 要 11 抽）/.test(oddsRow('五星霞光').textContent)
+    && /普通包 ≈6 抽\/张（牌1 16\.7%，\*\*含重复\*\*；约 84% 要 11 抽；集齐 8 张最坏 48 包）/.test(oddsRow('五星霞光').textContent)
     && /8 包集齐 8 张 · 普通 5星包最多 48 包/.test(oddsRow('五星霞光').textContent),
     '五星霞光两条路：霞光锦囊每包必出 1 抽 · 开 5 星普通包（牌1 16.7%）正态近似 ≈6 抽、约 84% 要 11 抽',
     oddsRow('五星霞光').textContent);
-  check(/普通包 ≈13 抽（牌1 7\.7%/.test(oddsRow('四星霞光').textContent)
-    && /普通包 ≈15 抽（牌1 6\.7%/.test(oddsRow('三星霞光').textContent),
+  check(/普通包 ≈13 抽\/张（牌1 7\.7%/.test(oddsRow('四星霞光').textContent)
+    && /普通包 ≈15 抽\/张（牌1 6\.7%/.test(oddsRow('三星霞光').textContent),
     '霞光四星 / 三星同样把普通包那条路算进来（≈13 / ≈15 抽）',
     oddsRow('四星霞光').textContent);
   check(/3 张新卡 \/ 出现 5 次/.test(oddsRow('三星普通').textContent),

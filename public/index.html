@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="x-build" content="2026-10-30 我要烟牌-v8-卡片直观">
+    <meta name="x-build" content="2026-10-30 我要烟牌-v9-普通包含重复">
     <title>客服冷静演绎工作台</title>
     <link rel="icon" type="image/gif" href="/my-icon.gif">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1571,8 +1571,8 @@
         .odds-card .oc-alt {
             margin-top: 3px;
             font-size: 10.5px;
+            line-height: 1.35;
             color: var(--ink-3);
-            white-space: nowrap;
         }
 
         /* 一眼看出谁快：条越长越省抽（最快的满格） */
@@ -9495,7 +9495,7 @@
                                         const expectText = (n
                                             ? (n + ' 抽（' + fromText + (from === 'pack' ? '，重复也算' : '') + '）')
                                             : '无保底规则（只给集齐上限）')
-                                            + (alt ? '\n普通包 ≈' + alt.mean + ' 抽（牌1 ' + Math.round(alt.p * 1000) / 10 + '%，正态近似：约 84% 要 ' + alt.band + ' 抽）' : '');
+                                            + (alt ? '\n普通包 ≈' + alt.mean + ' 抽/张（牌1 ' + Math.round(alt.p * 1000) / 10 + '%，**含重复**；约 84% 要 ' + alt.band + ' 抽；集齐 ' + (rule.series || 8) + ' 张最坏 ' + (rule.capAlt || 48) + ' 包）' : '');
                                         return {
                                             label: label, usable: usable, pText: pText, from: from, fromText: fromText,
                                             expectNum: n, expectText: expectText, alt: alt,
@@ -9553,7 +9553,7 @@
                                                 // 这句说明「这个数是几抽一张什么」：普通星级是「出新卡」，每包必出的霞光五星是「必出一张（可能重复）」
                                                 const note = info.from === 'pack' ? '必出 1 张' : '出 1 张新卡';
                                                 const altLine = info.alt
-                                                    ? '<div class="oc-alt">普通包 ≈' + escapeHtml(String(info.alt.mean)) + ' 抽</div>'
+                                                    ? '<div class="oc-alt">普通包 ≈' + escapeHtml(String(info.alt.mean)) + ' 抽/张（含重复）</div>'
                                                     : '';
                                                 return '<div class="odds-card'
                                                     + (i === fastIdx ? ' is-fast' : '')
