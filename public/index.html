@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="x-build" content="2026-10-30 我要烟牌-v15-卡片写抽出新">
+    <meta name="x-build" content="2026-10-30 我要烟牌-v16-兑换写重复点数">
     <title>客服冷静演绎工作台</title>
     <link rel="icon" type="image/gif" href="/my-icon.gif">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -9105,6 +9105,25 @@
                                         return Object.keys(afterData).length > CARD_EXCHANGE_MAX_CARDS;
                                     }
 
+                                    // 兑换重复卡牌的话术（2026-10 用户：「开启【未知卡包】10多张的的话术应该为兑换重复点数」）：
+                                    // 这种记录不是开包，不写「开启【未知卡包】获得 N 张卡牌」，写成「兑换重复卡牌 N 张，获得重复点数 P 点」
+                                    // P = 每张按星级折算（1–5 星 = 1–5 点/张，跟 CARD_DUPE_POINTS 同一套）；星级码缺的时候取第一个补。
+                                    function generateCardExchangeSentence(record) {
+                                        const afterData = parseAfter(record['after']);
+                                        const ids = Object.keys(afterData);
+                                        const stars = parseStarsArray(record['卡包星级']);
+                                        let points = 0;
+                                        ids.forEach((id, i) => {
+                                            const tier = cardTierOfStarCode(stars[i] || stars[0] || 0);
+                                            const star = tier ? parseInt(tier.slice(1), 10) : 0;
+                                            if (star) points += (CARD_DUPE_POINTS[star] || 0);
+                                        });
+                                        const timeRaw = String(record['创建时间']).replace(/-/g, '/');
+                                        const raw = '在' + timeRaw + '，兑换重复卡牌 ' + ids.length + ' 张'
+                                            + (points ? '，获得重复点数 ' + points + ' 点' : '');
+                                        return { text: raw, html: escapeHtml(raw) };
+                                    }
+
                                     // 卡包名：认不出卡包 + 只开了 1 张 → 是用了「无相牌」（活动里另一种得卡方式，不是开包）
                                     function cardPackNameOf(packId, cards) {
                                         const name = PACK_NAME_MAP[packId];
@@ -9145,17 +9164,19 @@
                                         const f = document.getElementById('csvFileInput').files[0]; if (!f) return;
                                         const text = await f.text();
                                         const allRecords = parseCSVEnhanced(text);
-                                        // 集卡话术**不看时间窗**：CSV 里有什么记录就出什么话术（只有兑换重复卡牌跳过）
+                                        // 集卡话术**不看时间窗**：CSV 里有什么记录就出什么话术。
+                                        // 「一次开包 > 10 张 = 兑换重复卡牌」不写成开包话术，单独写成「兑换重复点数」（2026-10 用户要求）
                                         const star = document.getElementById('starFilterSelect').value;
-                                        const draws = allRecords.filter(r => !cardIsExchangeRecord(r));
-                                        const exchanges = allRecords.length - draws.length;
-                                        const filtered = filterRecordsByStar(draws, star);
+                                        const filtered = filterRecordsByStar(allRecords, star);
                                         const results = filtered.map(r => {
-                                            try { return generateCardSentence(r); }
+                                            try {
+                                                return cardIsExchangeRecord(r) ? generateCardExchangeSentence(r) : generateCardSentence(r);
+                                            }
                                             catch { return { text: '[解析失败]', html: '[解析失败]' }; }
                                         });
                                         const texts = results.map(r => r.text);
                                         const htmls = results.map(r => r.html);
+                                        const exchanges = filtered.filter(r => cardIsExchangeRecord(r)).length;
 
                                         document.getElementById('cardResultArea').value = texts.join('\n\n');
 
@@ -9169,7 +9190,7 @@
                                         const skipHint = document.getElementById('cardSkipHint');
                                         if (skipHint) {
                                             skipHint.textContent = exchanges
-                                                ? '已跳过 ' + exchanges + ' 条「兑换重复卡牌」记录（一次开包超过 ' + CARD_EXCHANGE_MAX_CARDS + ' 张，不算开包，不出开包话术）'
+                                                ? '其中 ' + exchanges + ' 条是「兑换重复卡牌」（一次开包超过 ' + CARD_EXCHANGE_MAX_CARDS + ' 张），话术按兑换重复点数写；统计里仍不算开包'
                                                 : '';
                                         }
                                         // 抽卡详情 / 卡组收藏是统计：只算本期，往期记录不掺进来
