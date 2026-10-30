@@ -103,9 +103,10 @@ ok(/function cardPackExpect\(packName, label\)/.test(s) && /function cardTierOfS
   '表里同时给保底 / 单包期望 / 预计几抽出新卡 / 活动上限 / 本日志实测，重复牌 1–5 星 = 1–5 戏符点');
 // 「我要烟牌~」：只出 5 个小卡片（星级 + 预计几抽，整数），保底规则 + 卡包说明 + 概率收在底下一张表里
 ok(/🔥 我要烟牌~/.test(s) && /id="cardOddsCards"/.test(s) && /class="odds-cards"/.test(s)
-  && /function cardRuleInfo\(rule, tier, pulls\)/.test(s)
+  && /function cardRuleInfo\(rule, tier, pulls, mix\)/.test(s)
   && /const CARD_HIDE_KEYS = \['h5', 'h4', 'h3', 'h2'\];/.test(s)
   && /const starCards = CARD_DRAW_RULES\.filter\(rule => CARD_HIDE_KEYS\.indexOf\(rule\.key\) === -1\)/.test(s)
+  && /const mix = cardPackMix\(model\);/.test(s)
   && /class="oc-star"/.test(s) && /class="oc-num"/.test(s) && /' is-fast' : ''\)/.test(s)
   && /name="x-build"/.test(s)
   && /class="odds-group"/.test(s) && /class="pack-row"/.test(s)
@@ -114,14 +115,14 @@ ok(/🔥 我要烟牌~/.test(s) && /id="cardOddsCards"/.test(s) && /class="odds-
   '「我要烟牌~」这一块：预计结果出小卡片（普通 5 + 霞光 3 + 幻狐 4，只有星级 + 预计几抽），保底规则 / 卡包说明 / 概率合到收起的**同一张表**里（旧的概率表与说明小字都撤了）');
 // 预计卡片要「直观」：进度条 + 一句人话说明
 ok(/class="oc-bar"/.test(s) && /class="oc-note"/.test(s) && /minNBySeries/.test(s)
-  && /'抽 \/ 必出 1 张' : '抽 \/ 出 1 张新卡'|'必出 1 张' : '出 1 张新卡'/.test(s)
+  && /'必出 1 张'[\s\S]{0,400}?'出 1 张新卡'/.test(s)
   && /\.odds-card \.oc-bar \{/.test(s) && /\.odds-card \.oc-note \{/.test(s)
   && /style="width:' \+ barPct \+ '%;"/.test(s),
   '预计卡片更直观：每张一条进度条（**同系列内**最快那张满格、其余按比例缩短）+ 一句「出 1 张新卡 / 必出 1 张」说明这个数是什么');// 预计必须是整数：按玩家这份日志的实际开卡情况算，没数据才退回保底规则 / 每包必出
 ok(/n = Math\.max\(1, Math\.round\(pulls \/ t\.news\)\);/.test(s)
   && /n = rule\.pity \+ 1;/.test(s) && /n = 1;/.test(s) && /from = 'pack';/.test(s)
   && /from = 'log';/.test(s) && /from = 'rule';/.test(s)
-  && /'本日志实测' : from === 'pack' \? '每包必出' : '按保底规则'/.test(s)
+  && /'本日志实测' : from === 'mix' \? '按你开过的卡包加权（含重复）' : from === 'pack' \? '每包必出' : '按保底规则'/.test(s)
   && /预计取整数/.test(s),
   '「预计几抽出新卡」= **整数**：优先按玩家日志实测（总抽数 ÷ 该星级新卡数，四舍五入、至少 1 抽），没出过该星级新卡时按保底规则（pity + 1），每包必出的星级（霞光五星）按 1 抽，并在表里标明依据');
 // 新卡明细的时间要带秒

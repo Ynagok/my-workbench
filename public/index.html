@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="x-build" content="2026-10-30 我要烟牌-v10-重复张数">
+    <meta name="x-build" content="2026-10-30 我要烟牌-v11-卡包加权">
     <title>客服冷静演绎工作台</title>
     <link rel="icon" type="image/gif" href="/my-icon.gif">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -9464,11 +9464,34 @@
                                         return own + ' · ' + (rule.capAltPack || '普通包') + '最多 ' + rule.capAlt + ' 包';
                                     }
 
+                                    function cardRuleLabel(rule) {
+                                        return rule.star + '星' + (rule.key.charAt(0) === 'x' ? '霞光' : rule.key.charAt(0) === 'h' ? '幻狐' : '普通');
+                                    }
+
+                                    // 玩家实际开过的卡包组合 → 每个星级「平均每抽出几张」（**把所有能掉这个星级的卡包都算进来**，
+                                    // 不只同星级包：比如 5星包会掉 4/3/2/1 星，1星包也会掉 2星）。
+                                    function cardPackMix(model) {
+                                        const total = {}, packs = {};
+                                        let n = 0;
+                                        ((model && model.rows) || []).forEach(row => {
+                                            if (!PACK_NAME_MAP[row.packId]) return;    // 未知卡包 / 无相牌 不参与
+                                            n++;
+                                            CARD_DRAW_RULES.forEach(rule => {
+                                                const p = cardPackExpect(row.packName, cardRuleLabel(rule));
+                                                if (!(p > 0)) return;
+                                                total[rule.key] = (total[rule.key] || 0) + p;
+                                                packs[rule.key] = packs[rule.key] || {};
+                                                packs[rule.key][row.packName] = (packs[rule.key][row.packName] || 0) + 1;
+                                            });
+                                        });
+                                        return { pulls: n, total: total, packs: packs };
+                                    }
+
                                     // 一条规则算出来的东西（卡片和收起里的表共用同一份口径）
-                                    // 「预计几抽出新卡」= **整数**：优先按玩家这份日志的实际开卡情况（总抽数 ÷ 该星级新卡数，四舍五入、至少 1 抽），
-                                    // 日志里还没有该星级的新卡时退回保底规则（连续 pity 张重复 → 下一张必新，所以保底是 pity + 1 抽）
-                                    function cardRuleInfo(rule, tier, pulls) {
-                                        const label = rule.star + '星' + (rule.key.charAt(0) === 'x' ? '霞光' : rule.key.charAt(0) === 'h' ? '幻狐' : '普通');
+                                    // 「预计几抽出一张」= **整数**，优先级：这份日志里该星级出过新卡 → 用它算「出新」；
+                                    // 否则按玩家开过的卡包组合算「出一张」（含重复，别的星级卡包也计入）；再否则退回保底规则 pity + 1。
+                                    function cardRuleInfo(rule, tier, pulls, mix) {
+                                        const label = cardRuleLabel(rule);
                                         const packs = rule.routes.map(r => ({ pack: r.pack, note: r.note || '', p: cardPackExpect(r.pack, label) }));
                                         const usable = packs.filter(x => x.p > 0);
                                         const pText = usable.length
@@ -9476,9 +9499,13 @@
                                             : '—（概率未公布）';
                                         const t = (tier || {})[rule.key];
                                         let n = 0, from = '';
+                                        const mixN = mix && mix.total ? mix.total[rule.key] : 0;
                                         if (t && t.news) {
                                             n = Math.max(1, Math.round(pulls / t.news));
                                             from = 'log';
+                                        } else if (mixN > 0 && mix.pulls > 0) {
+                                            n = Math.max(1, Math.round(mix.pulls / mixN));
+                                            from = 'mix';
                                         } else if (rule.pity) {
                                             n = rule.pity + 1;
                                             from = 'rule';
@@ -9487,7 +9514,7 @@
                                             n = 1;
                                             from = 'pack';
                                         }
-                                        const fromText = from === 'log' ? '本日志实测' : from === 'pack' ? '每包必出' : '按保底规则';
+                                        const fromText = from === 'log' ? '本日志实测' : from === 'mix' ? '按你开过的卡包加权（含重复）' : from === 'pack' ? '每包必出' : '按保底规则';
                                         // 霞光还有第二条路：开**同星级的普通包**也可能出霞光（概率说明里牌1 的那一小档）。
                                         // 这条没有保底，按正态近似算：等待时间 ~ 均值 1/p、标准差 √(1−p)/p
                                         //   期望抽数 = round(1/p)（至少 1），约 84% 概率能拿到 = round(1/p + 标准差)
@@ -9523,6 +9550,7 @@
                                         if (!chips || !table) return;
                                         const pulls = (model && model.totalPulls) || 0;
                                         const tier = cardTierCounts(model);
+                                        const mix = cardPackMix(model);
                                         chips.innerHTML = [
                                             cardChipHtml('数据来源：百戏锦囊说明', 'k-plain', '基本规则 + 概率说明（2026-10 用户提供的活动说明页）'),
                                             cardChipHtml('重复牌换戏符：<b>1–5</b> 星 = 1–5 点', 'k-plain', '活动期间重复牌按星数等额换戏符点；活动结束戏符匣清零，不延续到下次'),
@@ -9534,7 +9562,7 @@
                                         // 预计结果 = 小卡片（普通一星…五星 + 霞光三星/四星/五星 + 幻狐二星…五星）
                                         const starCn = ['一', '二', '三', '四', '五'];
                                         const starCards = CARD_DRAW_RULES.filter(rule => CARD_HIDE_KEYS.indexOf(rule.key) === -1)
-                                            .map(rule => ({ rule: rule, info: cardRuleInfo(rule, tier, pulls) }));
+                                            .map(rule => ({ rule: rule, info: cardRuleInfo(rule, tier, pulls, mix) }));
                                         let fastIdx = -1, fastVal = Infinity;
                                         starCards.forEach((c, i) => {
                                             // 只在普通星级之间比「最快」（霞光的 pity 0 是「每包必出，重复也算」，口径不同）
@@ -9564,7 +9592,9 @@
                                                     ? Math.max(12, Math.round((seriesMin / info.expectNum) * 100))
                                                     : 0;
                                                 // 这句说明「这个数是几抽一张什么」：普通星级是「出新卡」，每包必出的霞光五星是「必出一张（可能重复）」
-                                                const note = info.from === 'pack' ? '必出 1 张' : '出 1 张新卡';
+                                                const note = info.from === 'pack' ? '必出 1 张'
+                                                    : info.from === 'mix' ? '出 1 张（含重复）'
+                                                    : '出 1 张新卡';
                                                 const altLine = info.alt
                                                     ? '<div class="oc-alt">普通包 ≈' + escapeHtml(String(info.alt.mean)) + ' 抽/张（含重复）</div>'
                                                     : '';
@@ -9584,7 +9614,7 @@
                                         // 收起来的那张表：保底规则 + 卡包（锦囊）说明 + 概率，全在一张表里
                                         const head = '<thead><tr><th>星级</th><th>保底</th><th>单包期望</th><th>预计几抽出新卡</th><th>活动上限</th><th>本日志实测</th></tr></thead>';
                                         const ruleRows = CARD_DRAW_RULES.filter(rule => CARD_HIDE_KEYS.indexOf(rule.key) === -1).map(rule => {
-                                            const info = cardRuleInfo(rule, tier, pulls);
+                                            const info = cardRuleInfo(rule, tier, pulls, mix);
                                             const t = tier[rule.key];
                                             const realText = (t && t.news)
                                                 ? (t.news + ' 张新卡 / 出现 ' + t.seen + ' 次')

@@ -709,6 +709,23 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     '抽卡详情只算本期 2 抽（10-30 11:00 那条算、12-09 11:00 那条不算），芯片写「已排除往期 3 条」', pityChips());
   check(/已排除往期\s*3\s*条/.test($('cardGroupChips').textContent),
     '卡组收藏也不掺往期：芯片写「已排除往期 3 条」', $('cardGroupChips').textContent);
+  // 预计要按「玩家实际开过的卡包组合」加权：**别的星级卡包也会掉这个星级**（5星包会掉 4/3/2/1 星）
+  const mixCsv = [
+    '卡包ID,卡包星级,after,创建时间',
+    '159,[4],{2010107:1},2026-11-03 10:00:00',
+    '159,[4],{2010107:0},2026-11-03 10:01:00',
+    '159,[4],{2010108:0},2026-11-03 10:02:00',
+    '159,[4],{2010109:0},2026-11-03 10:03:00',
+  ].join('\n');
+  Object.defineProperty($('csvFileInput'), 'files', { value: [new window.File([mixCsv], 'mix.csv', { type: 'text/csv' })], configurable: true });
+  $('uploadCsvBtn').click();
+  await sleep(250);
+  const mixTexts = [...$('cardOddsCards').querySelectorAll('.odds-card')].map(c => c.textContent);
+  check(mixTexts[0] === '五星1抽出 1 张（含重复）' && mixTexts[1] === '四星4抽出 1 张新卡'
+    && mixTexts[2] === '三星4抽出 1 张（含重复）' && mixTexts[3] === '二星1抽出 1 张（含重复）'
+    && /按你开过的卡包加权（含重复）/.test($('cardOddsTable').textContent),
+    '只开 5星百戏锦囊时，五星/三星/二星/一星也有预计（4星包掉的低星算进来了，按卡包加权取整）',
+    mixTexts.join(' | '));
   check(posts.length === postsBeforeCard2, '抽卡详情 / 卡组收藏全程只在本机（0 请求）',
     posts.slice(postsBeforeCard2).map(p => p.url).join(' | '));
 
