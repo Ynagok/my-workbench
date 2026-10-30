@@ -81,6 +81,24 @@ ok(/const CARD_PITY_MAX_PER_PULL = 10;/.test(s)
   && /const rows = allRows\.filter\(r => r\.ids\.length <= CARD_PITY_MAX_PER_PULL\);/.test(s)
   && /批量发卡已排除 <b>/.test(s),
   '抽卡详情排除「批量发卡」：一次开包超过 10 张（如补发 61 张）不算抽卡、不进抽数，芯片里写明排除了几条几张');
+// 内置「百戏锦囊说明」：规则 + 概率 + 预计几抽出新卡
+ok(/const CARD_DRAW_RULES = \[/.test(s) && (s.match(/\{ key: '[sxh]\d', label:/g) || []).length === 12
+  && /key: 's5'[^}]*pity: 1, cap: 24/.test(s) && /key: 's4'[^}]*pity: 4, cap: 100/.test(s)
+  && /key: 's3'[^}]*pity: 6, cap: 170/.test(s) && /key: 's2'[^}]*pity: 7, cap: 240/.test(s)
+  && /key: 's1'[^}]*pity: 9, cap: 370/.test(s)
+  && /key: 'x5'[^}]*cap: 8/.test(s) && /key: 'x4'[^}]*cap: 12/.test(s) && /key: 'x3'[^}]*cap: 25/.test(s)
+  && /key: 'h5'[^}]*cap: 5/.test(s) && /key: 'h4'[^}]*cap: 12/.test(s)
+  && /key: 'h3'[^}]*cap: 16/.test(s) && /key: 'h2'[^}]*pity: 2, cap: 24/.test(s),
+  '基本规则内置：12 个星级/系列的保底重复张数（五星 1 / 四星 4 / 三星 6 / 二星 7 / 一星 9 …）与活动上限（24/100/170/240/370、霞光 8/12/25、幻狐 5/12/16/24）');
+ok(/const CARD_PACK_ODDS = \[/.test(s) && (s.match(/\{ name: '\d星[^']*锦囊'/g) || []).length === 14
+  && /name: '5星百戏超大锦囊', cards: 7/.test(s) && /name: '3星霞光锦囊', cards: 3/.test(s)
+  && /opts: \[\['5星普通', 83\.3\], \['5星霞光', 16\.7\]\]/.test(s),
+  '概率说明内置：14 种锦囊的开牌数与每个牌位的出货概率（5星百戏锦囊的 83.3% / 16.7% 等原文数值）');
+ok(/function cardPackExpect\(packName, label\)/.test(s) && /function cardTierOfStarCode\(code\)/.test(s)
+  && /cardNum1\(\(rule\.pity \+ 1\) \/ x\.p\)/.test(s) && /预计几抽出新卡/.test(s)
+  && /const CARD_DUPE_POINTS = \{ 1: 1, 2: 2, 3: 3, 4: 4, 5: 5 \};/.test(s)
+  && /id="cardOddsTable"/.test(s) && /id="cardPackOddsTable"/.test(s) && /cardOddsRender\(null\)/.test(s),
+  '预计几抽出新卡 = （保底重复张数 + 1）÷ 单包期望张数；表里同时给保底 / 单包期望 / 活动上限 / 本日志实测，重复牌 1–5 星 = 1–5 戏符点');
 ok(/"253": "联动分享活动-首次赠送"/.test(s) && /"257": "打怪棋盘-消耗步数"/.test(s), '来源/物品映射已补 253–257');
 ok(/"264": "活动pass卡领取"/.test(s) && /"265": "活动pass卡购买"/.test(s)
   && /"266": "1\+4礼包购买"/.test(s) && /"267": "1\+4礼包免费领取"/.test(s),

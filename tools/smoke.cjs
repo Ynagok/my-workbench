@@ -528,6 +528,29 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     '同一抽里出两张新卡：组/张号与「距上次新卡 2 抽」都对',
     pityRows[2].textContent);
 
+  // 内置「百戏锦囊说明」：规则 / 概率 / 预计几抽出新卡
+  const oddsRows = () => [...$('cardOddsTable').querySelectorAll('tbody tr')];
+  const oddsRow = (label) => oddsRows().filter(tr => tr.children[0].textContent === label)[0] || { textContent: '' };
+  check(!!$('cardOddsTable') && oddsRows().length === 12
+    && /预计几抽出新卡/.test($('cardOddsTable').textContent),
+    '抽卡详情里内置了 12 个星级的「规则 / 预计几抽出新卡」表', String(oddsRows().length));
+  check(/2\.4 抽/.test(oddsRow('五星普通').textContent),
+    '五星普通：保底 1 张重复、单包 0.83 张 → 预计 2.4 抽一张新卡', oddsRow('五星普通').textContent);
+  check(/5\.7 抽/.test(oddsRow('一星普通').textContent) && /5\.4 抽/.test(oddsRow('四星普通').textContent),
+    '一星普通 5.7 抽 · 四星普通 5.4 抽（保底 9 / 4 张重复）', oddsRow('一星普通').textContent);
+  check(/1 抽 \/ 6 抽（普通包转化）/.test(oddsRow('五星霞光').textContent),
+    '五星霞光：霞光锦囊 1 抽 / 普通锦囊转化 6 抽', oddsRow('五星霞光').textContent);
+  check(/概率未公布/.test(oddsRow('五星幻狐').textContent) && /概率未公布/.test(oddsRow('二星幻狐').textContent),
+    '幻狐锦囊的概率页没公布 → 只给保底与活动上限', oddsRow('五星幻狐').textContent);
+  check(/1\.7 抽（新 3 \/ 出 5）/.test(oddsRow('三星普通').textContent),
+    '本日志实测列：三星普通 5 抽里出现 5 次、3 张新 → 1.7 抽', oddsRow('三星普通').textContent);
+  const packRows = [...$('cardPackOddsTable').querySelectorAll('tbody tr')];
+  check(packRows.length === 14 && /5星百戏超大锦囊/.test($('cardPackOddsTable').textContent)
+    && /83\.3%/.test($('cardPackOddsTable').textContent) && /牌2–4：/.test($('cardPackOddsTable').textContent),
+    '概率说明 14 种锦囊、牌位概率按原文数值内置（含 83.3% / 牌2–4 这种合并牌位）', String(packRows.length));
+  check(/百戏锦囊说明/.test($('cardOddsChips').textContent) && /戏符/.test($('cardOddsChips').textContent),
+    '规则表上方写清数据来源与戏符点口径', $('cardOddsChips').textContent);
+
   const groupBtns = () => [...$('cardGroupGrid').querySelectorAll('.card-group-btn')];
   const groupBtn = (key) => groupBtns().filter(b => b.dataset.group === key)[0];
   check(groupBtns().length === 15, '卡组网格 15 组（没粘进度也是 15 组）', String(groupBtns().length));

@@ -4357,6 +4357,18 @@
                     </div>
                 </div>
                 <div id="cardPityHint" class="hint-text">上传集卡 CSV 后，这里出「几抽出新卡」的分布图和明细。</div>
+                <label style="font-size:12.5px;margin-top:14px;">📐 规则 · 概率 · 预计几抽出新卡 <span class="card-sub">内置「百戏锦囊说明」的基本规则与概率说明</span></label>
+                <div class="stat-chips" id="cardOddsChips"></div>
+                <div class="career-scroll" style="max-height:340px;">
+                    <table class="career-table" id="cardOddsTable"></table>
+                </div>
+                <div id="cardOddsHint" class="hint-text">预计 = （保底连续重复张数 + 1）÷ 单包期望张数，按保底最坏情况估；实际看手气，活动结束所有指标重置。</div>
+                <details class="stat-fold">
+                    <summary>📦 每种锦囊的出货概率（概率说明原文数值）</summary>
+                    <div class="career-scroll" style="max-height:340px;">
+                        <table class="career-table" id="cardPackOddsTable"></table>
+                    </div>
+                </details>
             </div>
             <div class="card" id="cardGroupCard" data-seg-card="group">
                 <label>🗂️ 卡组收藏 <span class="card-sub">按游戏内卡牌页：15 组已内置 · 每行 3 组 · 点一组展开 9 张</span></label>
@@ -9063,6 +9075,42 @@
                                     // 一次开包最多 10 张（十连）；一次出几十张的是批量发卡（补发 / 活动发卡），不算「抽卡」——别让它污染抽数
                                     const CARD_PITY_MAX_PER_PULL = 10;
 
+                                    // ---- 内置「百戏锦囊说明」（2026-10 用户给的规则页 + 概率页原文数值）----
+                                    // 基本规则：保底 = 连续这么多张重复后，下一张同星级必是新的；cap = 活动内最多开这么多包集齐一系列
+                                    const CARD_DRAW_RULES = [
+                                        { key: 's5', label: '五星普通', star: 5, pity: 1, cap: 24, routes: [{ pack: '5星百戏锦囊' }] },
+                                        { key: 's4', label: '四星普通', star: 4, pity: 4, cap: 100, routes: [{ pack: '4星百戏锦囊' }] },
+                                        { key: 's3', label: '三星普通', star: 3, pity: 6, cap: 170, routes: [{ pack: '3星百戏锦囊' }] },
+                                        { key: 's2', label: '二星普通', star: 2, pity: 7, cap: 240, routes: [{ pack: '2星百戏锦囊' }] },
+                                        { key: 's1', label: '一星普通', star: 1, pity: 9, cap: 370, routes: [{ pack: '1星百戏锦囊' }] },
+                                        { key: 'x5', label: '五星霞光', star: 5, pity: 0, cap: 8, routes: [{ pack: '5星霞光锦囊' }, { pack: '5星百戏锦囊', note: '普通包转化' }] },
+                                        { key: 'x4', label: '四星霞光', star: 4, pity: 1, cap: 12, routes: [{ pack: '4星霞光锦囊' }, { pack: '4星百戏锦囊', note: '普通包转化' }] },
+                                        { key: 'x3', label: '三星霞光', star: 3, pity: 4, cap: 25, routes: [{ pack: '3星霞光锦囊' }, { pack: '3星百戏锦囊', note: '普通包转化' }] },
+                                        { key: 'h5', label: '五星幻狐', star: 5, pity: 0, cap: 5, routes: [] },
+                                        { key: 'h4', label: '四星幻狐', star: 4, pity: 1, cap: 12, routes: [] },
+                                        { key: 'h3', label: '三星幻狐', star: 3, pity: 1, cap: 16, routes: [] },
+                                        { key: 'h2', label: '二星幻狐', star: 2, pity: 2, cap: 24, routes: [] },
+                                    ];
+                                    // 概率说明：slots = 每个「牌位」的出货分布（百分比）；n = 连续几个牌位共用这套分布
+                                    const CARD_PACK_ODDS = [
+                                        { name: '1星百戏锦囊', cards: 2, slots: [{ n: 1, opts: [['2星普通', 25], ['1星普通', 75]] }, { n: 1, opts: [['1星普通', 100]] }] },
+                                        { name: '1星百戏大锦囊', cards: 4, slots: [{ n: 1, opts: [['2星普通', 25], ['1星普通', 75]] }, { n: 3, opts: [['1星普通', 100]] }] },
+                                        { name: '2星百戏锦囊', cards: 3, slots: [{ n: 1, opts: [['2星普通', 100]] }, { n: 1, opts: [['2星普通', 25], ['1星普通', 75]] }, { n: 1, opts: [['1星普通', 100]] }] },
+                                        { name: '2星百戏大锦囊', cards: 5, slots: [{ n: 1, opts: [['2星普通', 100]] }, { n: 2, opts: [['2星普通', 25], ['1星普通', 75]] }, { n: 2, opts: [['1星普通', 100]] }] },
+                                        { name: '3星百戏锦囊', cards: 3, slots: [{ n: 1, opts: [['3星普通', 93.3], ['3星霞光', 6.7]] }, { n: 1, opts: [['2星普通', 25], ['1星普通', 75]] }, { n: 1, opts: [['1星普通', 100]] }] },
+                                        { name: '3星百戏大锦囊', cards: 5, slots: [{ n: 1, opts: [['3星普通', 93.3], ['3星霞光', 6.7]] }, { n: 2, opts: [['2星普通', 55], ['1星普通', 45]] }, { n: 2, opts: [['1星普通', 100]] }] },
+                                        { name: '4星百戏锦囊', cards: 4, slots: [{ n: 1, opts: [['4星普通', 92.3], ['4星霞光', 7.7]] }, { n: 3, opts: [['3星普通', 13], ['2星普通', 39], ['1星普通', 48]] }] },
+                                        { name: '4星百戏大锦囊', cards: 6, slots: [{ n: 1, opts: [['4星普通', 92.3], ['4星霞光', 7.7]] }, { n: 3, opts: [['3星普通', 25], ['2星普通', 15], ['1星普通', 60]] }, { n: 2, opts: [['2星普通', 100]] }] },
+                                        { name: '5星百戏锦囊', cards: 4, slots: [{ n: 1, opts: [['5星普通', 83.3], ['5星霞光', 16.7]] }, { n: 1, opts: [['4星普通', 100]] }, { n: 2, opts: [['3星普通', 13], ['2星普通', 39], ['1星普通', 48]] }] },
+                                        { name: '5星百戏大锦囊', cards: 6, slots: [{ n: 1, opts: [['5星普通', 83.3], ['5星霞光', 16.7]] }, { n: 1, opts: [['4星普通', 100]] }, { n: 1, opts: [['3星普通', 100]] }, { n: 1, opts: [['2星普通', 100]] }, { n: 2, opts: [['4星普通', 15], ['3星普通', 20], ['2星普通', 30], ['1星普通', 35]] }] },
+                                        { name: '5星百戏超大锦囊', cards: 7, slots: [{ n: 1, opts: [['5星普通', 100]] }, { n: 1, opts: [['4星普通', 100]] }, { n: 1, opts: [['3星普通', 100]] }, { n: 1, opts: [['2星普通', 100]] }, { n: 1, opts: [['1星普通', 100]] }, { n: 2, opts: [['3星普通', 13], ['2星普通', 39], ['1星普通', 48]] }] },
+                                        { name: '3星霞光锦囊', cards: 3, slots: [{ n: 1, opts: [['3星霞光', 100]] }, { n: 2, opts: [['2星普通', 25], ['1星普通', 75]] }] },
+                                        { name: '4星霞光锦囊', cards: 4, slots: [{ n: 1, opts: [['4星霞光', 100]] }, { n: 3, opts: [['3星普通', 13], ['2星普通', 39], ['1星普通', 48]] }] },
+                                        { name: '5星霞光锦囊', cards: 4, slots: [{ n: 1, opts: [['5星霞光', 100]] }, { n: 3, opts: [['4星普通', 6], ['3星普通', 18], ['2星普通', 35], ['1星普通', 41]] }] },
+                                    ];
+                                    // 重复牌换戏符：按星数给点，活动结束清零
+                                    const CARD_DUPE_POINTS = { 1: 1, 2: 2, 3: 3, 4: 4, 5: 5 };
+
                                     function cardPityModel(records) {
                                         const allRows = cardPullRows(records);
                                         const skipped = allRows.filter(r => r.ids.length > CARD_PITY_MAX_PER_PULL);
@@ -9116,6 +9164,7 @@
                                         const hint = document.getElementById('cardPityHint');
                                         if (!chips || !body || !chart || !table || !hint) return null;
                                         const model = cardPityModel(records);
+                                        cardOddsRender(model);
                                         if (!model.totalPulls) {
                                             chips.innerHTML = model.skippedPulls
                                                 ? cardChipHtml('批量发卡已排除 <b>' + model.skippedPulls + '</b> 条（' + model.skippedCards + ' 张）', 'k-plain')
@@ -9159,6 +9208,119 @@
                                         hint.textContent = '共 ' + model.totalPulls + ' 抽（开包 ' + model.totalPulls + ' 次）· 新卡 ' + model.totalNew + ' 张 · 按 CSV 的「创建时间」排序'
                                             + (model.skippedPulls ? ' · 批量发卡 ' + model.skippedPulls + ' 条（' + model.skippedCards + ' 张）没算进抽数' : '');
                                         return model;
+                                    }
+
+                                    // ---------------- 抽卡规则 / 概率 / 预计几抽出新卡 ----------------
+                                    // 单包期望：这个锦囊平均每开一次出多少张指定星级的牌
+                                    function cardPackExpect(packName, label) {
+                                        const pack = CARD_PACK_ODDS.filter(p => p.name === packName)[0];
+                                        if (!pack) return 0;
+                                        let n = 0;
+                                        pack.slots.forEach(slot => {
+                                            slot.opts.forEach(o => { if (o[0] === label) n += slot.n * o[1] / 100; });
+                                        });
+                                        return n;
+                                    }
+
+                                    // 日志里的星级码 → 规则表里的 key（1–5 普通 / 23–25 霞光 / 32–35 幻狐）
+                                    function cardTierOfStarCode(code) {
+                                        const n = parseInt(code, 10) || 0;
+                                        if (n >= 1 && n <= 5) return 's' + n;
+                                        if (n === 23) return 'x3';
+                                        if (n === 24) return 'x4';
+                                        if (n === 25) return 'x5';
+                                        if (n === 32) return 'h2';
+                                        if (n === 33) return 'h3';
+                                        if (n === 34) return 'h4';
+                                        if (n === 35) return 'h5';
+                                        return '';
+                                    }
+
+                                    function cardTierCounts(model) {
+                                        const out = {};
+                                        if (!model || !model.rows) return out;
+                                        model.rows.forEach(row => {
+                                            row.ids.forEach((id, k) => {
+                                                const t = cardTierOfStarCode(row.stars[k]);
+                                                if (!t) return;
+                                                const cur = out[t] || (out[t] = { seen: 0, news: 0 });
+                                                cur.seen++;
+                                                if (row.isNew[k]) cur.news++;
+                                            });
+                                        });
+                                        return out;
+                                    }
+
+                                    function cardNum1(v) {
+                                        const r = Math.round(v * 10) / 10;
+                                        return String(r);
+                                    }
+
+                                    function cardPityRuleText(rule) {
+                                        if (!rule.pity) return '无（该类锦囊每包必出）';
+                                        return '连续 ' + rule.pity + ' 张重复 → 下一张必新';
+                                    }
+
+                                    function cardOddsRender(model) {
+                                        const chips = document.getElementById('cardOddsChips');
+                                        const table = document.getElementById('cardOddsTable');
+                                        const packTable = document.getElementById('cardPackOddsTable');
+                                        const hint = document.getElementById('cardOddsHint');
+                                        if (!chips || !table) return;
+                                        const pulls = (model && model.totalPulls) || 0;
+                                        const tier = cardTierCounts(model);
+                                        chips.innerHTML = [
+                                            cardChipHtml('数据来源：百戏锦囊说明', 'k-plain', '基本规则 + 概率说明（2026-10 用户提供的活动说明页）'),
+                                            cardChipHtml('重复牌换戏符：<b>1–5</b> 星 = 1–5 点', 'k-plain', '活动期间重复牌按星数等额换戏符点；活动结束戏符匣清零，不延续到下次'),
+                                            cardChipHtml('保底按最坏情况估', 'k-op', '预计 =（保底连续重复张数 + 1）÷ 单包期望张数'),
+                                        ].join('');
+
+                                        const head = '<thead><tr><th>星级</th><th>保底</th><th>单包期望</th><th>预计几抽出新卡</th><th>活动上限</th><th>本日志实测</th></tr></thead>';
+                                        const body = CARD_DRAW_RULES.map(rule => {
+                                            const label = rule.star + '星' + (rule.key.charAt(0) === 'x' ? '霞光' : rule.key.charAt(0) === 'h' ? '幻狐' : '普通');
+                                            const packs = rule.routes.map(r => {
+                                                const p = cardPackExpect(r.pack, label);
+                                                return { pack: r.pack, note: r.note || '', p: p };
+                                            });
+                                            const expectText = packs.length
+                                                ? packs.filter(x => x.p > 0).map(x => cardNum1((rule.pity + 1) / x.p) + ' 抽'
+                                                    + (x.note ? '（' + x.note + '）' : '')).join(' / ')
+                                                : '概率未公布';
+                                            const pText = packs.length
+                                                ? packs.filter(x => x.p > 0).map(x => String(Math.round(x.p * 100) / 100)).join(' / ')
+                                                : '—';
+                                            const t = tier[rule.key];
+                                            const realText = (t && t.news)
+                                                ? cardNum1(pulls / t.news) + ' 抽（新 ' + t.news + ' / 出 ' + t.seen + '）'
+                                                : (t && t.seen ? '还没出过新卡（出现 ' + t.seen + ' 次）' : '—');
+                                            return '<tr><td><b>' + escapeHtml(rule.label) + '</b></td>'
+                                                + '<td>' + escapeHtml(cardPityRuleText(rule)) + '</td>'
+                                                + '<td>' + escapeHtml(pText) + ' 张</td>'
+                                                + '<td>' + escapeHtml(expectText) + '</td>'
+                                                + '<td>' + rule.cap + ' 包</td>'
+                                                + '<td>' + escapeHtml(realText) + '</td></tr>';
+                                        }).join('');
+                                        table.innerHTML = head + '<tbody>' + body + '</tbody>';
+
+                                        if (packTable) {
+                                            const pHead = '<thead><tr><th>锦囊</th><th>开牌数</th><th>各牌位概率（原文数值）</th></tr></thead>';
+                                            const pBody = CARD_PACK_ODDS.map(pack => {
+                                                let idx = 1;
+                                                const parts = pack.slots.map(slot => {
+                                                    const from = idx;
+                                                    idx += slot.n;
+                                                    const to = idx - 1;
+                                                    const pos = from === to ? ('牌' + from) : ('牌' + from + '–' + to);
+                                                    return pos + '：' + slot.opts.map(o => o[0] + ' ' + o[1] + '%').join(' / ');
+                                                });
+                                                return '<tr><td><b>' + escapeHtml(pack.name) + '</b></td><td>' + pack.cards + ' 张</td><td>' + escapeHtml(parts.join('；')) + '</td></tr>';
+                                            }).join('');
+                                            packTable.innerHTML = pHead + '<tbody>' + pBody + '</tbody>';
+                                        }
+                                        if (hint) {
+                                            hint.textContent = '预计 =（保底连续重复张数 + 1）÷ 单包期望张数，按保底最坏情况估；'
+                                                + '幻狐锦囊的概率说明页里没有公布，所以只给保底与活动上限。实际看手气，活动结束所有指标重置。';
+                                        }
                                     }
 
                                     // ---------------- 卡组收藏（按游戏内卡牌页：15 组 × 9 张）----------------
@@ -17269,6 +17431,8 @@
                                         // 集卡 · 卡组收藏：解析 / 清空 / 点组展开
                                         setClick('cardGroupParseBtn', cardGroupRun);
                                         setClick('cardGroupClearBtn', cardGroupClear);
+                                        // 集卡 · 抽卡规则表（还没传 CSV 也先画出来）
+                                        cardOddsRender(null);
                                         addEvent('cardGroupGrid', 'click', (e) => {
                                             const t = e.target;
                                             const btn = t && t.closest ? t.closest('.card-group-btn') : null;
