@@ -210,9 +210,16 @@ ok((s.match(/"25[3-7]":\s*"/g) || []).length === 5, '253–257 只在来源映�
 {
   const actBlk = (s.match(/const DEFAULT_ACTIVITY_TYPE_MAP = \{[\s\S]*?\r?\n\s*\};/) || [''])[0];
   ok(/"75": "95打怪棋盘"/.test(actBlk), '活动类型映射已补 75（95打怪棋盘）');
-  ok((actBlk.match(/"\d+":/g) || []).length === 40, `活动类型映射键数 = ${(actBlk.match(/"\d+":/g) || []).length}（应为 40）`);
+  ok((actBlk.match(/"\d+":/g) || []).length === 41, `活动类型映射键数 = ${(actBlk.match(/"\d+":/g) || []).length}（应为 41）`);
   ok(/"84": "新拼图活动"/.test(actBlk), '活动类型映射已补 84（新拼图活动，2026-10 第三轮快照新增）');
+  ok(/"87": "糖葫芦2v2"/.test(actBlk), '活动类型映射已补 87（糖葫芦2v2，2026-11 快照新增）');
 }
+// 2026-11 快照：来源映射补 258–263 / 268–269（糖葫芦比拼活动奖励 = 263）
+ok(/"258": "走地图活动-棋子兑换活动体力"/.test(s) && /"259": "新拼图活动-初始化"/.test(s)
+  && /"260": "新拼图活动-点亮拼图"/.test(s) && /"261": "新拼图活动-领取碎片"/.test(s)
+  && /"262": "春生宝库"/.test(s) && /"263": "糖葫芦比拼活动奖励"/.test(s)
+  && /"268": "支付宝蚂蚁庄园活动奖励"/.test(s) && /"269": "道具使用-锦鲤"/.test(s),
+  '来源映射已补 258–263 / 268–269（2026-11 快照：走地图兑换体力、新拼图三项、春生宝库、糖葫芦比拼、蚂蚁庄园、锦鲤）');
 {
   // 2026-10 按 GM 玩家页核对：活动类型 39 条逐条一致、来源 256 条（页面本就缺 52）一致、
   // 卡包 151–179 名称一致（173–179 沿用「霞光/幻狐 N 星锦囊」手写风格，见已定语义 3），
@@ -459,6 +466,15 @@ ok(/id="careerShiftTodayBtn"/.test(s) && /setClick\('careerShiftTodayBtn', \(\) 
   && /DAILY_TAB_KEYS\.forEach\(k => renderDailyForm\(k\)\);/.test(s)
   && /还没排班：先在「点日期：改班次」模式下点今天挑一个班次/.test(s),
   '排班卡上的「同步到日报」还在：把今天的班次写进日报三栏的「班次」并重画表单；今天没排班时给提示不瞎写');
+// 2026-11 用户：「将排班可以同步到每一天的日报中」→ 多一个按钮，按排班表逐天写进那天已归档的日报记录
+ok(/id="careerShiftAllBtn"/.test(s) && /setClick\('careerShiftAllBtn', \(\) => \{/.test(s)
+  && /const map = careerShiftLoad\(\);/.test(s)
+  && /const rec = careerData\.records\[d\];/.test(s)
+  && /if \(String\(rec\.shift \|\| ''\)\.trim\(\) === code\) \{ same\+\+; return; \}/.test(s)
+  && /rec\.shift = code;/.test(s)
+  && /if \(code === 'O'\) \{ rest\+\+; return; \}/.test(s)
+  && /排班 → 日报：更新 ' \+ updated \+ ' 天'/.test(s),
+  '排班卡上的「同步整天班次到日报」：按排班表逐天把班次写进那一天已归档的日报记录（休息日 O 不写、没归档的日子跳过只报数），今天顺带同步日报三栏');
 // 补录 / 粘贴导入：默认收起，点标题才展开
 ok(/id="careerEditToggleBtn"/.test(s) && /id="careerEditBody"/.test(s)
   && /id="careerImportToggleBtn"/.test(s) && /id="careerImportBody"/.test(s)
@@ -911,6 +927,23 @@ ok(/class="seg-bar" data-for="tab-gen"/.test(s) && /data-seg="reply" data-n="01"
 ok(/id="sdLogInput"/.test(s) && /id="sdOutput"/.test(s) && /id="sdGenerateBtn"/.test(s)
   && /id="sdCopyBtn"/.test(s) && /id="sdClearBtn"/.test(s) && /id="sdReportSub"/.test(s),
   '七日任务那一段：粘进度日志 + 生成 / 复制 / 清空 + 结果框');
+// 2026-11 优化：内置「活动排期」表（从 GM 玩家页七日任务进度日志的排期下拉抄的），抬头写时间窗、多期日志按期分段
+ok(/const SD_SCHEDULE = \[/.test(s)
+  && /'34\|2026\/10\/19 8:00~2026\/10\/28 7:59',/.test(s)
+  && /'37\|2026\/11\/9 8:00~2026\/11\/18 7:59',/.test(s)
+  && /function sdScheduleOf\(id\)/.test(s) && /function sdScheduleTail\(id\)/.test(s)
+  && /const scheds = \{\}, schedOrder = \[\];/.test(s)
+  && /活动排期 ' \+ one \+ sdScheduleTail\(one\)/.test(s)
+  && /活动排期 ' \+ sec\.key \+ sdScheduleTail\(sec\.key\)/.test(s),
+  '七日任务：内置 35 条活动排期（id → 起止时间），抬头写「活动排期 N：时间窗」；一次粘多期日志时按期分段（每段写排期 + 时间窗 + 几个任务）');
+// 糖葫芦对决（活动类型 87）：新的一段 + 反推的行为枚举（1 匹配 / 2 结算 / 3 进度）
+ok(/data-seg="tanghulu" data-n="04">糖葫芦对决</.test(s) && /id="genTanghuluPane"/.test(s)
+  && /id="thlInput"/.test(s) && /id="thlParseBtn"/.test(s) && /id="thlOutput"/.test(s) && /id="thlChips"/.test(s)
+  && /const THL_BEHAVIOR_TEXT = \{ '1': '匹配', '2': '结算', '3': '进度' \};/.test(s)
+  && /function thlParse\(raw\)/.test(s) && /function thlRun\(\)/.test(s)
+  && /setClick\('thlParseBtn', thlRun\)/.test(s) && /setClick\('thlClearBtn', thlClear\)/.test(s)
+  && /活动排期 ' \+ key \+ sdScheduleTail\(key\)/.test(s),
+  '糖葫芦对决（活动类型 87 = 糖葫芦2v2）：话术生成页多一段「04 糖葫芦对决」，粘 GM 查询结果 → 按排期 / 行为（1 匹配 / 2 结算 / 3 进度）汇总');
 ok(!/id="sdTaskFold"/.test(s) && !/id="sdTaskInput"/.test(s) && !/id="sdTaskSub"/.test(s)
   && !/sdInitTaskTable/.test(s) && !/sdTaskResetBtn/.test(s) && !/sdClearTask/.test(s),
   '任务表完全不上界面：页面上没有折叠区 / 只读框 / 条数副标（也没有「清掉任务表」按钮）');

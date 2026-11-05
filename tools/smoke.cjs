@@ -2196,8 +2196,9 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     $('sdGenerateBtn').click();
     await sleep(40);
     const out = $('sdOutput').value;
-    check(/^七日任务进度（活动排期 34） · 共 4 个任务/.test(out),
-      '首行写活动排期 + 一共几个任务', out.split('\n')[0]);
+    check(/^七日任务进度（活动排期 34：2026\/10\/19 8:00~2026\/10\/28 7:59） · 共 4 个任务/.test(out),
+      '首行写活动排期 + 这一期的时间窗（2026/10/19 8:00~2026/10/28 7:59，2026-11 从 GM 排期下拉抄的表）+ 一共几个任务',
+      out.split('\n')[0]);
     check(/^第4天$/m.test(out) && /^第5天$/m.test(out) && /^第6天$/m.test(out) && /^第7天$/m.test(out)
       && out.indexOf('第4天') < out.indexOf('第5天'),
       '按任务表的天数分组并排序（第4天 → 第7天）');
@@ -2340,6 +2341,79 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     $('sdCopyBtn').click();
     await sleep(20);
     check(/还没有生成结果/.test($('sdHint').textContent), '没结果时点复制只提示', $('sdHint').textContent);
+
+    // 一次粘两期日志 → 按排期分段（2026-11 优化：不再把几期混在一起按天排）
+    $('sdLogInput').value = [
+      '2026-10-22 09:55:00\t34\taaa\t2504\t91\t100\t1\t2',
+      '2026-11-05 10:00:00\t36\tbbb\t2505\t0\t5\t1\t1',
+    ].join('\n');
+    fire($('sdLogInput'), 'input');
+    $('sdGenerateBtn').click();
+    await sleep(40);
+    const sdMulti = $('sdOutput').value;
+    check(/^七日任务进度 · 共 2 个任务/.test(sdMulti)
+      && /^活动排期 34：2026\/10\/19 8:00~2026\/10\/28 7:59 · 1 个任务$/m.test(sdMulti)
+      && /^活动排期 36：2026\/11\/2 8:00~2026\/11\/11 7:59 · 1 个任务$/m.test(sdMulti),
+      '一次粘两期进度日志 → 抬头不再写单期，改成按期分段（每段写排期时间窗 + 几个任务）', sdMulti);
+    check(sdMulti.indexOf('活动排期 34') < sdMulti.indexOf('活动排期 36'),
+      '多期按日志里的排期顺序排（34 在 36 前面）');
+  }
+
+  console.log('--- 8q-2. 糖葫芦对决（活动类型 87 = 糖葫芦2v2，反推：1 匹配 / 2 结算 / 3 进度） ---');
+  {
+    const postsThl = posts.length;
+    doc.querySelector('#tab-gen .seg-btn[data-seg="tanghulu"]').click();
+    await sleep(60);
+    check($('tab-gen').dataset.seg === 'tanghulu' && $('genTanghuluPane').classList.contains('seg-on'),
+      '话术生成页多了一段「04 糖葫芦对决」，切过去只显示这一段');
+    check(!!$('thlInput') && !!$('thlParseBtn') && !!$('thlOutput') && !!$('thlChips'),
+      '糖葫芦那一段有输入框 / 解析按钮 / 芯片区 / 结果框');
+
+    $('thlInput').value = [
+      '排期ID\t行为\t事件UUID\t时间',
+      '37\t匹配\t8f2c1d3e4b5a69788796a5b4c3d2e1f0\t2026-11-10 20:15:03',
+      '37\t匹配\t9f2c1d3e4b5a69788796a5b4c3d2e1f0\t2026-11-10 20:40:11',
+      '37\t结算\t7f2c1d3e4b5a69788796a5b4c3d2e1f0\t2026-11-11 09:05:00',
+      '37\t进度\t6f2c1d3e4b5a69788796a5b4c3d2e1f0\t2026-11-11 09:06:00',
+    ].join('\n');
+    $('thlParseBtn').click();
+    await sleep(80);
+    const thlOut = $('thlOutput').value;
+    check(/^糖葫芦2v2 · 共 4 条/.test(thlOut), '抬头写「糖葫芦2v2 · 共 4 条」', thlOut.split('\n')[0]);
+    check(/^活动排期 37：2026\/11\/9 8:00~2026\/11\/18 7:59 · 4 条$/m.test(thlOut),
+      '按排期分组 + 带出这一期的时间窗（37 → 2026/11/9 8:00~2026/11/18 7:59）', thlOut);
+    check(/匹配 2 场 · 结算 1 场 · 进度 1 条/.test(thlOut),
+      '行为 1 / 2 / 3 反推成「匹配 / 结算 / 进度」并汇总', thlOut);
+    check(/时间跨度：11-10 20:15 ~ 11-11 09:06/.test(thlOut), '时间跨度取最早 ~ 最晚', thlOut);
+    check(/^- 11-11 09:05 · 结算 · c3d2e1f0$/m.test(thlOut),
+      '结算那条逐条列出（时间 + 结算 + 事件UUID 后 8 位）', thlOut);
+    check(/共 <b>4<\/b> 条/.test($('thlChips').innerHTML) && /匹配 <b>2<\/b> 场/.test($('thlChips').innerHTML)
+      && /排期 <b>37<\/b>/.test($('thlChips').innerHTML),
+      '芯片：总条数 / 匹配 / 结算 / 进度 / 排期', $('thlChips').textContent);
+    check(/认出 4 条（按表头对齐）/.test($('thlHint').textContent),
+      '有表头就按表头对齐，提示里说明', $('thlHint').textContent);
+
+    // 没表头：按内容猜（1/2/3 当行为、日期当时间、32 位十六进制当事件）
+    $('thlInput').value = '37\t2\t8f2c1d3e4b5a69788796a5b4c3d2e1f0\t2026-11-12 10:00:00';
+    $('thlParseBtn').click();
+    await sleep(60);
+    check(/共 1 条/.test($('thlOutput').value) && /匹配 0 场 · 结算 1 场 · 进度 0 条/.test($('thlOutput').value),
+      '没有表头也能按内容猜出行为（2 = 结算）', $('thlOutput').value);
+    check(/没表头，按内容猜的/.test($('thlHint').textContent), '提示里写「没表头，按内容猜的」', $('thlHint').textContent);
+
+    $('thlInput').value = '这里没有糖葫芦的记录';
+    $('thlParseBtn').click();
+    await sleep(40);
+    check($('thlOutput').value === '' && /没认出记录/.test($('thlHint').textContent),
+      '认不出记录时结果清空 + 提示怎么粘', $('thlHint').textContent);
+    $('thlCopyBtn').click();
+    await sleep(20);
+    check(/还没汇总/.test($('thlHint').textContent), '没结果时点复制只提示', $('thlHint').textContent);
+    $('thlClearBtn').click();
+    await sleep(30);
+    check($('thlInput').value === '' && $('thlOutput').value === '' && $('thlChips').innerHTML === '',
+      '🧹 清空把输入 / 结果 / 芯片都清掉');
+    check(posts.length === postsThl, '糖葫芦查询全程只在本机（0 请求）');
   }
 
   console.log('--- 8r. 反馈模板 · 巨多（卡片墙：一张卡 = 一条消息） ---');
@@ -2923,6 +2997,19 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
       '「同步到日报」把今天（' + bjToday + '）的班次 H 写进日报的「班次」栏（工单 + 在线客服）', shiftNow.join(' / '));
     check(/已同步到日报三栏/.test($('careerRestHint').textContent),
       '同步完在排班卡上给一句提示', $('careerRestHint').textContent);
+
+    // 「同步整天班次到日报」：按排班表逐天写进那天已归档的日报记录（没归档的跳过、休息日不算）
+    $('careerShiftAllBtn').click();
+    await sleep(160);
+    check(/排班 → 日报：更新 \d+ 天/.test($('careerRestHint').textContent),
+      '「同步整天班次到日报」把排班表里每一天的班次写进那一天的日报归档（并报出更新 / 跳过 / 休息的天数）',
+      $('careerRestHint').textContent);
+    {
+      const cd = lastCareer() || {};
+      const rec = cd.records && cd.records[bjToday];
+      check(!rec || String(rec.shift || '').trim() === 'H',
+        '今天那条日报归档的班次也是 H（跟「同步到日报」一致）', rec && rec.shift);
+    }
     $('careerRestModeRest').click();
     await sleep(40);
   }

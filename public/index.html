@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="x-build" content="2026-10-30 我要烟牌-v19-来源252即结算">
+    <meta name="x-build" content="2026-11-05 糖葫芦-v20-糖葫芦查+排期窗+整天同步">
     <title>客服冷静演绎工作台</title>
     <link rel="icon" type="image/gif" href="/my-icon.gif">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -4112,6 +4112,7 @@
                 <button type="button" class="seg-btn active" data-seg="reply" data-n="01">话术生成</button>
                 <button type="button" class="seg-btn" data-seg="sevenday" data-n="02">七日任务进度</button>
                 <button type="button" class="seg-btn" data-seg="teainfo" data-n="03">吉运节节高（下午茶）</button>
+                <button type="button" class="seg-btn" data-seg="tanghulu" data-n="04">糖葫芦对决</button>
             </div>
             <div class="inline-card" style="margin-bottom: 20px;" data-seg-card="reply">
                 <label style="font-size: 1.1rem; margin-bottom: 10px;">智能粘贴识别（支持资源/棋子/订单）</label>
@@ -4250,6 +4251,33 @@
                     <div id="teaLayerBox"></div>
                     <label style="margin-top:14px;">话术</label>
                     <textarea id="teaInfoOut" rows="10" readonly placeholder="解析完这里出现可以直接发玩家的话术"></textarea>
+                </div>
+            </div>
+
+            <!-- 糖葫芦对决（活动类型 87 = 糖葫芦2v2）：把 GM「活动查询 / type/87」的结果整段粘进来，按行为汇总 -->
+            <div id="genTanghuluPane" data-seg-card="tanghulu">
+                <div class="card" id="tanghuluCard">
+                    <label>🍡 糖葫芦对决 → 查询
+                        <span class="card-sub">活动类型 87 = 糖葫芦2v2（行为：1 匹配 / 2 结算 / 3 进度），奖励来源 263 = 糖葫芦比拼活动奖励</span>
+                    </label>
+                    <details class="stat-fold">
+                        <summary>粘法 / 列名说明</summary>
+                        <div>
+                            把 GM 玩家页左侧「糖葫芦2v2」那个查询的结果整段复制进来（制表符 / 逗号分隔都行，带不带表头都认）。<br>
+                            列名认：<b>排期ID · 行为（匹配 / 结算 / 进度，或 1 / 2 / 3）· 事件UUID · 时间</b>；有「道具 / 数量」列就一起算进奖励明细。<br>
+                            不带表头时按内容猜：<b>1–3 那列当行为</b>、日期那列当时间、32 位十六进制当事件UUID、6 位以上纯数字当排期。
+                        </div>
+                    </details>
+                    <textarea id="thlInput" rows="9" style="margin-top:10px;" placeholder="排期ID&#9;行为&#9;事件UUID&#9;时间&#10;37&#9;匹配&#9;8f2c1d3e4b5a69788796a5b4c3d2e1f0&#9;2026-11-10 20:15:03"></textarea>
+                    <div class="flex-row" style="margin-top:10px;">
+                        <button id="thlParseBtn">🔍 解析并汇总</button>
+                        <button id="thlCopyBtn" class="secondary">📋 复制汇总</button>
+                        <button id="thlClearBtn" class="reset-btn">🧹 清空</button>
+                        <span class="hint-text" id="thlHint"></span>
+                    </div>
+                    <div class="stat-chips" id="thlChips"></div>
+                    <label style="margin-top:14px;">汇总结果</label>
+                    <textarea id="thlOutput" rows="12" readonly placeholder="解析完这里出现这一期的匹配 / 结算 / 进度汇总"></textarea>
                 </div>
             </div>
 
@@ -4664,6 +4692,7 @@
                     </span>
                     <!-- [需求] 2026-10：把日历上今天的班次同步进日报三栏（识别那块去掉后只留这个动作） -->
                     <button id="careerShiftTodayBtn" class="secondary" title="把日历上今天的班次带进每日日报三栏">同步到日报</button>
+                    <button id="careerShiftAllBtn" class="secondary" title="把日历上每一天的班次写进那一天的日报归档（careerData 每天那条记录的班次）">同步整天班次到日报</button>
                     <button id="careerRestWeekendBtn" class="secondary">周末全休</button>
                     <button id="careerRestClearMonthBtn" class="reset-btn">清空本月</button>
                     <span class="hint-text" id="careerRestHint"></span>
@@ -7262,10 +7291,19 @@
                                         "255": "联动分享活动-最终奖励",
                                         "256": "打脸信活动奖励",
                                         "257": "打怪棋盘-消耗步数",
+                                        // 2026-11 快照补齐（GM 玩家页来源下拉）
+                                        "258": "走地图活动-棋子兑换活动体力",
+                                        "259": "新拼图活动-初始化",
+                                        "260": "新拼图活动-点亮拼图",
+                                        "261": "新拼图活动-领取碎片",
+                                        "262": "春生宝库",
+                                        "263": "糖葫芦比拼活动奖励",
                                         "264": "活动pass卡领取",
                                         "265": "活动pass卡购买",
                                         "266": "1+4礼包购买",
-                                        "267": "1+4礼包免费领取"
+                                        "267": "1+4礼包免费领取",
+                                        "268": "支付宝蚂蚁庄园活动奖励",
+                                        "269": "道具使用-锦鲤"
                                     };
 
                                     // ==================== 活动类型映射（默认示例） ====================
@@ -7309,7 +7347,9 @@
                                         "77": "手偶活动",
                                         "79": "织布大赛",
                                         "81": "体力排行榜",
-                                        "84": "新拼图活动"
+                                        "84": "新拼图活动",
+                                        // 2026-11 快照补齐：GM 玩家页活动类型下拉里的第 41 项
+                                        "87": "糖葫芦2v2"
                                     };
 
                                     // ==================== 日报生成 · 数据 ====================
@@ -15784,6 +15824,64 @@
                                     const SD_TASK_ORDER = ['id', 'day', 'desc', 'target', 'progress', 'custProgress', 'custStatus', 'status', 'score', 'reward'];
                                     const SD_LOG_ORDER = ['time', 'schedule', 'event', 'id', 'oldP', 'newP', 'oldS', 'newS'];
 
+                                    // 七日任务「活动排期」表（2026-11 从 GM 玩家页「七日任务进度日志」的排期下拉抄下来的：id|起~止）
+                                    // 用处：话术抬头写清这一期的时间窗（客服最常被追问「这期到几号」），多期日志也能分段。
+                                    const SD_SCHEDULE = [
+                                        '1|2026/1/16 8:00~2026/1/24 23:59',
+                                        '2|2026/1/23 8:00~2026/1/31 23:59',
+                                        '3|2026/1/30 8:00~2026/2/8 23:59',
+                                        '4|2026/2/3 8:00~2026/2/13 8:00',
+                                        '5|2026/3/2 8:00~2026/3/12 7:59',
+                                        '6|2026/3/9 8:00~2026/3/19 7:59',
+                                        '7|2026/3/16 8:00~2026/3/26 7:59',
+                                        '8|2026/3/23 8:00~2026/4/2 7:59',
+                                        '9|2026/3/30 8:00~2026/4/9 7:59',
+                                        '10|2026/4/6 8:00~2026/4/16 7:59',
+                                        '11|2026/4/13 8:00~2026/4/23 7:59',
+                                        '12|2026/4/20 8:00~2026/4/30 7:59',
+                                        '13|2026/4/27 8:00~2026/5/7 7:59',
+                                        '14|2026/5/4 8:00~2026/5/14 7:59',
+                                        '15|2026/5/11 8:00~2026/5/21 7:59',
+                                        '16|2026/5/18 8:00~2026/5/28 7:59',
+                                        '19|2026/7/6 8:00~2026/7/15 7:59',
+                                        '20|2026/7/13 8:00~2026/7/22 7:59',
+                                        '21|2026/7/20 8:00~2026/7/29 7:59',
+                                        '22|2026/7/27 8:00~2026/8/5 7:59',
+                                        '23|2026/8/3 8:00~2026/8/12 7:59',
+                                        '24|2026/8/10 8:00~2026/8/19 7:59',
+                                        '25|2026/8/17 8:00~2026/8/26 7:59',
+                                        '26|2026/8/24 8:00~2026/9/2 7:59',
+                                        '27|2026/8/31 8:00~2026/9/9 7:59',
+                                        '28|2026/9/7 8:00~2026/9/16 7:59',
+                                        '29|2026/9/14 8:00~2026/9/23 7:59',
+                                        '30|2026/9/21 8:00~2026/9/30 7:59',
+                                        '31|2026/9/28 8:00~2026/10/7 7:59',
+                                        '32|2026/10/5 8:00~2026/10/14 7:59',
+                                        '33|2026/10/12 8:00~2026/10/21 7:59',
+                                        '34|2026/10/19 8:00~2026/10/28 7:59',
+                                        '35|2026/10/26 8:00~2026/11/4 7:59',
+                                        '36|2026/11/2 8:00~2026/11/11 7:59',
+                                        '37|2026/11/9 8:00~2026/11/18 7:59',
+                                    ];
+                                    let sdScheduleMap = null;
+                                    function sdScheduleOf(id) {
+                                        const key = String(id == null ? '' : id).trim();
+                                        if (!key) return null;
+                                        if (!sdScheduleMap) {
+                                            sdScheduleMap = {};
+                                            SD_SCHEDULE.forEach(line => {
+                                                const m = /^(\d+)\|([^~]+)~(.+)$/.exec(line);
+                                                if (m) sdScheduleMap[m[1]] = { id: m[1], start: m[2].trim(), end: m[3].trim() };
+                                            });
+                                        }
+                                        return sdScheduleMap[key] || null;
+                                    }
+                                    // 「（活动排期 34：2026/10/19 8:00~2026/10/28 7:59）」后面这一截（认不出排期就给空串）
+                                    function sdScheduleTail(id) {
+                                        const s = sdScheduleOf(id);
+                                        return s ? ('：' + s.start + '~' + s.end) : '';
+                                    }
+
                                     // 内置的固定任务表 —— 「任务表是固定的」所以直接写死在代码里，界面上不展示、也改不了。
                                     // 现在放了三期七日任务（ID 不重复，三期的日志都认）：
                                     //   最新一期 2521–2555（35 条，客户端进度 / 客户端状态两列是「-」）
@@ -16162,19 +16260,39 @@
                                                 newP: String(last.newP == null ? '' : last.newP).trim(),
                                                 newS: String(last.newS == null ? '' : last.newS).trim(),
                                                 time: String(last.time == null ? '' : last.time).trim(),
+                                                schedule: String(last.schedule == null ? '' : last.schedule).trim(),
                                                 t: sdTaskById(id, byId, tasks) || {}
                                             };
                                         });
-                                        const sched = (logs.map(l => l.schedule).filter(Boolean)[0]) || '';
-                                        const days = {}, dayOrder = [];
+                                        // 按「活动排期」分组（2026-11 优化：一次粘多期日志也对，不再把几期混在一起按天排）
+                                        const scheds = {}, schedOrder = [];
                                         items.forEach(it => {
-                                            const d = sdDayText(it.t.day) || '未标天数';
-                                            if (!days[d]) { days[d] = []; dayOrder.push(d); }
-                                            days[d].push(it);
+                                            const key = String(it.schedule || '').trim() || '(无排期)';
+                                            if (!scheds[key]) { scheds[key] = []; schedOrder.push(key); }
+                                            scheds[key].push(it);
                                         });
-                                        dayOrder.sort((a, b) => sdDayOrder(a) - sdDayOrder(b));
-                                        const lines = ['七日任务进度' + (sched ? '（活动排期 ' + sched + '）' : '') + ' · 共 ' + items.length + ' 个任务'];
-                                        dayOrder.forEach(d => {
+                                        const multi = schedOrder.length > 1;
+                                        const one = schedOrder[0] || '';
+                                        const lines = [multi
+                                            ? '七日任务进度 · 共 ' + items.length + ' 个任务'
+                                            : '七日任务进度' + (one && one !== '(无排期)' ? '（活动排期 ' + one + sdScheduleTail(one) + '）' : '') + ' · 共 ' + items.length + ' 个任务'];
+                                        const sections = schedOrder.map(key => {
+                                            const days = {}, dayOrder = [];
+                                            scheds[key].forEach(it => {
+                                                const d = sdDayText(it.t.day) || '未标天数';
+                                                if (!days[d]) { days[d] = []; dayOrder.push(d); }
+                                                days[d].push(it);
+                                            });
+                                            dayOrder.sort((a, b) => sdDayOrder(a) - sdDayOrder(b));
+                                            return { key: key, days: days, dayOrder: dayOrder };
+                                        });
+                                        sections.forEach(sec => {
+                                            if (multi) {
+                                                lines.push('');
+                                                lines.push('活动排期 ' + sec.key + sdScheduleTail(sec.key) + ' · ' + scheds[sec.key].length + ' 个任务');
+                                            }
+                                            const days = sec.days;
+                                            sec.dayOrder.forEach(d => {
                                             lines.push('');
                                             lines.push(d);
                                             days[d].forEach((it, i) => {
@@ -16208,6 +16326,7 @@
                                                 }
                                                 lines.push((i + 1) + '. ' + (clock ? clock + ' ' : '') + name + '：' + segs.join('，'));
                                             });
+                                        });
                                         });
                                         return lines.join('\n');
                                     }
@@ -17216,6 +17335,185 @@
                                         teaSetHint('teaInfoHint', '已清空');
                                     }
 
+                                    // ==================== 🍡 糖葫芦对决（活动类型 87 = 糖葫芦2v2）====================
+                                    // 2026-11 从 GM 玩家页反推出的口径：
+                                    //   活动类型 87 = 糖葫芦2v2；行为枚举 = 1 匹配 / 2 结算 / 3 进度；
+                                    //   奖励来源 263 = 糖葫芦比拼活动奖励。
+                                    // 所以「查询」= 把 type/87 那段查询结果粘进来 → 按排期 / 行为汇总成客服看得懂的一段。
+                                    const THL_BEHAVIOR_TEXT = { '1': '匹配', '2': '结算', '3': '进度' };
+                                    const THL_ALIASES = {
+                                        '排期': 'schedule', '排期id': 'schedule', '活动排期': 'schedule', '活动排期id': 'schedule',
+                                        '行为': 'behavior', '类型': 'behavior', '事件类型': 'behavior',
+                                        '事件': 'event', '事件uuid': 'event', '事件id': 'event', 'uuid': 'event',
+                                        '时间': 'time', '创建时间': 'time', '发生时间': 'time',
+                                        '道具': 'item', '道具名': 'item', '奖励': 'item',
+                                        '数量': 'count', '个数': 'count'
+                                    };
+                                    function thlCells(line) {
+                                        if (line.indexOf('\t') !== -1) return line.split('\t').map(s => s.trim());
+                                        if (line.indexOf(',') !== -1) return line.split(',').map(s => s.trim().replace(/^"|"$/g, ''));
+                                        return line.split(/\s{2,}/).map(s => s.trim()).filter(Boolean);
+                                    }
+                                    function thlBehavior(v) {
+                                        const s = String(v == null ? '' : v).trim();
+                                        if (!s) return '';
+                                        if (THL_BEHAVIOR_TEXT[s]) return THL_BEHAVIOR_TEXT[s];
+                                        if (s.indexOf('匹配') !== -1) return '匹配';
+                                        if (s.indexOf('结算') !== -1) return '结算';
+                                        if (s.indexOf('进度') !== -1) return '进度';
+                                        return '';
+                                    }
+                                    function thlClock(v) {
+                                        const s = String(v == null ? '' : v).trim();
+                                        const m = /(\d{4})[-/](\d{1,2})[-/](\d{1,2})[ T](\d{1,2}):(\d{2})/.exec(s);
+                                        if (!m) return s;
+                                        const p2 = n => (String(n).length < 2 ? '0' + n : String(n));
+                                        return p2(m[2]) + '-' + p2(m[3]) + ' ' + p2(m[4]) + ':' + m[5];
+                                    }
+                                    // 一行 → { schedule, behavior, event, time, item, count }
+                                    function thlRow(cells, map) {
+                                        const row = { schedule: '', behavior: '', event: '', time: '', item: '', count: '' };
+                                        if (map) {
+                                            Object.keys(map).forEach(key => {
+                                                const idx = map[key];
+                                                if (idx < 0 || idx >= cells.length) return;
+                                                row[key] = cells[idx];
+                                            });
+                                            row.behavior = thlBehavior(row.behavior) || row.behavior;
+                                            return row;
+                                        }
+                                        // 没表头：按内容猜（1–3 那个数当行为，日期当时间，32 位十六进制当事件，短数字当排期）
+                                        cells.forEach(c => {
+                                            const s = String(c).trim();
+                                            if (!s) return;
+                                            const b = thlBehavior(s);
+                                            if (b && !row.behavior) { row.behavior = b; return; }
+                                            if (!row.time && /\d{4}[-/]\d{1,2}[-/]\d{1,2}/.test(s)) { row.time = s; return; }
+                                            if (!row.event && /^[0-9a-f]{16,}$/i.test(s)) { row.event = s; return; }
+                                            if (!row.schedule && /^\d{1,4}$/.test(s)) { row.schedule = s; return; }
+                                            if (!row.item && /[\u4e00-\u9fa5]/.test(s) && s.length <= 24) { row.item = s; return; }
+                                        });
+                                        return row;
+                                    }
+                                    function thlParse(raw) {
+                                        const lines = String(raw || '').split(/\r?\n/).filter(l => l.trim());
+                                        if (!lines.length) return { rows: [], hasHeader: false };
+                                        // 表头识别：首行至少两个列名命中别名才当表头
+                                        let map = null, start = 0;
+                                        const headCells = thlCells(lines[0]);
+                                        const guess = {};
+                                        let hits = 0;
+                                        headCells.forEach((c, i) => {
+                                            const key = THL_ALIASES[String(c).trim().toLowerCase().replace(/\s+/g, '')];
+                                            if (key && guess[key] === undefined) { guess[key] = i; hits++; }
+                                        });
+                                        if (hits >= 2) { map = guess; start = 1; }
+                                        const rows = [];
+                                        for (let i = start; i < lines.length; i++) {
+                                            const row = thlRow(thlCells(lines[i]), map);
+                                            if (!row.behavior && !row.schedule && !row.time && !row.event) continue;
+                                            rows.push(row);
+                                        }
+                                        return { rows: rows, hasHeader: !!map };
+                                    }
+                                    function thlBuild(raw) {
+                                        const p = thlParse(raw);
+                                        const rows = p.rows;
+                                        if (!rows.length) return { text: '', chips: null, groups: [], rows: rows, hasHeader: p.hasHeader };
+                                        const bySch = {}, order = [];
+                                        rows.forEach(r => {
+                                            const key = String(r.schedule || '').trim() || '(无排期)';
+                                            if (!bySch[key]) { bySch[key] = []; order.push(key); }
+                                            bySch[key].push(r);
+                                        });
+                                        const count = (list, name) => list.filter(r => r.behavior === name).length;
+                                        const lines = ['糖葫芦2v2 · 共 ' + rows.length + ' 条'];
+                                        const groups = [];
+                                        order.forEach(key => {
+                                            const list = bySch[key];
+                                            const times = list.map(r => String(r.time || '')).filter(Boolean).sort();
+                                            const span = times.length ? (thlClock(times[0]) + ' ~ ' + thlClock(times[times.length - 1])) : '';
+                                            const g = {
+                                                schedule: key,
+                                                total: list.length,
+                                                match: count(list, '匹配'),
+                                                settle: count(list, '结算'),
+                                                progress: count(list, '进度'),
+                                                span: span,
+                                                others: list.filter(r => !r.behavior).length
+                                            };
+                                            groups.push(g);
+                                            lines.push('');
+                                            lines.push('活动排期 ' + key + sdScheduleTail(key) + ' · ' + list.length + ' 条');
+                                            lines.push('匹配 ' + g.match + ' 场 · 结算 ' + g.settle + ' 场 · 进度 ' + g.progress + ' 条'
+                                                + (g.others ? ' · 其他 ' + g.others + ' 条' : ''));
+                                            if (span) lines.push('时间跨度：' + span);
+                                            // 结算明细（客服最常被问「这期结算了没」）：条数不多时逐条列出
+                                            const settles = list.filter(r => r.behavior === '结算');
+                                            if (settles.length && settles.length <= 12) {
+                                                settles.forEach(r => {
+                                                    const bits = [thlClock(r.time || '') || '—', '结算'];
+                                                    if (r.item) bits.push(r.item + (r.count ? '×' + r.count : ''));
+                                                    if (r.event) bits.push(String(r.event).slice(-8));
+                                                    lines.push('- ' + bits.join(' · '));
+                                                });
+                                            }
+                                        });
+                                        const chips = {
+                                            total: rows.length,
+                                            match: count(rows, '匹配'),
+                                            settle: count(rows, '结算'),
+                                            progress: count(rows, '进度'),
+                                            scheds: order.join(' / '),
+                                            groups: groups
+                                        };
+                                        return { text: lines.join('\n'), chips: chips, rows: rows, groups: groups, hasHeader: p.hasHeader };
+                                    }
+                                    function thlRun() {
+                                        const input = document.getElementById('thlInput');
+                                        const outEl = document.getElementById('thlOutput');
+                                        const chipsEl = document.getElementById('thlChips');
+                                        const raw = (input && input.value) || '';
+                                        if (!raw.trim()) {
+                                            if (outEl) outEl.value = '';
+                                            if (chipsEl) chipsEl.innerHTML = '';
+                                            teaSetHint('thlHint', '先把 GM「糖葫芦2v2（活动类型 87）」那段查询结果粘进来');
+                                            return null;
+                                        }
+                                        const res = thlBuild(raw);
+                                        if (outEl) outEl.value = res.text;
+                                        if (chipsEl) {
+                                            chipsEl.innerHTML = res.chips
+                                                ? [
+                                                    statChip({ html: '共 <b>' + res.chips.total + '</b> 条' }, 'k-plain', null),
+                                                    statChip({ html: '匹配 <b>' + res.chips.match + '</b> 场' }, 'k-accent', '行为 1 = 匹配'),
+                                                    statChip({ html: '结算 <b>' + res.chips.settle + '</b> 场' }, 'k-op', '行为 2 = 结算'),
+                                                    statChip({ html: '进度 <b>' + res.chips.progress + '</b> 条' }, 'k-plain', '行为 3 = 进度'),
+                                                    statChip({ html: '排期 <b>' + escapeHtml(String(res.chips.scheds || '—')) + '</b>' }, 'k-plain', '活动排期ID（时间窗来自七日任务排期表，认不出只写 id）')
+                                                ].join('')
+                                                : '';
+                                        }
+                                        if (!res.rows.length) teaSetHint('thlHint', '没认出记录：一行里至少要有「行为（匹配 / 结算 / 进度 或 1 / 2 / 3）」或时间 / 事件UUID 之一');
+                                        else teaSetHint('thlHint', '认出 ' + res.rows.length + ' 条' + (res.hasHeader ? '（按表头对齐）' : '（没表头，按内容猜的）'));
+                                        return res;
+                                    }
+                                    function thlCopy() {
+                                        const outEl = document.getElementById('thlOutput');
+                                        const t = (outEl && outEl.value) || '';
+                                        if (!t.trim()) { teaSetHint('thlHint', '还没汇总：先粘记录点「解析并汇总」'); return; }
+                                        safeCopy(t);
+                                        teaSetHint('thlHint', '汇总已复制');
+                                    }
+                                    function thlClear() {
+                                        ['thlInput', 'thlOutput'].forEach(id => {
+                                            const el = document.getElementById(id);
+                                            if (el) el.value = '';
+                                        });
+                                        const chipsEl = document.getElementById('thlChips');
+                                        if (chipsEl) chipsEl.innerHTML = '';
+                                        teaSetHint('thlHint', '已清空');
+                                    }
+
                                     function teaResultText() {
                                         const r = teaResult();
                                         const d = teaPollData && teaPollData.date ? teaPollData.date : teaTodayStr();
@@ -18132,6 +18430,52 @@
                                                 DAILY_TAB_KEYS.forEach(k => renderDailyForm(k));
                                                 if (hint) hint.textContent = '今天（' + d + '）的班次 ' + code + ' 已同步到日报三栏';
                                             });
+                                            // 日历 → 每一天的日报：把排班表里**每一天**的班次写进那一天已归档的日报记录
+                                            // （2026-11 用户：「将排班可以同步到每一天的日报中」；休息日 O 不写班次，没归档的日子跳过、只报数）
+                                            setClick('careerShiftAllBtn', () => {
+                                                const map = careerShiftLoad();
+                                                const dates = Object.keys(map || {}).sort();
+                                                const hint = document.getElementById('careerRestHint');
+                                                if (!dates.length) {
+                                                    if (hint) hint.textContent = '排班表还是空的：先在「点日期：改班次」模式下把班次排上去';
+                                                    return;
+                                                }
+                                                careerData.records = careerData.records || {};
+                                                let updated = 0, same = 0, rest = 0, missing = 0;
+                                                dates.forEach(d => {
+                                                    const code = String(map[d] || '').trim();
+                                                    if (!code) return;
+                                                    if (code === 'O') { rest++; return; }
+                                                    const rec = careerData.records[d];
+                                                    if (!rec) { missing++; return; }
+                                                    if (String(rec.shift || '').trim() === code) { same++; return; }
+                                                    rec.shift = code;
+                                                    updated++;
+                                                });
+                                                // 今天另外把日报三栏的「班次」也带上（表单是当天的）
+                                                const td = careerToday();
+                                                const tcode = careerShiftOfDate(td);
+                                                if (tcode && tcode !== 'O') {
+                                                    dailyData.ticket = dailyData.ticket || {};
+                                                    dailyData.overseas = dailyData.overseas || {};
+                                                    dailyData.online = dailyData.online || {};
+                                                    dailyData.ticket.shift = tcode;
+                                                    dailyData.overseas.shift = tcode;
+                                                    dailyData.online.shift = tcode;
+                                                    saveData('dailyData', dailyData);
+                                                    DAILY_TAB_KEYS.forEach(k => renderDailyForm(k));
+                                                }
+                                                if (updated) {
+                                                    careerSaveLocal();
+                                                    renderCareer();
+                                                }
+                                                if (hint) {
+                                                    hint.textContent = '排班 → 日报：更新 ' + updated + ' 天'
+                                                        + (same ? ' · 本来就对 ' + same + ' 天' : '')
+                                                        + (missing ? ' · ' + missing + ' 天没归档（跳过）' : '')
+                                                        + (rest ? ' · 休息 ' + rest + ' 天' : '');
+                                                }
+                                            });
 
                                         })();
                                         setClick('careerExportCsvBtn', () => {
@@ -18214,6 +18558,10 @@
                                         setClick('teaInfoParseBtn', teaInfoRun);
                                         setClick('teaInfoCopyBtn', teaInfoCopy);
                                         setClick('teaInfoClearBtn', teaInfoClear);
+                                        // 糖葫芦对决（活动类型 87 = 糖葫芦2v2）：粘查询结果 → 按排期 / 行为汇总
+                                        setClick('thlParseBtn', thlRun);
+                                        setClick('thlCopyBtn', thlCopy);
+                                        setClick('thlClearBtn', thlClear);
                                         // 🧩 棋盘镜像（粘镜像 JSON → 主棋盘 / 背包 / 仓库 + 「在哪几个」话术）
                                         setClick('boardParseBtn', boardRun);
                                         setClick('boardClearBtn', boardClear);
