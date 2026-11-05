@@ -48,7 +48,7 @@ npm run verify     # 改完代码、push 前的完整自检
 
 | 命令 | 内容 |
 |---|---|
-| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 637 项 + 「接口挂起时界面仍可用」+ 服务端冒烟 42 项 |
+| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 639 项 + 「接口挂起时界面仍可用」+ 服务端冒烟 42 项 |
 | `npm run verify:static` | 只要静态校验 + 语法检查（最快） |
 | `npm run report` | 打印一份真实生成的日报，肉眼确认排版（含 ⑥伙伴弹途 / ⑦异世界勇者） |
 | `npm run build:data` | 从 GM 玩家页快照提取 4 张权威映射表 + 与硬编码常量的**差异报告**（见下「游戏数据管线」） |
@@ -58,7 +58,7 @@ npm run verify     # 改完代码、push 前的完整自检
 | `npm run smoke:pmc` | **生管物料订单工作台**（`public/pmc.html`）自检，123 项（含加工周期工作日推算 + 在途锁定/调整建议 + 真实 8.5MB xlsx 端到端导入）；**不在 verify 里**，见下「生管物料订单工作台」一节 |
 | `npm test` | = `npm run verify` |
 
-`npm run verify` 失败就不要提交。它一共 5 段：静态结构 → 语法 → jsdom 集成冒烟 **637 项** → 接口挂起时界面仍可用 → 服务端冒烟 **42 项**。
+`npm run verify` 失败就不要提交。它一共 5 段：静态结构 → 语法 → jsdom 集成冒烟 **639 项** → 接口挂起时界面仍可用 → 服务端冒烟 **42 项**。
 
 - jsdom 未安装时前端冒烟会自动回落到本机 DSH 自带的那份。
 - `tools/smoke-server.cjs` 用 `PORT` + `DATA_FILE` 环境变量把服务端指到随机端口和 `tools/out/` 里的临时文件，**不会碰真实 `data.json`**；子进程 stdio 必须用 `ignore`/`inherit`（沙箱禁管道，`pipe` 会 EPERM）。
@@ -364,13 +364,13 @@ npm run verify     # 改完代码、push 前的完整自检
 
 用户给了 Poki 上 **Anycolor**（`poki.com/zh/g/anycolor`）的整页源码，要求「逆向在这个网页源代码，在小游戏中增加涂色游戏」。从源码自带的「如何玩 Anycolor」反推出的玩法：**从图库选一张线稿 → 点空白区域就填充 → 换调色板颜色 / 画笔 / 橡皮 → 撤销 / 重做 → 缩放 → 滤镜与描边 → 下载分享**。这里做成离线版（不联网、不碰玩家数据）。
 
-- **位置**：`#tab-script`（小游戏）里新的一张卡 `#coloringCard`（在「拼豆图纸 / 炸小人」两个 sub-panel 之后）。
-- **内置线稿** `COLORING_PICS`：**9 张**（2026-11 用户：「内置线稿可以将网页里的都搬」—— 网页介绍里写的是「动物、人类、食物、车辆甚至抽象想法」，所以按这 6 类各搬一张简笔）：`fox` 小狐狸(8 块) / `cake` 纸杯蛋糕(6) / `sun` 日出(5) / `cat` 小猫(6) / `house` 小房子(7) / `car` 小汽车(6) / `icecream` 冰淇淋(5) / `night` 星星月亮(5) / `tree` 小树(5)。每块 = `{ id, name, d }`，画成 `<path data-region="…">`，初始 `fill="#ffffff"`。
+- **位置**：`#tab-script`（小游戏）里的**独立子页** —— `.sub-tab[data-sub="color"]`（🎨 涂色）→ `#sub-panel-color`，跟「🖼️ 拼豆图纸 / 炸小人」并排（2026-11 用户：「涂色游戏要在小游戏里单独一个页」）；里面是 `#coloringCard`。
+- **内置线稿** `COLORING_PICS`：**29 张** = 9 张基础（`fox` 小狐狸 / `cake` 纸杯蛋糕 / `sun` 日出 / `cat` 小猫 / `house` 小房子 / `car` 小汽车 / `icecream` 冰淇淋 / `night` 星星月亮 / `tree` 小树，5–8 块）+ **20 张更复杂的**（2026-11 用户：「再加 20 张更复杂的线稿图」，在 `COLORING_MORE` 里，每张 12–16 块：猫头鹰 / 蝴蝶 / 金鱼 / 恐龙 / 机器人 / 帆船 / 热气球 / 披萨 / 花束 / 城市 / 火箭 / 火车 / 吉他 / 海底 / 太阳系 / 脸谱 / 多层蛋糕 / 眼镜 / 蘑菇 / 城堡）。前 9 张手写 `d`，后 20 张用三个几何助手 `coloringRect` / `coloringEllipse` / `coloringPoly`（`coloringShape` 分派 `r` / `e` / `p`）拼出来，`COLORING_MORE.forEach` 追加进 `COLORING_PICS`。每块 = `{ id, name, d }`，画成 `<path data-region="…">`，初始 `fill="#ffffff"`。
 - **调色板** `COLORING_PALETTE`：14 色（含白），另加 `<input type="color" id="coloringCustomColor">` 自定义取色。
 - **交互**：点区域 → 用当前颜色填充（`coloringPaint`，记一条 undo）；`🧽 橡皮` 开着时点区域 → 擦回白色（`aria-pressed` 标状态）；`↩️ 撤销` / `↪️ 重做` 走 `coloringUndo` / `coloringRedo`；`🧹 清空` 清当前图（连撤销栈）；`⬇️ 下载` 把 SVG 序列化成 `.svg` 下下来。
 - ⚠️ **下载在 jsdom / 无头环境里直接跳过**（点 `<a download>` 会被 jsdom 记成 navigation 错误）：`coloringDownloadStep` 里先判 `navigator.userAgent` 含 `jsdom` 就只给提示 —— 别删这段守卫，否则冒烟会红。
 - 状态只放内存 `coloringState`（`{ 图案key: { 区域id: 颜色 } }`），**不写 localStorage、不上服务端**（画着玩的，刷新就白）。
-- **测试**：`tools/smoke.cjs` 第 **8z-2** 节 **18 条**（卡在 / 9 张选图 / 14 色调色板 / 8 块区域初始白色 / 点区域上色 + 提示 / 换色再涂 / 撤销回白 / 重做回来 / 橡皮擦白 / 换图换线稿 / 清空全白且撤销栈空 / 自定义取色器 / 下载只提示不抛 / 全程 0 请求）；`tools/verify.mjs` 有静态断言。
+- **测试**：`tools/smoke.cjs` 第 **8z-2** 节 **20 条**（独立的「🎨 涂色」子页 / 29 张选图 / 14 色调色板 / 8 块区域初始白色 / 点区域上色 + 提示 / 换色再涂 / 撤销回白 / 重做回来 / 橡皮擦白 / 换图换线稿 / 清空全白且撤销栈空 / 自定义取色器 / 下载只提示不抛 / 全程 0 请求）；`tools/verify.mjs` 有静态断言。
 
 ## 海外业务统计（岗位周报整表粘贴）
 

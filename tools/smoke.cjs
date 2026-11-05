@@ -3348,11 +3348,19 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
       '小游戏页多了一张「🎨 涂色游戏」卡（图纸区 / 调色板 / 选图都在）');
     // 选图：三张内置线稿
     const picBtns = [...$('coloringPics').querySelectorAll('[data-pic]')];
-    check(picBtns.length === 9
-      && picBtns.map(b => b.dataset.pic).join(',') === 'fox,cake,sun,cat,house,car,icecream,night,tree'
-      && picBtns[0].classList.contains('active'),
-      '选图按钮 9 张（网页里提到的动物 / 人类 / 食物 / 车辆 / 自然 / 抽象都搬进来），默认第一张高亮',
+    check(picBtns.length === 29
+      && picBtns[0].dataset.pic === 'fox' && picBtns[9].dataset.pic === 'owl'
+      && picBtns[28].dataset.pic === 'castle' && picBtns[0].classList.contains('active'),
+      '选图按钮 29 张（先 9 张基础 + 20 张更复杂的），默认第一张高亮',
       picBtns.map(b => b.dataset.pic).join(','));
+    const colorTab = doc.querySelector('#tab-script .sub-tab[data-sub="color"]');
+    check(!!colorTab && /涂色/.test(colorTab.textContent) && !$('sub-panel-color').classList.contains('active'),
+      '涂色游戏是小游戏里的**独立子页**（第三个 sub-tab，默认没展开）', colorTab && colorTab.textContent);
+    colorTab.click();
+    await sleep(60);
+    check(colorTab.classList.contains('active') && $('sub-panel-color').classList.contains('active')
+      && !$('sub-panel-pixel').classList.contains('active'),
+      '点「🎨 涂色」→ 只展开涂色这一页（拼豆图纸收起）');
     // 调色板
     const swatches = [...$('coloringPalette').querySelectorAll('[data-color]')];
     check(swatches.length === 14 && swatches[0].classList.contains('active'),
