@@ -2173,13 +2173,15 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
 
     doc.querySelector('.tab-btn[data-tab="activity"]').click();
     await sleep(60);
-    check(!!$('tab-activity') && $('tab-activity').dataset.seg === 'sevenday',
-      '2026-11 用户要求整合：侧边栏多了「活动查询」标签，默认停在「七日任务进度」', $('tab-activity') && $('tab-activity').dataset.seg);
-    doc.querySelector('#tab-activity .seg-btn[data-seg="tanghulu"]').click();
+    check(!!$('tab-activity') && $('tab-activity').dataset.seg === 'tanghulu'
+      && $('genTanghuluPane').classList.contains('seg-on'),
+      '2026-11 用户要求整合：侧边栏多了「活动查询」标签，默认停在「糖葫芦对决」（用户：不用默认停在七日任务）',
+      $('tab-activity') && $('tab-activity').dataset.seg);
+    doc.querySelector('#tab-activity .seg-btn[data-seg="sevenday"]').click();
     await sleep(40);
-    check($('tab-activity').dataset.seg === 'tanghulu' && $('genTanghuluPane').classList.contains('seg-on')
-      && !$('genSevendayPane').classList.contains('seg-on'),
-      '活动查询里切到「糖葫芦对决」这一段（七日任务那块同时收起）');
+    check($('tab-activity').dataset.seg === 'sevenday' && $('genSevendayPane').classList.contains('seg-on')
+      && !$('genTanghuluPane').classList.contains('seg-on'),
+      '活动查询里切到「七日任务进度」这一段（糖葫芦那块同时收起）');
     doc.querySelector('#tab-activity .seg-btn[data-seg="teainfo"]').click();
     await sleep(40);
     check($('genTeaInfoPane').classList.contains('seg-on') && !$('genTanghuluPane').classList.contains('seg-on'),
@@ -3346,9 +3348,11 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
       '小游戏页多了一张「🎨 涂色游戏」卡（图纸区 / 调色板 / 选图都在）');
     // 选图：三张内置线稿
     const picBtns = [...$('coloringPics').querySelectorAll('[data-pic]')];
-    check(picBtns.length === 3 && picBtns.map(b => b.dataset.pic).join(',') === 'fox,cake,sun'
+    check(picBtns.length === 9
+      && picBtns.map(b => b.dataset.pic).join(',') === 'fox,cake,sun,cat,house,car,icecream,night,tree'
       && picBtns[0].classList.contains('active'),
-      '选图按钮 3 张（小狐狸 / 纸杯蛋糕 / 日出），默认第一张高亮', picBtns.map(b => b.dataset.pic).join(','));
+      '选图按钮 9 张（网页里提到的动物 / 人类 / 食物 / 车辆 / 自然 / 抽象都搬进来），默认第一张高亮',
+      picBtns.map(b => b.dataset.pic).join(','));
     // 调色板
     const swatches = [...$('coloringPalette').querySelectorAll('[data-color]')];
     check(swatches.length === 14 && swatches[0].classList.contains('active'),

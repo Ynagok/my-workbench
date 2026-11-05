@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="x-build" content="2026-11-05 活动查询-v21-活动查询标签+涂色游戏">
+    <meta name="x-build" content="2026-11-05 活动查询-v22-默认糖葫芦+9张线稿">
     <title>客服冷静演绎工作台</title>
     <link rel="icon" type="image/gif" href="/my-icon.gif">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -4124,8 +4124,8 @@
         <!-- ==================== 活动查询 activity（七日任务 / 糖葫芦对决 / 吉运节节高） ==================== -->
         <div id="tab-activity" class="tab-content">
             <div class="seg-bar" data-for="tab-activity">
-                <button type="button" class="seg-btn active" data-seg="sevenday" data-n="01">七日任务进度</button>
-                <button type="button" class="seg-btn" data-seg="tanghulu" data-n="02">糖葫芦对决</button>
+                <button type="button" class="seg-btn active" data-seg="tanghulu" data-n="01">糖葫芦对决</button>
+                <button type="button" class="seg-btn" data-seg="sevenday" data-n="02">七日任务进度</button>
                 <button type="button" class="seg-btn" data-seg="teainfo" data-n="03">吉运节节高（下午茶）</button>
             </div>
             <div id="genSevendayPane" data-seg-card="sevenday">
@@ -17424,6 +17424,70 @@ const COLORING_PICS = [
             { id: 'ground', name: '地面', d: 'M10,130 H190 V190 H10 Z' },
         ],
     },
+    {
+        key: 'cat', name: '小猫',
+        regions: [
+            { id: 'catbg', name: '背景', d: 'M10,10 H190 V190 H10 Z' },
+            { id: 'cbody', name: '身子', d: 'M64,176 C60,132 84,116 100,116 C116,116 140,132 136,176 Z' },
+            { id: 'chead', name: '脑袋', d: 'M74,112 C74,80 126,80 126,112 C126,136 74,136 74,112 Z' },
+            { id: 'cearL', name: '左耳', d: 'M78,86 L70,54 L102,74 Z' },
+            { id: 'cearR', name: '右耳', d: 'M122,86 L130,54 L98,74 Z' },
+            { id: 'ctail', name: '尾巴', d: 'M136,168 C176,170 176,132 152,128 C166,144 152,152 136,150 Z' },
+        ],
+    },
+    {
+        key: 'house', name: '小房子',
+        regions: [
+            { id: 'hsky', name: '天空', d: 'M10,10 H190 V190 H10 Z' },
+            { id: 'roof', name: '屋顶', d: 'M40,104 L100,44 L160,104 Z' },
+            { id: 'wall', name: '墙', d: 'M52,104 H148 V176 H52 Z' },
+            { id: 'door', name: '门', d: 'M88,176 V140 H112 V176 Z' },
+            { id: 'win1', name: '左窗', d: 'M62,120 H80 V138 H62 Z' },
+            { id: 'win2', name: '右窗', d: 'M120,120 H138 V138 H120 Z' },
+            { id: 'chim', name: '烟囱', d: 'M126,64 H142 V96 H126 Z' },
+        ],
+    },
+    {
+        key: 'car', name: '小汽车',
+        regions: [
+            { id: 'csky', name: '天空', d: 'M10,10 H190 V190 H10 Z' },
+            { id: 'gbd', name: '车顶', d: 'M64,110 C70,84 96,78 112,80 C128,82 140,96 144,110 Z' },
+            { id: 'bd', name: '车身', d: 'M44,110 H156 C160,110 162,116 160,124 L156,142 H44 L40,124 C38,116 40,110 44,110 Z' },
+            { id: 'w1', name: '前轮', d: 'M70,152 m-16,0 a16,16 0 1,0 32,0 a16,16 0 1,0 -32,0' },
+            { id: 'w2', name: '后轮', d: 'M132,152 m-16,0 a16,16 0 1,0 32,0 a16,16 0 1,0 -32,0' },
+            { id: 'lamp', name: '车灯', d: 'M150,118 H160 V128 H150 Z' },
+        ],
+    },
+    {
+        key: 'icecream', name: '冰淇淋',
+        regions: [
+            { id: 'ibg', name: '背景', d: 'M10,10 H190 V190 H10 Z' },
+            { id: 'cone', name: '蛋筒', d: 'M76,110 H124 L100,184 Z' },
+            { id: 'scoop1', name: '下层球', d: 'M100,110 m-30,0 a30,26 0 1,0 60,0 a30,26 0 1,0 -60,0' },
+            { id: 'scoop2', name: '上层球', d: 'M100,66 m-24,0 a24,22 0 1,0 48,0 a24,22 0 1,0 -48,0' },
+            { id: 'cherry2', name: '樱桃', d: 'M100,34 m-8,0 a8,8 0 1,0 16,0 a8,8 0 1,0 -16,0' },
+        ],
+    },
+    {
+        key: 'night', name: '星星月亮',
+        regions: [
+            { id: 'nsky', name: '夜空', d: 'M10,10 H190 V190 H10 Z' },
+            { id: 'moon', name: '月亮', d: 'M132,48 C104,54 92,84 104,106 C112,122 134,130 152,122 C128,140 92,128 86,100 C80,72 104,44 132,48 Z' },
+            { id: 'star1', name: '星一', d: 'M60,60 L66,74 L82,74 L70,84 L76,100 L60,90 L44,100 L50,84 L38,74 L54,74 Z' },
+            { id: 'star2', name: '星二', d: 'M140,140 L145,152 L158,152 L148,160 L152,172 L140,164 L128,172 L132,160 L122,152 L135,152 Z' },
+            { id: 'hilln', name: '山坡', d: 'M10,150 C50,132 80,158 110,150 C140,142 170,160 190,152 V190 H10 Z' },
+        ],
+    },
+    {
+        key: 'tree', name: '小树',
+        regions: [
+            { id: 'tsky', name: '天空', d: 'M10,10 H190 V190 H10 Z' },
+            { id: 'trunk', name: '树干', d: 'M92,120 H108 V182 H92 Z' },
+            { id: 'leaf1', name: '树冠一', d: 'M100,36 C136,36 148,70 124,84 C100,98 60,96 56,70 C52,48 74,36 100,36 Z' },
+            { id: 'leaf2', name: '树冠二', d: 'M100,74 C140,74 150,112 122,120 C94,128 56,124 52,100 C48,80 74,74 100,74 Z' },
+            { id: 'groundt', name: '草地', d: 'M10,170 H190 V190 H10 Z' },
+        ],
+    },
 ];
 const COLORING_BLANK = "#ffffff";
 let coloringPic = COLORING_PICS[0].key;
@@ -18464,7 +18528,7 @@ function coloringInit() {
                                             // 统计页：切进来时回到第一段（总览），免得停在上次的明细段
                                             if (tabKey === 'career') statsSetSeg('tab-career', 'overview');
                                             if (tabKey === 'overseas') statsSetSeg('tab-overseas', 'overview');
-        if (tabKey === 'activity') statsSetSeg('tab-activity', 'sevenday');
+        // 活动查询不强制回第一段：停在用户上次看的那一段（跟话术生成页一个规矩）
                                             if (this.dataset.tab === 'career') renderCareer();
                                             if (this.dataset.tab === 'overseas') { ovbizRender(); renderOvbizDetail(); }   // 切进来重画一遍（数据只在本机）
                                             if (this.dataset.tab === 'tea') teaInit();                                  // 下午茶：切进来拉一次服务端
@@ -18482,7 +18546,7 @@ function coloringInit() {
                                             statsSetSeg('tab-career', 'overview');
                                             statsSetSeg('tab-overseas', 'overview');
                                             statsSetSeg('tab-gen', 'reply');   // 话术生成页（只剩一段）
-    statsSetSeg('tab-activity', 'sevenday');   // 活动查询默认停在七日任务
+    statsSetSeg('tab-activity', 'tanghulu');   // 活动查询默认停在「糖葫芦对决」（2026-11 用户：不用默认停在七日任务）
                                             statsSetSeg('tab-card', 'speech');  // 集卡分析分三段：集卡话术 / 抽卡详情 / 卡组收藏
                                         })();
 
