@@ -917,13 +917,15 @@ ok(/\.card:has\(details\.card-more\[open\]\)[\s\S]{0,120}?overflow: visible;/.te
   '「⋯ 更多」浮层真能盖在卡片外面：展开时用 :has() 放开 .card 的 overflow:hidden 并把那一行提到 z-index 40（否则会被卡片裁掉 / 被后面的行压住）');
 
 // ---- 3l. 七日任务（并进「话术生成」页的一段：进度日志 → 按内置任务表判定的进度话术，只在本机处理）----
-ok(/class="seg-bar" data-for="tab-gen"/.test(s) && /data-seg="reply" data-n="01">话术生成</.test(s)
-  && /data-seg="sevenday" data-n="02">七日任务进度</.test(s) && /id="genSevendayPane"/.test(s)
+ok(/data-tab="activity"> 活动查询</.test(s) && /id="tab-activity"/.test(s)
+  && /class="seg-bar" data-for="tab-activity"/.test(s)
+  && /data-seg="sevenday" data-n="01">七日任务进度</.test(s) && /id="genSevendayPane"/.test(s)
+  && /data-seg="tanghulu" data-n="02">糖葫芦对决</.test(s) && /id="genTanghuluPane"/.test(s)
   && /data-seg="teainfo" data-n="03">吉运节节高（下午茶）</.test(s) && /id="genTeaInfoPane"/.test(s)
-  && /data-seg-card="reply"/.test(s) && !/data-tab="sevenday"/.test(s) && !/id="tab-sevenday"/.test(s)
-  && /statsSetSeg\('tab-gen', 'reply'\)/.test(s)
-  && /#tab-gen > \.seg-bar \{ position: static; \}/.test(s),
-  '七日任务并进「话术生成」页：页内分段导航（话术生成 / 七日任务进度 / 吉运节节高（下午茶）），侧边栏不再单独占一个标签；那一页的分段条不吸顶（避免滚动时把下面的文本框切成两半）');
+  && /statsSetSeg\('tab-activity', 'sevenday'\)/.test(s)
+  && /#tab-activity > \.seg-bar \{ position: static; \}/.test(s)
+  && !/data-tab="sevenday"/.test(s) && !/id="tab-sevenday"/.test(s),
+  '2026-11 用户要求把「七日任务 / 糖葫芦对决 / 吉运节节高」整合进侧边栏新标签「活动查询」：页内分段导航 01/02/03，默认停在七日任务，那一页的分段条不吸顶');
 ok(/id="sdLogInput"/.test(s) && /id="sdOutput"/.test(s) && /id="sdGenerateBtn"/.test(s)
   && /id="sdCopyBtn"/.test(s) && /id="sdClearBtn"/.test(s) && /id="sdReportSub"/.test(s),
   '七日任务那一段：粘进度日志 + 生成 / 复制 / 清空 + 结果框');
@@ -937,7 +939,16 @@ ok(/const SD_SCHEDULE = \[/.test(s)
   && /活动排期 ' \+ sec\.key \+ sdScheduleTail\(sec\.key\)/.test(s),
   '七日任务：内置 35 条活动排期（id → 起止时间），抬头写「活动排期 N：时间窗」；一次粘多期日志时按期分段（每段写排期 + 时间窗 + 几个任务）');
 // 糖葫芦对决（活动类型 87）：新的一段 + 反推的行为枚举（1 匹配 / 2 结算 / 3 进度）
-ok(/data-seg="tanghulu" data-n="04">糖葫芦对决</.test(s) && /id="genTanghuluPane"/.test(s)
+ok(/id="coloringCard"/.test(s) && /id="coloringStage"/.test(s) && /id="coloringPalette"/.test(s)
+  && /id="coloringPics"/.test(s) && /id="coloringCustomColor"/.test(s)
+  && /const COLORING_PALETTE = \[/.test(s) && /const COLORING_PICS = \[/.test(s)
+  && /key: 'fox', name: '小狐狸'/.test(s) && /key: 'cake', name: '纸杯蛋糕'/.test(s) && /key: 'sun', name: '日出'/.test(s)
+  && /function coloringPaint\(regionId\)/.test(s) && /function coloringUndoStep\(\)/.test(s)
+  && /function coloringRedoStep\(\)/.test(s) && /function coloringDownloadStep\(\)/.test(s)
+  && /setClick\('coloringUndoBtn', coloringUndoStep\)/.test(s)
+  && /data-region/.test(s) && /\.color-stage \[data-region\]/.test(s),
+  '小游戏页新增「🎨 涂色游戏」（照 Poki Anycolor 反推）：三张内置线稿 + 14 色调色板 + 自定义取色 + 点区域填充 / 橡皮 / 撤销 / 重做 / 清空 / 下载，状态只在本机');
+ok(/data-seg="tanghulu" data-n="02">糖葫芦对决</.test(s) && /id="genTanghuluPane"/.test(s)
   && /id="thlInput"/.test(s) && /id="thlParseBtn"/.test(s) && /id="thlOutput"/.test(s) && /id="thlChips"/.test(s)
   && /const THL_BEHAVIOR_TEXT = \{ '1': '匹配', '2': '结算', '3': '进度' \};/.test(s)
   && /function thlParse\(raw\)/.test(s) && /function thlRun\(\)/.test(s)

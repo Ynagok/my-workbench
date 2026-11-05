@@ -48,7 +48,7 @@ npm run verify     # 改完代码、push 前的完整自检
 
 | 命令 | 内容 |
 |---|---|
-| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 619 项 + 「接口挂起时界面仍可用」+ 服务端冒烟 42 项 |
+| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 637 项 + 「接口挂起时界面仍可用」+ 服务端冒烟 42 项 |
 | `npm run verify:static` | 只要静态校验 + 语法检查（最快） |
 | `npm run report` | 打印一份真实生成的日报，肉眼确认排版（含 ⑥伙伴弹途 / ⑦异世界勇者） |
 | `npm run build:data` | 从 GM 玩家页快照提取 4 张权威映射表 + 与硬编码常量的**差异报告**（见下「游戏数据管线」） |
@@ -58,7 +58,7 @@ npm run verify     # 改完代码、push 前的完整自检
 | `npm run smoke:pmc` | **生管物料订单工作台**（`public/pmc.html`）自检，123 项（含加工周期工作日推算 + 在途锁定/调整建议 + 真实 8.5MB xlsx 端到端导入）；**不在 verify 里**，见下「生管物料订单工作台」一节 |
 | `npm test` | = `npm run verify` |
 
-`npm run verify` 失败就不要提交。它一共 5 段：静态结构 → 语法 → jsdom 集成冒烟 **619 项** → 接口挂起时界面仍可用 → 服务端冒烟 **42 项**。
+`npm run verify` 失败就不要提交。它一共 5 段：静态结构 → 语法 → jsdom 集成冒烟 **637 项** → 接口挂起时界面仍可用 → 服务端冒烟 **42 项**。
 
 - jsdom 未安装时前端冒烟会自动回落到本机 DSH 自带的那份。
 - `tools/smoke-server.cjs` 用 `PORT` + `DATA_FILE` 环境变量把服务端指到随机端口和 `tools/out/` 里的临时文件，**不会碰真实 `data.json`**；子进程 stdio 必须用 `ignore`/`inherit`（沙箱禁管道，`pipe` 会 EPERM）。
@@ -147,7 +147,7 @@ npm run verify     # 改完代码、push 前的完整自检
   - **客服生涯 4 段**：`overview` 总览（总览卡 + 排班休息面板）/ `detail` 逐项明细（工单统计 + 海外统计）/ `trend` 趋势与分析（指标详情 + 趋势·月度 + 周维度）/ `data` 数据与补录（数据质量 + 补录 + 粘贴导入）；**海外 3 段**：`overview`（岗位总览 + 详情图表）/ `detail`（逐项 + 月度 + 周 + 人员 + 每日）/ `data`（粘贴导入那张卡）。
   - **开关机制**：卡片上挂 `data-seg-card="overview|detail|trend|data"`，`statsSetSeg(tabId, seg)` 只给当前段的卡片加 `.seg-on`；CSS `[data-seg-card]{display:none}` / `[data-seg-card].seg-on{display:block}`。⚠️ **内联 `style.display` 仍然优先**（排班休息面板靠这个收起，`renderCareer` 按身份隐藏两侧卡片也靠它），所以别把显示逻辑全搬进 CSS。
   - **切标签页回第一段**：`.tab-btn` 的 onclick 里对 `career` / `overseas` 调 `statsSetSeg(…, 'overview')`，免得停在上次的明细段。
-  - **「话术生成」页也用了这套**（2026-10）：`.seg-bar[data-for="tab-gen"]` **三段** —— `01 话术生成`（原来的两块 `data-seg-card="reply"`）/ `02 七日任务进度`（`#genSevendayPane` + `data-seg-card="sevenday"`）/ `03 吉运节节高（下午茶）`（`#genTeaInfoPane` + `data-seg-card="teainfo"`，见下一节）；`bindSegBar` 末尾 `statsSetSeg('tab-gen', 'reply')` 初始化。⚠️ 这几段**不在**「回第一段」名单里（切回话术生成时停在用户上次看的那段）。⚠️ **这一页的分段条不吸顶**（`#tab-gen > .seg-bar { position: static; }`）：`.seg-bar` 默认 `position: sticky; top: 0`，而这条夹在卡片中间，吸顶时滚动会把下面的文本框 / 卡片切成两半（2026-10 用户截图「网页的这个条感觉有点奇怪」）；统计页那两条**仍然吸顶**（长页面用得上）。
+  - **「活动查询」页（2026-11 用户要求整合）**：`.seg-bar[data-for="tab-activity"]` **三段** —— `01 七日任务进度`（`#genSevendayPane`）/ `02 糖葫芦对决`（`#genTanghuluPane`）/ `03 吉运节节高（下午茶）`（`#genTeaInfoPane`），`statsSetSeg('tab-activity', 'sevenday')` 初始化，切标签页会回到七日任务；**这一页的分段条也不吸顶**（`#tab-activity > .seg-bar { position: static; }`）。⚠️ 2026-10 时它们曾并进「话术生成」页，2026-11 用户说「糖葫芦和七日、吉运可以整合进活动查询的标签页里」→ 搬成独立标签；「话术生成」页现在只剩一段 `01 话术生成`。⚠️ 这几段**不在**「回第一段」名单里（切回话术生成时停在用户上次看的那段）。⚠️ **这一页的分段条不吸顶**（`#tab-gen > .seg-bar { position: static; }`）：`.seg-bar` 默认 `position: sticky; top: 0`，而这条夹在卡片中间，吸顶时滚动会把下面的文本框 / 卡片切成两半（2026-10 用户截图「网页的这个条感觉有点奇怪」）；统计页那两条**仍然吸顶**（长页面用得上）。
   - **「集卡分析」页也用了这套**（2026-10 用户：「抽卡详情和卡组收藏要在集卡分析里单开一页」）：`.seg-bar[data-for="tab-card"]` **三段** —— `01 集卡话术`（生成结果卡 `data-seg-card="speech"`）/ `02 抽卡详情`（`#cardPityCard` + `pity`）/ `03 卡组收藏`（`#cardGroupCard` + `group`）；上传 CSV 与星级筛选两块**不分段**（三段共用），`statsSetSeg('tab-card', 'speech')` 初始化。详见上面「集卡分析」一节。
   - ⚠️ **旧的 `.jump-bar` / `.jump-chip` / `bindJumpBar()` 已整段删除**（冒烟/静态断言锁着「不该再出现」），别再捡回来。
 
@@ -359,6 +359,18 @@ npm run verify     # 改完代码、push 前的完整自检
 - **按钮**：`#thlParseBtn`（🔍 解析并汇总）/ `#thlCopyBtn`（📋 复制汇总，走 `safeCopy`）/ `#thlClearBtn`（🧹 清空）。认不出记录时清空结果并提示怎么粘；空结果点复制只提示。
 - ⚠️ 芯片文案要用 `statChip({ html: … })`（helper 内部会 `escapeHtml`，直接传含 `<b>` 的字符串会被转义成字面量）。
 - **测试**：`tools/smoke.cjs` 第 **8q-2** 节 **13 条**（第 4 段能切过去 / 输入框与按钮都在 / 带表头 4 条 → 抬头 + 排期时间窗 + 「匹配 2 场 · 结算 1 场 · 进度 1 条」+ 时间跨度 + 结算逐条 / 芯片 / 提示「按表头对齐」/ 没表头也能猜出行为 / 认不出时清空 + 提示 / 空结果复制只提示 / 清空 / 全程 0 请求）；`tools/verify.mjs` 3l 有静态断言。
+
+## 🎨 涂色游戏（小游戏页 · 照 Poki「Anycolor」反推）
+
+用户给了 Poki 上 **Anycolor**（`poki.com/zh/g/anycolor`）的整页源码，要求「逆向在这个网页源代码，在小游戏中增加涂色游戏」。从源码自带的「如何玩 Anycolor」反推出的玩法：**从图库选一张线稿 → 点空白区域就填充 → 换调色板颜色 / 画笔 / 橡皮 → 撤销 / 重做 → 缩放 → 滤镜与描边 → 下载分享**。这里做成离线版（不联网、不碰玩家数据）。
+
+- **位置**：`#tab-script`（小游戏）里新的一张卡 `#coloringCard`（在「拼豆图纸 / 炸小人」两个 sub-panel 之后）。
+- **内置线稿** `COLORING_PICS`：`fox` 小狐狸（8 块）/ `cake` 纸杯蛋糕（6 块）/ `sun` 日出（5 块）；每块 = `{ id, name, d }`，画成 `<path data-region="…">`，初始 `fill="#ffffff"`。
+- **调色板** `COLORING_PALETTE`：14 色（含白），另加 `<input type="color" id="coloringCustomColor">` 自定义取色。
+- **交互**：点区域 → 用当前颜色填充（`coloringPaint`，记一条 undo）；`🧽 橡皮` 开着时点区域 → 擦回白色（`aria-pressed` 标状态）；`↩️ 撤销` / `↪️ 重做` 走 `coloringUndo` / `coloringRedo`；`🧹 清空` 清当前图（连撤销栈）；`⬇️ 下载` 把 SVG 序列化成 `.svg` 下下来。
+- ⚠️ **下载在 jsdom / 无头环境里直接跳过**（点 `<a download>` 会被 jsdom 记成 navigation 错误）：`coloringDownloadStep` 里先判 `navigator.userAgent` 含 `jsdom` 就只给提示 —— 别删这段守卫，否则冒烟会红。
+- 状态只放内存 `coloringState`（`{ 图案key: { 区域id: 颜色 } }`），**不写 localStorage、不上服务端**（画着玩的，刷新就白）。
+- **测试**：`tools/smoke.cjs` 第 **8z-2** 节 **18 条**（卡在 / 3 张选图 / 14 色调色板 / 8 块区域初始白色 / 点区域上色 + 提示 / 换色再涂 / 撤销回白 / 重做回来 / 橡皮擦白 / 换图换线稿 / 清空全白且撤销栈空 / 自定义取色器 / 下载只提示不抛 / 全程 0 请求）；`tools/verify.mjs` 有静态断言。
 
 ## 海外业务统计（岗位周报整表粘贴）
 

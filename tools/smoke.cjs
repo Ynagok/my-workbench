@@ -2171,16 +2171,23 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
       '2026-10-22 09:55:55\t34\ta520c425ce76a1c7c728149f8e25cff9\t2504\t91\t100\t1\t2',
     ].join('\n');
 
-    doc.querySelector('.tab-btn[data-tab="gen"]').click();
+    doc.querySelector('.tab-btn[data-tab="activity"]').click();
     await sleep(60);
-    doc.querySelector('#tab-gen .seg-btn[data-seg="sevenday"]').click();
+    check(!!$('tab-activity') && $('tab-activity').dataset.seg === 'sevenday',
+      '2026-11 用户要求整合：侧边栏多了「活动查询」标签，默认停在「七日任务进度」', $('tab-activity') && $('tab-activity').dataset.seg);
+    doc.querySelector('#tab-activity .seg-btn[data-seg="tanghulu"]').click();
     await sleep(40);
-    check(!doc.querySelector('.tab-btn[data-tab="sevenday"]') && !!$('genSevendayPane'),
-      '七日任务已经并进「话术生成」页（侧边栏不再单独占一个标签）');
-    check($('tab-gen').dataset.seg === 'sevenday'
-      && $('genSevendayPane').classList.contains('seg-on')
-      && !doc.querySelector('#tab-gen .inline-card').classList.contains('seg-on'),
-      '话术生成页里切到「七日任务进度」这一段（话术生成那两块同时收起）');
+    check($('tab-activity').dataset.seg === 'tanghulu' && $('genTanghuluPane').classList.contains('seg-on')
+      && !$('genSevendayPane').classList.contains('seg-on'),
+      '活动查询里切到「糖葫芦对决」这一段（七日任务那块同时收起）');
+    doc.querySelector('#tab-activity .seg-btn[data-seg="teainfo"]').click();
+    await sleep(40);
+    check($('genTeaInfoPane').classList.contains('seg-on') && !$('genTanghuluPane').classList.contains('seg-on'),
+      '活动查询里切到「吉运节节高（下午茶）」这一段');
+    doc.querySelector('#tab-activity .seg-btn[data-seg="sevenday"]').click();
+    await sleep(40);
+    check($('genSevendayPane').classList.contains('seg-on') && !!$('genSevendayPane'),
+      '切回「七日任务进度」这一段');
     check($('sdReportMeta').children.length === 3,
       '抬头右上 3 格元数据（任务表 / 进度日志 / 活动排期）', $('sdReportMeta').children.length);
     check(!$('sdTaskFold') && !$('sdTaskInput') && !$('sdTaskSub'),
@@ -2333,9 +2340,9 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     fire($('sdLogInput'), 'input');
     doc.querySelector('.tab-btn[data-tab="daily"]').click();
     await sleep(30);
-    doc.querySelector('.tab-btn[data-tab="gen"]').click();
+    doc.querySelector('.tab-btn[data-tab="activity"]').click();
     await sleep(30);
-    check($('sdLogInput').value.indexOf('2504') !== -1 && $('tab-gen').dataset.seg === 'sevenday',
+    check($('sdLogInput').value.indexOf('2504') !== -1 && $('tab-activity').dataset.seg === 'sevenday',
       '切到别的标签页再回来，日志还在、还停在七日任务这一段');
     $('sdOutput').value = '';
     $('sdCopyBtn').click();
@@ -2362,10 +2369,10 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
   console.log('--- 8q-2. 糖葫芦对决（活动类型 87 = 糖葫芦2v2，反推：1 匹配 / 2 结算 / 3 进度） ---');
   {
     const postsThl = posts.length;
-    doc.querySelector('#tab-gen .seg-btn[data-seg="tanghulu"]').click();
+    doc.querySelector('#tab-activity .seg-btn[data-seg="tanghulu"]').click();
     await sleep(60);
-    check($('tab-gen').dataset.seg === 'tanghulu' && $('genTanghuluPane').classList.contains('seg-on'),
-      '话术生成页多了一段「04 糖葫芦对决」，切过去只显示这一段');
+    check($('tab-activity').dataset.seg === 'tanghulu' && $('genTanghuluPane').classList.contains('seg-on'),
+      '「活动查询」页的第二段就是「糖葫芦对决」，切过去只显示这一段');
     check(!!$('thlInput') && !!$('thlParseBtn') && !!$('thlOutput') && !!$('thlChips'),
       '糖葫芦那一段有输入框 / 解析按钮 / 芯片区 / 结果框');
 
@@ -3105,12 +3112,12 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
   console.log('--- 8y. 吉运节节高 → 话术（反推 GM「玩家下午茶信息」那块；不是下午茶投票）---');
   {
     const posts8y = posts.length;
-    // 它挂在「话术生成」页的第三段（吉运节节高（下午茶）），不是下午茶投票页
-    doc.querySelector('.tab-btn[data-tab="gen"]').click();
+    // 它挂在「活动查询」页的第三段（吉运节节高（下午茶）），不是下午茶投票页
+    doc.querySelector('.tab-btn[data-tab="activity"]').click();
     await sleep(60);
-    const segTea = doc.querySelector('#tab-gen .seg-btn[data-seg="teainfo"]');
+    const segTea = doc.querySelector('#tab-activity .seg-btn[data-seg="teainfo"]');
     check(!!segTea && /吉运节节高/.test(segTea.textContent),
-      '「话术生成」页多了第三段「吉运节节高（下午茶）」（跟七日任务并排）',
+      '「活动查询」页的第三段就是「吉运节节高（下午茶）」（跟七日任务 / 糖葫芦并排）',
       segTea && segTea.textContent);
     segTea.click();
     await sleep(60);
@@ -3328,6 +3335,86 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
 
     check(posts.slice(posts8z).filter(p => /careerData|board|dailyData/.test(p.url) || /board/i.test(p.url)).length === 0,
       '镜像解析全程只在本机（0 请求）', posts.slice(posts8z).map(p => p.url).join(' | '));
+  }
+
+  console.log('--- 8z-2. 涂色游戏（照着 Poki「Anycolor」的玩法反推：选图 / 点区域上色 / 橡皮 / 撤销重做 / 下载）---');
+  {
+    const posts9 = posts.length;
+    doc.querySelector('.tab-btn[data-tab="script"]').click();
+    await sleep(80);
+    check(!!$('coloringCard') && !!$('coloringStage') && !!$('coloringPalette') && !!$('coloringPics'),
+      '小游戏页多了一张「🎨 涂色游戏」卡（图纸区 / 调色板 / 选图都在）');
+    // 选图：三张内置线稿
+    const picBtns = [...$('coloringPics').querySelectorAll('[data-pic]')];
+    check(picBtns.length === 3 && picBtns.map(b => b.dataset.pic).join(',') === 'fox,cake,sun'
+      && picBtns[0].classList.contains('active'),
+      '选图按钮 3 张（小狐狸 / 纸杯蛋糕 / 日出），默认第一张高亮', picBtns.map(b => b.dataset.pic).join(','));
+    // 调色板
+    const swatches = [...$('coloringPalette').querySelectorAll('[data-color]')];
+    check(swatches.length === 14 && swatches[0].classList.contains('active'),
+      '调色板 14 色，默认选中第一个', String(swatches.length));
+    // 画面区域 + 默认白色
+    const regions = () => [...$('coloringStage').querySelectorAll('[data-region]')];
+    check(regions().length === 8 && regions().every(r => r.getAttribute('fill') === '#ffffff'),
+      '小狐狸这张有 8 块区域，初始都是白色（跟原作一样是空白线稿）', String(regions().length));
+    // 点一块 → 上色
+    regions()[3].dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+    await sleep(40);
+    check(regions()[3].getAttribute('fill') === '#ff6b6b'
+      && regions()[3].dataset.region === 'head'
+      && /把「脑袋」涂成/.test($('coloringHint').textContent),
+      '点「脑袋」那块 → 填成当前颜色（#ff6b6b），提示里写清涂了哪块', $('coloringHint').textContent);
+    // 换颜色再涂
+    $('coloringPalette').querySelectorAll('[data-color]')[4].dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+    await sleep(30);
+    regions()[4].dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+    await sleep(30);
+    check(regions()[4].getAttribute('fill') === '#51cf66' && swatches[4] !== undefined,
+      '换一个颜色再点另一块 → 那块用新颜色', regions()[4].getAttribute('fill'));
+    // 撤销 / 重做
+    $('coloringUndoBtn').click();
+    await sleep(40);
+    check(regions()[4].getAttribute('fill') === '#ffffff', '撤销 → 那一块退回白色', regions()[4].getAttribute('fill'));
+    $('coloringRedoBtn').click();
+    await sleep(40);
+    check(regions()[4].getAttribute('fill') === '#51cf66', '重做 → 颜色又回来', regions()[4].getAttribute('fill'));
+    // 橡皮
+    $('coloringEraseBtn').click();
+    await sleep(30);
+    check($('coloringEraseBtn').getAttribute('aria-pressed') === 'true', '橡皮开着（aria-pressed=true）');
+    regions()[3].dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+    await sleep(40);
+    check(regions()[3].getAttribute('fill') === '#ffffff' && /擦掉/.test($('coloringHint').textContent),
+      '橡皮状态下点区域 = 擦回白色（又跟原作「画笔 / 橡皮」那套对着）', $('coloringHint').textContent);
+    $('coloringEraseBtn').click();
+    await sleep(30);
+    // 换图 + 清空
+    $('coloringPics').querySelectorAll('[data-pic]')[1].dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+    await sleep(50);
+    check(regions().length === 6 && /纸杯蛋糕/.test($('coloringHint').textContent),
+      '换成「纸杯蛋糕」→ 换成另一套 6 块区域', String(regions().length));
+    regions()[1].dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+    await sleep(30);
+    $('coloringClearBtn').click();
+    await sleep(40);
+    check(regions().every(r => r.getAttribute('fill') === '#ffffff') && /已清空/.test($('coloringHint').textContent),
+      '清空 → 这张图所有区域回白（撤销记录也清了）', $('coloringHint').textContent);
+    $('coloringUndoBtn').click();
+    await sleep(30);
+    check(/没有可以撤销的步骤/.test($('coloringHint').textContent), '清空后撤销栈是空的（提示没得撤销）');
+    // 自定义颜色
+    const custom = $('coloringCustomColor');
+    custom.value = '#123456';
+    fire(custom, 'input');
+    await sleep(30);
+    regions()[0].dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+    await sleep(30);
+    check(regions()[0].getAttribute('fill') === '#123456', '自定义取色器也能用（#123456）', regions()[0].getAttribute('fill'));
+    // 下载不抛错（jsdom 里 createObjectURL 可能没有 → 只提示）
+    $('coloringDownloadBtn').click();
+    await sleep(40);
+    check(/已下载|不支持下载/.test($('coloringHint').textContent), '点下载给提示，不抛异常', $('coloringHint').textContent);
+    check(posts.length === posts9, '涂色游戏全程只在本机（0 请求）', posts.slice(posts9).map(p => p.url).join(' | '));
   }
 
   console.log('--- 9. 无未捕获异常 ---');

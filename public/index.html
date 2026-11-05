@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="x-build" content="2026-11-05 糖葫芦-v20-糖葫芦查+排期窗+整天同步">
+    <meta name="x-build" content="2026-11-05 活动查询-v21-活动查询标签+涂色游戏">
     <title>客服冷静演绎工作台</title>
     <link rel="icon" type="image/gif" href="/my-icon.gif">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1004,7 +1004,19 @@
                     color: var(--danger);
                 }
 
-        /* ===================== 拼豆小游戏 ===================== */
+        /* ===================== 涂色游戏（Anycolor 反推） ===================== */
+.color-pics { display: flex; flex-wrap: wrap; gap: 6px; }
+.color-pics button { font-size: 12.5px; padding: 4px 10px !important; }
+.color-pics button.active { background: var(--accent); border-color: var(--accent); color: var(--dark); }
+.color-palette { display: flex; flex-wrap: wrap; gap: 6px; }
+.color-swatch { width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--line-1); cursor: pointer; padding: 0; }
+.color-swatch.active { outline: 2px solid var(--accent); outline-offset: 1px; }
+.color-stage { margin-top: 12px; display: flex; justify-content: center; }
+.color-stage svg { width: 100%; max-width: 520px; height: auto; background: #fff; border: 1px solid var(--line-1); border-radius: var(--r-md); }
+.color-stage [data-region] { cursor: pointer; stroke: #2c353d; stroke-width: 1.2; }
+.color-stage [data-region]:hover { stroke: var(--accent); stroke-width: 2; }
+
+/* ===================== 拼豆小游戏 ===================== */
         #tab-script button,
         #tab-script .secondary,
         #tab-script label[for="pixelFileInput"] {
@@ -3741,7 +3753,8 @@
             background: var(--bg-0);
         }
         /* 「话术生成」页的分段条不吸顶：它夹在卡片中间，吸顶会在滚动时把下面的文本框 / 卡片切成两半（2026-10 用户：「这个条感觉有点奇怪」） */
-        #tab-gen > .seg-bar { position: static; }
+        #tab-gen > .seg-bar,
+        #tab-activity > .seg-bar { position: static; }
         .seg-btn {
             position: relative;
             border: none !important; background: transparent !important;
@@ -4095,6 +4108,7 @@
             <div class="tab-group-title">梦幻消除站</div>
             <button class="tab-btn tab-btn-sub active" data-tab="gen"> 话术生成</button>
             <button class="tab-btn tab-btn-sub" data-tab="card"> 集卡分析</button>
+            <button class="tab-btn tab-btn-sub" data-tab="activity"> 活动查询</button>
             <button class="tab-btn tab-btn-sub" data-tab="gamedata"> 棋盘镜像</button>
 
             <button class="tab-btn" data-tab="reply"> 工单回复</button>
@@ -4106,93 +4120,13 @@
             <button class="tab-btn" data-tab="script">小游戏</button>
         </div>
 
-        <!-- ==================== 话术生成 gen ==================== -->
-        <div id="tab-gen" class="tab-content active">
-            <div class="seg-bar" data-for="tab-gen">
-                <button type="button" class="seg-btn active" data-seg="reply" data-n="01">话术生成</button>
-                <button type="button" class="seg-btn" data-seg="sevenday" data-n="02">七日任务进度</button>
-                <button type="button" class="seg-btn" data-seg="teainfo" data-n="03">吉运节节高（下午茶）</button>
-                <button type="button" class="seg-btn" data-seg="tanghulu" data-n="04">糖葫芦对决</button>
-            </div>
-            <div class="inline-card" style="margin-bottom: 20px;" data-seg-card="reply">
-                <label style="font-size: 1.1rem; margin-bottom: 10px;">智能粘贴识别（支持资源/棋子/订单）</label>
-                <textarea id="smartPasteInput" rows="5" placeholder="粘贴流水/订单日志，例如：&#10;2026-04-20 16:04:00	51b2bb98971c8d2323c225edd44a5512	体力	-1	326	325	棋盘操作-临时母棋生产	0-货币"></textarea>
-                <div class="flex-row" style="margin-top:8px;">
-                    <button id="smartParseBtn">✨ 智能解析</button>
-                    <button id="clearSmartBtn" class="secondary">清空</button>
-                    <div class="parse-mode-group">
-                        <span>解析模式：</span>
-                        <label class="checkbox-label"><input type="radio" name="parseMode" value="resource" checked> 资源&活动奖励流水</label>
-                        <label class="checkbox-label"><input type="radio" name="parseMode" value="chess"> 棋子流水</label>
-                        <label class="checkbox-label"><input type="radio" name="parseMode" value="order"> 订单日志</label>
-                        <label class="checkbox-label"><input type="radio" name="parseMode" value="review"> 好评奖励</label>
-                    </div>
-                </div>
-                <div style="border-top: 1px solid var(--line-0); margin: 16px 0;"></div>
-                <div class="rule-bar">
-                    <div>
-                        <label style="margin:0; font-weight:600;">资源类型</label>
-                        <select id="flowResourceSelect" class="compact-select">
-                            <option value="体力">体力</option>
-                            <option value="红钻">红钻</option>
-                            <option value="金币">金币</option>
-                            <option value="好评点">好评点</option>
-                            <option value="道具">道具</option>
-                            <option value="活动奖励">活动奖励（集合）</option>
-                        </select>
-                    </div>
-                    <div>
-                        <strong> 忽略</strong>
-                        <label class="checkbox-label"><input type="checkbox" id="enableIgnoreRulesCheckbox" checked> 启用</label>
-                        <button id="manageIgnoreRulesBtn" class="secondary">管理</button>
-                    </div>
-                    <div>
-                        <strong> 转换</strong>
-                        <label class="checkbox-label"><input type="checkbox" id="enableSourceConversionCheckbox" checked> 启用</label>
-                        <button id="manageSourceRulesBtn" class="secondary">管理</button>
-                    </div>
-                    <div>
-                        <strong> 映射</strong>
-                        <button id="manageMappingBtn" class="secondary">管理</button>
-                    </div>
-                </div>
-                <div class="upload-row">
-                    <div class="upload-col">
-                        <label>📁 上传流水CSV</label>
-                        <div class="file-upload-wrapper">
-                            <input type="file" id="flowFileInput" accept=".csv,.txt" />
-                            <button id="uploadFlowBtn">上传解析</button>
-                            <button id="debugFlowBtn" class="secondary">调试</button>
-                        </div>
-                    </div>
-                    <div class="upload-col">
-                        <label>来源关键词</label>
-                        <input type="text" id="includeSourcesInput" placeholder="例如：棋盘,体力购买">
-                    </div>
-                    <div class="upload-col">
-                        <label>道具关键词</label>
-                        <input type="text" id="itemKeywordInput" placeholder="例如：百戏锦囊">
-                    </div>
-                </div>
-            </div>
 
-            <div class="card" style="margin-top:20px;" data-seg-card="reply">
-                <div class="result-header">
-                    <label> 生成话术 <span id="globalResultCount" class="badge">0 条/组</span></label>
-                    <div class="flex-row">
-                        <div style="display:flex; align-items:center; gap:8px;">
-                            <label style="margin:0;">🕒 排序：</label>
-                            <select id="sortOrderSelect" style="width:100px;">
-                                <option value="desc" selected>时间倒序</option>
-                                <option value="asc">时间正序</option>
-                            </select>
-                        </div>
-                        <button id="copyGlobalResultBtn"> 复制全部</button>
-                        <button id="exportGlobalResultBtn"> 导出TXT</button>
-                    </div>
-                </div>
-                <textarea id="globalResultArea" rows="20" readonly style="background:#e9ecef;"></textarea>
-                <small>结果来源：<span id="resultSourceHint">等待操作</span></small>
+        <!-- ==================== 活动查询 activity（七日任务 / 糖葫芦对决 / 吉运节节高） ==================== -->
+        <div id="tab-activity" class="tab-content">
+            <div class="seg-bar" data-for="tab-activity">
+                <button type="button" class="seg-btn active" data-seg="sevenday" data-n="01">七日任务进度</button>
+                <button type="button" class="seg-btn" data-seg="tanghulu" data-n="02">糖葫芦对决</button>
+                <button type="button" class="seg-btn" data-seg="teainfo" data-n="03">吉运节节高（下午茶）</button>
             </div>
             <div id="genSevendayPane" data-seg-card="sevenday">
                 <div class="career-report-head">
@@ -4280,8 +4214,94 @@
                     <textarea id="thlOutput" rows="12" readonly placeholder="解析完这里出现这一期的匹配 / 结算 / 进度汇总"></textarea>
                 </div>
             </div>
+        </div>
 
-            <div style="margin-top:12px;">
+        <!-- ==================== 话术生成 gen ==================== -->
+        <div id="tab-gen" class="tab-content active">
+            <div class="seg-bar" data-for="tab-gen">
+                <button type="button" class="seg-btn active" data-seg="reply" data-n="01">话术生成</button>
+            </div>
+            <div class="inline-card" style="margin-bottom: 20px;" data-seg-card="reply">
+                <label style="font-size: 1.1rem; margin-bottom: 10px;">智能粘贴识别（支持资源/棋子/订单）</label>
+                <textarea id="smartPasteInput" rows="5" placeholder="粘贴流水/订单日志，例如：&#10;2026-04-20 16:04:00	51b2bb98971c8d2323c225edd44a5512	体力	-1	326	325	棋盘操作-临时母棋生产	0-货币"></textarea>
+                <div class="flex-row" style="margin-top:8px;">
+                    <button id="smartParseBtn">✨ 智能解析</button>
+                    <button id="clearSmartBtn" class="secondary">清空</button>
+                    <div class="parse-mode-group">
+                        <span>解析模式：</span>
+                        <label class="checkbox-label"><input type="radio" name="parseMode" value="resource" checked> 资源&活动奖励流水</label>
+                        <label class="checkbox-label"><input type="radio" name="parseMode" value="chess"> 棋子流水</label>
+                        <label class="checkbox-label"><input type="radio" name="parseMode" value="order"> 订单日志</label>
+                        <label class="checkbox-label"><input type="radio" name="parseMode" value="review"> 好评奖励</label>
+                    </div>
+                </div>
+                <div style="border-top: 1px solid var(--line-0); margin: 16px 0;"></div>
+                <div class="rule-bar">
+                    <div>
+                        <label style="margin:0; font-weight:600;">资源类型</label>
+                        <select id="flowResourceSelect" class="compact-select">
+                            <option value="体力">体力</option>
+                            <option value="红钻">红钻</option>
+                            <option value="金币">金币</option>
+                            <option value="好评点">好评点</option>
+                            <option value="道具">道具</option>
+                            <option value="活动奖励">活动奖励（集合）</option>
+                        </select>
+                    </div>
+                    <div>
+                        <strong> 忽略</strong>
+                        <label class="checkbox-label"><input type="checkbox" id="enableIgnoreRulesCheckbox" checked> 启用</label>
+                        <button id="manageIgnoreRulesBtn" class="secondary">管理</button>
+                    </div>
+                    <div>
+                        <strong> 转换</strong>
+                        <label class="checkbox-label"><input type="checkbox" id="enableSourceConversionCheckbox" checked> 启用</label>
+                        <button id="manageSourceRulesBtn" class="secondary">管理</button>
+                    </div>
+                    <div>
+                        <strong> 映射</strong>
+                        <button id="manageMappingBtn" class="secondary">管理</button>
+                    </div>
+                </div>
+                <div class="upload-row">
+                    <div class="upload-col">
+                        <label>📁 上传流水CSV</label>
+                        <div class="file-upload-wrapper">
+                            <input type="file" id="flowFileInput" accept=".csv,.txt" />
+                            <button id="uploadFlowBtn">上传解析</button>
+                            <button id="debugFlowBtn" class="secondary">调试</button>
+                        </div>
+                    </div>
+                    <div class="upload-col">
+                        <label>来源关键词</label>
+                        <input type="text" id="includeSourcesInput" placeholder="例如：棋盘,体力购买">
+                    </div>
+                    <div class="upload-col">
+                        <label>道具关键词</label>
+                        <input type="text" id="itemKeywordInput" placeholder="例如：百戏锦囊">
+                    </div>
+                </div>
+            </div>
+
+            <div class="card" style="margin-top:20px;" data-seg-card="reply">
+                <div class="result-header">
+                    <label> 生成话术 <span id="globalResultCount" class="badge">0 条/组</span></label>
+                    <div class="flex-row">
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <label style="margin:0;">🕒 排序：</label>
+                            <select id="sortOrderSelect" style="width:100px;">
+                                <option value="desc" selected>时间倒序</option>
+                                <option value="asc">时间正序</option>
+                            </select>
+                        </div>
+                        <button id="copyGlobalResultBtn"> 复制全部</button>
+                        <button id="exportGlobalResultBtn"> 导出TXT</button>
+                    </div>
+                </div>
+                <textarea id="globalResultArea" rows="20" readonly style="background:#e9ecef;"></textarea>
+                <small>结果来源：<span id="resultSourceHint">等待操作</span></small>
+            </div>
+<div style="margin-top:12px;">
                 <div id="debugToggleHeader" class="debug-toggle"><span id="debugArrow">▶</span><span>🔍 调试日志</span></div>
                 <div id="flowDebugConsole" class="debug-console"></div>
             </div>
@@ -5008,6 +5028,31 @@
                     </div>
                 </div>
             </div><!-- /sub-panel-fry -->
+
+            <div class="card" id="coloringCard">
+                <label>🎨 涂色游戏 <span class="card-sub">点区域上色 · 调色板 / 橡皮 / 撤销 / 重做 · 可下载（照着 Anycolor 那套反推的玩法）</span></label>
+                <div class="flex-row" style="margin-top:10px; flex-wrap:wrap; gap:8px;">
+                    <span class="hint-text" style="margin:0;">选图：</span>
+                    <div class="color-pics" id="coloringPics"></div>
+                </div>
+                <div class="flex-row" style="margin-top:10px; flex-wrap:wrap; gap:8px;">
+                    <span class="hint-text" style="margin:0;">调色板：</span>
+                    <div class="color-palette" id="coloringPalette"></div>
+                    <input type="color" id="coloringCustomColor" value="#ff6b6b" title="自定义颜色" style="width:38px;height:30px;padding:2px;">
+                </div>
+                <div class="flex-row" style="margin-top:10px; flex-wrap:wrap; gap:8px;">
+                    <button id="coloringEraseBtn" class="secondary" aria-pressed="false">🧽 橡皮</button>
+                    <button id="coloringUndoBtn" class="secondary">↩️ 撤销</button>
+                    <button id="coloringRedoBtn" class="secondary">↪️ 重做</button>
+                    <button id="coloringClearBtn" class="reset-btn">🧹 清空</button>
+                    <button id="coloringDownloadBtn">⬇️ 下载</button>
+                    <span class="hint-text" id="coloringHint"></span>
+                </div>
+                <div class="color-stage" id="coloringStage"></div>
+                <p class="hint-text" style="margin:8px 0 0;">
+                    💡 跟 Anycolor 一样：点画面里的空白区域就填上当前颜色；小区域不好点就切「橡皮」再点回来，或者用撤销/重做慢慢调。
+                </p>
+            </div>
         </div><!-- /tab-script -->
         <!-- ==================== 🧩 棋盘镜像（2026-10 用户：「删掉游戏数据功能，仅保留棋盘镜像」）==================== -->
         <div id="tab-gamedata" class="tab-content">
@@ -17335,7 +17380,214 @@
                                         teaSetHint('teaInfoHint', '已清空');
                                     }
 
-                                    // ==================== 🍡 糖葫芦对决（活动类型 87 = 糖葫芦2v2）====================
+                                    // ==================== 🎨 涂色游戏（照着 Poki「Anycolor」那套反推的玩法）====================
+// 原作的规则（从网页源码的「如何玩 Anycolor」抄的）：选图 → 点空白区域填充 → 换颜色 / 画笔 / 橡皮
+//   → 撤销 / 重做 → 缩放 → 滤镜与描边 → 下载分享。这里只在本机画，不联网、不存玩家数据。
+const COLORING_PALETTE = [
+    '#ff6b6b', '#ffa94d', '#ffd43b', '#a9e34b', '#51cf66', '#20c997',
+    '#4dabf7', '#5c7cfa', '#9775fa', '#f783ac', '#c9a227', '#868e96',
+    '#495057', '#ffffff'
+];
+// 三张内置线稿（区域 = 一块可以填色的图形；都带 data-region 给点击用）
+const COLORING_PICS = [
+    {
+        key: 'fox', name: '小狐狸',
+        regions: [
+            { id: 'sky', name: '背景', d: 'M10,10 H190 V190 H10 Z' },
+            { id: 'tail', name: '尾巴', d: 'M132,148 C176,150 180,104 154,96 C168,116 150,128 132,124 Z' },
+            { id: 'body', name: '身子', d: 'M62,150 C52,118 74,92 100,92 C126,92 148,118 138,150 Z' },
+            { id: 'head', name: '脑袋', d: 'M70,92 C70,64 130,64 130,92 C130,116 70,116 70,92 Z' },
+            { id: 'earL', name: '左耳', d: 'M74,70 L62,34 L96,56 Z' },
+            { id: 'earR', name: '右耳', d: 'M126,70 L138,34 L104,56 Z' },
+            { id: 'face', name: '脸', d: 'M84,88 C84,78 116,78 116,88 C116,102 84,102 84,88 Z' },
+            { id: 'nose', name: '鼻子', d: 'M97,96 L103,96 L100,101 Z' },
+        ],
+    },
+    {
+        key: 'cake', name: '纸杯蛋糕',
+        regions: [
+            { id: 'bg', name: '背景', d: 'M10,10 H190 V190 H10 Z' },
+            { id: 'cup', name: '杯身', d: 'M62,116 H138 L128,172 H72 Z' },
+            { id: 'frost', name: '奶油', d: 'M58,116 C58,88 84,74 100,74 C116,74 142,88 142,116 Z' },
+            { id: 'cherry', name: '樱桃', d: 'M100,44 C112,44 118,54 112,62 C104,70 92,66 92,56 C92,48 94,44 100,44 Z' },
+            { id: 'spr1', name: '糖针一', d: 'M82,100 L94,92 L88,104 Z' },
+            { id: 'spr2', name: '糖针二', d: 'M108,96 L120,104 L106,108 Z' },
+        ],
+    },
+    {
+        key: 'sun', name: '日出',
+        regions: [
+            { id: 'sky2', name: '天空', d: 'M10,10 H190 V130 H10 Z' },
+            { id: 'sun2', name: '太阳', d: 'M100,46 m-26,0 a26,26 0 1,0 52,0 a26,26 0 1,0 -52,0' },
+            { id: 'hill1', name: '远山', d: 'M10,130 L60,86 L110,130 Z' },
+            { id: 'hill2', name: '近山', d: 'M86,130 L140,72 L190,130 Z' },
+            { id: 'ground', name: '地面', d: 'M10,130 H190 V190 H10 Z' },
+        ],
+    },
+];
+const COLORING_BLANK = "#ffffff";
+let coloringPic = COLORING_PICS[0].key;
+let coloringColor = COLORING_PALETTE[0];
+let coloringErase = false;
+let coloringState = {};        // { 图案key: { 区域id: 颜色 } }
+let coloringUndo = [];
+let coloringRedo = [];
+function coloringPicOf(key) {
+    for (let i = 0; i < COLORING_PICS.length; i++) if (COLORING_PICS[i].key === key) return COLORING_PICS[i];
+    return COLORING_PICS[0];
+}
+function coloringColors() {
+    const k = coloringPic;
+    if (!coloringState[k]) coloringState[k] = {};
+    return coloringState[k];
+}
+function coloringPaintOf(key) { return coloringColors()[key] || COLORING_BLANK; }
+function coloringSetHint(msg) {
+    const el = document.getElementById("coloringHint");
+    if (el) el.textContent = msg || "";
+}
+function coloringRenderPics() {
+    const box = document.getElementById("coloringPics");
+    if (!box) return;
+    box.innerHTML = COLORING_PICS.map(p =>
+        '<button type="button" data-pic="' + p.key + '" class="' + (p.key === coloringPic ? "active" : "") + '">' + escapeHtml(p.name) + "</button>"
+    ).join("");
+}
+function coloringRenderPalette() {
+    const box = document.getElementById("coloringPalette");
+    if (!box) return;
+    box.innerHTML = COLORING_PALETTE.map(c =>
+        '<button type="button" class="color-swatch ' + (!coloringErase && c === coloringColor ? "active" : "") + '" data-color="' + c + '" style="background:' + c + '" title="' + c + '"></button>'
+    ).join("");
+    const custom = document.getElementById("coloringCustomColor");
+    if (custom) custom.value = /^#[0-9a-f]{6}$/i.test(coloringColor) ? coloringColor : "#ff6b6b";
+    const er = document.getElementById("coloringEraseBtn");
+    if (er) er.setAttribute("aria-pressed", coloringErase ? "true" : "false");
+}
+function coloringRenderStage() {
+    const stage = document.getElementById("coloringStage");
+    if (!stage) return;
+    const pic = coloringPicOf(coloringPic);
+    const colors = coloringColors();
+    stage.innerHTML = '<svg viewBox="0 0 200 200" role="img" aria-label="' + escapeHtml(pic.name) + '">'
+        + pic.regions.map(r =>
+            '<path data-region="' + escapeHtml(r.id) + '" data-name="' + escapeHtml(r.name) + '" d="' + escapeHtml(r.d) + '" fill="' + escapeHtml(colors[r.id] || COLORING_BLANK) + '"><title>' + escapeHtml(r.name) + "</title></path>"
+        ).join("") + "</svg>";
+}
+function coloringPaint(regionId) {
+    const pic = coloringPicOf(coloringPic);
+    const hit = pic.regions.filter(r => r.id === regionId)[0];
+    if (!hit) return;
+    const colors = coloringColors();
+    const next = coloringErase ? COLORING_BLANK : coloringColor;
+    const before = colors[regionId] || COLORING_BLANK;
+    if (before === next) return;
+    coloringUndo.push({ pic: coloringPic, id: regionId, before: before, after: next });
+    coloringRedo = [];
+    colors[regionId] = next;
+    coloringRenderStage();
+    coloringSetHint(coloringErase ? "擦掉「" + hit.name + "」的颜色" : "把「" + hit.name + "」涂成 " + next);
+}
+function coloringUndoStep() {
+    const last = coloringUndo.pop();
+    if (!last) { coloringSetHint("没有可以撤销的步骤了"); return; }
+    coloringPic = last.pic;
+    coloringColors()[last.id] = last.before;
+    coloringRedo.push(last);
+    coloringRenderPics();
+    coloringRenderStage();
+    coloringSetHint("撤销了「" + coloringPicOf(last.pic).regions.filter(r => r.id === last.id).map(r => r.name)[0] + "」");
+}
+function coloringRedoStep() {
+    const last = coloringRedo.pop();
+    if (!last) { coloringSetHint("没有可以重做的步骤了"); return; }
+    coloringPic = last.pic;
+    coloringColors()[last.id] = last.after;
+    coloringUndo.push(last);
+    coloringRenderPics();
+    coloringRenderStage();
+    coloringSetHint("又涂回 " + last.after);
+}
+function coloringClearStep() {
+    coloringState[coloringPic] = {};
+    coloringUndo = [];
+    coloringRedo = [];
+    coloringRenderStage();
+    coloringSetHint("这张图已清空（撤销记录也清了）");
+}
+function coloringDownloadStep() {
+    const stage = document.getElementById("coloringStage");
+    const svg = stage && stage.querySelector("svg");
+    if (!svg) { coloringSetHint("没有可下载的图"); return; }
+    // jsdom / 无头环境没有真正的下载（点 <a download> 会被 jsdom 记成 navigation 错误）→ 只给提示
+    if (/jsdom/i.test(String((window.navigator && window.navigator.userAgent) || ""))) {
+        coloringSetHint("这个环境不支持下载（浏览器里可以）");
+        return;
+    }
+    try {
+        const xml = new window.XMLSerializer().serializeToString(svg);
+        const blob = new Blob([xml], { type: "image/svg+xml;charset=utf-8" });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "涂色_" + coloringPicOf(coloringPic).name + ".svg";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => { try { window.URL.revokeObjectURL(url); } catch (_) { } }, 1000);
+        coloringSetHint("已下载这张涂色图");
+    } catch (e) {
+        coloringSetHint("这个环境不支持下载（浏览器里可以）");
+    }
+}
+function coloringInit() {
+    coloringRenderPics();
+    coloringRenderPalette();
+    coloringRenderStage();
+    const stage = document.getElementById("coloringStage");
+    if (stage && !stage.dataset.bound) {
+        stage.dataset.bound = "1";
+        stage.addEventListener("click", e => {
+            const el = e.target.closest("[data-region]");
+            if (el) coloringPaint(el.dataset.region);
+        });
+    }
+    const pics = document.getElementById("coloringPics");
+    if (pics && !pics.dataset.bound) {
+        pics.dataset.bound = "1";
+        pics.addEventListener("click", e => {
+            const b = e.target.closest("[data-pic]");
+            if (!b) return;
+            coloringPic = b.dataset.pic;
+            coloringRenderPics();
+            coloringRenderStage();
+            coloringSetHint("换成「" + coloringPicOf(coloringPic).name + "」");
+        });
+    }
+    const pal = document.getElementById("coloringPalette");
+    if (pal && !pal.dataset.bound) {
+        pal.dataset.bound = "1";
+        pal.addEventListener("click", e => {
+            const b = e.target.closest("[data-color]");
+            if (!b) return;
+            coloringColor = b.dataset.color;
+            coloringErase = false;
+            coloringRenderPalette();
+            coloringSetHint("当前颜色 " + coloringColor);
+        });
+    }
+    const custom = document.getElementById("coloringCustomColor");
+    if (custom && !custom.dataset.bound) {
+        custom.dataset.bound = "1";
+        custom.addEventListener("input", () => {
+            coloringColor = custom.value;
+            coloringErase = false;
+            coloringRenderPalette();
+        });
+    }
+}
+
+// ==================== 🍡 糖葫芦对决（活动类型 87 = 糖葫芦2v2）====================
                                     // 2026-11 从 GM 玩家页反推出的口径：
                                     //   活动类型 87 = 糖葫芦2v2；行为枚举 = 1 匹配 / 2 结算 / 3 进度；
                                     //   奖励来源 263 = 糖葫芦比拼活动奖励。
@@ -18212,6 +18464,7 @@
                                             // 统计页：切进来时回到第一段（总览），免得停在上次的明细段
                                             if (tabKey === 'career') statsSetSeg('tab-career', 'overview');
                                             if (tabKey === 'overseas') statsSetSeg('tab-overseas', 'overview');
+        if (tabKey === 'activity') statsSetSeg('tab-activity', 'sevenday');
                                             if (this.dataset.tab === 'career') renderCareer();
                                             if (this.dataset.tab === 'overseas') { ovbizRender(); renderOvbizDetail(); }   // 切进来重画一遍（数据只在本机）
                                             if (this.dataset.tab === 'tea') teaInit();                                  // 下午茶：切进来拉一次服务端
@@ -18228,7 +18481,8 @@
                                             });
                                             statsSetSeg('tab-career', 'overview');
                                             statsSetSeg('tab-overseas', 'overview');
-                                            statsSetSeg('tab-gen', 'reply');   // 话术生成页也分两段：话术生成 / 七日任务进度
+                                            statsSetSeg('tab-gen', 'reply');   // 话术生成页（只剩一段）
+    statsSetSeg('tab-activity', 'sevenday');   // 活动查询默认停在七日任务
                                             statsSetSeg('tab-card', 'speech');  // 集卡分析分三段：集卡话术 / 抽卡详情 / 卡组收藏
                                         })();
 
@@ -18558,6 +18812,19 @@
                                         setClick('teaInfoParseBtn', teaInfoRun);
                                         setClick('teaInfoCopyBtn', teaInfoCopy);
                                         setClick('teaInfoClearBtn', teaInfoClear);
+                                        // 🎨 涂色游戏（Anycolor 反推：选图 / 调色板 / 橡皮 / 撤销 / 重做 / 清空 / 下载）
+                                        (function bindColoring() {
+                                            coloringInit();
+                                            setClick('coloringEraseBtn', () => {
+                                                coloringErase = !coloringErase;
+                                                coloringRenderPalette();
+                                                coloringSetHint(coloringErase ? '橡皮开着：点区域会把颜色擦掉' : '橡皮关了：点区域上色');
+                                            });
+                                            setClick('coloringUndoBtn', coloringUndoStep);
+                                            setClick('coloringRedoBtn', coloringRedoStep);
+                                            setClick('coloringClearBtn', coloringClearStep);
+                                            setClick('coloringDownloadBtn', coloringDownloadStep);
+                                        })();
                                         // 糖葫芦对决（活动类型 87 = 糖葫芦2v2）：粘查询结果 → 按排期 / 行为汇总
                                         setClick('thlParseBtn', thlRun);
                                         setClick('thlCopyBtn', thlCopy);
