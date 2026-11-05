@@ -2194,8 +2194,31 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
       '抬头右上 3 格元数据（任务表 / 进度日志 / 活动排期）', $('sdReportMeta').children.length);
     check(!$('sdTaskFold') && !$('sdTaskInput') && !$('sdTaskSub'),
       '页面上不再展示任务表那一块（内置在代码里，界面上看不见也改不了）');
-    check(/任务表105 条（内置）/.test($('sdReportMeta').textContent),
-      '抬头右上写「任务表 105 条（内置）」—— 三期任务表（2521–2555 + 2416–2450 + 2486–2520）', $('sdReportMeta').textContent);
+    check(/任务表140 条（内置）/.test($('sdReportMeta').textContent),
+      '抬头右上写「任务表 140 条（内置）」—— 四期任务表（2766–2800 + 2521–2555 + 2416–2450 + 2486–2520）',
+      $('sdReportMeta').textContent);
+
+    // 2026-11 用户给的新一期（2766–2800）：ID 直接对得上，不用按「隔壁期」估
+    $('sdLogInput').value = [
+      '2026-11-20 10:00:00	38	aaa	2766	1	1	1	2',
+      '2026-11-20 10:01:00	38	bbb	2782	10	16	1	1',
+      '2026-11-20 10:02:00	38	ccc	2795	100	150	1	2',
+      '2026-11-20 10:03:00	38	ddd	2800	100	155	1	1',
+    ].join('\n');
+    fire($('sdLogInput'), 'input');
+    $('sdGenerateBtn').click();
+    await sleep(40);
+    const outNew = $('sdOutput').value;
+    check(/^七日任务进度（活动排期 38） · 共 4 个任务/.test(outNew),
+      '新一期（2766–2800）的日志：抬头只写排期 38（38 不在内置排期表里，不编时间窗）', outNew.split('\n')[0]);
+    check(/登录1天：已登录 1\/1，已完成，可领取 积分 10 \+ 铜钱×15/.test(outNew),
+      '2766 = 第1天 登录1天（新一期的表读到了，不是按 2521 那期估的）', outNew);
+    check(/获得18张4星百戏牌：已获得 16\/18，还差 2/.test(outNew),
+      '2782 = 第4天 获得18张4星百戏牌，进度 16 / 目标 18 → 还差 2', outNew);
+    check(/服务150个顾客：已服务 150\/150，已完成，可领取 积分 30 \+ 体力×35/.test(outNew),
+      '2795 客户端状态是 2「可领取」→ 判完成并能领 积分 30 + 体力×35', outNew);
+    check(/服务200个顾客：已服务 155\/200，还差 45/.test(outNew),
+      '2800 = 第7天 服务200个顾客，155 / 200 → 还差 45', outNew);
 
     // 粘用户给的真实日志 → 按内置任务表判定
     $('sdLogInput').value = sdLog;

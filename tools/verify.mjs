@@ -967,14 +967,19 @@ ok(!/id="sdTaskFold"/.test(s) && !/id="sdTaskInput"/.test(s) && !/id="sdTaskSub"
   && !/sdInitTaskTable/.test(s) && !/sdTaskResetBtn/.test(s) && !/sdClearTask/.test(s),
   '任务表完全不上界面：页面上没有折叠区 / 只读框 / 条数副标（也没有「清掉任务表」按钮）');
 ok(/const SD_TASK_DEFAULT = \[/.test(s)
+  // 2026-11 用户给的这一期（2766–2800）：ID 连续，逐行抄进来
+  && /'2766\\t第1天\\t登录1天\\t1\\t4\\t1\\t2\\t已领取\\t10\\t102×15'/.test(s)
+  && /'2782\\t第4天\\t获得18张4星百戏牌\\t18\\t16\\t16\\t1\\t未完成\\t50\\t153×1'/.test(s)
+  && /'2795\\t第6天\\t服务150个顾客\\t150\\t150\\t150\\t2\\t可领取\\t30\\t101×35'/.test(s)
+  && /'2800\\t第7天\\t服务200个顾客\\t200\\t155\\t155\\t1\\t未完成\\t45\\t101×30'/.test(s)
   && /'2521\\t第1天\\t登录1天\\t1\\t7\\t-\\t-\\t已领取/.test(s)
   && /'2555\\t第7天\\t服务250个顾客/.test(s)
   && /'2416\\t第1天\\t登录1天/.test(s)
   && /'2450\\t第7天\\t服务110个顾客/.test(s)
   && /'2486\\t第1天\\t登录1天/.test(s) && /'2520\\t第7天\\t服务200个顾客/.test(s)
-  && (s.match(/'\d{4}\\t第[1-7]天\\t/g) || []).length === 105
+  && (s.match(/'\d{4}\\t第[1-7]天\\t/g) || []).length === 140
   && /task: sdParseRows\(SD_TASK_DEFAULT, SD_TASK_ALIASES, SD_TASK_ORDER\)/.test(s),
-  '内置固定任务表 SD_TASK_DEFAULT（三期共 105 条：最新 2521–2555 + 2416–2450 + 2486–2520）+ 解析时直接用这份常量');
+  '内置固定任务表 SD_TASK_DEFAULT（四期共 140 条：最新 2766–2800 + 2521–2555 + 2416–2450 + 2486–2520）+ 解析时直接用这份常量');
 ok(/const SD_TASK_ALIASES = \{/.test(s) && /const SD_LOG_ALIASES = \{/.test(s)
   && /const SD_TASK_ORDER = \[/.test(s) && /const SD_LOG_ORDER = \[/.test(s)
   && /function sdParseRows\(text, aliases, order\)/.test(s) && /const useHeader = hit >= 3;/.test(s)
