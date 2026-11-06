@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="x-build" content="2026-11-06 活动查询-v27-糖葫芦话术不提排期">
+    <meta name="x-build" content="2026-11-06 活动查询-v28-涂色导入图片位图填充">
     <title>客服冷静演绎工作台</title>
     <link rel="icon" type="image/gif" href="/my-icon.gif">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -5063,6 +5063,13 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                     <span class="hint-text" id="coloringHint"></span>
                 </div>
                 <div class="color-stage" id="coloringStage"></div>
+                <div class="flex-row" style="margin-top:10px; flex-wrap:wrap; gap:8px;">
+                    <label class="secondary" for="coloringImgInput" style="cursor:pointer; margin:0;">📥 导入图片（PNG / JPG，截图也行）</label>
+                    <input type="file" id="coloringImgInput" accept="image/*" style="display:none;">
+                    <button id="coloringBackBtn" class="secondary" style="display:none;">↩️ 回到内置线稿</button>
+                    <span class="hint-text" id="coloringImgHint" style="margin:0;">导入后点哪儿填哪儿 —— 跟 Anycolor 一样是位图填充，黑线自动当边界</span>
+                </div>
+                <canvas id="coloringCanvas" width="600" height="600" style="display:none; width:100%; max-width:520px; margin-top:10px; background:#fff; border:1px solid var(--line-1); border-radius: var(--r-md); cursor: crosshair;"></canvas>
                 <p class="hint-text" style="margin:8px 0 0;">
                     💡 跟 Anycolor 一样：点画面里的空白区域就填上当前颜色；小区域不好点就切「橡皮」再点回来，或者用撤销/重做慢慢调。
                 </p>
@@ -18204,7 +18211,157 @@ function coloringPaint(regionId) {
     coloringRenderStage();
     coloringSetHint(coloringErase ? "擦掉「" + hit.name + "」的颜色" : "把「" + hit.name + "」涂成 " + next);
 }
+// ---- 位图模式（2026-11 用户：「能不能直接搬 Anycolor 里的图」/「在各种网页抓取线稿图」）----
+// 内置线稿是 SVG 面填充；从网页存下来的图（PNG / JPG / 截图）走这一套：铺到 canvas 上，点哪块就用容差 flood fill 填哪块。
+// 黑线天然是边界，所以 Anycolor 那种「线稿 + 点区域上色」的玩法能完全复刻，而且不用把别人的素材内置进仓库。
+let coloringImgEl = null;
+let coloringImgUndo = [];
+let coloringImgRedo = [];
+const COLORING_FILL_TOL = 52;      // 容差（RGB 距离的平方比这个的平方小就算同色）
+function coloringCanvasCtx() {
+    const cv = document.getElementById("coloringCanvas");
+    if (!cv || typeof cv.getContext !== "function") return null;
+    try { return cv.getContext("2d"); } catch (e) { return null; }
+}
+function coloringImgSetHint(msg) {
+    const el = document.getElementById("coloringImgHint");
+    if (el) el.textContent = msg || "";
+}
+function coloringImgModeOn(on) {
+    const cv = document.getElementById("coloringCanvas");
+    const stage = document.getElementById("coloringStage");
+    const back = document.getElementById("coloringBackBtn");
+    if (cv) cv.style.display = on ? "" : "none";
+    if (stage) stage.style.display = on ? "none" : "";
+    if (back) back.style.display = on ? "" : "none";
+}
+function coloringImgDrawBase() {
+    const cv = document.getElementById("coloringCanvas");
+    const ctx = coloringCanvasCtx();
+    if (!cv || !ctx) { coloringImgSetHint("这个环境画不了图（浏览器里可以）"); return false; }
+    ctx.save();
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, cv.width, cv.height);
+    if (coloringImgEl) {
+        const img = coloringImgEl;
+        const iw = img.naturalWidth || img.width, ih = img.naturalHeight || img.height;
+        if (iw && ih) {
+            const s = Math.min(cv.width / iw, cv.height / ih);
+            const w = iw * s, h = ih * s;
+            ctx.drawImage(img, (cv.width - w) / 2, (cv.height - h) / 2, w, h);
+        }
+    }
+    ctx.restore();
+    return true;
+}
+function coloringImgUndoPush(ctx, cv) {
+    try { coloringImgUndo.push(ctx.getImageData(0, 0, cv.width, cv.height)); } catch (e) { return; }
+    if (coloringImgUndo.length > 10) coloringImgUndo.shift();
+    coloringImgRedo = [];
+}
+function coloringImgFill(px, py) {
+    const cv = document.getElementById("coloringCanvas");
+    const ctx = coloringCanvasCtx();
+    if (!cv || !ctx) { coloringImgSetHint("这个环境画不了图（浏览器里可以）"); return; }
+    if (px < 0 || py < 0 || px >= cv.width || py >= cv.height) return;
+    let data;
+    try { data = ctx.getImageData(0, 0, cv.width, cv.height); } catch (e) { coloringImgSetHint("这张图跨域了，涂不了（换成本地图片）"); return; }
+    const w = cv.width, h = cv.height, buf = data.data;
+    const seedAt = (py * w + px) * 4;
+    const seed = [buf[seedAt], buf[seedAt + 1], buf[seedAt + 2]];
+    const hex = String(coloringColor || "#ff6b6b");
+    const next = coloringErase ? [255, 255, 255]
+        : [parseInt(hex.slice(1, 3), 16), parseInt(hex.slice(3, 5), 16), parseInt(hex.slice(5, 7), 16)];
+    if (seed[0] === next[0] && seed[1] === next[1] && seed[2] === next[2]) { coloringImgSetHint("这块本来就这个颜色"); return; }
+    coloringImgUndoPush(ctx, cv);
+    const tol2 = COLORING_FILL_TOL * COLORING_FILL_TOL;
+    const seen = new Uint8Array(w * h);
+    const stack = [px, py];
+    let painted = 0;
+    while (stack.length) {
+        const y = stack.pop(), x = stack.pop();
+        if (x < 0 || y < 0 || x >= w || y >= h) continue;
+        const i = y * w + x;
+        if (seen[i]) continue;
+        seen[i] = 1;
+        const o = i * 4;
+        const dr = buf[o] - seed[0], dg = buf[o + 1] - seed[1], db = buf[o + 2] - seed[2];
+        if (dr * dr + dg * dg + db * db > tol2) continue;
+        buf[o] = next[0]; buf[o + 1] = next[1]; buf[o + 2] = next[2]; buf[o + 3] = 255;
+        painted++;
+        stack.push(x + 1, y, x - 1, y, x, y + 1, x, y - 1);
+    }
+    ctx.putImageData(data, 0, 0);
+    coloringImgSetHint((coloringErase ? "擦掉了一块" : "填了 " + hex) + "（" + painted + " 个像素）");
+}
+function coloringImgImport(file) {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function () {
+        const img = new Image();
+        img.onload = function () {
+            coloringImgEl = img;
+            coloringImgUndo = [];
+            coloringImgRedo = [];
+            coloringImgModeOn(true);
+            if (!coloringImgDrawBase()) return;
+            coloringImgSetHint("已导入「" + (file.name || "图片") + "」：点哪儿填哪儿（黑线自动当边界）");
+        };
+        img.onerror = function () { coloringImgSetHint("这张图读不出来，换一张试试"); };
+        img.src = String(reader.result || "");
+    };
+    reader.onerror = function () { coloringImgSetHint("读这个文件失败"); };
+    reader.readAsDataURL(file);
+}
+function coloringImgUndoStep() {
+    const cv = document.getElementById("coloringCanvas");
+    const ctx = coloringCanvasCtx();
+    if (!cv || !ctx) { coloringImgSetHint("这个环境画不了图（浏览器里可以）"); return; }
+    const last = coloringImgUndo.pop();
+    if (!last) { coloringImgSetHint("没有可以撤销的步骤了"); return; }
+    try { coloringImgRedo.push(ctx.getImageData(0, 0, cv.width, cv.height)); } catch (e) { }
+    ctx.putImageData(last, 0, 0);
+    coloringImgSetHint("撤销了一步");
+}
+function coloringImgRedoStep() {
+    const cv = document.getElementById("coloringCanvas");
+    const ctx = coloringCanvasCtx();
+    if (!cv || !ctx) { coloringImgSetHint("这个环境画不了图（浏览器里可以）"); return; }
+    const last = coloringImgRedo.pop();
+    if (!last) { coloringImgSetHint("没有可以重做的步骤了"); return; }
+    try { coloringImgUndo.push(ctx.getImageData(0, 0, cv.width, cv.height)); } catch (e) { }
+    ctx.putImageData(last, 0, 0);
+    coloringImgSetHint("重做了一步");
+}
+function coloringImgClearStep() {
+    coloringImgUndo = [];
+    coloringImgRedo = [];
+    if (!coloringImgDrawBase()) return;
+    coloringImgSetHint("这张图已恢复原样（撤销记录也清了）");
+}
+function coloringImgDownloadStep() {
+    const cv = document.getElementById("coloringCanvas");
+    if (!cv) { coloringImgSetHint("没有可下载的图"); return; }
+    if (/jsdom/i.test(String((window.navigator && window.navigator.userAgent) || ""))) {
+        coloringImgSetHint("这个环境不支持下载（浏览器里可以）");
+        return;
+    }
+    try {
+        const url = cv.toDataURL("image/png");
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "涂色_导入图.png";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        coloringImgSetHint("已下载这张涂色图（PNG）");
+    } catch (e) {
+        coloringImgSetHint("这个环境不支持下载（浏览器里可以）");
+    }
+}
+
 function coloringUndoStep() {
+    if (coloringImgEl) { coloringImgUndoStep(); return; }
     const last = coloringUndo.pop();
     if (!last) { coloringSetHint("没有可以撤销的步骤了"); return; }
     coloringPic = last.pic;
@@ -18215,6 +18372,7 @@ function coloringUndoStep() {
     coloringSetHint("撤销了「" + coloringPicOf(last.pic).regions.filter(r => r.id === last.id).map(r => r.name)[0] + "」");
 }
 function coloringRedoStep() {
+    if (coloringImgEl) { coloringImgRedoStep(); return; }
     const last = coloringRedo.pop();
     if (!last) { coloringSetHint("没有可以重做的步骤了"); return; }
     coloringPic = last.pic;
@@ -18225,6 +18383,7 @@ function coloringRedoStep() {
     coloringSetHint("又涂回 " + last.after);
 }
 function coloringClearStep() {
+    if (coloringImgEl) { coloringImgClearStep(); return; }
     coloringState[coloringPic] = {};
     coloringUndo = [];
     coloringRedo = [];
@@ -18232,6 +18391,7 @@ function coloringClearStep() {
     coloringSetHint("这张图已清空（撤销记录也清了）");
 }
 function coloringDownloadStep() {
+    if (coloringImgEl) { coloringImgDownloadStep(); return; }
     const stage = document.getElementById("coloringStage");
     const svg = stage && stage.querySelector("svg");
     if (!svg) { coloringSetHint("没有可下载的图"); return; }
@@ -18257,6 +18417,38 @@ function coloringDownloadStep() {
     }
 }
 function coloringInit() {
+    const imgInput = document.getElementById("coloringImgInput");
+    if (imgInput && !imgInput.dataset.bound) {
+        imgInput.dataset.bound = "1";
+        imgInput.addEventListener("change", function () {
+            const f = imgInput.files && imgInput.files[0];
+            coloringImgImport(f);
+            imgInput.value = "";
+        });
+    }
+    const cv = document.getElementById("coloringCanvas");
+    if (cv && !cv.dataset.bound) {
+        cv.dataset.bound = "1";
+        cv.addEventListener("click", function (e) {
+            if (!coloringImgEl) return;
+            const r = cv.getBoundingClientRect ? cv.getBoundingClientRect() : null;
+            const rw = (r && r.width) || cv.width, rh = (r && r.height) || cv.height;
+            const px = Math.floor((e.clientX - (r ? r.left : 0)) * cv.width / rw);
+            const py = Math.floor((e.clientY - (r ? r.top : 0)) * cv.height / rh);
+            coloringImgFill(px, py);
+        });
+    }
+    const back = document.getElementById("coloringBackBtn");
+    if (back && !back.dataset.bound) {
+        back.dataset.bound = "1";
+        back.addEventListener("click", function () {
+            coloringImgEl = null;
+            coloringImgUndo = [];
+            coloringImgRedo = [];
+            coloringImgModeOn(false);
+            coloringImgSetHint("回到内置线稿了");
+        });
+    }
     coloringRenderPics();
     coloringRenderPalette();
     coloringRenderStage();

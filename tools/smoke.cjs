@@ -3511,6 +3511,26 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     await sleep(30);
     check(regions()[40].getAttribute('fill') === '#123456', '60 块以上的大图点一块照样上色', regions()[40].getAttribute('fill'));
 
+    // 导入图片（位图模式）：Anycolor 那套「点哪儿填哪儿」的入口（jsdom 里没有 canvas 2d，只验入口和兜底）
+    check(!!$('coloringImgInput') && $('coloringImgInput').getAttribute('accept') === 'image/*'
+      && !!$('coloringBackBtn') && !!$('coloringCanvas')
+      && $('coloringCanvas').getAttribute('width') === '600',
+      '涂色页多了「📥 导入图片」入口（PNG / JPG）+ 画布 + 「回到内置线稿」',
+      $('coloringCanvas') && $('coloringCanvas').getAttribute('width'));
+    check($('coloringCanvas').style.display === 'none' && $('coloringBackBtn').style.display === 'none',
+      '没导入图片时画布和「回到内置线稿」都是收起的（默认还是内置线稿那套）');
+    check(/点哪儿填哪儿/.test($('coloringImgHint').textContent) && /黑线自动当边界/.test($('coloringImgHint').textContent),
+      '导入入口旁边写清玩法：位图填充、黑线当边界', $('coloringImgHint').textContent);
+    const hintBefore = $('coloringImgHint').textContent;
+    $('coloringCanvas').dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+    await sleep(30);
+    check($('coloringImgHint').textContent === hintBefore,
+      '没导入图片时点画布什么都不做（不会去碰 canvas 2d）', $('coloringImgHint').textContent);
+    $('coloringBackBtn').click();
+    await sleep(30);
+    check($('coloringCanvas').style.display === 'none' && /回到内置线稿了/.test($('coloringImgHint').textContent),
+      '「回到内置线稿」能切回 SVG 那套', $('coloringImgHint').textContent);
+
     // 下载不抛错（jsdom 里 createObjectURL 可能没有 → 只提示）
     $('coloringDownloadBtn').click();
     await sleep(40);

@@ -48,7 +48,7 @@ npm run verify     # 改完代码、push 前的完整自检
 
 | 命令 | 内容 |
 |---|---|
-| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 659 项 + 「接口挂起时界面仍可用」+ 服务端冒烟 42 项 |
+| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 664 项 + 「接口挂起时界面仍可用」+ 服务端冒烟 42 项 |
 | `npm run verify:static` | 只要静态校验 + 语法检查（最快） |
 | `npm run report` | 打印一份真实生成的日报，肉眼确认排版（含 ⑥伙伴弹途 / ⑦异世界勇者） |
 | `npm run build:data` | 从 GM 玩家页快照提取 4 张权威映射表 + 与硬编码常量的**差异报告**（见下「游戏数据管线」） |
@@ -58,7 +58,7 @@ npm run verify     # 改完代码、push 前的完整自检
 | `npm run smoke:pmc` | **生管物料订单工作台**（`public/pmc.html`）自检，123 项（含加工周期工作日推算 + 在途锁定/调整建议 + 真实 8.5MB xlsx 端到端导入）；**不在 verify 里**，见下「生管物料订单工作台」一节 |
 | `npm test` | = `npm run verify` |
 
-`npm run verify` 失败就不要提交。它一共 5 段：静态结构 → 语法 → jsdom 集成冒烟 **659 项** → 接口挂起时界面仍可用 → 服务端冒烟 **42 项**。
+`npm run verify` 失败就不要提交。它一共 5 段：静态结构 → 语法 → jsdom 集成冒烟 **664 项** → 接口挂起时界面仍可用 → 服务端冒烟 **42 项**。
 
 - jsdom 未安装时前端冒烟会自动回落到本机 DSH 自带的那份。
 - `tools/smoke-server.cjs` 用 `PORT` + `DATA_FILE` 环境变量把服务端指到随机端口和 `tools/out/` 里的临时文件，**不会碰真实 `data.json`**；子进程 stdio 必须用 `ignore`/`inherit`（沙箱禁管道，`pipe` 会 EPERM）。
@@ -399,7 +399,15 @@ npm run verify     # 改完代码、push 前的完整自检
 - **交互**：点区域 → 用当前颜色填充（`coloringPaint`，记一条 undo）；`🧽 橡皮` 开着时点区域 → 擦回白色（`aria-pressed` 标状态）；`↩️ 撤销` / `↪️ 重做` 走 `coloringUndo` / `coloringRedo`；`🧹 清空` 清当前图（连撤销栈）；`⬇️ 下载` 把 SVG 序列化成 `.svg` 下下来。
 - ⚠️ **下载在 jsdom / 无头环境里直接跳过**（点 `<a download>` 会被 jsdom 记成 navigation 错误）：`coloringDownloadStep` 里先判 `navigator.userAgent` 含 `jsdom` 就只给提示 —— 别删这段守卫，否则冒烟会红。
 - 状态只放内存 `coloringState`（`{ 图案key: { 区域id: 颜色 } }`），**不写 localStorage、不上服务端**（画着玩的，刷新就白）。
-- **测试**：`tools/smoke.cjs` 第 **8z-2** 节 **27 条**（独立的「🎨 涂色」子页 / **选图 38 张** / **没有 10 块以下的图** / **三杯 `.color-tier` = mid,large,xl + 每杯的区间与张数（20 / 8 / 10）** / **分杯跟块数对得上、且有 200 块以上的图** / **200 块以上至少 4 张（205 / 226 / 225 / 233）** / 14 色调色板 / 猫头鹰 13 块初始白色 / 点区域上色 + 提示 / 换色再涂 / 撤销回白 / 重做回来 / 橡皮擦白 / 换成小镇 41 块 / 清空全白且撤销栈空 / 自定义取色器 / 切到曼陀罗 81 块并照样上色 / **切到高楼群 233 块并照样上色** / 下载只提示不抛 / 全程 0 请求）；`tools/verify.mjs` 有静态断言（`COLORING_HEAVY` / `coloringTierOf` / 三杯文案 / 200 块那几张的 key / 几何助手 / `< 10 块` 兜底 / `.color-tier` 样式）。
+- **导入图片 · 位图模式（2026-11 用户：「能不能直接搬 Anycolor 里的图」「在各种网页抓取线稿图」之后加的）**：内置线稿那 38 张是 SVG 面填充，网页上抓来的图（PNG / JPG / 截图）走另一套 —— 铺到 `<canvas id="coloringCanvas">`（600×600，等比居中、白底）上，**点哪儿就用容差 flood fill 填哪儿**，黑线天然当边界，玩法跟 Anycolor 一致。
+  - 入口：`#coloringImgInput`（`<input type="file" accept="image/*" style="display:none">`）+ `<label for="coloringImgInput">📥 导入图片</label>`，旁边 `#coloringImgHint` 写玩法；导入后出现 `#coloringBackBtn`（↩️ 回到内置线稿）切回 SVG 那套。
+  - 实现：`coloringImgImport(file)`（FileReader → dataURL → Image）、`coloringImgDrawBase()`（白底 + `drawImage` 等比居中）、`coloringImgFill(px, py)`（`getImageData` + 栈式 4 邻域 flood fill，容差 `COLORING_FILL_TOL = 52`，RGB 距离平方比较）、`coloringImgUndoStep` / `coloringImgRedoStep`（存 `ImageData`，最多 10 步）、`coloringImgClearStep`（重画原图）、`coloringImgDownloadStep`（`canvas.toDataURL("image/png")` → `<a download>制涂色_导入图.png`）。
+  - **撤销 / 重做 / 清空 / 下载四个按钮在函数开头分流**：`if (coloringImgEl) { 位图那套; return; }` —— 别把 SVG 那套删了，没导入图片时还是它。
+  - ⚠️ **jsdom 里没有 canvas 2d**（`getContext` 会抛 "Not implemented" 并记成 jsdomError，冒烟最后那条「页面无未捕获异常」就会红）：所以 `coloringCanvasCtx()` 用 try/catch 包住，**并且没有任何初始化路径会调 getContext**（只有导入图片 / 点画布才碰）—— 冒烟只验入口和「没图时点画布什么都不做」。另外 `toDataURL` / `<a download>` 同样只在浏览器里能用，所以下载路径先判 `navigator.userAgent` 含 `jsdom` 就只提示。
+  - ⚠️ **跨域图会 taint 画布**：`getImageData` 抛错时提示「这张图跨域了，涂不了（换成本地图片）」，所以**不要**去 `drawImage` 一个外链 URL（比如直接把 Anycolor / HP Printables 的图 URL 塞进来）—— 用户自己存下来的图走 dataURL，没这问题。
+  - ⚠️ **别人的素材不要内置进仓库**：HP Printables / Anycolor 那类站点的图只授权「自己打印」，抓下来塞进公司工具不合适；要玩就用「导入图片」，图留在用户本机。
+  - 现在的取舍：**能抓到外网的图（`web_fetch` 通），但网页上的线稿多是「描边 + 白底」，直接当 SVG 塞进来点不动**；位图模式就是为这个场景准备的 —— 黑线当边界、白区当填充区，跟 Anycolor 一模一样。
+- **测试**：`tools/smoke.cjs` 第 **8z-2** 节 **32 条**（独立的「🎨 涂色」子页 / **选图 38 张** / **没有 10 块以下的图** / **三杯 `.color-tier` = mid,large,xl + 每杯的区间与张数（20 / 8 / 10）** / **分杯跟块数对得上、且有 200 块以上的图** / **200 块以上至少 4 张（205 / 226 / 225 / 233）** / 14 色调色板 / 猫头鹰 13 块初始白色 / 点区域上色 + 提示 / 换色再涂 / 撤销回白 / 重做回来 / 橡皮擦白 / 换成小镇 41 块 / 清空全白且撤销栈空 / 自定义取色器 / 切到曼陀罗 81 块并照样上色 / **切到高楼群 233 块并照样上色 / **导入入口（file input accept=image/*、画布 600、回到内置线稿）都在且默认收起** / **没导入图片时点画布什么都不做（不去碰 canvas 2d，jsdom 里也不会报 Not implemented）** / 提示写清「点哪儿填哪儿、黑线当边界」 / 「回到内置线稿」能切回去** / 下载只提示不抛 / 全程 0 请求）；`tools/verify.mjs` 有静态断言（`COLORING_HEAVY` / `coloringTierOf` / 三杯文案 / 200 块那几张的 key / 几何助手 / `< 10 块` 兜底 / `.color-tier` 样式）。
 
 ## 海外业务统计（岗位周报整表粘贴）
 
