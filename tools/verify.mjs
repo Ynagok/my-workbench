@@ -913,6 +913,16 @@ ok(/id="careerHeadline"/.test(s) && /id="ovbizHeadline"/.test(s) && /\.stat-head
   && /function ovbizIssueRefilter\(\)/.test(s) && /function ovbizIssueLastRange\(n\)/.test(s)
   && /ovbizIssueRowsAll = p\.rows;/.test(s),
   '两个统计页顶部都有一句话摘要（累计 / 日均 / 最高单日 / 在岗）');
+// 2026-11 用户：「导出要是计算好的数据图表，不是单纯罗列业务流水」
+ok(/id="ovbizIssueExportBtn"/.test(s) && /id="ovbizIssueExportCsvBtn"/.test(s) && /id="ovbizReportBtn"/.test(s)
+  && /function ovbizIssueReportHtml\(st\)/.test(s) && /function ovbizReportBars\(obj, total, max\)/.test(s)
+  && /关键结论/.test(s) && /问题类型分布/.test(s) && /渠道 × 问题类型/.test(s)
+  && /每渠道 Top 问题/.test(s) && /按天趋势/.test(s) && /地区分布/.test(s)
+  && /function ovbizIssueExportCsv\(\)/.test(s) && /海外问题分析_聚合\.csv/.test(s)
+  && /function ovbizExportReport\(\)/.test(s) && /海外业务统计报表_/.test(s)
+  && /function ovbizReportDownload\(filename, html/.test(s)
+  && /导出的都是聚合结果（不含玩家问题原文）/.test(s),
+  '报表导出是算好的图表：KPI + 关键结论 + 类型/渠道分布 + 矩阵 + Top + 趋势 + 地区，另有聚合 CSV / 周报报表');
 ok(/details class="card-more"/.test(s) && /details\.card-more > summary/.test(s),
   '客服生涯工具条收拢：导出 / 导入 / 清空折进「⋯ 更多」，主按钮只留归档 + 排班休息');
 ok(/details\.card-more > div \{[\s\S]{0,320}?position: absolute; top: calc\(100% \+ 6px\); right: 0;/

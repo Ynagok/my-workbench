@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="x-build" content="2026-11-06 海外问题分析+时间范围">
+    <meta name="x-build" content="2026-11-06 报表导出（聚合图表）">
     <title>客服冷静演绎工作台</title>
     <link rel="icon" type="image/gif" href="/my-icon.gif">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -4833,6 +4833,7 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                     <button id="ovbizImportBtn">📥 解析导入</button>
                     <button id="ovbizImportNewBtn" class="secondary">📌 只导入新日期</button>
                     <button id="ovbizExportBtn" class="secondary">📊 导出CSV</button>
+                    <button id="ovbizReportBtn" class="secondary">📑 导出报表(HTML)</button>
                     <button id="ovbizClearBtn" class="reset-btn">🧹 清空本机数据</button>
                     <span class="hint-text" id="ovbizHint"></span>
                 </div>
@@ -4903,6 +4904,8 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                     <button id="ovbizIssueRunBtn">🔎 分析</button>
                     <label class="secondary" for="ovbizIssueFile" style="cursor:pointer; margin:0;">📥 导入 CSV</label>
                     <input type="file" id="ovbizIssueFile" accept=".csv,.txt,text/csv" style="display:none;">
+                    <button id="ovbizIssueExportBtn">📊 导出报表</button>
+                    <button id="ovbizIssueExportCsvBtn" class="secondary">📄 导出聚合CSV</button>
                     <button id="ovbizIssueClearBtn" class="reset-btn">🧹 清空分析</button>
                     <span class="hint-text" id="ovbizIssueHint"></span>
                 </div>
@@ -14800,6 +14803,232 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                                         const lab = function (v) { return /^day:/.test(v) ? v.slice(4) : ovbizIssueDayLabel(v); };
                                         return lab(from) + " ~ " + lab(to);
                                     }
+                                    // ---- 导出：算好的报表（用户：「导出要是计算好的数据图表，不是流水」）----
+                                    function ovbizReportCss() {
+                                        return "<style>body{font:13px/1.6 -apple-system,'Segoe UI',sans-serif;color:#1b2228;background:#fff;margin:24px;}"
+                                            + "h1{font-size:20px;margin:0 0 4px;}h2{font-size:14px;margin:22px 0 8px;padding-bottom:4px;border-bottom:1px solid #e3e8ed;}"
+                                            + ".meta{color:#5b6672;font-size:12px;margin-bottom:16px;}"
+                                            + ".kpi{display:flex;flex-wrap:wrap;gap:10px;margin:10px 0 6px;}"
+                                            + ".kpi div{border:1px solid #e3e8ed;border-radius:8px;padding:8px 12px;min-width:120px;}"
+                                            + ".kpi b{display:block;font-size:18px;line-height:1.2;}"
+                                            + ".kpi span{color:#5b6672;font-size:12px;}"
+                                            + "table{border-collapse:collapse;width:100%;margin:6px 0 4px;font-size:12px;}"
+                                            + "th,td{border:1px solid #e3e8ed;padding:5px 8px;text-align:right;}"
+                                            + "th:first-child,td:first-child{text-align:left;}"
+                                            + "thead th{background:#f1f4f7;}tfoot th,tfoot td{background:#fbf7e6;font-weight:700;}"
+                                            + ".bar{display:inline-block;height:9px;background:#c89500;border-radius:2px;vertical-align:middle;}"
+                                            + "ul.notes{margin:6px 0;padding-left:20px;}ul.notes li{margin:3px 0;}"
+                                            + ".foot{margin-top:22px;color:#8b959f;font-size:11px;}"
+                                            + "@media print{body{margin:10mm;}}</style>";
+                                    }
+                                    function ovbizReportBars(obj, total, max) {
+                                        const keys = Object.keys(obj).sort(function (a, b) { return obj[b] - obj[a]; });
+                                        let html = "<table><thead><tr><th>项目</th><th>条数</th><th>占比</th><th>分布</th></tr></thead><tbody>";
+                                        keys.forEach(function (k) {
+                                            const n = obj[k];
+                                            const w = max > 0 ? Math.max(2, Math.round(160 * n / max)) : 2;
+                                            html += "<tr><td>" + escapeHtml(k) + "</td><td>" + n + "</td><td>"
+                                                + (total ? (100 * n / total).toFixed(1) : "0.0") + "%</td><td>"
+                                                + '<i class="bar" style="width:' + w + 'px"></i></td></tr>';
+                                        });
+                                        return html + "</tbody></table>";
+                                    }
+                                    function ovbizReportDownload(filename, html, say) {
+                                        // 失败时提示回哪个卡片由调用方决定（问题分析卡 / 统计卡各一片 hint）
+                                        const fail = function () {
+                                            (typeof say === "function" ? say : ovbizIssueSetHint)("这个环境不支持下载（浏览器里可以）");
+                                            return false;
+                                        };
+                                        if (/jsdom/i.test(String((window.navigator && window.navigator.userAgent) || ""))) return fail();
+                                        try {
+                                            const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+                                            const url = window.URL.createObjectURL(blob);
+                                            const a = document.createElement("a");
+                                            a.href = url;
+                                            a.download = filename;
+                                            document.body.appendChild(a);
+                                            a.click();
+                                            document.body.removeChild(a);
+                                            setTimeout(function () { try { window.URL.revokeObjectURL(url); } catch (e) { } }, 1000);
+                                            return true;
+                                        } catch (e) {
+                                            return fail();
+                                        }
+                                    }
+                                    function ovbizIssueReportHtml(st) {
+                                        if (!st || !st.total) return "";
+                                        const total = st.total;
+                                        const days = st.days.length;
+                                        const avg = days ? (total / days).toFixed(1) : "0";
+                                        const peakDay = st.days.slice().sort(function (a, b) { return st.dayTotal[b] - st.dayTotal[a]; })[0];
+                                        const peakLabel = peakDay ? ovbizIssueDayLabel(peakDay) : "—";
+                                        const topCh = st.channels[0], topType = st.types[0];
+                                        const chShare = total ? Math.round(100 * st.chTotal[topCh] / total) : 0;
+                                        const typeShare = total ? Math.round(100 * st.typeTotal[topType] / total) : 0;
+                                        const maxCh = st.chTotal[topCh] || 0;
+                                        const maxType = st.typeTotal[topType] || 0;
+                                        const notes = [];
+                                        notes.push("共 <b>" + total + "</b> 条，覆盖 <b>" + days + "</b> 天，日均 <b>" + avg + "</b> 条；峰值 " + escapeHtml(peakLabel) + "（" + (st.dayTotal[peakDay] || 0) + " 条）。");
+                                        if (topCh) notes.push("渠道以 <b>" + escapeHtml(topCh) + "</b> 为主，占 " + chShare + "%（" + st.chTotal[topCh] + " 条）。");
+                                        if (topType) notes.push("问题类型以 <b>" + escapeHtml(topType) + "</b> 最多，占 " + typeShare + "%（" + st.typeTotal[topType] + " 条）。");
+                                        const topMix = st.channels.slice(0, 3).map(function (ch) {
+                                            const list = st.types.map(function (t2) { return { t: t2, n: st.pair[ch + "\u0001" + t2] || 0 }; })
+                                                .filter(function (x) { return x.n > 0; }).sort(function (a, b) { return b.n - a.n; }).slice(0, 2);
+                                            return escapeHtml(ch) + "：" + list.map(function (x) { return escapeHtml(x.t) + " " + x.n; }).join(" / ");
+                                        });
+                                        if (topMix.length) notes.push("主渠道 Top 问题：" + topMix.join("；") + "。");
+                                        let mtx = "<table><thead><tr><th>渠道</th>";
+                                        st.types.forEach(function (t2) { mtx += "<th>" + escapeHtml(t2) + "</th>"; });
+                                        mtx += "<th>合计</th></tr></thead><tbody>";
+                                        st.channels.forEach(function (ch) {
+                                            mtx += "<tr><td>" + escapeHtml(ch) + "</td>";
+                                            st.types.forEach(function (t2) {
+                                                const n = st.pair[ch + "\u0001" + t2] || 0;
+                                                mtx += "<td>" + (n || "·") + "</td>";
+                                            });
+                                            mtx += "<td><b>" + (st.chTotal[ch] || 0) + "</b></td></tr>";
+                                        });
+                                        mtx += "</tbody><tfoot><tr><th>合计</th>";
+                                        st.types.forEach(function (t2) { mtx += "<td>" + (st.typeTotal[t2] || 0) + "</td>"; });
+                                        mtx += "<td>" + total + "</td></tr></tfoot></table>";
+                                        let top3 = "<table><thead><tr><th>渠道</th><th>合计</th><th>Top 问题类型</th><th>Top1 占比</th></tr></thead><tbody>";
+                                        st.channels.forEach(function (ch) {
+                                            const list = st.types.map(function (t2) { return { t: t2, n: st.pair[ch + "\u0001" + t2] || 0 }; })
+                                                .filter(function (x) { return x.n > 0; }).sort(function (a, b) { return b.n - a.n; }).slice(0, 3);
+                                            const tot = st.chTotal[ch] || 1;
+                                            top3 += "<tr><td>" + escapeHtml(ch) + "</td><td>" + (st.chTotal[ch] || 0) + "</td><td>"
+                                                + list.map(function (x) { return escapeHtml(x.t) + " " + x.n; }).join(" · ") + "</td><td>"
+                                                + (list[0] ? Math.round(100 * list[0].n / tot) + "%" : "—") + "</td></tr>";
+                                        });
+                                        top3 += "</tbody></table>";
+                                        let trend = "<table><thead><tr><th>日期</th><th>总量</th><th>分布</th>";
+                                        st.channels.forEach(function (ch) { trend += "<th>" + escapeHtml(ch) + "</th>"; });
+                                        trend += "</tr></thead><tbody>";
+                                        const maxDay = Math.max.apply(null, st.days.map(function (d) { return st.dayTotal[d] || 0; }).concat([1]));
+                                        st.days.slice().reverse().forEach(function (dk) {
+                                            const n = st.dayTotal[dk] || 0;
+                                            trend += "<tr><td>" + escapeHtml(ovbizIssueDayLabel(dk)) + "</td><td>" + n + "</td><td>"
+                                                + '<i class="bar" style="width:' + Math.max(2, Math.round(160 * n / maxDay)) + 'px"></i></td>';
+                                            st.channels.forEach(function (ch) {
+                                                const v = (st.dayCh[dk] || {})[ch] || 0;
+                                                trend += "<td>" + (v || "·") + "</td>";
+                                            });
+                                            trend += "</tr>";
+                                        });
+                                        trend += "</tbody></table>";
+                                        const regMax = Math.max.apply(null, Object.keys(st.regionTotal).map(function (k) { return st.regionTotal[k]; }).concat([1]));
+                                        const now = new Date();
+                                        const stamp = now.getFullYear() + "-" + (now.getMonth() + 1) + "-" + now.getDate() + " "
+                                            + now.getHours() + ":" + (now.getMinutes() < 10 ? "0" + now.getMinutes() : now.getMinutes());
+                                        return "<!doctype html><meta charset=\"utf-8\"><title>海外问题分析报表</title>"
+                                            + ovbizReportCss()
+                                            + "<h1>海外问题分析报表</h1>"
+                                            + '<div class="meta">数据源：海外（梦幻消除战）SDK 和邮件回复 · 时间范围：' + escapeHtml(ovbizIssueRangeLabel())
+                                            + " · 生成时间：" + stamp + "</div>"
+                                            + '<div class="kpi">'
+                                            + "<div><b>" + total + "</b><span>总条数</span></div>"
+                                            + "<div><b>" + avg + "</b><span>日均</span></div>"
+                                            + "<div><b>" + days + "</b><span>覆盖天数</span></div>"
+                                            + "<div><b>" + st.channels.length + "</b><span>渠道数</span></div>"
+                                            + "<div><b>" + st.types.length + "</b><span>问题类型数</span></div>"
+                                            + "<div><b>" + Object.keys(st.regionTotal).length + "</b><span>地区数</span></div>"
+                                            + "<div><b>" + escapeHtml(peakLabel) + "</b><span>峰值日</span></div>"
+                                            + "</div>"
+                                            + "<h2>关键结论</h2><ul class=\"notes\">" + notes.map(function (n) { return "<li>" + n + "</li>"; }).join("") + "</ul>"
+                                            + "<h2>问题类型分布</h2>" + ovbizReportBars(st.typeTotal, total, maxType)
+                                            + "<h2>渠道分布</h2>" + ovbizReportBars(st.chTotal, total, maxCh)
+                                            + "<h2>渠道 × 问题类型</h2>" + mtx
+                                            + "<h2>每渠道 Top 问题</h2>" + top3
+                                            + "<h2>按天趋势</h2>" + trend
+                                            + "<h2>地区分布</h2>" + ovbizReportBars(st.regionTotal, total, regMax)
+                                            + '<div class="foot">由工作台「海外业务统计 → 问题分析」生成；导出的都是聚合结果（不含玩家问题原文）。</div>';
+                                    }
+                                    function ovbizIssueExportReport() {
+                                        const st = ovbizIssueLast;
+                                        if (!st || !st.total) { ovbizIssueSetHint("先粘数据并点「🔎 分析」，再导出报表"); return; }
+                                        const html = ovbizIssueReportHtml(st);
+                                        if (ovbizReportDownload("海外问题分析报表_" + ovbizIssueRangeLabel().replace(/[^0-9A-Za-z\-]/g, "") + ".html", html)) {
+                                            ovbizIssueSetHint("报表已导出（HTML，可直接打开 / 打印成 PDF）");
+                                        }
+                                    }
+                                    function ovbizIssueExportCsv() {
+                                        const st = ovbizIssueLast;
+                                        if (!st || !st.total) { ovbizIssueSetHint("先粘数据并点「🔎 分析」，再导出"); return; }
+                                        const lines = [];
+                                        lines.push("海外问题分析（聚合）,时间范围," + ovbizIssueRangeLabel());
+                                        lines.push("总条数," + st.total + ",覆盖天数," + st.days.length + ",日均," + (st.days.length ? (st.total / st.days.length).toFixed(1) : 0));
+                                        lines.push("");
+                                        lines.push("渠道×问题类型");
+                                        lines.push(["渠道"].concat(st.types).concat(["合计"]).join(","));
+                                        st.channels.forEach(function (ch) {
+                                            lines.push([ch].concat(st.types.map(function (t2) { return st.pair[ch + "\u0001" + t2] || 0; })).concat([st.chTotal[ch] || 0]).join(","));
+                                        });
+                                        lines.push(["合计"].concat(st.types.map(function (t2) { return st.typeTotal[t2] || 0; })).concat([st.total]).join(","));
+                                        lines.push("");
+                                        lines.push("按天趋势");
+                                        lines.push(["日期", "总量"].concat(st.channels).join(","));
+                                        st.days.slice().reverse().forEach(function (dk) {
+                                            lines.push([ovbizIssueDayLabel(dk), st.dayTotal[dk] || 0].concat(st.channels.map(function (ch) { return (st.dayCh[dk] || {})[ch] || 0; })).join(","));
+                                        });
+                                        lines.push("");
+                                        lines.push("每渠道 Top 问题");
+                                        lines.push("渠道,合计,Top1,Top1条数,Top2,Top2条数,Top3,Top3条数");
+                                        st.channels.forEach(function (ch) {
+                                            const list = st.types.map(function (t2) { return { t: t2, n: st.pair[ch + "\u0001" + t2] || 0 }; })
+                                                .filter(function (x) { return x.n > 0; }).sort(function (a, b) { return b.n - a.n; }).slice(0, 3);
+                                            const cells = [ch, st.chTotal[ch] || 0];
+                                            for (let i = 0; i < 3; i++) { cells.push(list[i] ? list[i].t : "", list[i] ? list[i].n : ""); }
+                                            lines.push(cells.join(","));
+                                        });
+                                        const csv = "\ufeff" + lines.join("\r\n");
+                                        if (/jsdom/i.test(String((window.navigator && window.navigator.userAgent) || ""))) {
+                                            ovbizIssueSetHint("这个环境不支持下载（浏览器里可以）");
+                                            return;
+                                        }
+                                        try {
+                                            const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+                                            const url = window.URL.createObjectURL(blob);
+                                            const a = document.createElement("a");
+                                            a.href = url;
+                                            a.download = "海外问题分析_聚合.csv";
+                                            document.body.appendChild(a);
+                                            a.click();
+                                            document.body.removeChild(a);
+                                            setTimeout(function () { try { window.URL.revokeObjectURL(url); } catch (e) { } }, 1000);
+                                            ovbizIssueSetHint("聚合 CSV 已导出（矩阵 / 趋势 / Top，不是流水）");
+                                        } catch (e) {
+                                            ovbizIssueSetHint("这个环境不支持下载（浏览器里可以）");
+                                        }
+                                    }
+                                    // 海外周报：把页面上已经算好的 KPI / 月度 / 周 / 人员 / 每日 搬进报表
+                                    function ovbizExportReport() {
+                                        const head = (document.getElementById("ovbizHeadline") || {}).textContent || "";
+                                        const sub = (document.getElementById("ovbizReportSub") || {}).textContent || "";
+                                        const kpi = (document.getElementById("ovbizKpi") || {}).innerHTML || "";
+                                        const tables = [
+                                            ["月度趋势", "ovbizMonthlyTable"],
+                                            ["周维度", "ovbizWeeklyTable"],
+                                            ["按人员", "ovbizPeopleTable"],
+                                            ["每日明细", "ovbizDailyTable"],
+                                        ].map(function (pair) {
+                                            const el = document.getElementById(pair[1]);
+                                            if (!el || !el.innerHTML) return "";
+                                            return "<h2>" + pair[0] + "</h2>" + el.outerHTML;
+                                        }).join("");
+                                        if (!kpi && !tables) { ovbizSetHint("还没有数据：先粘贴周报再导入"); return; }
+                                        const now = new Date();
+                                        const stamp = now.getFullYear() + "-" + (now.getMonth() + 1) + "-" + now.getDate();
+                                        const html = "<!doctype html><meta charset=\"utf-8\"><title>海外业务统计报表</title>"
+                                            + ovbizReportCss()
+                                            + "<h1>海外业务统计报表</h1>"
+                                            + '<div class="meta">' + escapeHtml(sub) + " · 生成时间：" + stamp + "</div>"
+                                            + '<div class="kpi" style="display:block;"><div style="border:none;padding:0 0 6px;font-weight:700;">' + escapeHtml(head) + "</div></div>"
+                                            + kpi
+                                            + tables
+                                            + '<div class="foot">由工作台「海外业务统计」生成：数值都是页面上已经算好的聚合结果（KPI / 月度 / 周 / 人员 / 每日），不是原始流水。</div>';
+                                        if (ovbizReportDownload("海外业务统计报表_" + stamp + ".html", html, ovbizSetHint)) ovbizSetHint("报表已导出（HTML，可直接打开 / 打印成 PDF）");
+                                    }
+
                                     function ovbizIssueRun() {
                                         const ta = document.getElementById("ovbizIssueInput");
                                         const raw = (ta && ta.value) || "";
@@ -19546,6 +19775,9 @@ function thlRun() {
                                         // 海外业务统计
                                         setClick('ovbizImportBtn', ovbizImport);
                                         setClick('ovbizIssueRunBtn', ovbizIssueRun);
+                                        setClick('ovbizIssueExportBtn', ovbizIssueExportReport);
+                                        setClick('ovbizIssueExportCsvBtn', ovbizIssueExportCsv);
+                                        setClick('ovbizReportBtn', ovbizExportReport);
                                         setClick('ovbizIssueRangeAll', function () { ovbizIssueSetRange('all', '', ''); });
                                         setClick('ovbizIssueRange7', function () { const r = ovbizIssueLastRange(7); ovbizIssueSetRange(r.mode, r.from, r.to); });
                                         setClick('ovbizIssueRange30', function () { const r = ovbizIssueLastRange(30); ovbizIssueSetRange(r.mode, r.from, r.to); });

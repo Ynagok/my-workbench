@@ -3548,6 +3548,23 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     check(/共 5 条/.test($('ovbizIssueChips').textContent) && $('ovbizIssueRangeAll').classList.contains('is-on'),
       '点回「全部」→ 又变 5 条、按钮高亮回来', $('ovbizIssueChips').textContent.slice(0, 40));
 
+    // 导出的是「算好的报表」，不是流水（jsdom 不能真下载，只验入口和兜底）
+    check(/导出报表/.test($('ovbizIssueExportBtn').textContent) && /聚合/.test($('ovbizIssueExportCsvBtn').textContent)
+      && /导出报表/.test($('ovbizReportBtn').textContent),
+      '导出按钮挂对了：问题分析「导出报表 / 聚合CSV」、周报「导出报表(HTML)」');
+    $('ovbizIssueExportBtn').click();
+    await sleep(40);
+    check(/不支持下载/.test($('ovbizIssueHint').textContent),
+      '点「📊 导出报表」在无头环境只提示（真浏览器里下 HTML）', $('ovbizIssueHint').textContent);
+    $('ovbizIssueExportCsvBtn').click();
+    await sleep(40);
+    check(/不支持下载/.test($('ovbizIssueHint').textContent),
+      '点「📄 导出聚合CSV」同样只提示', $('ovbizIssueHint').textContent);
+    $('ovbizReportBtn').click();
+    await sleep(40);
+    check(/不支持下载|还没有数据/.test($('ovbizHint').textContent),
+      '周报「📑 导出报表(HTML)」也有兜底', $('ovbizHint').textContent);
+
     $('ovbizIssueClearBtn').click();
     await sleep(40);
     check($('ovbizIssueInput').value === '' && $('ovbizIssueMatrix').innerHTML === ''
