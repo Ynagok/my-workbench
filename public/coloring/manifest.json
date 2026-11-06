@@ -1,5 +1,330 @@
 {
   "note": "这个文件由 tools/coloring-manifest.mjs 生成：把图片丢进 public/coloring/ 再跑一遍就行；license / author / page 从 coloring-sources.json 或旧 manifest 继承",
   "updatedAt": "2026-11-06",
-  "items": []
+  "items": [
+    {
+      "slug": "child-007",
+      "file": "coloring/child-007.png",
+      "name": "童色年华·幻想卷 · 第 7 页",
+      "title": "童色年华·幻想卷 第 7 页",
+      "license": "书内页（内部使用，勿外发）",
+      "author": "名绘堂",
+      "page": ""
+    },
+    {
+      "slug": "child-009",
+      "file": "coloring/child-009.png",
+      "name": "童色年华·幻想卷 · 第 9 页",
+      "title": "童色年华·幻想卷 第 9 页",
+      "license": "书内页（内部使用，勿外发）",
+      "author": "名绘堂",
+      "page": ""
+    },
+    {
+      "slug": "child-011",
+      "file": "coloring/child-011.png",
+      "name": "童色年华·幻想卷 · 第 11 页",
+      "title": "童色年华·幻想卷 第 11 页",
+      "license": "书内页（内部使用，勿外发）",
+      "author": "名绘堂",
+      "page": ""
+    },
+    {
+      "slug": "child-012",
+      "file": "coloring/child-012.png",
+      "name": "童色年华·幻想卷 · 第 12 页",
+      "title": "童色年华·幻想卷 第 12 页",
+      "license": "书内页（内部使用，勿外发）",
+      "author": "名绘堂",
+      "page": ""
+    },
+    {
+      "slug": "child-013",
+      "file": "coloring/child-013.png",
+      "name": "童色年华·幻想卷 · 第 13 页",
+      "title": "童色年华·幻想卷 第 13 页",
+      "license": "书内页（内部使用，勿外发）",
+      "author": "名绘堂",
+      "page": ""
+    },
+    {
+      "slug": "child-014",
+      "file": "coloring/child-014.png",
+      "name": "童色年华·幻想卷 · 第 14 页",
+      "title": "童色年华·幻想卷 第 14 页",
+      "license": "书内页（内部使用，勿外发）",
+      "author": "名绘堂",
+      "page": ""
+    },
+    {
+      "slug": "child-015",
+      "file": "coloring/child-015.png",
+      "name": "童色年华·幻想卷 · 第 15 页",
+      "title": "童色年华·幻想卷 第 15 页",
+      "license": "书内页（内部使用，勿外发）",
+      "author": "名绘堂",
+      "page": ""
+    },
+    {
+      "slug": "child-016",
+      "file": "coloring/child-016.png",
+      "name": "童色年华·幻想卷 · 第 16 页",
+      "title": "童色年华·幻想卷 第 16 页",
+      "license": "书内页（内部使用，勿外发）",
+      "author": "名绘堂",
+      "page": ""
+    },
+    {
+      "slug": "child-017",
+      "file": "coloring/child-017.png",
+      "name": "童色年华·幻想卷 · 第 17 页",
+      "title": "童色年华·幻想卷 第 17 页",
+      "license": "书内页（内部使用，勿外发）",
+      "author": "名绘堂",
+      "page": ""
+    },
+    {
+      "slug": "child-018",
+      "file": "coloring/child-018.png",
+      "name": "童色年华·幻想卷 · 第 18 页",
+      "title": "童色年华·幻想卷 第 18 页",
+      "license": "书内页（内部使用，勿外发）",
+      "author": "名绘堂",
+      "page": ""
+    },
+    {
+      "slug": "child-019",
+      "file": "coloring/child-019.png",
+      "name": "童色年华·幻想卷 · 第 19 页",
+      "title": "童色年华·幻想卷 第 19 页",
+      "license": "书内页（内部使用，勿外发）",
+      "author": "名绘堂",
+      "page": ""
+    },
+    {
+      "slug": "child-020",
+      "file": "coloring/child-020.png",
+      "name": "童色年华·幻想卷 · 第 20 页",
+      "title": "童色年华·幻想卷 第 20 页",
+      "license": "书内页（内部使用，勿外发）",
+      "author": "名绘堂",
+      "page": ""
+    },
+    {
+      "slug": "dream-008",
+      "file": "coloring/dream-008.png",
+      "name": "梦境花园 · 第 8 页",
+      "title": "梦境花园 第 8 页",
+      "license": "书内页（内部使用，勿外发）",
+      "author": "蜜桃老师",
+      "page": ""
+    },
+    {
+      "slug": "dream-009",
+      "file": "coloring/dream-009.png",
+      "name": "梦境花园 · 第 9 页",
+      "title": "梦境花园 第 9 页",
+      "license": "书内页（内部使用，勿外发）",
+      "author": "蜜桃老师",
+      "page": ""
+    },
+    {
+      "slug": "dream-010",
+      "file": "coloring/dream-010.png",
+      "name": "梦境花园 · 第 10 页",
+      "title": "梦境花园 第 10 页",
+      "license": "书内页（内部使用，勿外发）",
+      "author": "蜜桃老师",
+      "page": ""
+    },
+    {
+      "slug": "dream-011",
+      "file": "coloring/dream-011.png",
+      "name": "梦境花园 · 第 11 页",
+      "title": "梦境花园 第 11 页",
+      "license": "书内页（内部使用，勿外发）",
+      "author": "蜜桃老师",
+      "page": ""
+    },
+    {
+      "slug": "dream-012",
+      "file": "coloring/dream-012.png",
+      "name": "梦境花园 · 第 12 页",
+      "title": "梦境花园 第 12 页",
+      "license": "书内页（内部使用，勿外发）",
+      "author": "蜜桃老师",
+      "page": ""
+    },
+    {
+      "slug": "dream-013",
+      "file": "coloring/dream-013.png",
+      "name": "梦境花园 · 第 13 页",
+      "title": "梦境花园 第 13 页",
+      "license": "书内页（内部使用，勿外发）",
+      "author": "蜜桃老师",
+      "page": ""
+    },
+    {
+      "slug": "dream-015",
+      "file": "coloring/dream-015.png",
+      "name": "梦境花园 · 第 15 页",
+      "title": "梦境花园 第 15 页",
+      "license": "书内页（内部使用，勿外发）",
+      "author": "蜜桃老师",
+      "page": ""
+    },
+    {
+      "slug": "dream-016",
+      "file": "coloring/dream-016.png",
+      "name": "梦境花园 · 第 16 页",
+      "title": "梦境花园 第 16 页",
+      "license": "书内页（内部使用，勿外发）",
+      "author": "蜜桃老师",
+      "page": ""
+    },
+    {
+      "slug": "dream-017",
+      "file": "coloring/dream-017.png",
+      "name": "梦境花园 · 第 17 页",
+      "title": "梦境花园 第 17 页",
+      "license": "书内页（内部使用，勿外发）",
+      "author": "蜜桃老师",
+      "page": ""
+    },
+    {
+      "slug": "dream-020",
+      "file": "coloring/dream-020.png",
+      "name": "梦境花园 · 第 20 页",
+      "title": "梦境花园 第 20 页",
+      "license": "书内页（内部使用，勿外发）",
+      "author": "蜜桃老师",
+      "page": ""
+    },
+    {
+      "slug": "dream-021",
+      "file": "coloring/dream-021.png",
+      "name": "梦境花园 · 第 21 页",
+      "title": "梦境花园 第 21 页",
+      "license": "书内页（内部使用，勿外发）",
+      "author": "蜜桃老师",
+      "page": ""
+    },
+    {
+      "slug": "dream-022",
+      "file": "coloring/dream-022.png",
+      "name": "梦境花园 · 第 22 页",
+      "title": "梦境花园 第 22 页",
+      "license": "书内页（内部使用，勿外发）",
+      "author": "蜜桃老师",
+      "page": ""
+    },
+    {
+      "slug": "fashion-007",
+      "file": "coloring/fashion-007.png",
+      "name": "时尚的诞生 · 第 7 页",
+      "title": "时尚的诞生 第 7 页",
+      "license": "书内页（内部使用，勿外发）",
+      "author": "(韩) 姜旻枝",
+      "page": ""
+    },
+    {
+      "slug": "fashion-008",
+      "file": "coloring/fashion-008.png",
+      "name": "时尚的诞生 · 第 8 页",
+      "title": "时尚的诞生 第 8 页",
+      "license": "书内页（内部使用，勿外发）",
+      "author": "(韩) 姜旻枝",
+      "page": ""
+    },
+    {
+      "slug": "fashion-009",
+      "file": "coloring/fashion-009.png",
+      "name": "时尚的诞生 · 第 9 页",
+      "title": "时尚的诞生 第 9 页",
+      "license": "书内页（内部使用，勿外发）",
+      "author": "(韩) 姜旻枝",
+      "page": ""
+    },
+    {
+      "slug": "fashion-010",
+      "file": "coloring/fashion-010.png",
+      "name": "时尚的诞生 · 第 10 页",
+      "title": "时尚的诞生 第 10 页",
+      "license": "书内页（内部使用，勿外发）",
+      "author": "(韩) 姜旻枝",
+      "page": ""
+    },
+    {
+      "slug": "fashion-011",
+      "file": "coloring/fashion-011.png",
+      "name": "时尚的诞生 · 第 11 页",
+      "title": "时尚的诞生 第 11 页",
+      "license": "书内页（内部使用，勿外发）",
+      "author": "(韩) 姜旻枝",
+      "page": ""
+    },
+    {
+      "slug": "fashion-012",
+      "file": "coloring/fashion-012.png",
+      "name": "时尚的诞生 · 第 12 页",
+      "title": "时尚的诞生 第 12 页",
+      "license": "书内页（内部使用，勿外发）",
+      "author": "(韩) 姜旻枝",
+      "page": ""
+    },
+    {
+      "slug": "fashion-013",
+      "file": "coloring/fashion-013.png",
+      "name": "时尚的诞生 · 第 13 页",
+      "title": "时尚的诞生 第 13 页",
+      "license": "书内页（内部使用，勿外发）",
+      "author": "(韩) 姜旻枝",
+      "page": ""
+    },
+    {
+      "slug": "fashion-015",
+      "file": "coloring/fashion-015.png",
+      "name": "时尚的诞生 · 第 15 页",
+      "title": "时尚的诞生 第 15 页",
+      "license": "书内页（内部使用，勿外发）",
+      "author": "(韩) 姜旻枝",
+      "page": ""
+    },
+    {
+      "slug": "fashion-017",
+      "file": "coloring/fashion-017.png",
+      "name": "时尚的诞生 · 第 17 页",
+      "title": "时尚的诞生 第 17 页",
+      "license": "书内页（内部使用，勿外发）",
+      "author": "(韩) 姜旻枝",
+      "page": ""
+    },
+    {
+      "slug": "fashion-018",
+      "file": "coloring/fashion-018.png",
+      "name": "时尚的诞生 · 第 18 页",
+      "title": "时尚的诞生 第 18 页",
+      "license": "书内页（内部使用，勿外发）",
+      "author": "(韩) 姜旻枝",
+      "page": ""
+    },
+    {
+      "slug": "fashion-019",
+      "file": "coloring/fashion-019.png",
+      "name": "时尚的诞生 · 第 19 页",
+      "title": "时尚的诞生 第 19 页",
+      "license": "书内页（内部使用，勿外发）",
+      "author": "(韩) 姜旻枝",
+      "page": ""
+    },
+    {
+      "slug": "fashion-020",
+      "file": "coloring/fashion-020.png",
+      "name": "时尚的诞生 · 第 20 页",
+      "title": "时尚的诞生 第 20 页",
+      "license": "书内页（内部使用，勿外发）",
+      "author": "(韩) 姜旻枝",
+      "page": ""
+    }
+  ]
 }

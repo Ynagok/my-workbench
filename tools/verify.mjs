@@ -940,46 +940,31 @@ ok(/const SD_SCHEDULE = \[/.test(s)
   '七日任务：内置 35 条活动排期（id → 起止时间），抬头写「活动排期 N：时间窗」；一次粘多期日志时按期分段（每段写排期 + 时间窗 + 几个任务）');
 // 糖葫芦对决（活动类型 87）：新的一段 + 反推的行为枚举（1 匹配 / 2 结算 / 3 进度）
 ok(/data-sub="color">🎨 涂色</.test(s) && /id="sub-panel-color"/.test(s)
-  && /id="coloringCard"/.test(s) && /id="coloringStage"/.test(s) && /id="coloringPalette"/.test(s)
-  && /id="coloringPics"/.test(s) && /id="coloringCustomColor"/.test(s)
-  && /const COLORING_PALETTE = \[/.test(s) && /const COLORING_PICS = \[\]/.test(s)
-  // 2026-11 用户：「不要 10 个色块以下的图」→ 原来那 9 张 5–8 块的小图删掉，加图也照这条滤
-  && /regions\.length < 10/.test(s)
-  && /const COLORING_MORE = \[/.test(s) && /function coloringShape\(kind, args\)/.test(s)
-  && /\['owl', '猫头鹰', \[/.test(s) && /\['castle', '城堡', \[/.test(s)
-  && /COLORING_MORE\.forEach\(function \(one\) \{/.test(s)
-  // 2026-11 用户：「增加 50 个色块甚至更多的图；10–30 简单 / 30–60 小难 / 60–120 有点难」
-  && /const COLORING_HEAVY = \[/.test(s) && /function coloringTierOf\(pic\)/.test(s)
-  && /label: '中杯', range: '10–30 块'/.test(s) && /label: '大杯', range: '30–60 块'/.test(s)
-  && /label: '超大杯', range: '60 块以上'/.test(s)
-  && /function coloringCn\(n\)/.test(s) && /function coloringWinGrid\(/.test(s)
-  && /function coloringSector\(/.test(s) && /function coloringRingSectors\(/.test(s)
-  && /\['town', '小镇'/.test(s) && /\['calendar', '日历'/.test(s) && /\['mandala', '曼陀罗'/.test(s)
-  && /\['tower', '摩天楼'/.test(s) && /\['mosaic', '马赛克画'/.test(s)
-  && /\['kaleido', '万花筒'/.test(s) && /\['quilt', '拼布方格'/.test(s) && /\['metropolis', '高楼群'/.test(s)
-  && /if \(kind === 'd'\) return String\(args\)/.test(s)
-  // 2026-11 用户：「能不能直接搬 Anycolor 里的图」→ 加「导入图片」走位图 flood fill（内置线稿仍是 SVG 面填充）
-  && /id="coloringImgInput"/.test(s) && /id="coloringCanvas"/.test(s) && /id="coloringBackBtn"/.test(s)
+  && /id="coloringCard"/.test(s) && /id="coloringPalette"/.test(s) && /id="coloringPics"/.test(s)
+  && /id="coloringCustomColor"/.test(s) && /id="coloringCanvas"/.test(s)
+  && /id="coloringImgInput"/.test(s) && /id="coloringBackBtn"/.test(s)
+  && /const COLORING_PALETTE = \[/.test(s)
+  // 2026-11 用户：「将原来的图去掉，内置这几本书里的线稿图」→ 手画的几何线稿整段删除
+  && /const COLORING_PICS = \[\]/.test(s)
+  && !/const COLORING_MORE = \[/.test(s) && !/const COLORING_HEAVY = \[/.test(s)
+  && !/function coloringTierOf\(/.test(s)
+  // 内置图库：public/coloring + manifest.json + 批量入库脚本
+  && /function coloringLoadLibrary\(\)/.test(s) && /fetch\("coloring\/manifest\.json"/.test(s)
+  && /function coloringLibRenderHtml\(\)/.test(s) && /function coloringOpenLibPic\(slug\)/.test(s)
+  && /data-lib=/.test(s)
+  && fs.existsSync('public/coloring/manifest.json') && fs.existsSync('public/coloring/README.md')
+  && (() => { try { const j = JSON.parse(fs.readFileSync('public/coloring/manifest.json', 'utf8')); return Array.isArray(j.items) && j.items.length >= 30 && j.items.every(it => it.file && it.license); } catch (e) { return false; } })()
+  && /"coloring:manifest": "node tools\/coloring-manifest\.mjs"/.test(fs.readFileSync('package.json', 'utf8'))
+  // 位图模式（导入图片 / 图库点开都是它）
   && /const COLORING_FILL_TOL = \d+/.test(s)
   && /function coloringImgFill\(px, py\)/.test(s) && /function coloringImgImport\(file\)/.test(s)
   && /function coloringImgDrawBase\(\)/.test(s) && /function coloringImgModeOn\(on\)/.test(s)
   && /if \(coloringImgEl\) \{ coloringImgUndoStep\(\); return; \}/.test(s)
-  // 2026-11 用户「A 和 B 都要」：A = 内置图库（public/coloring + manifest.json + 批量入库脚本），B = 导入图片
-  && /function coloringLoadLibrary\(\)/.test(s) && /fetch\("coloring\/manifest\.json"/.test(s)
-  && /function coloringLibRenderHtml\(\)/.test(s) && /function coloringOpenLibPic\(slug\)/.test(s)
-  && /data-tier="lib"/.test(s) && /data-lib=/.test(s)
-  && fs.existsSync('public/coloring/manifest.json') && fs.existsSync('public/coloring/README.md')
-  && (() => { try { const j = JSON.parse(fs.readFileSync('public/coloring/manifest.json', 'utf8')); return Array.isArray(j.items); } catch (e) { return false; } })()
-  && /"coloring:manifest": "node tools\/coloring-manifest\.mjs"/.test(fs.readFileSync('package.json', 'utf8'))
-  && /function coloringPaint\(regionId\)/.test(s) && /function coloringUndoStep\(\)/.test(s)
-  && /function coloringRedoStep\(\)/.test(s) && /function coloringDownloadStep\(\)/.test(s)
-  && /setClick\('coloringUndoBtn', coloringUndoStep\)/.test(s)
-  && /data-region/.test(s) && /\.color-stage \[data-region\]/.test(s) && /\.color-pics \.color-tier/.test(s),
-  '小游戏页的「🎨 涂色游戏」是小游戏里的独立子页（data-sub="color" → #sub-panel-color）；'
-  + '38 张内置线稿按块数分三杯（中杯 10–30 / 大杯 30–60 / 超大杯 60 块以上，里面有 4 张 200 块以上），10 块以下的图不要；'
-  + '14 色调色板 + 自定义取色 + 点区域填充 / 橡皮 / 撤销 / 重做 / 清空 / 下载，状态只在本机；'
-  + '另外可以「📥 导入图片」（PNG / JPG）走位图 flood fill（跟 Anycolor 一样点哪儿填哪儿、黑线当边界），不导入时还是内置线稿那套；'
-  + '「📚 内置图库」读 public/coloring/manifest.json（图丢进 public/coloring/ 后跑 npm run coloring:manifest 就会列出来），没图时不显示那一组');
+  && /\.color-pics \.color-tier/.test(s),
+  '小游戏页的「🎨 涂色游戏」是小游戏里的独立子页（data-sub="color" → #sub-panel-color）：'
+  + '图都来自三本涂色书（public/coloring/ 的 36 张页 + manifest.json，点一张铺到 canvas 走位图填充），'
+  + '原来手画的几何线稿（COLORING_MORE / COLORING_HEAVY / 三杯分档）已整段删除；'
+  + '另外可以「📥 导入图片」（PNG / JPG）走同一套 flood fill（黑线当边界）；14 色调色板 + 橡皮 / 撤销 / 重做 / 清空 / 下载，状态只在本机');
 ok(/data-seg="tanghulu" data-n="01">糖葫芦对决</.test(s) && /id="genTanghuluPane"/.test(s)
   && /id="thlInput"/.test(s) && /id="thlParseBtn"/.test(s) && /id="thlOutput"/.test(s) && /id="thlChips"/.test(s)
   && /const THL_BEHAVIOR_TEXT = \{ '1': '匹配', '2': '结算', '3': '进度' \};/.test(s)

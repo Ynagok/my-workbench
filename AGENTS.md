@@ -48,7 +48,7 @@ npm run verify     # 改完代码、push 前的完整自检
 
 | 命令 | 内容 |
 |---|---|
-| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 666 项 + 「接口挂起时界面仍可用」+ 服务端冒烟 42 项 |
+| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 648 项 + 「接口挂起时界面仍可用」+ 服务端冒烟 42 项 |
 | `npm run verify:static` | 只要静态校验 + 语法检查（最快） |
 | `npm run report` | 打印一份真实生成的日报，肉眼确认排版（含 ⑥伙伴弹途 / ⑦异世界勇者） |
 | `npm run build:data` | 从 GM 玩家页快照提取 4 张权威映射表 + 与硬编码常量的**差异报告**（见下「游戏数据管线」） |
@@ -60,7 +60,7 @@ npm run verify     # 改完代码、push 前的完整自检
 | `npm run smoke:pmc` | **生管物料订单工作台**（`public/pmc.html`）自检，123 项（含加工周期工作日推算 + 在途锁定/调整建议 + 真实 8.5MB xlsx 端到端导入）；**不在 verify 里**，见下「生管物料订单工作台」一节 |
 | `npm test` | = `npm run verify` |
 
-`npm run verify` 失败就不要提交。它一共 5 段：静态结构 → 语法 → jsdom 集成冒烟 **666 项** → 接口挂起时界面仍可用 → 服务端冒烟 **42 项**。
+`npm run verify` 失败就不要提交。它一共 5 段：静态结构 → 语法 → jsdom 集成冒烟 **648 项** → 接口挂起时界面仍可用 → 服务端冒烟 **42 项**。
 
 - jsdom 未安装时前端冒烟会自动回落到本机 DSH 自带的那份。
 - `tools/smoke-server.cjs` 用 `PORT` + `DATA_FILE` 环境变量把服务端指到随机端口和 `tools/out/` 里的临时文件，**不会碰真实 `data.json`**；子进程 stdio 必须用 `ignore`/`inherit`（沙箱禁管道，`pipe` 会 EPERM）。
@@ -389,14 +389,13 @@ npm run verify     # 改完代码、push 前的完整自检
 用户给了 Poki 上 **Anycolor**（`poki.com/zh/g/anycolor`）的整页源码，要求「逆向在这个网页源代码，在小游戏中增加涂色游戏」。从源码自带的「如何玩 Anycolor」反推出的玩法：**从图库选一张线稿 → 点空白区域就填充 → 换调色板颜色 / 画笔 / 橡皮 → 撤销 / 重做 → 缩放 → 滤镜与描边 → 下载分享**。这里做成离线版（不联网、不碰玩家数据）。
 
 - **位置**：`#tab-script`（小游戏）里的**独立子页** —— `.sub-tab[data-sub="color"]`（🎨 涂色）→ `#sub-panel-color`，跟「🖼️ 拼豆图纸 / 炸小人」并排（2026-11 用户：「涂色游戏要在小游戏里单独一个页」）；里面是 `#coloringCard`。
-- **内置线稿** `COLORING_PICS`：**38 张**，**按块数分三杯**（2026-11 用户先给的是「不要 10 个色块以下的图，增加 50 个色块甚至更多色块；10–30 是简单的图，30–60 是小难的图，60–120 是有点难的图」，随后改口：「涂色游戏难度改为中杯，大杯，超大杯，增加几张 200 色块以上的图」）：
-  - ⚠️ **原来那 9 张 5–8 块的小图（小狐狸 / 纸杯蛋糕 / 日出 / 小猫 / 小房子 / 小汽车 / 冰淇淋 / 星星月亮 / 小树）整批删掉** —— 用户明确不要 10 块以下的图；`const COLORING_PICS = [];` 现在是空数组起步，文件末尾还有一条「`regions.length < 10` 就 splice 掉」的兜底，以后加图也照这条滤。
-  - **中杯 10–30 块（20 张）**：`COLORING_MORE`（12–16 块：猫头鹰 / 蝴蝶 / 金鱼 / 恐龙 / 机器人 / 帆船 / 热气球 / 披萨 / 花束 / 城市 / 火箭 / 火车 / 吉他 / 海底 / 太阳系 / 脸谱 / 多层蛋糕 / 眼镜 / 蘑菇 / 城堡），用几何助手 `coloringRect` / `coloringEllipse` / `coloringPoly` 拼（`coloringShape` 分派 `r` / `e` / `p` / **`d`（直接给 path）**）。
-  - **大杯 30–60 块（8 张）**：`COLORING_HEAVY` → `town` 小镇 41 / `calendar` 日历 47 / `farm` 农场 34 / `tank` 鱼缸 36 / `palace` 宫殿 34 / `bakery` 甜点柜 41 / `station` 空间站 33 / `garden` 花园 47（块数靠窗户格 `coloringWinGrid` / 花丛 / 蛋糕架批量铺）。
-  - **超大杯 60 块以上（10 张）**：`mandala` 曼陀罗 81（`coloringSector` 扇形 + `coloringRingSectors` 四圈）/ `tower` 摩天楼 67（5×11 窗格）/ `dragon` 龙 64 / `peacock` 孔雀 65（16 根羽毛 × 杆·眼·尖）/ `reef` 珊瑚礁 72 / `mosaic` 马赛克画 81（10×8 网格）+ **200 块以上的 4 张**：`kaleido` 万花筒 205（六圈扇形 156 + 48 花瓣）/ `quilt` 拼布方格 226（15×15 网格）/ `mosaics` 马赛克大画 225（16×14 网格）/ `metropolis` 高楼群 233（4 栋楼 × 5×11 窗格）。
-  - **分杯口径**在 `coloringTierOf(pic)`（`regions.length`：≤30 中杯 / ≤60 大杯 / 其余超大杯）；选图由 `coloringRenderPics` 按杯分组渲染：每组一行 `.color-tier-h` 写「中杯 · 10–30 块（20 张）」，按钮上带 `<i>N 块</i>`。
-  - 每块 = `{ id, name, d }`，画成 `<path data-region="…">`，初始 `fill="#ffffff"`；块名的中文序号（一 … 一百二十）由 `coloringCn(n)` 生成；块数多的图靠 `coloringWinGrid`（网格）/ `coloringRingSectors`（一圈扇形）批量铺。
-  - ⚠️ 新图坐标要落在 `200×200` 画布里（`0–200`）—— 小镇的边树 / 农场的篱笆 / 摩天楼最下一排窗出过界，已收回来（体检用 `tools/out/` 里的临时脚本，没入库）。
+- **图都来自三本涂色书（2026-11 用户：「将原来的图去掉，内置这几本书里的线稿图」）**：手画的几何线稿（原来 9 张基础 + 20 张简单 + 14 张小难/有点难，`COLORING_MORE` / `COLORING_HEAVY` / `coloringTierOf` 那一整套）**已整段删除** —— `const COLORING_PICS = [];` 保持空数组，`coloringRenderPics` 现在只渲染「📚 内置图库」。
+  - 三本书：**《梦境花园》（蜜桃老师）/《时尚的诞生》（(韩) 姜旻枝）/《童色年华·幻想卷》（名绘堂）**，各抽 12 页，共 **36 张**，都在 `public/coloring/`（`dream-008.png` … `fashion-020.png` … `child-020.png`），出处写在 `public/coloring/coloring-sources.json`（书名 + 页码 + 「书内页（内部使用，勿外发）」）。
+  - ⚠️ **版权**：这三本是买来的电子书，页图只能内部涂着玩，**别外发、别进公开仓库/线上演示**；`public/coloring/README.md` 里也写了这条。
+  - **怎么抽的（`tools/extract-pdf-images.mjs`）**：这几本 PDF 每页就是一张 `DCTDecode`（JPEG）图，所以不用装 poppler / ghostscript —— 直接扫 `stream` 前后的字典，认 `/Subtype /Image` + `DCTDecode`，按 JPEG 结束符 `FFD9` 截断抽出来。**本机没有 pdftoppm / magick / python，这条纯 Node 的路子是最省事的**。
+  - **怎么挑页（`tools/out/build-coloring-from-pdf.mjs`，临时脚本没入库）**：用 sharp 缩到 320px 算指标 —— 墨迹占比（`lum<200`，3%–50%）、彩色占比（≤10%）、**4×4 格子的墨迹离散度**（文字页只有几格有墨，`spread>1.05` 的直接甩掉）、空白格数 ≤4；再跳过前 6 页（封面 / 版权 / 前言）。挑中的页用 sharp 缩到 900px、转灰度、调色板 PNG（16 色），一张 100–250KB。
+  - **sharp 只是临时装的**（`npm i sharp --no-save`，没进 `package.json`）：抽完图就不需要了，下次要重抽再装一次。
+  - 图库读取：`coloringLoadLibrary()` 异步取 `coloring/manifest.json` → `coloringRenderPics()` 只渲染这一组；一张都没有时显示「内置图库还空着：把图片放进 public/coloring/ 再跑 npm run coloring:manifest」。点一张 → `coloringOpenLibPic(slug)` → 同源 `Image` → canvas 位图模式（黑线当边界，点哪儿填哪儿）。
 - **调色板** `COLORING_PALETTE`：14 色（含白），另加 `<input type="color" id="coloringCustomColor">` 自定义取色。
 - **交互**：点区域 → 用当前颜色填充（`coloringPaint`，记一条 undo）；`🧽 橡皮` 开着时点区域 → 擦回白色（`aria-pressed` 标状态）；`↩️ 撤销` / `↪️ 重做` 走 `coloringUndo` / `coloringRedo`；`🧹 清空` 清当前图（连撤销栈）；`⬇️ 下载` 把 SVG 序列化成 `.svg` 下下来。
 - ⚠️ **下载在 jsdom / 无头环境里直接跳过**（点 `<a download>` 会被 jsdom 记成 navigation 错误）：`coloringDownloadStep` 里先判 `navigator.userAgent` 含 `jsdom` 就只给提示 —— 别删这段守卫，否则冒烟会红。
@@ -415,7 +414,7 @@ npm run verify     # 改完代码、push 前的完整自检
   - `public/coloring/README.md` 写了「丢图 → 跑脚本 → 刷新」的流程和「能放什么图」：自己画的 / 公司内部素材 / **公有领域·CC0·CC BY** 线稿；⚠️ **不要**放只授权「自己打印」的（HP Printables、Anycolor、Dover 样张、各种 free coloring pages 站）。
   - **抓取脚本 `tools/fetch-coloring.mjs`（`npm run coloring:fetch`）**：从 Wikimedia Commons 按主题搜 `filetype:drawing`，只收 `Public domain / CC0 / CC BY`、只收 **SVG**（缩略图是 PNG 才能解码），再用内置的 PNG 解码 + 像素指标（白底占比 / 深色线占比 / 彩色占比 / 色块种类）筛掉地图、徽章、剪影、彩图。
   - ⚠️ **实测可用率很低**：Commons 里 `filetype:drawing` 大多是地图 / 徽章 / 示意图；一口气跑十几个主题会被限流（`You are making too many requests`）。所以**默认别指望它凑满一屏** —— 实际路线是「批量丢图 + `coloring:manifest`」，抓取只是补充。想批量内置好图，就得从授权明确的库（PD-old 童书、NIH BioArt、openclipart 的 CC0）里挑。
-- **测试**：`tools/smoke.cjs` 第 **8z-2** 节 **34 条**（独立的「🎨 涂色」子页 / **选图 38 张** / **没有 10 块以下的图** / **三杯 `.color-tier` = mid,large,xl + 每杯的区间与张数（20 / 8 / 10）** / **分杯跟块数对得上、且有 200 块以上的图** / **200 块以上至少 4 张（205 / 226 / 225 / 233）** / 14 色调色板 / 猫头鹰 13 块初始白色 / 点区域上色 + 提示 / 换色再涂 / 撤销回白 / 重做回来 / 橡皮擦白 / 换成小镇 41 块 / 清空全白且撤销栈空 / 自定义取色器 / 切到曼陀罗 81 块并照样上色 / **切到高楼群 233 块并照样上色 / **导入入口（file input accept=image/*、画布 600、回到内置线稿）都在且默认收起** / **没导入图片时点画布什么都不做（不去碰 canvas 2d，jsdom 里也不会报 Not implemented）** / 提示写清「点哪儿填哪儿、黑线当边界」 / 「回到内置线稿」能切回去 / **图库没图时不显示「📚 内置图库」那一组、内置线稿三杯照旧**** / 下载只提示不抛 / 全程 0 请求）；`tools/verify.mjs` 有静态断言（`COLORING_HEAVY` / `coloringTierOf` / 三杯文案 / 200 块那几张的 key / 几何助手 / `< 10 块` 兜底 / `.color-tier` 样式）。
+- **测试**：`tools/smoke.cjs` 第 **8z-2** 节 **16 条**（独立的「🎨 涂色」子页 / 卡片上 图库·调色板·画布·导入入口 都在 / **选图区已经没有手画的 `[data-pic]`** / **内置图库列出 ≥30 张、抬头写张数、按钮带书名**（fetch mock 直接喂真实 `manifest.json`）/ 14 色调色板 + 点色块换色 / 橡皮 `aria-pressed` / 没有画布时清空与下载只给提示 / **导入入口（accept=image/*、画布 600、回到内置线稿默认收起）** / 没导入图片时点画布不动（jsdom 没 canvas 2d 也不报 Not implemented）/ 回到内置线稿 / 这页只请求自己的 `coloring/manifest.json`）；`tools/verify.mjs` 有静态断言（页面元素、`COLORING_PICS` 空、`COLORING_MORE`/`COLORING_HEAVY`/`coloringTierOf` **必须不存在**、图库三件套、manifest ≥30 张且每张都有 license、`coloring:manifest` 脚本、位图模式那几个函数）。
 
 ## 海外业务统计（岗位周报整表粘贴）
 

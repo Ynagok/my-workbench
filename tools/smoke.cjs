@@ -70,6 +70,11 @@ function makeFetchMock(store, log, nowFn) {
     let body = null;
     try { body = opts && opts.body ? JSON.parse(opts.body) : null; } catch (_) { }
     log.push(method === 'POST' ? { url: String(url), method, body } : { url: String(url), method: 'GET' });
+    if (String(url).indexOf('coloring/manifest.json') !== -1) {
+      let payload = { items: [] };
+      try { payload = JSON.parse(require('fs').readFileSync('public/coloring/manifest.json', 'utf8')); } catch (e) { }
+      return { ok: true, status: 200, json: async () => payload };
+    }
     if (String(url).indexOf('api/vote/') !== -1) {
       const poll = store[key];
       if (method === 'GET') {
@@ -3397,152 +3402,72 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
       '镜像解析全程只在本机（0 请求）', posts.slice(posts8z).map(p => p.url).join(' | '));
   }
 
-  console.log('--- 8z-2. 涂色游戏（照着 Poki「Anycolor」的玩法反推：选图 / 点区域上色 / 橡皮 / 撤销重做 / 下载）---');
+  console.log('--- 8z-2. 涂色游戏（Anycolor 玩法：内置图库 / 导入图片 / 位图填充）---');
   {
     const posts9 = posts.length;
     doc.querySelector('.tab-btn[data-tab="script"]').click();
     await sleep(80);
-    check(!!$('coloringCard') && !!$('coloringStage') && !!$('coloringPalette') && !!$('coloringPics'),
-      '小游戏页多了一张「🎨 涂色游戏」卡（图纸区 / 调色板 / 选图都在）');
-    // 选图：34 张，按块数分三档（简单 10–30 / 小难 30–60 / 有点难 60–120）
-    const picBtns = [...$('coloringPics').querySelectorAll('[data-pic]')];
-    const blockN = b => Number(String(b.querySelector('i').textContent).replace(/[^\d]/g, ''));
-    const blocks9 = picBtns.map(blockN);
-    check(picBtns.length === 38 && picBtns[0].dataset.pic === 'owl' && picBtns[0].classList.contains('active'),
-      '选图按钮 38 张（中杯 20 + 大杯 8 + 超大杯 10），默认第一张高亮', picBtns.map(b => b.dataset.pic).join(','));
-    check(blocks9.every(n => n >= 10),
-      '10 个色块以下的图不再出现（用户：不要 10 个色块以下的图）', blocks9.join(','));
-    const tierBoxes = [...$('coloringPics').querySelectorAll('.color-tier')];
-    check(tierBoxes.length === 3 && tierBoxes.map(b => b.dataset.tier).join(',') === 'mid,large,xl',
-      '选图按难度分三档（中杯 / 大杯 / 超大杯）', tierBoxes.map(b => b.dataset.tier).join(','));
-    check(/中杯 · 10–30 块（20 张）/.test(tierBoxes[0].textContent) && /大杯 · 30–60 块（8 张）/.test(tierBoxes[1].textContent)
-      && /超大杯 · 60 块以上（10 张）/.test(tierBoxes[2].textContent),
-      '每档都写了块数区间 + 张数', tierBoxes.map(b => b.textContent.replace(/\s+/g, ' ')).join(' | '));
-    check(picBtns.every(b => {
-      const n = blockN(b), tier = b.closest('.color-tier').dataset.tier;
-      return (tier === 'mid' && n >= 10 && n <= 30) || (tier === 'large' && n > 30 && n <= 60) || (tier === 'xl' && n > 60);
-    }) && Math.max.apply(null, blocks9) >= 200,
-      '分档跟块数对得上，并且有 200 块以上的图（用户：增加几张 200 色块以上的图）', blocks9.join(','));
+    check(!!$('coloringCard') && !!$('coloringPics') && !!$('coloringPalette') && !!$('coloringCanvas') && !!$('coloringImgInput'),
+      '小游戏页有「🎨 涂色游戏」卡（图库 / 调色板 / 画布 / 导入入口都在）');
     const colorTab = doc.querySelector('#tab-script .sub-tab[data-sub="color"]');
     check(!!colorTab && /涂色/.test(colorTab.textContent) && !$('sub-panel-color').classList.contains('active'),
       '涂色游戏是小游戏里的**独立子页**（第三个 sub-tab，默认没展开）', colorTab && colorTab.textContent);
     colorTab.click();
-    await sleep(60);
+    await sleep(80);
     check(colorTab.classList.contains('active') && $('sub-panel-color').classList.contains('active')
       && !$('sub-panel-pixel').classList.contains('active'),
       '点「🎨 涂色」→ 只展开涂色这一页（拼豆图纸收起）');
-    // 调色板
+
+    // 手画的几何线稿已经全删了
+    check($('coloringPics').querySelectorAll('[data-pic]').length === 0,
+      '原来手画的几何线稿（38 张 / 三杯分档）已经删掉，选图区没有 [data-pic] 按钮',
+      $('coloringPics').querySelectorAll('[data-pic]').length);
+
+    // 内置图库：三本涂色书里抽出来的页
+    const libBtns = [...$('coloringPics').querySelectorAll('[data-lib]')];
+    check(libBtns.length >= 30,
+      '内置图库（public/coloring/manifest.json）列出了三本书的线稿页', String(libBtns.length));
+    check(/📚 内置图库 · \d+ 张/.test($('coloringPics').textContent),
+      '图库抬头写了张数', $('coloringPics').textContent.slice(0, 60));
+    check(libBtns.some(b => /梦境花园|时尚的诞生|童色年华/.test(b.textContent)),
+      '按钮名字带书名 + 页码', libBtns.slice(0, 3).map(b => b.textContent).join(' | '));
+
+    // 调色板 / 橡皮 / 清空 / 下载（jsdom 没有 canvas 2d，只验不炸 + 提示）
     const swatches = [...$('coloringPalette').querySelectorAll('[data-color]')];
     check(swatches.length === 14 && swatches[0].classList.contains('active'),
       '调色板 14 色，默认选中第一个', String(swatches.length));
-    // 画面区域 + 默认白色
-    const regions = () => [...$('coloringStage').querySelectorAll('[data-region]')];
-    const byId = id => regions().filter(r => r.dataset.region === id)[0];
-    check(regions().length === 13 && regions().every(r => r.getAttribute('fill') === '#ffffff'),
-      '猫头鹰这张有 13 块区域，初始都是白色（跟原作一样是空白线稿）', String(regions().length));
-    // 点一块 → 上色
-    byId('head').dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
-    await sleep(40);
-    check(byId('head').getAttribute('fill') === '#ff6b6b'
-      && /把「脑袋」涂成/.test($('coloringHint').textContent),
-      '点「脑袋」那块 → 填成当前颜色（#ff6b6b），提示里写清涂了哪块', $('coloringHint').textContent);
-    // 换颜色再涂
-    $('coloringPalette').querySelectorAll('[data-color]')[4].dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+    swatches[4].dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
     await sleep(30);
-    byId('eyeR').dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
-    await sleep(30);
-    check(byId('eyeR').getAttribute('fill') === '#51cf66' && swatches[4] !== undefined,
-      '换一个颜色再点另一块 → 那块用新颜色', byId('eyeR').getAttribute('fill'));
-    // 撤销 / 重做
-    $('coloringUndoBtn').click();
-    await sleep(40);
-    check(byId('eyeR').getAttribute('fill') === '#ffffff', '撤销 → 那一块退回白色', byId('eyeR').getAttribute('fill'));
-    $('coloringRedoBtn').click();
-    await sleep(40);
-    check(byId('eyeR').getAttribute('fill') === '#51cf66', '重做 → 颜色又回来', byId('eyeR').getAttribute('fill'));
-    // 橡皮
+    const swatchesAfter = [...$('coloringPalette').querySelectorAll('[data-color]')];
+    check(/当前颜色/.test($('coloringHint').textContent) && swatchesAfter[4].classList.contains('active'),
+      '点一个色块 → 换成当前颜色', $('coloringHint').textContent);
     $('coloringEraseBtn').click();
     await sleep(30);
     check($('coloringEraseBtn').getAttribute('aria-pressed') === 'true', '橡皮开着（aria-pressed=true）');
-    byId('head').dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
-    await sleep(40);
-    check(byId('head').getAttribute('fill') === '#ffffff' && /擦掉/.test($('coloringHint').textContent),
-      '橡皮状态下点区域 = 擦回白色（又跟原作「画笔 / 橡皮」那套对着）', $('coloringHint').textContent);
     $('coloringEraseBtn').click();
-    await sleep(30);
-    // 换图（小难那档：小镇 41 块）+ 清空
-    $('coloringPics').querySelector('[data-pic="town"]').dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
-    await sleep(50);
-    check(regions().length === 41 && /小镇/.test($('coloringHint').textContent),
-      '换成「小镇」→ 换成另一套 41 块区域（小难那档）', String(regions().length));
-    regions()[1].dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
-    await sleep(30);
+    await sleep(20);
     $('coloringClearBtn').click();
-    await sleep(40);
-    check(regions().every(r => r.getAttribute('fill') === '#ffffff') && /已清空/.test($('coloringHint').textContent),
-      '清空 → 这张图所有区域回白（撤销记录也清了）', $('coloringHint').textContent);
-    $('coloringUndoBtn').click();
     await sleep(30);
-    check(/没有可以撤销的步骤/.test($('coloringHint').textContent), '清空后撤销栈是空的（提示没得撤销）');
-    // 自定义颜色
-    const custom = $('coloringCustomColor');
-    custom.value = '#123456';
-    fire(custom, 'input');
+    check(/已清空/.test($('coloringHint').textContent), '没有画布时点清空也不炸', $('coloringHint').textContent);
+    $('coloringDownloadBtn').click();
     await sleep(30);
-    regions()[0].dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
-    await sleep(30);
-    check(regions()[0].getAttribute('fill') === '#123456', '自定义取色器也能用（#123456）', regions()[0].getAttribute('fill'));
-    // 有点难那档：曼陀罗 81 块（扇形），大图照样能点着上色
-    $('coloringPics').querySelector('[data-pic="mandala"]').dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
-    await sleep(60);
-    check(regions().length === 81 && /曼陀罗/.test($('coloringHint').textContent),
-      '超大杯那档能切到「曼陀罗」（81 块扇形，60 块以上）', String(regions().length));
-    check(blocks9.filter(n => n >= 200).length >= 4,
-      '200 色块以上的图至少 4 张（万花筒 205 / 拼布方格 226 / 马赛克大画 225 / 高楼群 233）',
-      blocks9.filter(n => n >= 200).join(','));
-    $('coloringPics').querySelector('[data-pic="metropolis"]').dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
-    await sleep(80);
-    check(regions().length === 233 && /高楼群/.test($('coloringHint').textContent),
-      '超大杯里 200 块以上的「高楼群」能打开（233 块）', String(regions().length));
-    regions()[120].dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
-    await sleep(30);
-    check(regions()[120].getAttribute('fill') === '#123456', '200 块以上的大图点一块照样上色', regions()[120].getAttribute('fill'));
-    regions()[40].dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
-    await sleep(30);
-    check(regions()[40].getAttribute('fill') === '#123456', '60 块以上的大图点一块照样上色', regions()[40].getAttribute('fill'));
+    check(/没有可下载的图|不支持下载/.test($('coloringHint').textContent), '没有图时点下载只提示', $('coloringHint').textContent);
 
-    // 导入图片（位图模式）：Anycolor 那套「点哪儿填哪儿」的入口（jsdom 里没有 canvas 2d，只验入口和兜底）
-    check(!!$('coloringImgInput') && $('coloringImgInput').getAttribute('accept') === 'image/*'
-      && !!$('coloringBackBtn') && !!$('coloringCanvas')
-      && $('coloringCanvas').getAttribute('width') === '600',
-      '涂色页多了「📥 导入图片」入口（PNG / JPG）+ 画布 + 「回到内置线稿」',
-      $('coloringCanvas') && $('coloringCanvas').getAttribute('width'));
-    check($('coloringCanvas').style.display === 'none' && $('coloringBackBtn').style.display === 'none',
-      '没导入图片时画布和「回到内置线稿」都是收起的（默认还是内置线稿那套）');
-    check(/点哪儿填哪儿/.test($('coloringImgHint').textContent) && /黑线自动当边界/.test($('coloringImgHint').textContent),
-      '导入入口旁边写清玩法：位图填充、黑线当边界', $('coloringImgHint').textContent);
+    // 导入图片（位图模式）的入口还在
+    check($('coloringImgInput').getAttribute('accept') === 'image/*' && $('coloringCanvas').getAttribute('width') === '600'
+      && $('coloringBackBtn').style.display === 'none',
+      '「📥 导入图片」入口在（accept=image/*、画布 600、回到内置线稿默认收起）');
     const hintBefore = $('coloringImgHint').textContent;
     $('coloringCanvas').dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
     await sleep(30);
     check($('coloringImgHint').textContent === hintBefore,
-      '没导入图片时点画布什么都不做（不会去碰 canvas 2d）', $('coloringImgHint').textContent);
+      '没导入图片时点画布什么都不做（不去碰 canvas 2d，jsdom 里也不会报 Not implemented）');
     $('coloringBackBtn').click();
     await sleep(30);
-    check($('coloringCanvas').style.display === 'none' && /回到内置线稿了/.test($('coloringImgHint').textContent),
-      '「回到内置线稿」能切回 SVG 那套', $('coloringImgHint').textContent);
+    check(/回到内置线稿了/.test($('coloringImgHint').textContent), '「回到内置线稿」能切回去', $('coloringImgHint').textContent);
 
-    // 内置图库（public/coloring + manifest.json）：没图时不出那一组，也别把内置线稿挤掉
-    check(!$('coloringPics').querySelector('[data-tier="lib"]'),
-      '图库里没图（manifest 空 / 取不到）时不显示「📚 内置图库」那一组，页面不报错',
-      $('coloringPics').textContent.slice(0, 40));
-    check(!!$('coloringPics').querySelector('[data-tier="mid"]') && !!$('coloringPics').querySelector('[data-tier="xl"]'),
-      '图库分组是附加的：内置线稿那三杯照旧在');
-
-    // 下载不抛错（jsdom 里 createObjectURL 可能没有 → 只提示）
-    $('coloringDownloadBtn').click();
-    await sleep(40);
-    check(/已下载|不支持下载/.test($('coloringHint').textContent), '点下载给提示，不抛异常', $('coloringHint').textContent);
-    check(posts.length === posts9, '涂色游戏全程只在本机（0 请求）', posts.slice(posts9).map(p => p.url).join(' | '));
+    check(posts.slice(posts9).every(p => /coloring\/manifest\.json/.test(String(p.url))),
+      '涂色这页只请求自己的 manifest，别的都不发', posts.slice(posts9).map(p => p.url).join(' | '));
   }
 
   console.log('--- 9. 无未捕获异常 ---');
