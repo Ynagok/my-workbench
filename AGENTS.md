@@ -389,6 +389,16 @@ npm run verify     # 改完代码、push 前的完整自检
 用户给了 Poki 上 **Anycolor**（`poki.com/zh/g/anycolor`）的整页源码，要求「逆向在这个网页源代码，在小游戏中增加涂色游戏」。从源码自带的「如何玩 Anycolor」反推出的玩法：**从图库选一张线稿 → 点空白区域就填充 → 换调色板颜色 / 画笔 / 橡皮 → 撤销 / 重做 → 缩放 → 滤镜与描边 → 下载分享**。这里做成离线版（不联网、不碰玩家数据）。
 
 - **位置**：`#tab-script`（小游戏）里的**独立子页** —— `.sub-tab[data-sub="color"]`（🎨 涂色）→ `#sub-panel-color`，跟「🖼️ 拼豆图纸 / 炸小人」并排（2026-11 用户：「涂色游戏要在小游戏里单独一个页」）；里面是 `#coloringCard`。
+- **图都来自三本涂色书（2026-11 用户：「将原来的图去掉，内置这几本书里的线稿图」→ 又要求「把含书名、前言、目录的页删了，图片再放大两三倍」）**：手画的几何线稿（原来 9 + 20 + 14 张，`COLORING_MORE` / `COLORING_HEAVY` / `coloringTierOf` 那一整套）**已整段删除**，`COLORING_PICS` 保持空数组，`coloringRenderPics` 只渲染「📚 内置图库」。
+  - 三本书：**《梦境花园》（蜜桃老师）/《时尚的诞生》(韩) 姜旻枝 /《童色年华·幻想卷》（名绘堂）**，各 12 页共 **36 张**，在 `public/coloring/`（`dream-008…022` / `fashion-008…022` / `child-012…023`）。
+  - **已剔掉的页**：`fashion-007`（页面上叠了书名「时尚的诞生」）、`child-007`（书名页）、`child-009`（前言）、`child-011`（目录）—— 剔除表写在临时脚本 `tools/out/build-coloring-from-pdf.mjs` 的 `EXCLUDE = { fashion: [7], child: [7, 9, 11] }` 里；保险起见以后挑页先出一张联系表（`tools/out/contact-sheet.mjs`，12 张拼 4×3 带文件名）肉眼过一遍。
+  - ⚠️ **版权**：买来的电子书内页，**只在这台机器 / 内部涂着玩，别外发、别进公开仓库或线上演示**；`public/coloring/coloring-sources.json` 记了书名 + 页码 + 「书内页（内部使用，勿外发）」。
+  - **尺寸（2026-11 用户：「图片可以再放大两三倍以方便涂色」）**：从 900px 提到 **2000px**（源 JPEG 本来就 2800px 宽，属于真降采样），并且**二值化**输出（`grayscale().threshold(180)` + `png({palette:true,colors:2})`）—— 线更干净、flood fill 不会有灰边，体积反而更小（一张 100–180KB，36 张共约 4.3MB）。
+  - **画布跟着放大**：`#coloringCanvas` 内部 **1200×1200**（原来 600），显示 `max-width: 780px`（原来 520）—— 2000px 的图铺到 1200 画布上再缩到 780 显示，既有细节又好点。⚠️ **撤销栈因此改成存 PNG dataURL 快照**（`cv.toDataURL("image/png")`，最多 12 步；`coloringImgPutSnapshot` 异步 `drawImage` 还原）—— 1200×1200 的 `ImageData` 一张 5.7MB，10 步就 57MB，别改回去。
+  - **怎么抽的（`tools/extract-pdf-images.mjs`）**：这几本 PDF 每页就是一张 `DCTDecode`（JPEG）图，本机没有 pdftoppm / ghostscript / magick / python，所以直接扫 `stream` 前后的字典，认 `/Subtype /Image` + `DCTDecode`，按 JPEG 结束符 `FFD9` 截断抽出来（98 + 98 + 96 张）。
+  - **怎么挑页（`tools/out/build-coloring-from-pdf.mjs`，临时脚本没入库）**：sharp 缩 320px 算指标 —— 墨迹占比（`lum<200`，3%–50%）、彩色占比（≤10%）、**4×4 格子墨迹离散度**（文字页只有几格有墨，`spread>1.05` 甩掉）、空白格 ≤4；再跳过前 6 页（封面 / 版权 / 前言）和 `EXCLUDE` 里那几页。
+  - **sharp 是临时装的**（`npm i sharp --no-save`，没进 `package.json`）：重抽图时再装一次，抽完可以删。
+  - 图库读取：`coloringLoadLibrary()` 异步取 `coloring/manifest.json` → `coloringRenderPics()` 只渲染这一组；一张都没有时显示「内置图库还空着：把图片放进 public/coloring/ 再跑 npm run coloring:manifest」。点一张 → `coloringOpenLibPic(slug)` → 同源 `Image` → canvas 位图模式（黑线当边界，点哪儿填哪儿）。
 - **图都来自三本涂色书（2026-11 用户：「将原来的图去掉，内置这几本书里的线稿图」）**：手画的几何线稿（原来 9 张基础 + 20 张简单 + 14 张小难/有点难，`COLORING_MORE` / `COLORING_HEAVY` / `coloringTierOf` 那一整套）**已整段删除** —— `const COLORING_PICS = [];` 保持空数组，`coloringRenderPics` 现在只渲染「📚 内置图库」。
   - 三本书：**《梦境花园》（蜜桃老师）/《时尚的诞生》（(韩) 姜旻枝）/《童色年华·幻想卷》（名绘堂）**，各抽 12 页，共 **36 张**，都在 `public/coloring/`（`dream-008.png` … `fashion-020.png` … `child-020.png`），出处写在 `public/coloring/coloring-sources.json`（书名 + 页码 + 「书内页（内部使用，勿外发）」）。
   - ⚠️ **版权**：这三本是买来的电子书，页图只能内部涂着玩，**别外发、别进公开仓库/线上演示**；`public/coloring/README.md` 里也写了这条。

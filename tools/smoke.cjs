@@ -3454,7 +3454,7 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     check(/没有可下载的图|不支持下载/.test($('coloringHint').textContent), '没有图时点下载只提示', $('coloringHint').textContent);
 
     // 导入图片（位图模式）的入口还在
-    check($('coloringImgInput').getAttribute('accept') === 'image/*' && $('coloringCanvas').getAttribute('width') === '600'
+    check($('coloringImgInput').getAttribute('accept') === 'image/*' && $('coloringCanvas').getAttribute('width') === '1200'
       && $('coloringBackBtn').style.display === 'none',
       '「📥 导入图片」入口在（accept=image/*、画布 600、回到内置线稿默认收起）');
     const hintBefore = $('coloringImgHint').textContent;

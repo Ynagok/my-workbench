@@ -4,13 +4,15 @@
 
 ## 现在里面有什么
 
-**三本涂色书各抽 12 页，共 36 张**（900px 灰度线稿 PNG）：
+**三本涂色书各抽 12 页，共 36 张**（2000px 二值化线稿 PNG，一张 100–180KB）：
 
 | 前缀 | 书（`coloring-sources.json` 里记了页码） | 作者 |
 |---|---|---|
 | `dream-*` | 《梦境花园 · 一本让心灵回归宁静的手绘涂色书》 | 蜜桃老师 |
 | `fashion-*` | 《时尚的诞生 · 一本收集时尚灵感的服饰名品穿搭涂色书》 | (韩) 姜旻枝 |
 | `child-*` | 《童色年华 · 幻想卷 · 一本充满童年回忆的涂色书》 | 名绘堂 |
+
+已剔掉：`fashion-007`（叠了书名）、`child-007`（书名页）、`child-009`（前言）、`child-011`（目录）。
 
 ⚠️ **版权**：这些是买来的电子书内页，**只在这台机器 / 内部涂着玩，别外发、别放到公开仓库或线上演示**。出处（书名 + 页码 + 「书内页（内部使用，勿外发）」）都记在 `coloring-sources.json`。
 
@@ -42,7 +44,7 @@ node tools/extract-pdf-images.mjs "书.pdf" --out=tools/out/pdfpages
 
 # 2) 挑页 + 缩图（临时脚本，会用到 sharp：npm i sharp --no-save）
 #    指标：墨迹 3–50%、彩色 ≤10%、4×4 格子墨迹离散度 ≤1.05（甩掉文字页）、跳过前 6 页
-node tools/out/build-coloring-from-pdf.mjs --per-book=12
+node tools/out/build-coloring-from-pdf.mjs --per-book=12 --width=2000   # 二值化 + 2000px
 
 # 3) 生成清单
 npm run coloring:manifest

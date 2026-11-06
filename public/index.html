@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="x-build" content="2026-11-06 活动查询-v30-涂色换成三本书线稿">
+    <meta name="x-build" content="2026-11-06 活动查询-v31-涂色去书名页+放大">
     <title>客服冷静演绎工作台</title>
     <link rel="icon" type="image/gif" href="/my-icon.gif">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -5067,9 +5067,9 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                     <label class="secondary" for="coloringImgInput" style="cursor:pointer; margin:0;">📥 导入图片（PNG / JPG，截图也行）</label>
                     <input type="file" id="coloringImgInput" accept="image/*" style="display:none;">
                     <button id="coloringBackBtn" class="secondary" style="display:none;">↩️ 回到内置线稿</button>
-                    <span class="hint-text" id="coloringImgHint" style="margin:0;">导入后点哪儿填哪儿 —— 跟 Anycolor 一样是位图填充，黑线自动当边界</span>
+                    <span class="hint-text" id="coloringImgHint" style="margin:0;">导入后点哪儿填哪儿 —— 跟 Anycolor 一样是位图填充，黑线自动当边界（画布 1200×1200，放大着涂）</span>
                 </div>
-                <canvas id="coloringCanvas" width="600" height="600" style="display:none; width:100%; max-width:520px; margin-top:10px; background:#fff; border:1px solid var(--line-1); border-radius: var(--r-md); cursor: crosshair;"></canvas>
+                <canvas id="coloringCanvas" width="1200" height="1200" style="display:none; width:100%; max-width:780px; margin-top:10px; background:#fff; border:1px solid var(--line-1); border-radius: var(--r-md); cursor: crosshair;"></canvas>
                 <p class="hint-text" style="margin:8px 0 0;">
                     💡 跟 Anycolor 一样：点画面里的空白区域就填上当前颜色；小区域不好点就切「橡皮」再点回来，或者用撤销/重做慢慢调。想涂别的图，用「📥 导入图片」。
                 </p>
@@ -17563,9 +17563,22 @@ function coloringImgDrawBase() {
     return true;
 }
 function coloringImgUndoPush(ctx, cv) {
-    try { coloringImgUndo.push(ctx.getImageData(0, 0, cv.width, cv.height)); } catch (e) { return; }
-    if (coloringImgUndo.length > 10) coloringImgUndo.shift();
+    // 1200×1200 的 ImageData 一张就 5.7MB，改成存 PNG dataURL（一张一两百 KB）
+    try { coloringImgUndo.push(cv.toDataURL("image/png")); } catch (e) { return; }
+    if (coloringImgUndo.length > 12) coloringImgUndo.shift();
     coloringImgRedo = [];
+}
+function coloringImgPutSnapshot(cv, snap) {
+    return new Promise(function (resolve) {
+        const img = new Image();
+        img.onload = function () {
+            const ctx = coloringCanvasCtx();
+            if (ctx) ctx.drawImage(img, 0, 0, cv.width, cv.height);
+            resolve();
+        };
+        img.onerror = function () { resolve(); };
+        img.src = snap;
+    });
 }
 function coloringImgFill(px, py) {
     const cv = document.getElementById("coloringCanvas");
@@ -17669,9 +17682,8 @@ function coloringImgUndoStep() {
     if (!cv || !ctx) { coloringImgSetHint("这个环境画不了图（浏览器里可以）"); return; }
     const last = coloringImgUndo.pop();
     if (!last) { coloringImgSetHint("没有可以撤销的步骤了"); return; }
-    try { coloringImgRedo.push(ctx.getImageData(0, 0, cv.width, cv.height)); } catch (e) { }
-    ctx.putImageData(last, 0, 0);
-    coloringImgSetHint("撤销了一步");
+    try { coloringImgRedo.push(cv.toDataURL("image/png")); } catch (e) { }
+    coloringImgPutSnapshot(cv, last).then(function () { coloringImgSetHint("撤销了一步"); });
 }
 function coloringImgRedoStep() {
     const cv = document.getElementById("coloringCanvas");
@@ -17679,9 +17691,8 @@ function coloringImgRedoStep() {
     if (!cv || !ctx) { coloringImgSetHint("这个环境画不了图（浏览器里可以）"); return; }
     const last = coloringImgRedo.pop();
     if (!last) { coloringImgSetHint("没有可以重做的步骤了"); return; }
-    try { coloringImgUndo.push(ctx.getImageData(0, 0, cv.width, cv.height)); } catch (e) { }
-    ctx.putImageData(last, 0, 0);
-    coloringImgSetHint("重做了一步");
+    try { coloringImgUndo.push(cv.toDataURL("image/png")); } catch (e) { }
+    coloringImgPutSnapshot(cv, last).then(function () { coloringImgSetHint("重做了一步"); });
 }
 function coloringImgClearStep() {
     coloringImgUndo = [];
