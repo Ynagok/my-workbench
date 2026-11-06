@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="x-build" content="2026-11-06 活动查询-v25-糖葫芦真实两张表+涂色三档线稿">
+    <meta name="x-build" content="2026-11-06 活动查询-v26-糖葫芦一句话术+涂色三杯+200块图">
     <title>客服冷静演绎工作台</title>
     <link rel="icon" type="image/gif" href="/my-icon.gif">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1018,6 +1018,7 @@
 .color-pics .color-tier { display: flex; flex-direction: column; gap: 6px; width: 100%; }
 .color-pics .color-tier + .color-tier { margin-top: 6px; padding-top: 6px; border-top: 1px dashed var(--line-0); }
 .color-pics .color-tier-h { font-size: 12px; color: var(--ink-2); letter-spacing: .04em; }
+pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2); border: 1px solid var(--line-0); border-radius: var(--r-sm); font-size: 12.5px; line-height: 1.6; white-space: pre-wrap; word-break: break-all; color: var(--ink-1); max-height: 320px; overflow: auto; }
 .color-pics .color-tier-list { display: flex; flex-wrap: wrap; gap: 6px; }
 .color-pics button i { font-style: normal; font-size: 11px; color: var(--ink-3); margin-left: 5px; }
 .color-pics button.active i { color: var(--dark); opacity: .7; }
@@ -4203,21 +4204,26 @@
                     <details class="stat-fold">
                         <summary>粘法 / 列名说明</summary>
                         <div>
-                            把 GM 玩家页左侧「糖葫芦2v2」那个查询的结果整段复制进来（制表符 / 逗号分隔都行，带不带表头都认）。<br>
-                            列名认：<b>排期ID · 行为（匹配 / 结算 / 进度，或 1 / 2 / 3）· 事件UUID · 时间</b>；有「道具 / 数量」列就一起算进奖励明细。<br>
-                            不带表头时按内容猜：<b>1–3 那列当行为</b>、日期那列当时间、32 位十六进制当事件UUID、6 位以上纯数字当排期。
+                            把 GM 里糖葫芦2v2 的【结算】表和【进度】表<b>连表头一起</b>粘进来（两张可以一次一起粘，各带表头就行）。<br>
+                            结算表认：创建时间 / 排期ID / 事件UUID / 分组 / 轮次 / 玩家分数 / 队友分数 / 对手1分数 / 对手2分数 / 胜利 / MVP / 本轮积分 / 总积分 / 是否结束；<br>
+                            进度表认：… 轮次(before) / 玩家分数(before) … 轮次(after) / 玩家分数(after) …。两张都没有「行为」列也没关系，按表头就能分清哪张是结算、哪张是进度。<br>
+                            输出是<b>一句能直接回玩家的话</b>；逐条核对明细折在下面的「核对明细」里，不会跟着复制出去。
                         </div>
                     </details>
-                    <textarea id="thlInput" rows="9" style="margin-top:10px;" placeholder="排期ID&#9;行为&#9;事件UUID&#9;时间&#10;37&#9;匹配&#9;8f2c1d3e4b5a69788796a5b4c3d2e1f0&#9;2026-11-10 20:15:03"></textarea>
+                    <textarea id="thlInput" rows="9" style="margin-top:10px;" placeholder="创建时间&#9;排期ID&#9;事件UUID&#9;分组&#9;轮次&#9;玩家分数&#9;队友分数&#9;对手1分数&#9;对手2分数&#9;胜利&#9;MVP&#9;本轮积分&#9;总积分&#9;是否结束"></textarea>
                     <div class="flex-row" style="margin-top:10px;">
-                        <button id="thlParseBtn">🔍 解析并汇总</button>
-                        <button id="thlCopyBtn" class="secondary">📋 复制汇总</button>
+                        <button id="thlParseBtn">🔍 解析并出话术</button>
+                        <button id="thlCopyBtn" class="secondary">📋 复制话术</button>
                         <button id="thlClearBtn" class="reset-btn">🧹 清空</button>
                         <span class="hint-text" id="thlHint"></span>
                     </div>
                     <div class="stat-chips" id="thlChips"></div>
-                    <label style="margin-top:14px;">汇总结果</label>
-                    <textarea id="thlOutput" rows="12" readonly placeholder="解析完这里出现这一期的匹配 / 结算 / 进度汇总"></textarea>
+                    <label style="margin-top:14px;">回复玩家的话术</label>
+                    <textarea id="thlOutput" rows="4" readonly placeholder="解析完这里出现一句可以直接回玩家的话（复制走就行）"></textarea>
+                    <details class="stat-fold" id="thlDetailFold" style="display:none;margin-top:10px;">
+                        <summary>核对明细（不发给玩家）</summary>
+                        <pre id="thlDetailBody" class="thl-detail"></pre>
+                    </details>
                 </div>
             </div>
         </div>
@@ -17815,9 +17821,9 @@ function coloringRingSectors(L, label, cx, cy, r0, r1, sectors, offset) {
 // 块数 → 难度（用户 2026-11 给的口径：10–30 简单 / 30–60 小难 / 60–120 有点难）
 function coloringTierOf(pic) {
     const n = (pic && pic.regions) ? pic.regions.length : 0;
-    if (n <= 30) return { key: 'easy', label: '简单', range: '10–30 块' };
-    if (n <= 60) return { key: 'mid', label: '小难', range: '30–60 块' };
-    return { key: 'hard', label: '有点难', range: '60–120 块' };
+    if (n <= 30) return { key: 'mid', label: '中杯', range: '10–30 块' };
+    if (n <= 60) return { key: 'large', label: '大杯', range: '30–60 块' };
+    return { key: 'xl', label: '超大杯', range: '60 块以上' };
 }
 
 const COLORING_HEAVY = [
@@ -18076,6 +18082,44 @@ const COLORING_HEAVY = [
         coloringWinGrid(L, '格', 11, 30, 10, 8, 16, 16, 2, 2);
         return L;
     }],
+    // ---------- 超大杯里最费的几张（2026-11 用户：「增加几张 200 色块以上的图」）----------
+    ['kaleido', '万花筒', function () {
+        const L = [['花心', 'e', [100, 100, 12, 12]]];
+        coloringRingSectors(L, '环一', 100, 100, 12, 24, 16, 0);
+        coloringRingSectors(L, '环二', 100, 100, 24, 36, 20, 9);
+        coloringRingSectors(L, '环三', 100, 100, 36, 48, 24, 0);
+        coloringRingSectors(L, '环四', 100, 100, 48, 60, 28, 6);
+        coloringRingSectors(L, '环五', 100, 100, 60, 72, 32, 0);
+        coloringRingSectors(L, '环六', 100, 100, 72, 84, 36, 5);
+        for (let i = 0; i < 48; i++) {
+            const rad = (i * 7.5 - 90) * Math.PI / 180;
+            L.push(['瓣' + coloringCn(i + 1), 'e', [100 + 92 * Math.cos(rad), 100 + 92 * Math.sin(rad), 5, 5]]);
+        }
+        return L;
+    }],
+    ['quilt', '拼布方格', function () {
+        const L = [['底布', 'r', [10, 10, 180, 180]]];
+        coloringWinGrid(L, '布块', 14, 14, 15, 15, 10, 10, 2, 2);
+        return L;
+    }],
+    ['mosaics', '马赛克大画', function () {
+        const L = [['背景', 'r', [10, 10, 180, 180]]];
+        coloringWinGrid(L, '格', 13, 18, 16, 14, 9, 10, 2, 2);
+        return L;
+    }],
+    ['metropolis', '高楼群', function () {
+        const L = [['夜空', 'r', [10, 10, 180, 180]], ['地面', 'r', [10, 178, 180, 12]],
+            ['月亮', 'e', [166, 34, 11, 11]], ['云一', 'e', [36, 40, 15, 8]], ['云二', 'e', [78, 26, 11, 7]]];
+        const towers = [[16, 40, 40, 138], [60, 26, 42, 152], [106, 44, 40, 134], [150, 56, 36, 132]];
+        const gw = 5 * 6 + 4 * 1;
+        towers.forEach(function (tw, i) {
+            const n = coloringCn(i + 1);
+            L.push(['楼' + n, 'r', tw]);
+            L.push(['门' + n, 'r', [tw[0] + tw[2] / 2 - 6, tw[1] + tw[3] - 14, 12, 14]]);
+            coloringWinGrid(L, '楼' + n + '窗', tw[0] + (tw[2] - gw) / 2, tw[1] + 8, 5, 11, 6, 8, 1, 3);
+        });
+        return L;
+    }],
 ];
 COLORING_HEAVY.forEach(function (one) { coloringAdd(one[0], one[1], one[2]()); });
 // 2026-11 用户：「不要 10 个色块以下的图」→ 少于 10 块的直接不显示（以后加图也照这条滤）
@@ -18108,9 +18152,9 @@ function coloringRenderPics() {
     const box = document.getElementById("coloringPics");
     if (!box) return;
     const tiers = [
-        { key: "easy", label: "简单", range: "10–30 块" },
-        { key: "mid", label: "小难", range: "30–60 块" },
-        { key: "hard", label: "有点难", range: "60–120 块" }
+        { key: "mid", label: "中杯", range: "10–30 块" },
+        { key: "large", label: "大杯", range: "30–60 块" },
+        { key: "xl", label: "超大杯", range: "60 块以上" }
     ];
     box.innerHTML = tiers.map(function (tier) {
         const list = COLORING_PICS.filter(function (p) { return coloringTierOf(p).key === tier.key; });
@@ -18413,7 +18457,41 @@ function coloringInit() {
                                         if (!mine && !rival && r.event) bits.push(String(r.event).slice(-8));
                                         return '- ' + bits.filter(Boolean).join(' · ');
                                     }
-                                    function thlBuild(raw) {
+                                                                        // 一句话术：客服直接复制就能回玩家（只讲最新那一期）
+                                    function thlSpeechLine(key, list) {
+                                        const sorted = list.slice().sort((a, b) => String(a.time || '').localeCompare(String(b.time || '')));
+                                        const settles = sorted.filter(r => r.behavior === '结算');
+                                        const progs = sorted.filter(r => r.behavior === '进度');
+                                        const lastProg = progs.length ? progs[progs.length - 1] : null;
+                                        const lastSettle = settles.length ? settles[settles.length - 1] : null;
+                                        const win = settles.filter(r => r.win === '1').length;
+                                        const lose = settles.filter(r => r.win === '0').length;
+                                        const mvp = settles.filter(r => r.mvp === '1').length;
+                                        const rounds = list.map(r => Number(r.round || r.roundA || r.roundB)).filter(n => n > 0);
+                                        const maxRound = rounds.length ? Math.max.apply(null, rounds) : 0;
+                                        const totals = settles.map(r => r.totalPoint).filter(v => v !== '' && isFinite(Number(v))).map(Number);
+                                        const best = totals.length ? Math.max.apply(null, totals) : null;
+                                        const mine = (lastProg && lastProg.myA !== '') ? thlPair(lastProg.myA, lastProg.mateA)
+                                            : (lastSettle ? thlPair(lastSettle.my, lastSettle.mate) : '');
+                                        const rival = (lastProg && lastProg.opp1A !== '') ? thlPair(lastProg.opp1A, lastProg.opp2A)
+                                            : (lastSettle ? thlPair(lastSettle.opp1, lastSettle.opp2) : '');
+                                        const bits = [];
+                                        if (maxRound) bits.push('您这边已经打到第 ' + maxRound + ' 轮');
+                                        if (mine) bits.push('我方得分 ' + mine);
+                                        if (rival) bits.push('对手得分 ' + rival);
+                                        if (settles.length) {
+                                            bits.push('结算 ' + settles.length + ' 场（胜 ' + win + ' 场、负 ' + lose + ' 场'
+                                                + (mvp ? '、拿到 ' + mvp + ' 次 MVP' : '') + '）');
+                                        } else if (progs.length) {
+                                            bits.push('目前还没有结算记录');
+                                        }
+                                        if (best !== null) bits.push('当前总积分 ' + best);
+                                        const head = '您好，糖葫芦2v2 这一期'
+                                            + ((key && key !== '(无排期)') ? '（活动排期 ' + key + sdScheduleTail(key) + '）' : '');
+                                        if (!bits.length) return head + '的记录我们已经看到了，具体以游戏内显示为准，如有疑问随时联系我们～';
+                                        return head + '：' + bits.join('，') + '，如有疑问随时联系我们～';
+                                    }
+function thlBuild(raw) {
                                         const p = thlParse(raw);
                                         const rows = p.rows;
                                         if (!rows.length) return { text: '', chips: null, groups: [], rows: rows, hasHeader: p.hasHeader };
@@ -18477,15 +18555,24 @@ function coloringInit() {
                                                 if (progs.length > CAP) lines.push('…还有 ' + (progs.length - CAP) + ' 条进度没列出来');
                                             }
                                         });
+                                        // 话术只拿最新那一期（排期号最大的），其余期只在明细里看
+                                        const ordered = order.slice().sort(function (a, b) {
+                                            const na = Number(a), nb = Number(b);
+                                            if (isFinite(na) && isFinite(nb)) return na - nb;
+                                            return String(a).localeCompare(String(b));
+                                        });
+                                        const latestKey = ordered.length ? ordered[ordered.length - 1] : '';
+                                        const speech = latestKey ? thlSpeechLine(latestKey, bySch[latestKey] || []) : '';
+                                        const detail = lines.join('\n');
                                         const chips = {
-                                            total: rows.length,
+                                                                                    total: rows.length,
                                             match: count(rows, '匹配'),
                                             settle: count(rows, '结算'),
                                             progress: count(rows, '进度'),
                                             scheds: order.join(' / '),
                                             groups: groups
                                         };
-                                        return { text: lines.join('\n'), chips: chips, rows: rows, groups: groups, hasHeader: p.hasHeader };
+                                        return { text: speech || detail, detail: detail, speechKey: latestKey, chips: chips, rows: rows, groups: groups, hasHeader: p.hasHeader };
                                     }
 
 
@@ -18502,6 +18589,10 @@ function thlRun() {
                                         }
                                         const res = thlBuild(raw);
                                         if (outEl) outEl.value = res.text;
+                                        const foldEl = document.getElementById('thlDetailFold');
+                                        const bodyEl = document.getElementById('thlDetailBody');
+                                        if (bodyEl) bodyEl.textContent = res.detail || '';
+                                        if (foldEl) foldEl.style.display = res.detail ? '' : 'none';
                                         if (chipsEl) {
                                             chipsEl.innerHTML = res.chips
                                                 ? [
@@ -18522,15 +18613,15 @@ function thlRun() {
                                                 : '';
                                         }
                                         if (!res.rows.length) teaSetHint('thlHint', '没认出记录：把 GM 的【结算】表或【进度】表连表头一起粘进来（两张可以一起粘，各自带表头）');
-                                        else teaSetHint('thlHint', '认出 ' + res.rows.length + ' 条' + (res.hasHeader ? '（按表头对齐）' : '（没表头，按内容猜的）'));
+                                        else teaSetHint('thlHint', '认出 ' + res.rows.length + ' 条' + (res.hasHeader ? '（按表头对齐）' : '（没表头，按内容猜的）') + (res.speechKey ? ' → 按活动排期 ' + res.speechKey + ' 出了一句话术' : ''));
                                         return res;
                                     }
                                     function thlCopy() {
                                         const outEl = document.getElementById('thlOutput');
                                         const t = (outEl && outEl.value) || '';
-                                        if (!t.trim()) { teaSetHint('thlHint', '还没汇总：先粘记录点「解析并汇总」'); return; }
+                                        if (!t.trim()) { teaSetHint('thlHint', '还没有话术：先粘记录点「解析并出话术」'); return; }
                                         safeCopy(t);
-                                        teaSetHint('thlHint', '汇总已复制');
+                                        teaSetHint('thlHint', '话术已复制，可以直接回玩家');
                                     }
                                     function thlClear() {
                                         ['thlInput', 'thlOutput'].forEach(id => {
@@ -18539,6 +18630,10 @@ function thlRun() {
                                         });
                                         const chipsEl = document.getElementById('thlChips');
                                         if (chipsEl) chipsEl.innerHTML = '';
+                                        const bodyEl2 = document.getElementById('thlDetailBody');
+                                        if (bodyEl2) bodyEl2.textContent = '';
+                                        const foldEl2 = document.getElementById('thlDetailFold');
+                                        if (foldEl2) foldEl2.style.display = 'none';
                                         teaSetHint('thlHint', '已清空');
                                     }
 

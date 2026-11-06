@@ -2397,10 +2397,11 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     doc.querySelector('#tab-activity .seg-btn[data-seg="tanghulu"]').click();
     await sleep(60);
     check($('tab-activity').dataset.seg === 'tanghulu' && $('genTanghuluPane').classList.contains('seg-on'),
-      '「活动查询」页的第二段就是「糖葫芦对决」，切过去只显示这一段');
-    check(!!$('thlInput') && !!$('thlParseBtn') && !!$('thlOutput') && !!$('thlChips'),
-      '糖葫芦那一段有输入框 / 解析按钮 / 芯片区 / 结果框');
+      '「活动查询」页的第一段就是「糖葫芦对决」，切过去只显示这一段');
+    check(!!$('thlInput') && !!$('thlParseBtn') && !!$('thlOutput') && !!$('thlChips') && !!$('thlDetailFold'),
+      '糖葫芦那一段有输入框 / 解析按钮 / 芯片区 / 话术框 / 核对明细');
 
+    // 输出是「一句能直接回玩家的话」（逐条明细折进「核对明细」，不跟着复制）
     $('thlInput').value = [
       '排期ID\t行为\t事件UUID\t时间',
       '37\t匹配\t8f2c1d3e4b5a69788796a5b4c3d2e1f0\t2026-11-10 20:15:03',
@@ -2410,22 +2411,25 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     ].join('\n');
     $('thlParseBtn').click();
     await sleep(80);
-    const thlOut = $('thlOutput').value;
-    check(/^糖葫芦2v2 · 共 4 条/.test(thlOut), '抬头写「糖葫芦2v2 · 共 4 条」', thlOut.split('\n')[0]);
-    check(/^活动排期 37：2026\/11\/9 8:00~2026\/11\/18 7:59 · 4 条$/m.test(thlOut),
-      '按排期分组 + 带出这一期的时间窗（37 → 2026/11/9 8:00~2026/11/18 7:59）', thlOut);
-    check(/匹配 2 场 · 结算 1 场 · 进度 1 条/.test(thlOut),
-      '行为 1 / 2 / 3 反推成「匹配 / 结算 / 进度」并汇总', thlOut);
-    check(/时间跨度：11-10 20:15 ~ 11-11 09:06/.test(thlOut), '时间跨度取最早 ~ 最晚', thlOut);
-    check(/^- 11-11 09:05 · 结算 · c3d2e1f0$/m.test(thlOut),
-      '结算那条逐条列出（时间 + 结算 + 事件UUID 后 8 位）', thlOut);
+    const thlSpeech1 = $('thlOutput').value;
+    check(thlSpeech1 === '您好，糖葫芦2v2 这一期（活动排期 37：2026/11/9 8:00~2026/11/18 7:59）：结算 1 场（胜 0 场、负 0 场），如有疑问随时联系我们～',
+      '话术就一句：这一期 + 结算场次 + 收尾，能直接复制回玩家', thlSpeech1);
+    check(thlSpeech1.indexOf('\n') === -1, '话术没有换行（一整句）', thlSpeech1);
+    const thlDetail1 = $('thlDetailBody').textContent;
+    check($('thlDetailFold').style.display !== 'none'
+      && /^糖葫芦2v2 · 共 4 条/.test(thlDetail1)
+      && /^活动排期 37：2026\/11\/9 8:00~2026\/11\/18 7:59 · 4 条$/m.test(thlDetail1)
+      && /匹配 2 场 · 结算 1 场 · 进度 1 条/.test(thlDetail1)
+      && /时间跨度：11-10 20:15 ~ 11-11 09:06/.test(thlDetail1)
+      && /^- 11-11 09:05 · 结算 · c3d2e1f0$/m.test(thlDetail1),
+      '逐条明细折在「核对明细（不发给玩家）」里：条数 / 排期时间窗 / 行为计数 / 时间跨度 / 结算逐条', thlDetail1.split('\n')[0]);
     check(/共 <b>4<\/b> 条/.test($('thlChips').innerHTML) && /匹配 <b>2<\/b> 场/.test($('thlChips').innerHTML)
       && /排期 <b>37<\/b>/.test($('thlChips').innerHTML),
       '芯片：总条数 / 匹配 / 结算 / 进度 / 排期', $('thlChips').textContent);
-    check(/认出 4 条（按表头对齐）/.test($('thlHint').textContent),
-      '有表头就按表头对齐，提示里说明', $('thlHint').textContent);
+    check(/认出 4 条（按表头对齐） → 按活动排期 37 出了一句话术/.test($('thlHint').textContent),
+      '提示里写清认出几条、按哪一期出的话术', $('thlHint').textContent);
 
-    // 2026-11 用户给了 GM 里真实的两段数据：结算表 + 进度表（各自带表头，都没有「行为」列）
+    // 2026-11 用户给的真实两张表（结算 + 进度，都没有「行为」列）
     $('thlInput').value = [
       '创建时间\t排期ID\t事件UUID\t分组\t轮次\t玩家分数\t队友分数\t对手1分数\t对手2分数\t胜利\tMVP\t本轮积分\t总积分\t是否结束',
       '2026-11-06 12:08:19\t1\tb332e6278c1a522c39786241b58129c5\t2\t1\t188\t112\t94\t118\t1\t1\t2\t2\t',
@@ -2436,26 +2440,27 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     ].join('\n');
     $('thlParseBtn').click();
     await sleep(80);
-    const thlReal = $('thlOutput').value;
-    check(/^糖葫芦2v2 · 共 3 条/.test(thlReal), '两张真实表一次粘进来：共 3 条（1 条结算 + 2 条进度）', thlReal.split('\n')[0]);
-    check(/匹配 0 场 · 结算 1 场 · 进度 2 条/.test(thlReal),
-      '没有「行为」列也能按表头认出结算 / 进度（带 before/after 的算进度，带胜利 / 积分的算结算）', thlReal);
-    check(/结算战绩：胜 1 · 负 0 · MVP 1 次 · 最高总积分 2 · 打到第 3 轮/.test(thlReal),
-      '结算战绩汇总：胜 / 负 / MVP / 最高总积分 / 打到第几轮', thlReal);
-    check(/^- 11-06 12:08 · 结算 · 第1轮 · 我方 188\+112 vs 对手 94\+118 · 胜利 · MVP · 本轮积分 \+2 · 总积分 2$/m.test(thlReal),
-      '结算逐条：第几轮 / 我方·对手分数 / 胜负 / MVP / 本轮积分 / 总积分（是否结束为空就不写）', thlReal);
-    check(/^- 11-06 12:26 · 进度 · 第3轮 · 我方 169\+118 → 169\+119 · 对手 89\+108 → 89\+117$/m.test(thlReal),
-      '进度逐条：轮次 + 我方 / 对手的分数变化（before → after）', thlReal);
+    const thlSpeech2 = $('thlOutput').value;
+    check(thlSpeech2 === '您好，糖葫芦2v2 这一期（活动排期 1：2026/1/16 8:00~2026/1/24 23:59）：您这边已经打到第 3 轮，我方得分 169+119，对手得分 89+117，结算 1 场（胜 1 场、负 0 场、拿到 1 次 MVP），当前总积分 2，如有疑问随时联系我们～',
+      '真实两张表一起粘 → 一句话把轮次 / 双方分数 / 胜负 / MVP / 总积分都说清', thlSpeech2);
+    const thlDetail2 = $('thlDetailBody').textContent;
+    check(/匹配 0 场 · 结算 1 场 · 进度 2 条/.test(thlDetail2),
+      '没有「行为」列也能按表头认出结算 / 进度（带 before/after 算进度，带胜负积分算结算）', thlDetail2);
+    check(/结算战绩：胜 1 · 负 0 · MVP 1 次 · 最高总积分 2 · 打到第 3 轮/.test(thlDetail2),
+      '明细里有结算战绩：胜 / 负 / MVP / 最高总积分 / 打到第几轮', thlDetail2);
+    check(/^- 11-06 12:08 · 结算 · 第1轮 · 我方 188\+112 vs 对手 94\+118 · 胜利 · MVP · 本轮积分 \+2 · 总积分 2$/m.test(thlDetail2),
+      '明细里的结算逐条：第几轮 / 双方分数 / 胜负 / MVP / 本轮积分 / 总积分', thlDetail2);
+    check(/^- 11-06 12:26 · 进度 · 第3轮 · 我方 169\+118 → 169\+119 · 对手 89\+108 → 89\+117$/m.test(thlDetail2),
+      '明细里的进度逐条：轮次 + 我方 / 对手分数变化', thlDetail2);
     check(/胜 <b>1<\/b> · 负 <b>0<\/b> · MVP <b>1<\/b>/.test($('thlChips').innerHTML),
-      '芯片多一片「胜 / 负 / MVP」（来自结算表那两列）', $('thlChips').textContent);
+      '芯片多一片「胜 / 负 / MVP」', $('thlChips').textContent);
 
-
-    // 没表头：按内容猜（1/2/3 当行为、日期当时间、32 位十六进制当事件）
+    // 没表头：按内容猜（1/2/3 当行为）
     $('thlInput').value = '37\t2\t8f2c1d3e4b5a69788796a5b4c3d2e1f0\t2026-11-12 10:00:00';
     $('thlParseBtn').click();
     await sleep(60);
-    check(/共 1 条/.test($('thlOutput').value) && /匹配 0 场 · 结算 1 场 · 进度 0 条/.test($('thlOutput').value),
-      '没有表头也能按内容猜出行为（2 = 结算）', $('thlOutput').value);
+    check(/^您好，糖葫芦2v2 这一期（活动排期 37/.test($('thlOutput').value) && /结算 1 场/.test($('thlOutput').value),
+      '没有表头也能按内容猜出行为（2 = 结算）并出话术', $('thlOutput').value);
     check(/没表头，按内容猜的/.test($('thlHint').textContent), '提示里写「没表头，按内容猜的」', $('thlHint').textContent);
 
     $('thlInput').value = '这里没有糖葫芦的记录';
@@ -2463,13 +2468,16 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     await sleep(40);
     check($('thlOutput').value === '' && /没认出记录/.test($('thlHint').textContent),
       '认不出记录时结果清空 + 提示怎么粘', $('thlHint').textContent);
+    check($('thlDetailBody').textContent === '' && $('thlDetailFold').style.display === 'none',
+      '认不出记录时明细折叠块也收起', $('thlDetailFold').style.display);
     $('thlCopyBtn').click();
     await sleep(20);
-    check(/还没汇总/.test($('thlHint').textContent), '没结果时点复制只提示', $('thlHint').textContent);
+    check(/还没有话术/.test($('thlHint').textContent), '没结果时点复制只提示', $('thlHint').textContent);
     $('thlClearBtn').click();
     await sleep(30);
-    check($('thlInput').value === '' && $('thlOutput').value === '' && $('thlChips').innerHTML === '',
-      '🧹 清空把输入 / 结果 / 芯片都清掉');
+    check($('thlInput').value === '' && $('thlOutput').value === '' && $('thlChips').innerHTML === ''
+      && $('thlDetailBody').textContent === '',
+      '🧹 清空把输入 / 话术 / 芯片 / 明细都清掉');
     check(posts.length === postsThl, '糖葫芦查询全程只在本机（0 请求）');
   }
 
@@ -3398,21 +3406,21 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     const picBtns = [...$('coloringPics').querySelectorAll('[data-pic]')];
     const blockN = b => Number(String(b.querySelector('i').textContent).replace(/[^\d]/g, ''));
     const blocks9 = picBtns.map(blockN);
-    check(picBtns.length === 34 && picBtns[0].dataset.pic === 'owl' && picBtns[0].classList.contains('active'),
-      '选图按钮 34 张（20 简单 + 8 小难 + 6 有点难），默认第一张高亮', picBtns.map(b => b.dataset.pic).join(','));
+    check(picBtns.length === 38 && picBtns[0].dataset.pic === 'owl' && picBtns[0].classList.contains('active'),
+      '选图按钮 38 张（中杯 20 + 大杯 8 + 超大杯 10），默认第一张高亮', picBtns.map(b => b.dataset.pic).join(','));
     check(blocks9.every(n => n >= 10),
       '10 个色块以下的图不再出现（用户：不要 10 个色块以下的图）', blocks9.join(','));
     const tierBoxes = [...$('coloringPics').querySelectorAll('.color-tier')];
-    check(tierBoxes.length === 3 && tierBoxes.map(b => b.dataset.tier).join(',') === 'easy,mid,hard',
-      '选图按难度分三档（简单 / 小难 / 有点难）', tierBoxes.map(b => b.dataset.tier).join(','));
-    check(/简单 · 10–30 块（20 张）/.test(tierBoxes[0].textContent) && /小难 · 30–60 块（8 张）/.test(tierBoxes[1].textContent)
-      && /有点难 · 60–120 块（6 张）/.test(tierBoxes[2].textContent),
+    check(tierBoxes.length === 3 && tierBoxes.map(b => b.dataset.tier).join(',') === 'mid,large,xl',
+      '选图按难度分三档（中杯 / 大杯 / 超大杯）', tierBoxes.map(b => b.dataset.tier).join(','));
+    check(/中杯 · 10–30 块（20 张）/.test(tierBoxes[0].textContent) && /大杯 · 30–60 块（8 张）/.test(tierBoxes[1].textContent)
+      && /超大杯 · 60 块以上（10 张）/.test(tierBoxes[2].textContent),
       '每档都写了块数区间 + 张数', tierBoxes.map(b => b.textContent.replace(/\s+/g, ' ')).join(' | '));
     check(picBtns.every(b => {
       const n = blockN(b), tier = b.closest('.color-tier').dataset.tier;
-      return (tier === 'easy' && n >= 10 && n <= 30) || (tier === 'mid' && n > 30 && n <= 60) || (tier === 'hard' && n > 60 && n <= 120);
-    }) && Math.max.apply(null, blocks9) >= 60,
-      '分档跟块数对得上，并且有 60 块以上的图（用户：增加 50 个色块甚至更多）', blocks9.join(','));
+      return (tier === 'mid' && n >= 10 && n <= 30) || (tier === 'large' && n > 30 && n <= 60) || (tier === 'xl' && n > 60);
+    }) && Math.max.apply(null, blocks9) >= 200,
+      '分档跟块数对得上，并且有 200 块以上的图（用户：增加几张 200 色块以上的图）', blocks9.join(','));
     const colorTab = doc.querySelector('#tab-script .sub-tab[data-sub="color"]');
     check(!!colorTab && /涂色/.test(colorTab.textContent) && !$('sub-panel-color').classList.contains('active'),
       '涂色游戏是小游戏里的**独立子页**（第三个 sub-tab，默认没展开）', colorTab && colorTab.textContent);
@@ -3486,7 +3494,17 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     $('coloringPics').querySelector('[data-pic="mandala"]').dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
     await sleep(60);
     check(regions().length === 81 && /曼陀罗/.test($('coloringHint').textContent),
-      '有点难那档能切到「曼陀罗」（81 块扇形，60 块以上）', String(regions().length));
+      '超大杯那档能切到「曼陀罗」（81 块扇形，60 块以上）', String(regions().length));
+    check(blocks9.filter(n => n >= 200).length >= 4,
+      '200 色块以上的图至少 4 张（万花筒 205 / 拼布方格 226 / 马赛克大画 225 / 高楼群 233）',
+      blocks9.filter(n => n >= 200).join(','));
+    $('coloringPics').querySelector('[data-pic="metropolis"]').dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+    await sleep(80);
+    check(regions().length === 233 && /高楼群/.test($('coloringHint').textContent),
+      '超大杯里 200 块以上的「高楼群」能打开（233 块）', String(regions().length));
+    regions()[120].dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+    await sleep(30);
+    check(regions()[120].getAttribute('fill') === '#123456', '200 块以上的大图点一块照样上色', regions()[120].getAttribute('fill'));
     regions()[40].dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
     await sleep(30);
     check(regions()[40].getAttribute('fill') === '#123456', '60 块以上的大图点一块照样上色', regions()[40].getAttribute('fill'));

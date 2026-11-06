@@ -950,19 +950,20 @@ ok(/data-sub="color">🎨 涂色</.test(s) && /id="sub-panel-color"/.test(s)
   && /COLORING_MORE\.forEach\(function \(one\) \{/.test(s)
   // 2026-11 用户：「增加 50 个色块甚至更多的图；10–30 简单 / 30–60 小难 / 60–120 有点难」
   && /const COLORING_HEAVY = \[/.test(s) && /function coloringTierOf\(pic\)/.test(s)
-  && /label: '简单', range: '10–30 块'/.test(s) && /label: '小难', range: '30–60 块'/.test(s)
-  && /label: '有点难', range: '60–120 块'/.test(s)
+  && /label: '中杯', range: '10–30 块'/.test(s) && /label: '大杯', range: '30–60 块'/.test(s)
+  && /label: '超大杯', range: '60 块以上'/.test(s)
   && /function coloringCn\(n\)/.test(s) && /function coloringWinGrid\(/.test(s)
   && /function coloringSector\(/.test(s) && /function coloringRingSectors\(/.test(s)
   && /\['town', '小镇'/.test(s) && /\['calendar', '日历'/.test(s) && /\['mandala', '曼陀罗'/.test(s)
   && /\['tower', '摩天楼'/.test(s) && /\['mosaic', '马赛克画'/.test(s)
+  && /\['kaleido', '万花筒'/.test(s) && /\['quilt', '拼布方格'/.test(s) && /\['metropolis', '高楼群'/.test(s)
   && /if \(kind === 'd'\) return String\(args\)/.test(s)
   && /function coloringPaint\(regionId\)/.test(s) && /function coloringUndoStep\(\)/.test(s)
   && /function coloringRedoStep\(\)/.test(s) && /function coloringDownloadStep\(\)/.test(s)
   && /setClick\('coloringUndoBtn', coloringUndoStep\)/.test(s)
   && /data-region/.test(s) && /\.color-stage \[data-region\]/.test(s) && /\.color-pics \.color-tier/.test(s),
   '小游戏页的「🎨 涂色游戏」是小游戏里的独立子页（data-sub="color" → #sub-panel-color）；'
-  + '34 张内置线稿按块数分三档（简单 10–30 / 小难 30–60 / 有点难 60–120），10 块以下的图不要；'
+  + '38 张内置线稿按块数分三杯（中杯 10–30 / 大杯 30–60 / 超大杯 60 块以上，里面有 4 张 200 块以上），10 块以下的图不要；'
   + '14 色调色板 + 自定义取色 + 点区域填充 / 橡皮 / 撤销 / 重做 / 清空 / 下载，状态只在本机');
 ok(/data-seg="tanghulu" data-n="01">糖葫芦对决</.test(s) && /id="genTanghuluPane"/.test(s)
   && /id="thlInput"/.test(s) && /id="thlParseBtn"/.test(s) && /id="thlOutput"/.test(s) && /id="thlChips"/.test(s)
@@ -974,11 +975,16 @@ ok(/data-seg="tanghulu" data-n="01">糖葫芦对决</.test(s) && /id="genTanghul
   && /function thlHeadKey\(c\)/.test(s) && /function thlBehaviorOfMap\(map\)/.test(s)
   && /function thlSettleLine\(r\)/.test(s) && /function thlProgressLine\(r\)/.test(s)
   && /结算战绩：胜 '/.test(s)
+  // 2026-11 用户：「糖葫芦的话术 弄成一句可以回复玩家的话」→ 结果框只放一句话术，明细折进「核对明细」
+  && /function thlSpeechLine\(key, list\)/.test(s) && /您好，糖葫芦2v2 这一期/.test(s)
+  && /如有疑问随时联系我们～/.test(s)
+  && /id="thlDetailFold"/.test(s) && /id="thlDetailBody"/.test(s) && /pre\.thl-detail/.test(s)
   && /function thlParse\(raw\)/.test(s) && /function thlRun\(\)/.test(s)
   && /setClick\('thlParseBtn', thlRun\)/.test(s) && /setClick\('thlClearBtn', thlClear\)/.test(s)
   && /活动排期 ' \+ key \+ sdScheduleTail\(key\)/.test(s),
   '糖葫芦对决（活动类型 87 = 糖葫芦2v2）：活动查询页第一段，粘 GM 的【结算】/【进度】表（连表头，两张可一起粘）'
-  + ' → 按表头认列、按排期分组汇总；结算逐条写第几轮 / 双方分数 / 胜负 / MVP / 本轮积分 / 总积分 / 是否结束，进度写分数变化');
+  + ' → 按表头认列、按排期分组；结果框只出「一句能回玩家的话」（这一期 · 轮次 · 双方分数 · 胜负/MVP · 总积分），'
+  + '逐条核对明细折进「核对明细（不发给玩家）」（结算写第几轮 / 双方分数 / 胜负 / MVP / 本轮积分 / 总积分，进度写分数变化）');
 ok(!/id="sdTaskFold"/.test(s) && !/id="sdTaskInput"/.test(s) && !/id="sdTaskSub"/.test(s)
   && !/sdInitTaskTable/.test(s) && !/sdTaskResetBtn/.test(s) && !/sdClearTask/.test(s),
   '任务表完全不上界面：页面上没有折叠区 / 只读框 / 条数副标（也没有「清掉任务表」按钮）');
