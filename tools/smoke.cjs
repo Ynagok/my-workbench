@@ -3548,6 +3548,30 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     check(/共 5 条/.test($('ovbizIssueChips').textContent) && $('ovbizIssueRangeAll').classList.contains('is-on'),
       '点回「全部」→ 又变 5 条、按钮高亮回来', $('ovbizIssueChips').textContent.slice(0, 40));
 
+    // 导出可以单独挑时间范围（2026-11 用户：「导出的也要支持可以筛选时间范围导出」）
+    check($('ovbizIssueExportRange').value === 'follow',
+      '导出范围默认「跟随上面的筛选」', $('ovbizIssueExportRange').value);
+    $('ovbizIssueExportRange').value = 'custom';
+    fire($('ovbizIssueExportRange'), 'change');
+    await sleep(40);
+    check(/导出范围：自定义（11-2 ~ 11-3），共 3 条/.test($('ovbizIssueHint').textContent),
+      '导出范围选「自定义」→ 按 11-2 ~ 11-3 算，共 3 条', $('ovbizIssueHint').textContent);
+    check(/共 5 条/.test($('ovbizIssueChips').textContent) && /5/.test($('ovbizIssueMatrix').querySelector('tfoot').textContent),
+      '改导出范围不动上面的显示（还是全部 5 条）', $('ovbizIssueChips').textContent.slice(0, 40));
+    $('ovbizIssueExportRange').value = 'last7';
+    fire($('ovbizIssueExportRange'), 'change');
+    await sleep(40);
+    check(/导出范围：近 7 天（[^）]+），共 5 条/.test($('ovbizIssueHint').textContent),
+      '导出范围选「近 7 天」→ 起止写成真实日期、共 5 条', $('ovbizIssueHint').textContent);
+    $('ovbizIssueExportRange').value = 'all';
+    fire($('ovbizIssueExportRange'), 'change');
+    await sleep(40);
+    check(/导出范围：全部，共 5 条/.test($('ovbizIssueHint').textContent),
+      '导出范围选「全部」→ 共 5 条', $('ovbizIssueHint').textContent);
+    $('ovbizIssueExportRange').value = 'custom';
+    fire($('ovbizIssueExportRange'), 'change');
+    await sleep(40);
+
     // 导出的是「算好的报表」，不是流水（jsdom 不能真下载，只验入口和兜底）
     check(/导出报表/.test($('ovbizIssueExportBtn').textContent) && /聚合/.test($('ovbizIssueExportCsvBtn').textContent)
       && /导出报表/.test($('ovbizReportBtn').textContent),

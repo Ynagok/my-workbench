@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="x-build" content="2026-11-06 报表导出（聚合图表）">
+    <meta name="x-build" content="2026-11-06 报表导出可筛时间范围">
     <title>客服冷静演绎工作台</title>
     <link rel="icon" type="image/gif" href="/my-icon.gif">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -4906,6 +4906,15 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                     <input type="file" id="ovbizIssueFile" accept=".csv,.txt,text/csv" style="display:none;">
                     <button id="ovbizIssueExportBtn">📊 导出报表</button>
                     <button id="ovbizIssueExportCsvBtn" class="secondary">📄 导出聚合CSV</button>
+                    <span class="hint-text" style="margin:0;">导出范围：</span>
+                    <select id="ovbizIssueExportRange" style="min-width:150px;">
+                        <option value="follow">跟随上面的筛选</option>
+                        <option value="all">全部</option>
+                        <option value="last7">近 7 天</option>
+                        <option value="last30">近 30 天</option>
+                        <option value="last90">近 90 天</option>
+                        <option value="custom">自定义（取上面的起止）</option>
+                    </select>
                     <button id="ovbizIssueClearBtn" class="reset-btn">🧹 清空分析</button>
                     <span class="hint-text" id="ovbizIssueHint"></span>
                 </div>
@@ -14736,72 +14745,115 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                                         if (maxDay === null) return { mode: "all", from: "", to: "" };
                                         return { mode: "last" + n, from: "day:" + (maxDay - n + 1), to: "day:" + maxDay, anchor: maxKey };
                                     }
-                                    function ovbizIssueInRange(r) {
-                                        const mode = ovbizIssueRange.mode;
-                                        if (mode === "all") return true;
-                                        const d = ovbizIssueDayNum(r.day.key);
-                                        if (d === null) return false;
-                                        const from = ovbizIssueRange.from, to = ovbizIssueRange.to;
-                                        const f = /^day:/.test(from) ? Number(from.slice(4)) : ovbizIssueDayNum(from);
-                                        const e = /^day:/.test(to) ? Number(to.slice(4)) : ovbizIssueDayNum(to);
-                                        if (f === null || e === null) return true;
-                                        const lo = Math.min(f, e), hi = Math.max(f, e);
-                                        return d >= lo && d <= hi;
+                                    function ovbizIssueDateFromDay(n) {
+                                    const d = new Date(n * 86400000);
+                                    const y = d.getUTCFullYear(), m = d.getUTCMonth() + 1, day = d.getUTCDate();
+                                    if (y === 2000) return m + "-" + day;
+                                    return y + "-" + (m < 10 ? "0" + m : m) + "-" + (day < 10 ? "0" + day : day);
+                                    }
+                                    function ovbizIssueInRange(r, range) {
+                                    const R = range || ovbizIssueRange;
+                                    if (R.mode === "all") return true;
+                                    const d = ovbizIssueDayNum(r.day.key);
+                                    if (d === null) return false;
+                                    const f = /^day:/.test(R.from) ? Number(R.from.slice(4)) : ovbizIssueDayNum(R.from);
+                                    const e = /^day:/.test(R.to) ? Number(R.to.slice(4)) : ovbizIssueDayNum(R.to);
+                                    if (f === null || e === null) return true;
+                                    const lo = Math.min(f, e), hi = Math.max(f, e);
+                                    return d >= lo && d <= hi;
+                                    }
+                                    function ovbizIssueRangeText(v) {
+                                    return /^day:/.test(v) ? ovbizIssueDateFromDay(Number(v.slice(4))) : ovbizIssueDayLabel(v);
                                     }
                                     function ovbizIssueFillSelects() {
-                                        const rows = ovbizIssueRowsAll || [];
-                                        const keys = [];
-                                        rows.forEach(function (r) {
-                                            if (ovbizIssueDayNum(r.day.key) !== null && keys.indexOf(r.day.key) === -1) keys.push(r.day.key);
-                                        });
-                                        keys.sort();
-                                        ["ovbizIssueFrom", "ovbizIssueTo"].forEach(function (id, k) {
-                                            const el = document.getElementById(id);
-                                            if (!el) return;
-                                            const keep = el.value;
-                                            el.innerHTML = keys.map(function (key) {
-                                                return '<option value="' + key + '">' + ovbizIssueDayLabel(key) + "</option>";
-                                            }).join("");
-                                            if (keep && keys.indexOf(keep) !== -1) el.value = keep;
-                                            else if (keys.length) el.value = k === 0 ? keys[0] : keys[keys.length - 1];
-                                        });
+                                    const rows = ovbizIssueRowsAll || [];
+                                    const keys = [];
+                                    rows.forEach(function (r) {
+                                    if (ovbizIssueDayNum(r.day.key) !== null && keys.indexOf(r.day.key) === -1) keys.push(r.day.key);
+                                    });
+                                    keys.sort();
+                                    ["ovbizIssueFrom", "ovbizIssueTo"].forEach(function (id, k) {
+                                    const el = document.getElementById(id);
+                                    if (!el) return;
+                                    const keep = el.value;
+                                    el.innerHTML = keys.map(function (key) {
+                                    return '<option value="' + key + '">' + ovbizIssueDayLabel(key) + "</option>";
+                                    }).join("");
+                                    if (keep && keys.indexOf(keep) !== -1) el.value = keep;
+                                    else if (keys.length) el.value = k === 0 ? keys[0] : keys[keys.length - 1];
+                                    });
                                     }
                                     function ovbizIssueRangePaint() {
-                                        const map = { all: "ovbizIssueRangeAll", last7: "ovbizIssueRange7", last30: "ovbizIssueRange30", last90: "ovbizIssueRange90" };
-                                        Object.keys(map).forEach(function (k) {
-                                            const el = document.getElementById(map[k]);
-                                            if (el) el.classList[k === ovbizIssueRange.mode ? "add" : "remove"]("is-on");
-                                        });
-                                        const hint = document.getElementById("ovbizIssueRangeHint");
-                                        if (!hint) return;
-                                        const mode = ovbizIssueRange.mode;
-                                        if (mode === "all") { hint.textContent = "（全部有日期的记录）"; return; }
-                                        const from = ovbizIssueRange.from, to = ovbizIssueRange.to;
-                                        const lab = function (v) { return /^day:/.test(v) ? v.slice(4) : ovbizIssueDayLabel(v); };
-                                        hint.textContent = "（" + lab(from) + " ~ " + lab(to) + "）";
+                                    const map = { all: "ovbizIssueRangeAll", last7: "ovbizIssueRange7", last30: "ovbizIssueRange30", last90: "ovbizIssueRange90" };
+                                    Object.keys(map).forEach(function (k) {
+                                    const el = document.getElementById(map[k]);
+                                    if (el) el.classList[k === ovbizIssueRange.mode ? "add" : "remove"]("is-on");
+                                    });
+                                    const hint = document.getElementById("ovbizIssueRangeHint");
+                                    if (!hint) return;
+                                    const mode = ovbizIssueRange.mode;
+                                    if (mode === "all") { hint.textContent = "（全部有日期的记录）"; return; }
+                                    hint.textContent = "（" + ovbizIssueRangeText(ovbizIssueRange.from) + " ~ " + ovbizIssueRangeText(ovbizIssueRange.to) + "）";
                                     }
                                     // 按当前范围重算 + 重画（不重新解析文本）
                                     function ovbizIssueRefilter() {
-                                        if (!ovbizIssueRowsAll) { ovbizIssueRender(null); ovbizIssueRangePaint(); return null; }
-                                        const picked = ovbizIssueRowsAll.filter(ovbizIssueInRange);
-                                        const st = ovbizIssueAnalyze(picked);
-                                        ovbizIssueLast = st;
-                                        ovbizIssueRender(st);
-                                        ovbizIssueRangePaint();
-                                        return st;
+                                    if (!ovbizIssueRowsAll) { ovbizIssueRender(null); ovbizIssueRangePaint(); return null; }
+                                    const picked = ovbizIssueRowsAll.filter(function (r) { return ovbizIssueInRange(r); });
+                                    const st = ovbizIssueAnalyze(picked);
+                                    ovbizIssueLast = st;
+                                    ovbizIssueRender(st);
+                                    ovbizIssueRangePaint();
+                                    return st;
                                     }
                                     function ovbizIssueSetRange(mode, from, to) {
-                                        ovbizIssueRange = { mode: mode, from: from || "", to: to || "" };
-                                        const st = ovbizIssueRefilter();
-                                        if (st) ovbizIssueSetHint("当前范围 " + ovbizIssueRangeLabel() + "：共 " + st.total + " 条");
-                                        return st;
+                                    ovbizIssueRange = { mode: mode, from: from || "", to: to || "" };
+                                    const st = ovbizIssueRefilter();
+                                    if (st) ovbizIssueSetHint("当前范围 " + ovbizIssueRangeLabel(ovbizIssueRange, true) + "：共 " + st.total + " 条");
+                                    return st;
                                     }
-                                    function ovbizIssueRangeLabel() {
-                                        const mode = ovbizIssueRange.mode;
-                                        if (mode === "all") return "全部";
-                                        const from = ovbizIssueRange.from, to = ovbizIssueRange.to;
-                                        const lab = function (v) { return /^day:/.test(v) ? v.slice(4) : ovbizIssueDayLabel(v); };
-                                        return lab(from) + " ~ " + lab(to);
+                                    function ovbizIssueRangeLabel(range, withName) {
+                                    const R = range || ovbizIssueRange;
+                                    if (R.mode === "all") return "全部";
+                                    const span = ovbizIssueRangeText(R.from) + " ~ " + ovbizIssueRangeText(R.to);
+                                    if (!withName) return span;
+                                    const name = { last7: "近 7 天", last30: "近 30 天", last90: "近 90 天" }[R.mode] || "自定义";
+                                    return name + "（" + span + "）";
+                                    }
+                                    // 导出可以单独挑一个范围，不动上面的显示
+                                    function ovbizIssueExportRange() {
+                                    const el = document.getElementById("ovbizIssueExportRange");
+                                    const v = (el && el.value) || "follow";
+                                    if (v === "follow") return ovbizIssueRange;
+                                    if (v === "all") return { mode: "all", from: "", to: "" };
+                                    if (v === "custom") {
+                                    const f = document.getElementById("ovbizIssueFrom"), t = document.getElementById("ovbizIssueTo");
+                                    let from = (f && f.value) || "", to = (t && t.value) || "";
+                                    if (!from || !to) return ovbizIssueRange;
+                                    if (from > to) { const tmp = from; from = to; to = tmp; }
+                                    return { mode: "custom", from: from, to: to };
+                                    }
+                                    const n = Number(String(v).replace(/^last/, "")) || 0;
+                                    return n ? ovbizIssueLastRange(n) : ovbizIssueRange;
+                                    }
+                                    function ovbizIssueRangeKey(range) {
+                                    if (range.mode === "all") return "全部";
+                                    const span = (ovbizIssueRangeText(range.from) + "_" + ovbizIssueRangeText(range.to)).replace(/[^0-9A-Za-z_\-]/g, "");
+                                    const name = { last7: "近7天", last30: "近30天", last90: "近90天" }[range.mode] || "";
+                                    return name ? name + "_" + span : span;
+                                    }
+                                    // 导出用的那份统计：按「导出范围」重新过滤 + 重算（不改页面上的结果）
+                                    function ovbizIssueExportPick() {
+                                    const raw = ovbizIssueRowsAll || [];
+                                    if (!raw.length) return null;
+                                    const range = ovbizIssueExportRange();
+                                    const st = ovbizIssueAnalyze(raw.filter(function (r) { return ovbizIssueInRange(r, range); }));
+                                    return { st: st, range: range, label: ovbizIssueRangeLabel(range, true), key: ovbizIssueRangeKey(range) };
+                                    }
+                                    function ovbizIssueExportSay() {
+                                    const pick = ovbizIssueExportPick();
+                                    if (!pick) { ovbizIssueSetHint("还没有可导出的数据：先粘数据并点「🔎 分析」"); return null; }
+                                    ovbizIssueSetHint("导出范围：" + pick.label + "，共 " + pick.st.total + " 条（不影响上面的显示）");
+                                    return pick;
                                     }
                                     // ---- 导出：算好的报表（用户：「导出要是计算好的数据图表，不是流水」）----
                                     function ovbizReportCss() {
@@ -14855,7 +14907,7 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                                             return fail();
                                         }
                                     }
-                                    function ovbizIssueReportHtml(st) {
+                                    function ovbizIssueReportHtml(st, label) {
                                         if (!st || !st.total) return "";
                                         const total = st.total;
                                         const days = st.days.length;
@@ -14923,7 +14975,7 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                                         return "<!doctype html><meta charset=\"utf-8\"><title>海外问题分析报表</title>"
                                             + ovbizReportCss()
                                             + "<h1>海外问题分析报表</h1>"
-                                            + '<div class="meta">数据源：海外（梦幻消除战）SDK 和邮件回复 · 时间范围：' + escapeHtml(ovbizIssueRangeLabel())
+                                            + '<div class="meta">数据源：海外（梦幻消除战）SDK 和邮件回复 · 时间范围：' + escapeHtml(label || ovbizIssueRangeLabel())
                                             + " · 生成时间：" + stamp + "</div>"
                                             + '<div class="kpi">'
                                             + "<div><b>" + total + "</b><span>总条数</span></div>"
@@ -14944,18 +14996,21 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                                             + '<div class="foot">由工作台「海外业务统计 → 问题分析」生成；导出的都是聚合结果（不含玩家问题原文）。</div>';
                                     }
                                     function ovbizIssueExportReport() {
-                                        const st = ovbizIssueLast;
-                                        if (!st || !st.total) { ovbizIssueSetHint("先粘数据并点「🔎 分析」，再导出报表"); return; }
-                                        const html = ovbizIssueReportHtml(st);
-                                        if (ovbizReportDownload("海外问题分析报表_" + ovbizIssueRangeLabel().replace(/[^0-9A-Za-z\-]/g, "") + ".html", html)) {
-                                            ovbizIssueSetHint("报表已导出（HTML，可直接打开 / 打印成 PDF）");
+                                        if (!ovbizIssueRowsAll || !ovbizIssueRowsAll.length) { ovbizIssueSetHint("先粘数据并点「🔎 分析」，再导出报表"); return; }
+                                        const pick = ovbizIssueExportPick();
+                                        if (!pick || !pick.st.total) { ovbizIssueSetHint("「" + (pick ? pick.label : "") + "」里没有数据，换个导出范围"); return; }
+                                        const html = ovbizIssueReportHtml(pick.st, pick.label);
+                                        if (ovbizReportDownload("海外问题分析报表_" + pick.key + ".html", html)) {
+                                        ovbizIssueSetHint("报表已导出（" + pick.label + "，HTML，可直接打开 / 打印成 PDF）");
                                         }
-                                    }
+                                        }
                                     function ovbizIssueExportCsv() {
-                                        const st = ovbizIssueLast;
-                                        if (!st || !st.total) { ovbizIssueSetHint("先粘数据并点「🔎 分析」，再导出"); return; }
+                                        if (!ovbizIssueRowsAll || !ovbizIssueRowsAll.length) { ovbizIssueSetHint("先粘数据并点「🔎 分析」，再导出"); return; }
+                                        const pick = ovbizIssueExportPick();
+                                        if (!pick || !pick.st.total) { ovbizIssueSetHint("「" + (pick ? pick.label : "") + "」里没有数据，换个导出范围"); return; }
+                                        const st = pick.st;
                                         const lines = [];
-                                        lines.push("海外问题分析（聚合）,时间范围," + ovbizIssueRangeLabel());
+                                        lines.push("海外问题分析（聚合）,时间范围," + pick.label);
                                         lines.push("总条数," + st.total + ",覆盖天数," + st.days.length + ",日均," + (st.days.length ? (st.total / st.days.length).toFixed(1) : 0));
                                         lines.push("");
                                         lines.push("渠道×问题类型");
@@ -14990,12 +15045,12 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                                             const url = window.URL.createObjectURL(blob);
                                             const a = document.createElement("a");
                                             a.href = url;
-                                            a.download = "海外问题分析_聚合.csv";
+                                            a.download = "海外问题分析_聚合_" + pick.key + ".csv";
                                             document.body.appendChild(a);
                                             a.click();
                                             document.body.removeChild(a);
                                             setTimeout(function () { try { window.URL.revokeObjectURL(url); } catch (e) { } }, 1000);
-                                            ovbizIssueSetHint("聚合 CSV 已导出（矩阵 / 趋势 / Top，不是流水）");
+                                            ovbizIssueSetHint("聚合 CSV 已导出（" + pick.label + "，矩阵 / 趋势 / Top，不是流水）");
                                         } catch (e) {
                                             ovbizIssueSetHint("这个环境不支持下载（浏览器里可以）");
                                         }
@@ -15047,6 +15102,8 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                                         }
                                         ovbizIssueRowsAll = p.rows;
                                         ovbizIssueRange = { mode: "all", from: "", to: "" };
+                                        const exSel = document.getElementById("ovbizIssueExportRange");
+                                        if (exSel) exSel.value = "follow";
                                         ovbizIssueFillSelects();
                                         const st = ovbizIssueRefilter();
                                         ovbizIssueSetHint("认出 " + p.rows.length + " 条" + (p.hasHeader ? "（按表头对齐）" : "（没表头，按列序猜的）"));
@@ -19791,6 +19848,8 @@ function thlRun() {
                                             };
                                             if (from) from.addEventListener('change', onPick);
                                             if (to) to.addEventListener('change', onPick);
+                                            const exRange = document.getElementById('ovbizIssueExportRange');
+                                            if (exRange) exRange.addEventListener("change", ovbizIssueExportSay);
                                         })();
                                         setClick('ovbizIssueClearBtn', ovbizIssueClear);
                                         (function () {
