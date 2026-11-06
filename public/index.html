@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="x-build" content="2026-11-06 活动查询-v26-糖葫芦一句话术+涂色三杯+200块图">
+    <meta name="x-build" content="2026-11-06 活动查询-v27-糖葫芦话术不提排期">
     <title>客服冷静演绎工作台</title>
     <link rel="icon" type="image/gif" href="/my-icon.gif">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -18486,10 +18486,10 @@ function coloringInit() {
                                             bits.push('目前还没有结算记录');
                                         }
                                         if (best !== null) bits.push('当前总积分 ' + best);
-                                        const head = '您好，糖葫芦2v2 这一期'
-                                            + ((key && key !== '(无排期)') ? '（活动排期 ' + key + sdScheduleTail(key) + '）' : '');
-                                        if (!bits.length) return head + '的记录我们已经看到了，具体以游戏内显示为准，如有疑问随时联系我们～';
-                                        return head + '：' + bits.join('，') + '，如有疑问随时联系我们～';
+                                        // 2026-11 用户：「活动排期不用说给玩家」→ 话术里不提排期号 / 时间窗（明细里照旧写，那是内部核对）
+                                        const head = '您好，糖葫芦2v2 这一期：';
+                                        if (!bits.length) return head + '记录我们已经看到了，具体以游戏内显示为准，如有疑问随时联系我们～';
+                                        return head + bits.join('，') + '，如有疑问随时联系我们～';
                                     }
 function thlBuild(raw) {
                                         const p = thlParse(raw);

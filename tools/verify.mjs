@@ -976,14 +976,14 @@ ok(/data-seg="tanghulu" data-n="01">糖葫芦对决</.test(s) && /id="genTanghul
   && /function thlSettleLine\(r\)/.test(s) && /function thlProgressLine\(r\)/.test(s)
   && /结算战绩：胜 '/.test(s)
   // 2026-11 用户：「糖葫芦的话术 弄成一句可以回复玩家的话」→ 结果框只放一句话术，明细折进「核对明细」
-  && /function thlSpeechLine\(key, list\)/.test(s) && /您好，糖葫芦2v2 这一期/.test(s)
+  && /function thlSpeechLine\(key, list\)/.test(s) && /您好，糖葫芦2v2 这一期：/.test(s)
   && /如有疑问随时联系我们～/.test(s)
   && /id="thlDetailFold"/.test(s) && /id="thlDetailBody"/.test(s) && /pre\.thl-detail/.test(s)
   && /function thlParse\(raw\)/.test(s) && /function thlRun\(\)/.test(s)
   && /setClick\('thlParseBtn', thlRun\)/.test(s) && /setClick\('thlClearBtn', thlClear\)/.test(s)
   && /活动排期 ' \+ key \+ sdScheduleTail\(key\)/.test(s),
   '糖葫芦对决（活动类型 87 = 糖葫芦2v2）：活动查询页第一段，粘 GM 的【结算】/【进度】表（连表头，两张可一起粘）'
-  + ' → 按表头认列、按排期分组；结果框只出「一句能回玩家的话」（这一期 · 轮次 · 双方分数 · 胜负/MVP · 总积分），'
+  + ' → 按表头认列、按排期分组；结果框只出「一句能回玩家的话」（这一期 · 轮次 · 双方分数 · 胜负/MVP · 总积分，不提活动排期），'
   + '逐条核对明细折进「核对明细（不发给玩家）」（结算写第几轮 / 双方分数 / 胜负 / MVP / 本轮积分 / 总积分，进度写分数变化）');
 ok(!/id="sdTaskFold"/.test(s) && !/id="sdTaskInput"/.test(s) && !/id="sdTaskSub"/.test(s)
   && !/sdInitTaskTable/.test(s) && !/sdTaskResetBtn/.test(s) && !/sdClearTask/.test(s),

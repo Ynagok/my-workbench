@@ -2412,9 +2412,11 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     $('thlParseBtn').click();
     await sleep(80);
     const thlSpeech1 = $('thlOutput').value;
-    check(thlSpeech1 === '您好，糖葫芦2v2 这一期（活动排期 37：2026/11/9 8:00~2026/11/18 7:59）：结算 1 场（胜 0 场、负 0 场），如有疑问随时联系我们～',
-      '话术就一句：这一期 + 结算场次 + 收尾，能直接复制回玩家', thlSpeech1);
+    check(thlSpeech1 === '您好，糖葫芦2v2 这一期：结算 1 场（胜 0 场、负 0 场），如有疑问随时联系我们～',
+      '话术就一句：这一期 + 结算场次 + 收尾，能直接复制回玩家（不提活动排期）', thlSpeech1);
     check(thlSpeech1.indexOf('\n') === -1, '话术没有换行（一整句）', thlSpeech1);
+    check(thlSpeech1.indexOf('活动排期') === -1 && thlSpeech1.indexOf('2026/11/9') === -1,
+      '话术里不出现活动排期号 / 时间窗（用户：活动排期不用说给玩家）', thlSpeech1);
     const thlDetail1 = $('thlDetailBody').textContent;
     check($('thlDetailFold').style.display !== 'none'
       && /^糖葫芦2v2 · 共 4 条/.test(thlDetail1)
@@ -2441,8 +2443,8 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     $('thlParseBtn').click();
     await sleep(80);
     const thlSpeech2 = $('thlOutput').value;
-    check(thlSpeech2 === '您好，糖葫芦2v2 这一期（活动排期 1：2026/1/16 8:00~2026/1/24 23:59）：您这边已经打到第 3 轮，我方得分 169+119，对手得分 89+117，结算 1 场（胜 1 场、负 0 场、拿到 1 次 MVP），当前总积分 2，如有疑问随时联系我们～',
-      '真实两张表一起粘 → 一句话把轮次 / 双方分数 / 胜负 / MVP / 总积分都说清', thlSpeech2);
+    check(thlSpeech2 === '您好，糖葫芦2v2 这一期：您这边已经打到第 3 轮，我方得分 169+119，对手得分 89+117，结算 1 场（胜 1 场、负 0 场、拿到 1 次 MVP），当前总积分 2，如有疑问随时联系我们～',
+      '真实两张表一起粘 → 一句话把轮次 / 双方分数 / 胜负 / MVP / 总积分都说清（不提排期）', thlSpeech2);
     const thlDetail2 = $('thlDetailBody').textContent;
     check(/匹配 0 场 · 结算 1 场 · 进度 2 条/.test(thlDetail2),
       '没有「行为」列也能按表头认出结算 / 进度（带 before/after 算进度，带胜负积分算结算）', thlDetail2);
@@ -2459,7 +2461,7 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     $('thlInput').value = '37\t2\t8f2c1d3e4b5a69788796a5b4c3d2e1f0\t2026-11-12 10:00:00';
     $('thlParseBtn').click();
     await sleep(60);
-    check(/^您好，糖葫芦2v2 这一期（活动排期 37/.test($('thlOutput').value) && /结算 1 场/.test($('thlOutput').value),
+    check(/^您好，糖葫芦2v2 这一期：/.test($('thlOutput').value) && /结算 1 场/.test($('thlOutput').value),
       '没有表头也能按内容猜出行为（2 = 结算）并出话术', $('thlOutput').value);
     check(/没表头，按内容猜的/.test($('thlHint').textContent), '提示里写「没表头，按内容猜的」', $('thlHint').textContent);
 
