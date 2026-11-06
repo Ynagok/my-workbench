@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="x-build" content="2026-11-07 统计页紧凑化 + 问题分析存本机">
+    <meta name="x-build" content="2026-11-07 问题分析加类型筛选">
     <title>客服冷静演绎工作台</title>
     <link rel="icon" type="image/gif" href="/my-icon.gif">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -4958,6 +4958,14 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                     <span class="hint-text" id="ovbizIssueRangeHint" style="margin:0;"></span>
                 </div>
                 <div class="stats-toolbar">
+                    <span class="st-label">筛选</span>
+                    <span class="hint-text" style="margin:0;">问题类型</span>
+                    <select id="ovbizIssueTypeSel" style="min-width:130px;"><option value="all">全部</option></select>
+                    <span class="hint-text" style="margin:0;">账号类型</span>
+                    <select id="ovbizIssueAccSel" style="min-width:130px;"><option value="all">全部</option></select>
+                    <span class="hint-text" id="ovbizIssueFilterHint" style="margin:0;"></span>
+                </div>
+                <div class="stats-toolbar">
                     <span class="st-label">导出</span>
                     <select id="ovbizIssueExportRange" style="min-width:140px;">
                         <option value="follow">跟随上面的筛选</option>
@@ -4981,6 +4989,12 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
             <div class="card" id="ovbizIssueTrendCard" data-seg-card="issue">
                 <label>📈 按天趋势 <span class="card-sub">总量 + 各渠道分解（最新在上）</span></label>
                 <div class="career-scroll" style="margin-top:10px; max-height:420px;"><table class="career-table" id="ovbizIssueTrend"></table></div>
+            </div>
+
+            <div class="card" id="ovbizIssueAccCard" data-seg-card="issue">
+                <label>🧾 账号类型分析 <span class="card-sub">「问题类型（账号类型）」的分布 + 与问题类型的交叉（受上面的筛选影响）</span></label>
+                <div class="career-scroll" style="margin-top:10px;"><table class="career-table" id="ovbizIssueAcc"></table></div>
+                <div class="career-scroll" style="margin-top:14px; max-height:420px;"><table class="career-table" id="ovbizIssueTypeAcc"></table></div>
             </div>
             <div class="card" id="ovbizCardDaily" data-seg-card="detail">
                 <label>📆 每日明细 <span class="card-sub">按天合计 · 最新在上</span></label>
@@ -14564,6 +14578,7 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                                     let ovbizIssueRawText = "";        // 大文件不塞 textarea（6MB 文本会把输入框拖死），只放内存
                                     let ovbizIssueSourceName = "";     // 数据来自哪个文件（提示用）
                                     let ovbizIssueRunning = false;
+                                    let ovbizIssueFilters = { type: "all", acc: "all" };   // 问题类型 / 问题类型（账号类型）筛选
                                     const OVBIZ_ISSUE_STORE = "ovbizIssueData";
                                     const OVBIZ_ISSUE_PLACEHOLDER = "日期\t来访地区\t来访渠道\t问题类型\t问题类型（账号类型）\t工单号\t玩家问题\t回复内容";
                                     function ovbizIssueSetHint(msg) {
@@ -14631,15 +14646,18 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                                         if (!cells.length) continue;
                                         const day = ovbizIssueDate(idx.date >= 0 ? cells[idx.date] : cells[0]);
                                         const channel = String((idx.channel >= 0 ? cells[idx.channel] : "") || "").trim() || OVBIZ_ISSUE_EMPTY;
-                                        let type = String((idx.type >= 0 ? cells[idx.type] : "") || "").trim();
-                                        if (!type && idx.accType >= 0) type = String(cells[idx.accType] || "").trim();
+                                        // 问题类型 / 问题类型（账号类型）分开存：前者空时才用后者兜底（口径不变），但两个维度都能单独筛
+                                        const typeRaw = String((idx.type >= 0 ? cells[idx.type] : "") || "").trim();
+                                        const accRaw = String((idx.accType >= 0 ? cells[idx.accType] : "") || "").trim();
+                                        let type = typeRaw;
+                                        if (!type) type = accRaw;
                                         if (!type) type = OVBIZ_ISSUE_EMPTY;
                                         const region = String((idx.region >= 0 ? cells[idx.region] : "") || "").trim() || OVBIZ_ISSUE_EMPTY;
-                                        rows.push({ day: day, channel: channel, type: type, region: region });
+                                        rows.push({ day: day, channel: channel, type: type, acc: accRaw || OVBIZ_ISSUE_EMPTY, region: region });
                                         }
                                         return { rows: rows, hasHeader: hasHeader };
                                         }
-                                                                        // 整段 CSV 分片扫描（每片 ~256K 字符就让出主线程，17.8k 行 / 6MB 也不会卡死页面）
+                                    // 整段 CSV 分片扫描（每片 ~256K 字符就让出主线程，17.8k 行 / 6MB 也不会卡死页面）
                                         function ovbizIssueGridChunked(text, onProgress) {
                                         return new Promise(function (resolve) {
                                         const s = String(text == null ? "" : text).replace(/\r\n?/g, "\n");
@@ -14678,25 +14696,28 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                                         function ovbizIssueSaveLocal(rows, source) {
                                         if (!rows || !rows.length) return "";
                                         try {
-                                        const days = [], chs = [], tys = [], rgs = [];
-                                        const di = {}, ci = {}, ti = {}, ri = {};
+                                        const days = [], chs = [], tys = [], acs = [], rgs = [];
+                                        const di = {}, ci = {}, ti = {}, ai = {}, ri = {};
                                         const pick = function (arr, map, v) {
                                         if (map[v] === undefined) { map[v] = arr.length; arr.push(v); }
                                         return map[v];
                                         };
                                         const idx = rows.map(function (r) {
-                                        return [pick(days, di, r.day.key), pick(chs, ci, r.channel), pick(tys, ti, r.type), pick(rgs, ri, r.region)];
+                                        return [
+                                        pick(days, di, r.day.key), pick(chs, ci, r.channel), pick(tys, ti, r.type),
+                                        pick(acs, ai, r.acc || OVBIZ_ISSUE_EMPTY), pick(rgs, ri, r.region),
+                                        ];
                                         });
                                         window.localStorage.setItem(OVBIZ_ISSUE_STORE, JSON.stringify({
-                                        v: 1, at: Date.now(), source: String(source || "").slice(0, 120),
-                                        days: days, chs: chs, tys: tys, rgs: rgs, idx: idx,
+                                        v: 2, at: Date.now(), source: String(source || "").slice(0, 120),
+                                        days: days, chs: chs, tys: tys, acs: acs, rgs: rgs, idx: idx,
                                         }));
                                         return "";
                                         } catch (e) {
                                         return "存本机失败（数据太大 / 空间不够）：" + ((e && e.message) || e);
                                         }
                                         }
-                                        function ovbizIssueLoadLocal() {
+                                    function ovbizIssueLoadLocal() {
                                         try {
                                         const raw = window.localStorage.getItem(OVBIZ_ISSUE_STORE);
                                         if (!raw) return null;
@@ -14704,12 +14725,15 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                                         if (!o || !o.idx || !o.idx.length || !o.days) return null;
                                         const rows = o.idx.map(function (a) {
                                         const key = o.days[a[0]];
-                                        return { day: { key: key, label: ovbizIssueDayLabel(key) }, channel: o.chs[a[1]], type: o.tys[a[2]], region: o.rgs[a[3]] };
+                                        // v1 没有账号类型那一列（idx 只有 4 位）→ 记「(未填)」
+                                        const acc = (a.length > 3 && o.acs) ? o.acs[a[3]] : OVBIZ_ISSUE_EMPTY;
+                                        const region = (a.length > 4 && o.rgs) ? o.rgs[a[4]] : ((a.length > 3 && o.rgs) ? o.rgs[a[3]] : OVBIZ_ISSUE_EMPTY);
+                                        return { day: { key: key, label: ovbizIssueDayLabel(key) }, channel: o.chs[a[1]], type: o.tys[a[2]], acc: acc, region: region };
                                         });
                                         return { rows: rows, at: o.at || 0, source: o.source || "" };
                                         } catch (e) { return null; }
                                         }
-                                        function ovbizIssueClearLocal() {
+                                    function ovbizIssueClearLocal() {
                                         try { window.localStorage.removeItem(OVBIZ_ISSUE_STORE); } catch (e) { }
                                         }
                                         function ovbizIssuePaintSource() {
@@ -14725,6 +14749,7 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                                         ovbizIssueRowsAll = saved.rows;
                                         ovbizIssueSourceName = saved.source || "";
                                         ovbizIssueRange = { mode: "all", from: "", to: "" };
+                                        ovbizIssueResetFilters();
                                         ovbizIssueFillSelects();
                                         ovbizIssueRefilter();
                                         ovbizIssuePaintSource();
@@ -14732,32 +14757,39 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                                         return true;
                                         }
                                     function ovbizIssueAnalyze(rows) {
-                                        const chTotal = {}, typeTotal = {}, dayTotal = {}, dayCh = {}, pair = {}, regionTotal = {};
+                                        const chTotal = {}, typeTotal = {}, accTotal = {}, dayTotal = {}, dayCh = {}, pair = {}, accPair = {}, typeAcc = {}, regionTotal = {};
+                                        const accOf = function (r) { return r.acc || OVBIZ_ISSUE_EMPTY; };
                                         rows.forEach(function (r) {
-                                            chTotal[r.channel] = (chTotal[r.channel] || 0) + 1;
-                                            typeTotal[r.type] = (typeTotal[r.type] || 0) + 1;
-                                            dayTotal[r.day.key] = (dayTotal[r.day.key] || 0) + 1;
-                                            regionTotal[r.region] = (regionTotal[r.region] || 0) + 1;
-                                            const dk = r.day.key;
-                                            if (!dayCh[dk]) dayCh[dk] = {};
-                                            dayCh[dk][r.channel] = (dayCh[dk][r.channel] || 0) + 1;
-                                            const pk = r.channel + "\u0001" + r.type;
-                                            pair[pk] = (pair[pk] || 0) + 1;
+                                        chTotal[r.channel] = (chTotal[r.channel] || 0) + 1;
+                                        typeTotal[r.type] = (typeTotal[r.type] || 0) + 1;
+                                        accTotal[accOf(r)] = (accTotal[accOf(r)] || 0) + 1;
+                                        dayTotal[r.day.key] = (dayTotal[r.day.key] || 0) + 1;
+                                        regionTotal[r.region] = (regionTotal[r.region] || 0) + 1;
+                                        const dk = r.day.key;
+                                        if (!dayCh[dk]) dayCh[dk] = {};
+                                        dayCh[dk][r.channel] = (dayCh[dk][r.channel] || 0) + 1;
+                                        const pk = r.channel + "\u0001" + r.type;
+                                        pair[pk] = (pair[pk] || 0) + 1;
+                                        const ak = r.channel + "\u0001" + accOf(r);
+                                        accPair[ak] = (accPair[ak] || 0) + 1;
+                                        const tak = r.type + "\u0001" + accOf(r);
+                                        typeAcc[tak] = (typeAcc[tak] || 0) + 1;
                                         });
                                         const sortObj = function (o) {
-                                            return Object.keys(o).sort(function (a, b) { return o[b] - o[a] || String(a).localeCompare(String(b)); });
+                                        return Object.keys(o).sort(function (a, b) { return o[b] - o[a] || String(a).localeCompare(String(b)); });
                                         };
                                         const channels = sortObj(chTotal);
                                         const types = sortObj(typeTotal);
+                                        const accs = sortObj(accTotal);
                                         const noDate = Object.keys(dayTotal).filter(function (k) { return /^zzz/.test(k); })
-                                            .reduce(function (s, k) { return s + dayTotal[k]; }, 0);
+                                        .reduce(function (s, k) { return s + dayTotal[k]; }, 0);
                                         const days = Object.keys(dayTotal).filter(function (k) { return !/^zzz/.test(k); }).sort();
                                         return {
-                                            total: rows.length, channels: channels, types: types, days: days,
-                                            chTotal: chTotal, typeTotal: typeTotal, dayTotal: dayTotal, dayCh: dayCh, pair: pair, noDate: noDate,
-                                            regionTotal: regionTotal,
+                                        total: rows.length, channels: channels, types: types, accs: accs, days: days,
+                                        chTotal: chTotal, typeTotal: typeTotal, accTotal: accTotal, dayTotal: dayTotal, dayCh: dayCh,
+                                        pair: pair, accPair: accPair, typeAcc: typeAcc, noDate: noDate, regionTotal: regionTotal,
                                         };
-                                    }
+                                        }
                                     function ovbizIssueBar(n, max) {
                                         const w = max > 0 ? Math.max(1, Math.round(12 * n / max)) : 0;
                                         return "<i style=\"display:inline-block;height:8px;width:" + (w * 6) + "px;background:var(--accent);border-radius:2px;vertical-align:middle;\"></i>";
@@ -14767,99 +14799,138 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                                         const matrix = document.getElementById("ovbizIssueMatrix");
                                         const top = document.getElementById("ovbizIssueTop");
                                         const trend = document.getElementById("ovbizIssueTrend");
+                                        const accEl = document.getElementById("ovbizIssueAcc");
+                                        const typeAccEl = document.getElementById("ovbizIssueTypeAcc");
                                         if (!st || !st.total) {
-                                            if (chips) chips.innerHTML = "";
-                                            if (matrix) matrix.innerHTML = "";
-                                            if (top) top.innerHTML = "";
-                                            if (trend) trend.innerHTML = "";
-                                            return;
+                                        if (chips) chips.innerHTML = "";
+                                        if (matrix) matrix.innerHTML = "";
+                                        if (top) top.innerHTML = "";
+                                        if (trend) trend.innerHTML = "";
+                                        if (accEl) accEl.innerHTML = "";
+                                        if (typeAccEl) typeAccEl.innerHTML = "";
+                                        return;
                                         }
                                         const peak = st.days.slice().sort(function (a, b) { return st.dayTotal[b] - st.dayTotal[a]; })[0];
                                         const peakLabel = (function () {
-                                            const hit = st.days.filter(function (d) { return d === peak; })[0];
-                                            if (!hit) return "—";
-                                            const parts = hit.split("-");
-                                            return parts[0] === "0000" ? (Number(parts[1]) + "-" + Number(parts[2])) : hit;
+                                        const hit = st.days.filter(function (d) { return d === peak; })[0];
+                                        if (!hit) return "—";
+                                        const parts = hit.split("-");
+                                        return parts[0] === "0000" ? (Number(parts[1]) + "-" + Number(parts[2])) : hit;
                                         })();
                                         if (chips) chips.innerHTML = [
-                                            statChip({ html: "共 <b>" + st.total + "</b> 条" }, "k-plain", null),
-                                            statChip({ html: "渠道 <b>" + st.channels.length + "</b> 个" }, "k-accent", null),
-                                            statChip({ html: "问题类型 <b>" + st.types.length + "</b> 类" }, "k-accent", null),
-                                            statChip({ html: "覆盖 <b>" + st.days.length + "</b> 天" }, "k-plain", null),
-                                            statChip({ html: "峰值 <b>" + peakLabel + "</b> · " + (st.dayTotal[peak] || 0) + " 条" }, "k-warn", null),
-                                            statChip({ html: "地区 <b>" + Object.keys(st.regionTotal).length + "</b> 个" }, "k-op", null),
-                                            (st.noDate ? statChip({ html: "无日期 <b>" + st.noDate + "</b> 条" }, "k-plain", "日期认不出，只计入总量和渠道/类型，不进趋势") : ""),
+                                        statChip({ html: "共 <b>" + st.total + "</b> 条" }, "k-plain", null),
+                                        statChip({ html: "渠道 <b>" + st.channels.length + "</b> 个" }, "k-accent", null),
+                                        statChip({ html: "问题类型 <b>" + st.types.length + "</b> 类" }, "k-accent", null),
+                                        statChip({ html: "账号类型 <b>" + st.accs.length + "</b> 类" }, "k-accent", null),
+                                        statChip({ html: "覆盖 <b>" + st.days.length + "</b> 天" }, "k-plain", null),
+                                        statChip({ html: "峰值 <b>" + peakLabel + "</b> · " + (st.dayTotal[peak] || 0) + " 条" }, "k-warn", null),
+                                        statChip({ html: "地区 <b>" + Object.keys(st.regionTotal).length + "</b> 个" }, "k-op", null),
+                                        (st.noDate ? statChip({ html: "无日期 <b>" + st.noDate + "</b> 条" }, "k-plain", "日期认不出，只计入总量和渠道/类型，不进趋势") : ""),
                                         ].join("");
-
+                                        
                                         const MAX_TYPE_COLS = 12;
                                         const cols = st.types.slice(0, MAX_TYPE_COLS);
                                         const restTypes = st.types.slice(MAX_TYPE_COLS);
                                         let live = cols.slice();
                                         if (restTypes.length) live = live.concat(["(其他 " + restTypes.length + " 类)"]);
                                         const cellOf = function (ch, tName, isRest) {
-                                            if (isRest) {
-                                                let n = 0;
-                                                restTypes.forEach(function (t2) { n += st.pair[ch + "\u0001" + t2] || 0; });
-                                                return n;
-                                            }
-                                            return st.pair[ch + "\u0001" + tName] || 0;
+                                        if (isRest) {
+                                        let n = 0;
+                                        restTypes.forEach(function (t2) { n += st.pair[ch + "\u0001" + t2] || 0; });
+                                        return n;
+                                        }
+                                        return st.pair[ch + "\u0001" + tName] || 0;
                                         };
                                         if (matrix) {
-                                            let html = "<thead><tr><th>渠道</th>";
-                                            live.forEach(function (tName, i) { html += "<th>" + escapeHtml(tName) + "</th>"; });
-                                            html += "<th>合计</th></tr></thead><tbody>";
-                                            st.channels.forEach(function (ch) {
-                                                html += "<tr><th>" + escapeHtml(ch) + "</th>";
-                                                live.forEach(function (tName, i) {
-                                                    const n = cellOf(ch, tName, restTypes.length && i === live.length - 1);
-                                                    html += "<td>" + (n ? n : "·") + "</td>";
-                                                });
-                                                html += "<td><b>" + (st.chTotal[ch] || 0) + "</b></td></tr>";
-                                            });
-                                            html += "</tbody><tfoot><tr><th>合计</th>";
-                                            live.forEach(function (tName, i) {
-                                                let n = 0;
-                                                const isRest = restTypes.length && i === live.length - 1;
-                                                st.channels.forEach(function (ch) { n += cellOf(ch, tName, isRest); });
-                                                html += "<td><b>" + n + "</b></td>";
-                                            });
-                                            html += "<td><b>" + st.total + "</b></td></tr></tfoot>";
-                                            matrix.innerHTML = html;
+                                        let html = "<thead><tr><th>渠道</th>";
+                                        live.forEach(function (tName) { html += "<th>" + escapeHtml(tName) + "</th>"; });
+                                        html += "<th>合计</th></tr></thead><tbody>";
+                                        st.channels.forEach(function (ch) {
+                                        html += "<tr><th>" + escapeHtml(ch) + "</th>";
+                                        live.forEach(function (tName, i) {
+                                        const n = cellOf(ch, tName, restTypes.length && i === live.length - 1);
+                                        html += "<td>" + (n ? n : "·") + "</td>";
+                                        });
+                                        html += "<td><b>" + (st.chTotal[ch] || 0) + "</b></td></tr>";
+                                        });
+                                        html += "</tbody><tfoot><tr><th>合计</th>";
+                                        live.forEach(function (tName, i) {
+                                        let n = 0;
+                                        const isRest = restTypes.length && i === live.length - 1;
+                                        st.channels.forEach(function (ch) { n += cellOf(ch, tName, isRest); });
+                                        html += "<td><b>" + n + "</b></td>";
+                                        });
+                                        html += "<td><b>" + st.total + "</b></td></tr></tfoot>";
+                                        matrix.innerHTML = html;
                                         }
                                         if (top) {
-                                            let html = "<thead><tr><th>渠道</th><th>Top 问题类型</th><th>条数</th><th>占比</th></tr></thead><tbody>";
-                                            st.channels.forEach(function (ch) {
-                                                const list = st.types.map(function (tName) { return { t: tName, n: st.pair[ch + "\u0001" + tName] || 0 }; })
-                                                    .filter(function (x) { return x.n > 0; })
-                                                    .sort(function (a, b) { return b.n - a.n; })
-                                                    .slice(0, 3);
-                                                const total = st.chTotal[ch] || 1;
-                                                html += "<tr><th>" + escapeHtml(ch) + "</th><td>"
-                                                    + list.map(function (x) { return escapeHtml(x.t) + " " + x.n; }).join(" · ")
-                                                    + "</td><td>" + (list[0] ? list[0].n : 0) + "</td><td>"
-                                                    + (list[0] ? Math.round(100 * list[0].n / total) + "%" : "—") + "</td></tr>";
-                                            });
-                                            top.innerHTML = html + "</tbody>";
+                                        let html = "<thead><tr><th>渠道</th><th>Top 问题类型</th><th>条数</th><th>占比</th></tr></thead><tbody>";
+                                        st.channels.forEach(function (ch) {
+                                        const list = st.types.map(function (tName) { return { t: tName, n: st.pair[ch + "\u0001" + tName] || 0 }; })
+                                        .filter(function (x) { return x.n > 0; })
+                                        .sort(function (a, b) { return b.n - a.n; })
+                                        .slice(0, 3);
+                                        const total = st.chTotal[ch] || 1;
+                                        html += "<tr><th>" + escapeHtml(ch) + "</th><td>"
+                                        + list.map(function (x) { return escapeHtml(x.t) + " " + x.n; }).join(" · ")
+                                        + "</td><td>" + (list[0] ? list[0].n : 0) + "</td><td>"
+                                        + (list[0] ? Math.round(100 * list[0].n / total) + "%" : "—") + "</td></tr>";
+                                        });
+                                        top.innerHTML = html + "</tbody>";
+                                        }
+                                        if (accEl) {
+                                        const maxAcc = st.accs.length ? (st.accTotal[st.accs[0]] || 1) : 1;
+                                        let html = "<thead><tr><th>问题类型（账号类型）</th><th>条数</th><th>占比</th><th></th><th>主渠道</th></tr></thead><tbody>";
+                                        st.accs.forEach(function (a) {
+                                        const n = st.accTotal[a] || 0;
+                                        let bestCh = "", bestN = 0;
+                                        st.channels.forEach(function (ch) {
+                                        const v = st.accPair[ch + "\u0001" + a] || 0;
+                                        if (v > bestN) { bestN = v; bestCh = ch; }
+                                        });
+                                        html += "<tr><th>" + escapeHtml(a) + "</th><td><b>" + n + "</b></td><td>"
+                                        + (st.total ? (100 * n / st.total).toFixed(1) : "0.0") + "%</td><td>" + ovbizIssueBar(n, maxAcc) + "</td><td>"
+                                        + (bestCh ? escapeHtml(bestCh) + " · " + bestN : "—") + "</td></tr>";
+                                        });
+                                        accEl.innerHTML = html + "</tbody>";
+                                        }
+                                        if (typeAccEl) {
+                                        const accCols = st.accs.slice(0, 8);
+                                        let html = "<thead><tr><th>问题类型 ＼ 账号类型</th>";
+                                        accCols.forEach(function (a) { html += "<th>" + escapeHtml(a) + "</th>"; });
+                                        html += "<th>合计</th></tr></thead><tbody>";
+                                        st.types.slice(0, 20).forEach(function (tName) {
+                                        html += "<tr><th>" + escapeHtml(tName) + "</th>";
+                                        accCols.forEach(function (a) {
+                                        const n = st.typeAcc[tName + "\u0001" + a] || 0;
+                                        html += "<td>" + (n ? n : "·") + "</td>";
+                                        });
+                                        html += "<td><b>" + (st.typeTotal[tName] || 0) + "</b></td></tr>";
+                                        });
+                                        html += "</tbody><tfoot><tr><th>合计</th>";
+                                        accCols.forEach(function (a) { html += "<td><b>" + (st.accTotal[a] || 0) + "</b></td>"; });
+                                        html += "<td><b>" + st.total + "</b></td></tr></tfoot>";
+                                        typeAccEl.innerHTML = html;
                                         }
                                         if (trend) {
-                                            const maxDay = Math.max.apply(null, st.days.map(function (d) { return st.dayTotal[d] || 0; }));
-                                            let html = "<thead><tr><th>日期</th><th>总量</th><th></th>";
-                                            st.channels.forEach(function (ch) { html += "<th>" + escapeHtml(ch) + "</th>"; });
-                                            html += "</tr></thead><tbody>";
-                                            st.days.slice().reverse().forEach(function (dk) {
-                                                const parts = dk.split("-");
-                                                const label = parts[0] === "0000" ? (Number(parts[1]) + "-" + Number(parts[2])) : dk;
-                                                const n = st.dayTotal[dk] || 0;
-                                                html += "<tr><th>" + escapeHtml(label) + "</th><td><b>" + n + "</b></td><td>" + ovbizIssueBar(n, maxDay) + "</td>";
-                                                st.channels.forEach(function (ch) {
-                                                    const v = (st.dayCh[dk] || {})[ch] || 0;
-                                                    html += "<td>" + (v ? v : "·") + "</td>";
-                                                });
-                                                html += "</tr>";
-                                            });
-                                            trend.innerHTML = html + "</tbody>";
+                                        const maxDay = Math.max.apply(null, st.days.map(function (d) { return st.dayTotal[d] || 0; }));
+                                        let html = "<thead><tr><th>日期</th><th>总量</th><th></th>";
+                                        st.channels.forEach(function (ch) { html += "<th>" + escapeHtml(ch) + "</th>"; });
+                                        html += "</tr></thead><tbody>";
+                                        st.days.slice().reverse().forEach(function (dk) {
+                                        const parts = dk.split("-");
+                                        const label = parts[0] === "0000" ? (Number(parts[1]) + "-" + Number(parts[2])) : dk;
+                                        const n = st.dayTotal[dk] || 0;
+                                        html += "<tr><th>" + escapeHtml(label) + "</th><td><b>" + n + "</b></td><td>" + ovbizIssueBar(n, maxDay) + "</td>";
+                                        st.channels.forEach(function (ch) {
+                                        const v = (st.dayCh[dk] || {})[ch] || 0;
+                                        html += "<td>" + (v ? v : "·") + "</td>";
+                                        });
+                                        html += "</tr>";
+                                        });
+                                        trend.innerHTML = html + "</tbody>";
                                         }
-                                    }
+                                        }
                                     // 日期 → 天数（用于「近 N 天」）：11月1日 这种没年份的按 2000 年算
                                     function ovbizIssueDayNum(key) {
                                         const p = String(key || "").split("-");
@@ -14902,8 +14973,70 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                                     return d >= lo && d <= hi;
                                     }
                                     function ovbizIssueRangeText(v) {
-                                    return /^day:/.test(v) ? ovbizIssueDateFromDay(Number(v.slice(4))) : ovbizIssueDayLabel(v);
-                                    }
+                                        return /^day:/.test(v) ? ovbizIssueDateFromDay(Number(v.slice(4))) : ovbizIssueDayLabel(v);
+                                        }
+                                        // 问题类型 / 问题类型（账号类型）两个筛选（只影响显示与导出，不动原始数据）
+                                        function ovbizIssueReadFilters() {
+                                        const t = document.getElementById("ovbizIssueTypeSel");
+                                        const a = document.getElementById("ovbizIssueAccSel");
+                                        ovbizIssueFilters = { type: (t && t.value) || "all", acc: (a && a.value) || "all" };
+                                        return ovbizIssueFilters;
+                                        }
+                                        function ovbizIssueMatch(r) {
+                                        const fl = ovbizIssueFilters;
+                                        if (fl.type !== "all" && r.type !== fl.type) return false;
+                                        if (fl.acc !== "all" && (r.acc || OVBIZ_ISSUE_EMPTY) !== fl.acc) return false;
+                                        return true;
+                                        }
+                                        function ovbizIssueFilterParts() {
+                                        const fl = ovbizIssueFilters, parts = [];
+                                        if (fl.type !== "all") parts.push("问题类型 " + fl.type);
+                                        if (fl.acc !== "all") parts.push("账号类型 " + fl.acc);
+                                        return parts;
+                                        }
+                                        function ovbizIssueFilterLabel() {
+                                        const parts = ovbizIssueFilterParts();
+                                        return parts.length ? " · " + parts.join(" · ") : "";
+                                        }
+                                        function ovbizIssueFilterKey() {
+                                        const parts = [];
+                                        if (ovbizIssueFilters.type !== "all") parts.push(ovbizIssueFilters.type);
+                                        if (ovbizIssueFilters.acc !== "all") parts.push(ovbizIssueFilters.acc);
+                                        return parts.length ? "_" + parts.join("_").replace(/[^0-9A-Za-z_\u4e00-\u9fa5\-]/g, "") : "";
+                                        }
+                                        function ovbizIssueFillFilters() {
+                                        const rows = ovbizIssueRowsAll || [];
+                                        const typeSet = [], accSet = [];
+                                        rows.forEach(function (r) {
+                                        if (typeSet.indexOf(r.type) === -1) typeSet.push(r.type);
+                                        const a = r.acc || OVBIZ_ISSUE_EMPTY;
+                                        if (accSet.indexOf(a) === -1) accSet.push(a);
+                                        });
+                                        [["ovbizIssueTypeSel", typeSet], ["ovbizIssueAccSel", accSet]].forEach(function (pair) {
+                                        const el = document.getElementById(pair[0]);
+                                        if (!el) return;
+                                        const keep = el.value || "all";
+                                        el.innerHTML = '<option value="all">全部</option>' + pair[1].map(function (v) {
+                                        return '<option value="' + escapeHtml(v) + '">' + escapeHtml(v) + "</option>";
+                                        }).join("");
+                                        el.value = (keep === "all" || pair[1].indexOf(keep) !== -1) ? keep : "all";
+                                        });
+                                        ovbizIssueReadFilters();
+                                        }
+                                        function ovbizIssueOnFilter() {
+                                        ovbizIssueReadFilters();
+                                        const st = ovbizIssueRefilter();
+                                        const parts = ovbizIssueFilterParts();
+                                        const hint = document.getElementById("ovbizIssueFilterHint");
+                                        if (hint) hint.textContent = parts.length ? "（" + parts.join(" · ") + "）" : "（不筛选，看全部）";
+                                        ovbizIssueSetHint((parts.length ? "筛选：" + parts.join(" · ") : "筛选：全部") + (st ? "，共 " + st.total + " 条" : ""));
+                                        return st;
+                                        }
+                                        function ovbizIssueResetFilters() {
+                                        ovbizIssueFilters = { type: "all", acc: "all" };
+                                        const hint = document.getElementById("ovbizIssueFilterHint");
+                                        if (hint) hint.textContent = "";
+                                        }
                                     function ovbizIssueFillSelects() {
                                     const rows = ovbizIssueRowsAll || [];
                                     const keys = [];
@@ -14921,6 +15054,7 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                                     if (keep && keys.indexOf(keep) !== -1) el.value = keep;
                                     else if (keys.length) el.value = k === 0 ? keys[0] : keys[keys.length - 1];
                                     });
+                                    ovbizIssueFillFilters();
                                     }
                                     function ovbizIssueRangePaint() {
                                     const map = { all: "ovbizIssueRangeAll", last7: "ovbizIssueRange7", last30: "ovbizIssueRange30", last90: "ovbizIssueRange90" };
@@ -14936,14 +15070,14 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                                     }
                                     // 按当前范围重算 + 重画（不重新解析文本）
                                     function ovbizIssueRefilter() {
-                                    if (!ovbizIssueRowsAll) { ovbizIssueRender(null); ovbizIssueRangePaint(); return null; }
-                                    const picked = ovbizIssueRowsAll.filter(function (r) { return ovbizIssueInRange(r); });
-                                    const st = ovbizIssueAnalyze(picked);
-                                    ovbizIssueLast = st;
-                                    ovbizIssueRender(st);
-                                    ovbizIssueRangePaint();
-                                    return st;
-                                    }
+                                        if (!ovbizIssueRowsAll) { ovbizIssueRender(null); ovbizIssueRangePaint(); return null; }
+                                        const picked = ovbizIssueRowsAll.filter(function (r) { return ovbizIssueInRange(r) && ovbizIssueMatch(r); });
+                                        const st = ovbizIssueAnalyze(picked);
+                                        ovbizIssueLast = st;
+                                        ovbizIssueRender(st);
+                                        ovbizIssueRangePaint();
+                                        return st;
+                                        }
                                     function ovbizIssueSetRange(mode, from, to) {
                                     ovbizIssueRange = { mode: mode, from: from || "", to: to || "" };
                                     const st = ovbizIssueRefilter();
@@ -14982,12 +15116,16 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                                     }
                                     // 导出用的那份统计：按「导出范围」重新过滤 + 重算（不改页面上的结果）
                                     function ovbizIssueExportPick() {
-                                    const raw = ovbizIssueRowsAll || [];
-                                    if (!raw.length) return null;
-                                    const range = ovbizIssueExportRange();
-                                    const st = ovbizIssueAnalyze(raw.filter(function (r) { return ovbizIssueInRange(r, range); }));
-                                    return { st: st, range: range, label: ovbizIssueRangeLabel(range, true), key: ovbizIssueRangeKey(range) };
-                                    }
+                                        const raw = ovbizIssueRowsAll || [];
+                                        if (!raw.length) return null;
+                                        const range = ovbizIssueExportRange();
+                                        const st = ovbizIssueAnalyze(raw.filter(function (r) { return ovbizIssueInRange(r, range) && ovbizIssueMatch(r); }));
+                                        return {
+                                        st: st, range: range,
+                                        label: ovbizIssueRangeLabel(range, true) + ovbizIssueFilterLabel(),
+                                        key: ovbizIssueRangeKey(range) + ovbizIssueFilterKey(),
+                                        };
+                                        }
                                     function ovbizIssueExportSay() {
                                     const pick = ovbizIssueExportPick();
                                     if (!pick) { ovbizIssueSetHint("还没有可导出的数据：先粘数据并点「🔎 分析」"); return null; }
@@ -15057,6 +15195,7 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                                         const chShare = total ? Math.round(100 * st.chTotal[topCh] / total) : 0;
                                         const typeShare = total ? Math.round(100 * st.typeTotal[topType] / total) : 0;
                                         const maxCh = st.chTotal[topCh] || 0;
+                                        const maxAcc = st.accs && st.accs.length ? (st.accTotal[st.accs[0]] || 0) : 0;
                                         const maxType = st.typeTotal[topType] || 0;
                                         const notes = [];
                                         notes.push("共 <b>" + total + "</b> 条，覆盖 <b>" + days + "</b> 天，日均 <b>" + avg + "</b> 条；峰值 " + escapeHtml(peakLabel) + "（" + (st.dayTotal[peakDay] || 0) + " 条）。");
@@ -15068,6 +15207,8 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                                             return escapeHtml(ch) + "：" + list.map(function (x) { return escapeHtml(x.t) + " " + x.n; }).join(" / ");
                                         });
                                         if (topMix.length) notes.push("主渠道 Top 问题：" + topMix.join("；") + "。");
+                                        const topAcc = (st.accs || [])[0];
+                                        if (topAcc) notes.push("账号类型以 <b>" + escapeHtml(topAcc) + "</b> 最多，占 "+ (total ? Math.round(100 * st.accTotal[topAcc] / total) : 0) + "%（" + st.accTotal[topAcc] + " 条）。");
                                         let mtx = "<table><thead><tr><th>渠道</th>";
                                         st.types.forEach(function (t2) { mtx += "<th>" + escapeHtml(t2) + "</th>"; });
                                         mtx += "<th>合计</th></tr></thead><tbody>";
@@ -15082,6 +15223,21 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                                         mtx += "</tbody><tfoot><tr><th>合计</th>";
                                         st.types.forEach(function (t2) { mtx += "<td>" + (st.typeTotal[t2] || 0) + "</td>"; });
                                         mtx += "<td>" + total + "</td></tr></tfoot></table>";
+                                        let typeAccMtx = "<table><thead><tr><th>问题类型 ＼ 账号类型</th>";
+                                        const accCols = (st.accs || []).slice(0, 8);
+                                        accCols.forEach(function (a) { typeAccMtx += "<th>" + escapeHtml(a) + "</th>"; });
+                                        typeAccMtx += "<th>合计</th></tr></thead><tbody>";
+                                        (st.types || []).slice(0, 20).forEach(function (t2) {
+                                        typeAccMtx += "<tr><td>" + escapeHtml(t2) + "</td>";
+                                        accCols.forEach(function (a) {
+                                        const n = st.typeAcc ? (st.typeAcc[t2 + "\u0001" + a] || 0) : 0;
+                                        typeAccMtx += "<td>" + (n || "·") + "</td>";
+                                        });
+                                        typeAccMtx += "<td><b>" + (st.typeTotal[t2] || 0) + "</b></td></tr>";
+                                        });
+                                        typeAccMtx += "</tbody><tfoot><tr><th>合计</th>";
+                                        accCols.forEach(function (a) { typeAccMtx += "<td><b>" + (st.accTotal[a] || 0) + "</b></td>"; });
+                                        typeAccMtx += "<td><b>" + total + "</b></td></tr></tfoot></table>";
                                         let top3 = "<table><thead><tr><th>渠道</th><th>合计</th><th>Top 问题类型</th><th>Top1 占比</th></tr></thead><tbody>";
                                         st.channels.forEach(function (ch) {
                                             const list = st.types.map(function (t2) { return { t: t2, n: st.pair[ch + "\u0001" + t2] || 0 }; })
@@ -15127,9 +15283,11 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                                             + "</div>"
                                             + "<h2>关键结论</h2><ul class=\"notes\">" + notes.map(function (n) { return "<li>" + n + "</li>"; }).join("") + "</ul>"
                                             + "<h2>问题类型分布</h2>" + ovbizReportBars(st.typeTotal, total, maxType)
+                                        + "<h2>账号类型分布（问题类型·账号类型）</h2>" + ovbizReportBars(st.accTotal || {}, total, maxAcc)
                                             + "<h2>渠道分布</h2>" + ovbizReportBars(st.chTotal, total, maxCh)
                                             + "<h2>渠道 × 问题类型</h2>" + mtx
                                             + "<h2>每渠道 Top 问题</h2>" + top3
+                                        + "<h2>问题类型 × 账号类型</h2>" + typeAccMtx
                                             + "<h2>按天趋势</h2>" + trend
                                             + "<h2>地区分布</h2>" + ovbizReportBars(st.regionTotal, total, regMax)
                                             + '<div class="foot">由工作台「海外业务统计 → 问题分析」生成；导出的都是聚合结果（不含玩家问题原文）。</div>';
@@ -15158,6 +15316,23 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                                             lines.push([ch].concat(st.types.map(function (t2) { return st.pair[ch + "\u0001" + t2] || 0; })).concat([st.chTotal[ch] || 0]).join(","));
                                         });
                                         lines.push(["合计"].concat(st.types.map(function (t2) { return st.typeTotal[t2] || 0; })).concat([st.total]).join(","));
+                                        lines.push("");
+                                        lines.push("账号类型分布（问题类型·账号类型）");
+                                        lines.push("账号类型,条数,占比");
+                                        (st.accs || []).forEach(function (a) {
+                                        const n = st.accTotal[a] || 0;
+                                        lines.push([a, n, (st.total ? (100 * n / st.total).toFixed(1) : "0.0") + "%"].join(","));
+                                        });
+                                        lines.push("");
+                                        lines.push("问题类型×账号类型");
+                                        lines.push(["问题类型"].concat(st.accs || []).concat(["合计"]).join(","));
+                                        (st.types || []).forEach(function (t2) {
+                                        const cells = [t2];
+                                        (st.accs || []).forEach(function (a) { cells.push((st.typeAcc && st.typeAcc[t2 + "\u0001" + a]) || 0); });
+                                        cells.push(st.typeTotal[t2] || 0);
+                                        lines.push(cells.join(","));
+                                        });
+                                        lines.push(["合计"].concat((st.accs || []).map(function (a) { return st.accTotal[a] || 0; })).concat([st.total]).join(","));
                                         lines.push("");
                                         lines.push("按天趋势");
                                         lines.push(["日期", "总量"].concat(st.channels).join(","));
@@ -15248,6 +15423,7 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                                         }
                                         ovbizIssueRowsAll = p.rows;
                                         ovbizIssueRange = { mode: "all", from: "", to: "" };
+                                        ovbizIssueResetFilters();
                                         const exSel = document.getElementById("ovbizIssueExportRange");
                                         if (exSel) exSel.value = "follow";
                                         ovbizIssueFillSelects();
@@ -15290,6 +15466,7 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                                         ovbizIssueRawText = "";
                                         ovbizIssueSourceName = "";
                                         ovbizIssueRange = { mode: "all", from: "", to: "" };
+                                        ovbizIssueResetFilters();
                                         const exSel = document.getElementById("ovbizIssueExportRange");
                                         if (exSel) exSel.value = "follow";
                                         ovbizIssueClearLocal();
@@ -20015,6 +20192,10 @@ function thlRun() {
                                             };
                                             if (from) from.addEventListener('change', onPick);
                                             if (to) to.addEventListener('change', onPick);
+                                            ['ovbizIssueTypeSel', 'ovbizIssueAccSel'].forEach(function (id) {
+                                            const el = document.getElementById(id);
+                                            if (el) el.addEventListener('change', ovbizIssueOnFilter);
+                                            });
                                             const exRange = document.getElementById('ovbizIssueExportRange');
                                             if (exRange) exRange.addEventListener("change", ovbizIssueExportSay);
                                             // 2026-11 用户：问题分析的数据也像其他数据一样存本机，刷新后读回来

@@ -3597,6 +3597,55 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     check(/不支持下载|还没有数据/.test($('ovbizHint').textContent),
       '周报「📑 导出报表(HTML)」也有兜底', $('ovbizHint').textContent);
 
+    // 问题类型 / 问题类型（账号类型）两个筛选 + 账号类型分析（2026-11 用户要求）
+    $('ovbizIssueInput').value = [
+      '日期\t来访渠道\t问题类型\t问题类型（账号类型）',
+      '11月1日\tSDK\t游戏问题\t游客',
+      '11月1日\tSDK\t账号问题\tFB登录',
+      '11月2日\t邮件\t充值问题\t游客',
+    ].join('\n');
+    $('ovbizIssueRunBtn').click();
+    await sleep(120);
+    check(/认出 3 条/.test($('ovbizIssueHint').textContent) && /账号类型 2 类/.test($('ovbizIssueChips').textContent),
+      '换成带账号类型的样本：认出 3 条、账号类型 2 类', $('ovbizIssueChips').textContent);
+    check($('ovbizIssueTypeSel').options.length === 4 && $('ovbizIssueAccSel').options.length === 3,
+      '两个筛选下拉：问题类型 全部+3、账号类型 全部+2',
+      $('ovbizIssueTypeSel').options.length + '/' + $('ovbizIssueAccSel').options.length);
+    const accRows = [...$('ovbizIssueAcc').querySelectorAll('tbody tr')].map(tr => tr.textContent.replace(/\s+/g, ' '));
+    check(accRows.length === 2 && /游客/.test(accRows[0]) && /2/.test(accRows[0]) && /SDK/.test(accRows[0]),
+      '账号类型分布表：游客 2 条、主渠道 SDK', accRows.join(' | '));
+    const taHead = [...$('ovbizIssueTypeAcc').querySelectorAll('thead th')].map(th => th.textContent.trim());
+    check(taHead.length === 4 && taHead[0].indexOf('账号类型') >= 0 && taHead[3] === '合计',
+      '问题类型 × 账号类型：行=问题类型、列=账号类型 + 合计', taHead.join(' | '));
+    const typeSel = $('ovbizIssueTypeSel');
+    typeSel.value = '游戏问题';
+    fire(typeSel, 'change');
+    await sleep(60);
+    check(/共 1 条/.test($('ovbizIssueChips').textContent) && /筛选：问题类型 游戏问题，共 1 条/.test($('ovbizIssueHint').textContent),
+      '筛「问题类型 = 游戏问题」→ 只剩 1 条', $('ovbizIssueHint').textContent);
+    typeSel.value = 'all';
+    fire(typeSel, 'change');
+    const accSel = $('ovbizIssueAccSel');
+    accSel.value = '游客';
+    fire(accSel, 'change');
+    await sleep(60);
+    check(/共 2 条/.test($('ovbizIssueChips').textContent) && /账号类型 游客/.test($('ovbizIssueHint').textContent),
+      '筛「账号类型 = 游客」→ 2 条', $('ovbizIssueHint').textContent);
+    typeSel.value = '游戏问题';
+    fire(typeSel, 'change');
+    await sleep(60);
+    check(/共 1 条/.test($('ovbizIssueChips').textContent),
+      '两个筛选叠加（游戏问题 + 游客）→ 1 条', $('ovbizIssueChips').textContent);
+    $('ovbizIssueExportRange').value = 'all';
+    fire($('ovbizIssueExportRange'), 'change');
+    await sleep(60);
+    check(/导出范围：全部 · 问题类型 游戏问题 · 账号类型 游客，共 1 条/.test($('ovbizIssueHint').textContent),
+      '导出也带筛选口径', $('ovbizIssueHint').textContent);
+    typeSel.value = 'all';
+    fire(typeSel, 'change');
+    accSel.value = 'all';
+    fire(accSel, 'change');
+    await sleep(60);
     $('ovbizIssueClearBtn').click();
     await sleep(40);
     check($('ovbizIssueInput').value === '' && $('ovbizIssueMatrix').innerHTML === ''
