@@ -3496,6 +3496,14 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     await sleep(80);
     check(/认出 5 条（按表头对齐）/.test($('ovbizIssueHint').textContent),
       '认出 5 条（跨行引号字段算同一条，没有被拆成两条）', $('ovbizIssueHint').textContent);
+    check(/5 条 · 已存本机/.test($('ovbizIssueSource').textContent),
+      '来源芯片显示条数（已存本机）', $('ovbizIssueSource').textContent);
+    const issueSaved = (function () {
+      try { return JSON.parse(window.localStorage.getItem('ovbizIssueData') || 'null'); } catch (e) { return null; }
+    })();
+    check(!!issueSaved && issueSaved.idx.length === 5 && issueSaved.days.length === 3 && issueSaved.chs.length === 3,
+      '问题分析落进本机 localStorage（字典编码：5 行 / 3 天 / 3 渠道）',
+      issueSaved && (issueSaved.idx.length + ' 行 / ' + issueSaved.days.length + ' 天'));
     const chipsIssue = $('ovbizIssueChips').textContent;
     check(/共 5 条/.test(chipsIssue) && /渠道 3 个/.test(chipsIssue) && /问题类型 3 类/.test(chipsIssue) && /覆盖 3 天/.test(chipsIssue),
       '芯片：共 5 条 / 渠道 3 / 类型 3 / 覆盖 3 天', chipsIssue);
@@ -3594,6 +3602,8 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     check($('ovbizIssueInput').value === '' && $('ovbizIssueMatrix').innerHTML === ''
       && /已清空/.test($('ovbizIssueHint').textContent),
       '🧹 清空把输入和三张表都清掉', $('ovbizIssueHint').textContent);
+    check(window.localStorage.getItem('ovbizIssueData') === null && /还没数据/.test($('ovbizIssueSource').textContent),
+      '🧹 清空后本机那份也删了', $('ovbizIssueSource').textContent);
 
     $('ovbizIssueRunBtn').click();
     await sleep(40);
@@ -3601,6 +3611,25 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
       '空输入点分析只提示怎么粘', $('ovbizIssueHint').textContent);
     check(posts.length === postsIssue,
       '问题分析全程只在本机（0 请求）', posts.slice(postsIssue).map(p => p.url).join(' | '));
+
+    // 大文件：6MB 那种不往 textarea 里塞（会卡死），走内存 + 分片解析
+    const bigRows = [];
+    for (let i = 0; i < 9000; i++) bigRows.push((i % 3 === 0 ? '2026-11-01' : i % 3 === 1 ? '2026-11-02' : '2026-11-03') + '\t马来西亚\tSDK\t游戏问题');
+    const bigText = '日期\t来访地区\t来访渠道\t问题类型\n' + bigRows.join('\n');
+    const bigFile = new window.File([bigText], 'big-sdk.csv', { type: 'text/csv' });
+    Object.defineProperty($('ovbizIssueFile'), 'files', { value: [bigFile], configurable: true });
+    fire($('ovbizIssueFile'), 'change');
+    await sleep(1200);
+    check($('ovbizIssueInput').value === '' && /已导入 big-sdk\.csv/.test($('ovbizIssueInput').placeholder),
+      '大文件不塞进 textarea，只在 placeholder 里留一句说明', $('ovbizIssueInput').placeholder.slice(0, 40));
+    check(/认出 9000 条/.test($('ovbizIssueHint').textContent) && /共 9000 条/.test($('ovbizIssueChips').textContent),
+      '9000 行的 CSV 也认出来了（分片解析，页面没卡）', $('ovbizIssueHint').textContent);
+    const bigSaved = (function () {
+      try { return JSON.parse(window.localStorage.getItem('ovbizIssueData') || 'null'); } catch (e) { return null; }
+    })();
+    check(!!bigSaved && bigSaved.idx.length === 9000 && bigSaved.source === 'big-sdk.csv',
+      '9000 行也存进本机（字典编码后很小的体积）',
+      bigSaved && (bigSaved.idx.length + ' 行 / ' + JSON.stringify(bigSaved).length + ' 字节'));
   }
 
 

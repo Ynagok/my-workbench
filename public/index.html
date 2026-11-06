@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="x-build" content="2026-11-06 报表导出可筛时间范围">
+    <meta name="x-build" content="2026-11-07 统计页紧凑化 + 问题分析存本机">
     <title>客服冷静演绎工作台</title>
     <link rel="icon" type="image/gif" href="/my-icon.gif">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -4065,6 +4065,33 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
         .fb-all { border-radius: var(--r-pill) !important; }
         .theme-swatch, .theme-effect { border-radius: var(--r-md); }
         .career-rest-day { border-radius: var(--r-sm); }
+        /* ===== 统计页 · 紧凑化（2026-11 用户：「统计页的 UI 太冗杂了」） ===== */
+        #tab-career .card, #tab-overseas .card { margin-top: 10px; }
+        #tab-career .card > label, #tab-overseas .card > label { font-size: 13.5px; }
+        #tab-career .card > label .card-sub, #tab-overseas .card > label .card-sub { display: block; margin-top: 2px; }
+        #tab-career .card-sub, #tab-overseas .card-sub { font-size: 11px; }
+        .stats-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 9px;
+            padding: 7px 10px; background: var(--surface-2); border: 1px solid var(--line-0); border-radius: var(--r-md); }
+        .stats-toolbar .st-label { font-size: 11px; letter-spacing: .1em; color: var(--ink-3); min-width: 40px; }
+        .stats-toolbar > button, .stats-toolbar > label.secondary { font-size: 12.5px; padding: 4px 11px !important; letter-spacing: 0; }
+        .stats-toolbar select { height: 28px; font-size: 12.5px; padding: 3px 6px !important; }
+        .stats-toolbar .hint-text { margin: 0; font-size: 11.5px; }
+        .stats-toolbar .stat-fold { margin: 0; }
+        .stats-toolbar .stat-fold > summary { font-size: 11.5px; }
+        .seg-mini { display: inline-flex; gap: 4px; flex-wrap: wrap; }
+        .seg-mini > button { font-size: 12.5px; padding: 4px 12px !important; letter-spacing: 0;
+            border: 1px solid var(--line-1) !important; background: var(--surface) !important;
+            color: var(--ink-2) !important; border-radius: var(--r-pill) !important; }
+        .seg-mini > button:hover { border-color: var(--accent-line) !important; color: var(--accent-ink) !important; background: var(--surface) !important; }
+        .seg-mini > button.is-on { background: var(--accent) !important; border-color: var(--accent) !important; color: #0a0c0e !important; font-weight: 700; }
+        #tab-career .career-kpi-grid, #tab-overseas .career-kpi-grid { gap: 8px; margin-top: 10px !important; }
+        #tab-career .stat-chips, #tab-overseas .stat-chips { gap: 6px; margin-top: 8px; }
+        #tab-career .stat-chip, #tab-overseas .stat-chip { font-size: 11.5px; padding: 2px 9px; }
+        .issue-paste { margin-top: 9px; }
+        .issue-paste > summary { cursor: pointer; font-size: 12px; color: var(--ink-3); padding: 3px 0; }
+        .issue-paste > textarea { margin-top: 6px; }
+        #ovbizIssueCard > .flex-row > label { font-size: 13.5px; }
+
 </style>
 </head>
 
@@ -4829,7 +4856,8 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                     </div>
                 </details>
                 <textarea id="ovbizPasteArea" rows="7" placeholder="日期,人员,班次,异世界群维系,（繁花+乐缤纷+梦幻）群维系,…&#10;2026/1/1,陈智锋,,0,35,,11,5,1,1,,,13,19,85,"></textarea>
-                <div class="flex-row" style="margin-top: 10px;">
+                <div class="stats-toolbar" style="margin-top: 10px;">
+                    <span class="st-label">处理</span>
                     <button id="ovbizImportBtn">📥 解析导入</button>
                     <button id="ovbizImportNewBtn" class="secondary">📌 只导入新日期</button>
                     <button id="ovbizExportBtn" class="secondary">📊 导出CSV</button>
@@ -4889,25 +4917,49 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
             </div>
 
             <div class="card" id="ovbizIssueCard" data-seg-card="issue">
-                <label>🔎 问题分析 <span class="card-sub">粘贴 / 导入「…SDK和邮件回复.csv」→ 各渠道 × 各问题类型的量与按天趋势</span></label>
+                <div class="flex-row" style="justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap;">
+                    <label style="margin:0;">📊 问题分析
+                        <span class="card-sub">粘 / 导入后台的「…SDK和邮件回复.csv」→ 渠道 × 问题类型 × 按天趋势</span>
+                    </label>
+                    <span class="hint-text" id="ovbizIssueSource" style="margin:0;">还没数据</span>
+                </div>
                 <details class="stat-fold">
                     <summary>粘什么 / 怎么算 / 存哪</summary>
                     <div>
-                        一行 = 一条来信：<b>日期 · 来访地区 · 来访渠道 · 问题类型 · 问题类型（账号类型）</b>，后面的 工单号 / 玩家问题 / 回复内容 / 备注 不参与统计（多出来的空列会自动忽略）。<br>
+                        一行 = 一条来信：<b>日期 · 来访地区 · 来访渠道 · 问题类型 · 问题类型（账号类型）</b>，后面的 工单号 / 玩家问题 / 回复内容 / 备注 不参与统计（多出来的空列自动忽略）。<br>
                         「问题类型」为空时用「问题类型（账号类型）」兜底，都空算「(未填)」；渠道为空也记「(未填)」。<br>
                         日期认 <b>11月1日</b> / 2026-11-01 / 11-01 / 11/1 这几种写法。<br>
-                        <b>只在内存里算，不存本机、不上服务端</b>：刷新就没了，要留证据自己截图。
+                        <b>只看这台设备</b>：导入后压缩存进浏览器本机（不上服务端、不同步），刷新还在；换设备就重新导一次。
                     </div>
                 </details>
-                <textarea id="ovbizIssueInput" rows="8" placeholder="日期&#9;来访地区&#9;来访渠道&#9;问题类型&#9;问题类型（账号类型）&#9;工单号&#9;玩家问题&#9;回复内容&#10;11月1日&#9;马来西亚&#9;SDK&#9;游戏问题&#9;&#9;&#9;礼包码在哪里输入？&#9;…"></textarea>
-                <div class="flex-row" style="margin-top:10px;">
+                <div class="stats-toolbar">
+                    <span class="st-label">数据</span>
                     <button id="ovbizIssueRunBtn">🔎 分析</button>
                     <label class="secondary" for="ovbizIssueFile" style="cursor:pointer; margin:0;">📥 导入 CSV</label>
                     <input type="file" id="ovbizIssueFile" accept=".csv,.txt,text/csv" style="display:none;">
-                    <button id="ovbizIssueExportBtn">📊 导出报表</button>
-                    <button id="ovbizIssueExportCsvBtn" class="secondary">📄 导出聚合CSV</button>
-                    <span class="hint-text" style="margin:0;">导出范围：</span>
-                    <select id="ovbizIssueExportRange" style="min-width:150px;">
+                    <button id="ovbizIssueClearBtn" class="reset-btn">🧹 清空</button>
+                    <span class="hint-text" id="ovbizIssueHint" style="margin:0;"></span>
+                </div>
+                <details class="issue-paste">
+                    <summary>✍️ 或者直接贴一段文本（几万行以内都行）</summary>
+                    <textarea id="ovbizIssueInput" rows="6" placeholder="日期&#9;来访地区&#9;来访渠道&#9;问题类型&#9;问题类型（账号类型）&#9;工单号&#9;玩家问题&#9;回复内容&#10;11月1日&#9;马来西亚&#9;SDK&#9;游戏问题&#9;&#9;&#9;礼包码在哪里输入？&#9;…"></textarea>
+                </details>
+                <div class="stats-toolbar">
+                    <span class="st-label">范围</span>
+                    <span class="seg-mini">
+                        <button id="ovbizIssueRangeAll" class="is-on">全部</button>
+                        <button id="ovbizIssueRange7">近 7 天</button>
+                        <button id="ovbizIssueRange30">近 30 天</button>
+                        <button id="ovbizIssueRange90">近 90 天</button>
+                    </span>
+                    <select id="ovbizIssueFrom" style="min-width:104px;"></select>
+                    <span class="hint-text" style="margin:0;">~</span>
+                    <select id="ovbizIssueTo" style="min-width:104px;"></select>
+                    <span class="hint-text" id="ovbizIssueRangeHint" style="margin:0;"></span>
+                </div>
+                <div class="stats-toolbar">
+                    <span class="st-label">导出</span>
+                    <select id="ovbizIssueExportRange" style="min-width:140px;">
                         <option value="follow">跟随上面的筛选</option>
                         <option value="all">全部</option>
                         <option value="last7">近 7 天</option>
@@ -4915,24 +4967,11 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                         <option value="last90">近 90 天</option>
                         <option value="custom">自定义（取上面的起止）</option>
                     </select>
-                    <button id="ovbizIssueClearBtn" class="reset-btn">🧹 清空分析</button>
-                    <span class="hint-text" id="ovbizIssueHint"></span>
+                    <button id="ovbizIssueExportBtn">📊 导出报表</button>
+                    <button id="ovbizIssueExportCsvBtn" class="secondary">📄 聚合CSV</button>
                 </div>
-                <div class="flex-row" style="margin-top:10px; flex-wrap:wrap; gap:8px; align-items:center;">
-                    <span class="hint-text" style="margin:0;">时间范围：</span>
-                    <button id="ovbizIssueRangeAll" class="secondary is-on">全部</button>
-                    <button id="ovbizIssueRange7" class="secondary">近 7 天</button>
-                    <button id="ovbizIssueRange30" class="secondary">近 30 天</button>
-                    <button id="ovbizIssueRange90" class="secondary">近 90 天</button>
-                    <span class="hint-text" style="margin:0;">自定义：</span>
-                    <select id="ovbizIssueFrom" style="min-width:110px;"></select>
-                    <span class="hint-text" style="margin:0;">~</span>
-                    <select id="ovbizIssueTo" style="min-width:110px;"></select>
-                    <span class="hint-text" id="ovbizIssueRangeHint" style="margin:0;"></span>
-                </div>
-                <div class="stat-chips" id="ovbizIssueChips" style="margin-top:8px;"></div>
+                <div class="stat-chips" id="ovbizIssueChips" style="margin-top:10px;"></div>
             </div>
-
             <div class="card" id="ovbizIssueMatrixCard" data-seg-card="issue">
                 <label>🧮 渠道 × 问题类型 <span class="card-sub">行 = 渠道，列 = 问题类型（按总量降序，最多 12 列）</span></label>
                 <div class="career-scroll" style="margin-top:10px; max-height:420px;"><table class="career-table" id="ovbizIssueMatrix"></table></div>
@@ -14522,6 +14561,11 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                                     let ovbizIssueLast = null;
                                     let ovbizIssueRowsAll = null;   // 解析出来的全部行（切范围时只过滤它，不重新解析）
                                     let ovbizIssueRange = { mode: "all", from: "", to: "" };
+                                    let ovbizIssueRawText = "";        // 大文件不塞 textarea（6MB 文本会把输入框拖死），只放内存
+                                    let ovbizIssueSourceName = "";     // 数据来自哪个文件（提示用）
+                                    let ovbizIssueRunning = false;
+                                    const OVBIZ_ISSUE_STORE = "ovbizIssueData";
+                                    const OVBIZ_ISSUE_PLACEHOLDER = "日期\t来访地区\t来访渠道\t问题类型\t问题类型（账号类型）\t工单号\t玩家问题\t回复内容";
                                     function ovbizIssueSetHint(msg) {
                                         const el = document.getElementById("ovbizIssueHint");
                                         if (el) el.textContent = msg || "";
@@ -14572,26 +14616,121 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                                         return rows.filter(function (r) { return r.some(function (c) { return String(c).trim(); }); });
                                     }
                                     // 一段文本 → { rows, hasHeader }（一行一条来信）
-                                    function ovbizIssueParse(text) {
-                                        const grid = ovbizIssueGrid(text);
-                                        if (!grid.length) return { rows: [], hasHeader: false };
+                                                                        function ovbizIssueParse(text) {
+                                        return ovbizIssueRowsFromGrid(ovbizIssueGrid(text));
+                                        }
+                                        // 二维表 → { rows, hasHeader }（一行一条来信）
+                                        function ovbizIssueRowsFromGrid(grid) {
+                                        if (!grid || !grid.length) return { rows: [], hasHeader: false };
                                         const head = grid[0].map(function (c) { return String(c).trim(); });
                                         const idx = ovbizIssueIndex(head);
                                         const hasHeader = idx.date >= 0 || idx.channel >= 0 || idx.type >= 0;
                                         const rows = [];
                                         for (let i = hasHeader ? 1 : 0; i < grid.length; i++) {
-                                            const cells = grid[i].map(function (c) { return String(c).trim(); });
-                                            if (!cells.length) continue;
-                                            const day = ovbizIssueDate(idx.date >= 0 ? cells[idx.date] : cells[0]);
-                                            const channel = String((idx.channel >= 0 ? cells[idx.channel] : "") || "").trim() || OVBIZ_ISSUE_EMPTY;
-                                            let type = String((idx.type >= 0 ? cells[idx.type] : "") || "").trim();
-                                            if (!type && idx.accType >= 0) type = String(cells[idx.accType] || "").trim();
-                                            if (!type) type = OVBIZ_ISSUE_EMPTY;
-                                            const region = String((idx.region >= 0 ? cells[idx.region] : "") || "").trim() || OVBIZ_ISSUE_EMPTY;
-                                            rows.push({ day: day, channel: channel, type: type, region: region });
+                                        const cells = grid[i].map(function (c) { return String(c).trim(); });
+                                        if (!cells.length) continue;
+                                        const day = ovbizIssueDate(idx.date >= 0 ? cells[idx.date] : cells[0]);
+                                        const channel = String((idx.channel >= 0 ? cells[idx.channel] : "") || "").trim() || OVBIZ_ISSUE_EMPTY;
+                                        let type = String((idx.type >= 0 ? cells[idx.type] : "") || "").trim();
+                                        if (!type && idx.accType >= 0) type = String(cells[idx.accType] || "").trim();
+                                        if (!type) type = OVBIZ_ISSUE_EMPTY;
+                                        const region = String((idx.region >= 0 ? cells[idx.region] : "") || "").trim() || OVBIZ_ISSUE_EMPTY;
+                                        rows.push({ day: day, channel: channel, type: type, region: region });
                                         }
                                         return { rows: rows, hasHeader: hasHeader };
-                                    }
+                                        }
+                                                                        // 整段 CSV 分片扫描（每片 ~256K 字符就让出主线程，17.8k 行 / 6MB 也不会卡死页面）
+                                        function ovbizIssueGridChunked(text, onProgress) {
+                                        return new Promise(function (resolve) {
+                                        const s = String(text == null ? "" : text).replace(/\r\n?/g, "\n");
+                                        const firstLine = s.split("\n", 1)[0] || "";
+                                        const delim = firstLine.indexOf("\t") !== -1 ? "\t" : ",";
+                                        const rows = [];
+                                        let cur = [], field = "", q = false, i = 0;
+                                        const CHUNK = 1 << 18;
+                                        const step = function () {
+                                        const end = Math.min(s.length, i + CHUNK);
+                                        for (; i < end; i++) {
+                                        const ch = s[i];
+                                        if (q) {
+                                        if (ch === '"') {
+                                        if (s[i + 1] === '"') { field += '"'; i++; } else q = false;
+                                        } else field += ch;
+                                        } else if (ch === '"') q = true;
+                                        else if (ch === delim) { cur.push(field); field = ""; }
+                                        else if (ch === "\n") { cur.push(field); rows.push(cur); cur = []; field = ""; }
+                                        else field += ch;
+                                        }
+                                        if (onProgress) onProgress(i, s.length, rows.length);
+                                        if (i < s.length) { setTimeout(step, 0); return; }
+                                        if (field.length || cur.length) { cur.push(field); rows.push(cur); }
+                                        resolve(rows.filter(function (r) { return r.some(function (c) { return String(c).trim(); }); }));
+                                        };
+                                        step();
+                                        });
+                                        }
+                                        function ovbizIssueParseAsync(text, onProgress) {
+                                        return ovbizIssueGridChunked(text, onProgress).then(function (grid) {
+                                        return ovbizIssueRowsFromGrid(grid);
+                                        });
+                                        }
+                                        // ---- 存本机：字典编码（日期 / 渠道 / 类型 / 地区各一份字典 + 四元组下标），17.8k 行约 300KB ----
+                                        function ovbizIssueSaveLocal(rows, source) {
+                                        if (!rows || !rows.length) return "";
+                                        try {
+                                        const days = [], chs = [], tys = [], rgs = [];
+                                        const di = {}, ci = {}, ti = {}, ri = {};
+                                        const pick = function (arr, map, v) {
+                                        if (map[v] === undefined) { map[v] = arr.length; arr.push(v); }
+                                        return map[v];
+                                        };
+                                        const idx = rows.map(function (r) {
+                                        return [pick(days, di, r.day.key), pick(chs, ci, r.channel), pick(tys, ti, r.type), pick(rgs, ri, r.region)];
+                                        });
+                                        window.localStorage.setItem(OVBIZ_ISSUE_STORE, JSON.stringify({
+                                        v: 1, at: Date.now(), source: String(source || "").slice(0, 120),
+                                        days: days, chs: chs, tys: tys, rgs: rgs, idx: idx,
+                                        }));
+                                        return "";
+                                        } catch (e) {
+                                        return "存本机失败（数据太大 / 空间不够）：" + ((e && e.message) || e);
+                                        }
+                                        }
+                                        function ovbizIssueLoadLocal() {
+                                        try {
+                                        const raw = window.localStorage.getItem(OVBIZ_ISSUE_STORE);
+                                        if (!raw) return null;
+                                        const o = JSON.parse(raw);
+                                        if (!o || !o.idx || !o.idx.length || !o.days) return null;
+                                        const rows = o.idx.map(function (a) {
+                                        const key = o.days[a[0]];
+                                        return { day: { key: key, label: ovbizIssueDayLabel(key) }, channel: o.chs[a[1]], type: o.tys[a[2]], region: o.rgs[a[3]] };
+                                        });
+                                        return { rows: rows, at: o.at || 0, source: o.source || "" };
+                                        } catch (e) { return null; }
+                                        }
+                                        function ovbizIssueClearLocal() {
+                                        try { window.localStorage.removeItem(OVBIZ_ISSUE_STORE); } catch (e) { }
+                                        }
+                                        function ovbizIssuePaintSource() {
+                                        const el = document.getElementById("ovbizIssueSource");
+                                        if (!el) return;
+                                        if (!ovbizIssueRowsAll) { el.textContent = "还没数据"; return; }
+                                        el.textContent = (ovbizIssueSourceName ? ovbizIssueSourceName + " · " : "") + ovbizIssueRowsAll.length + " 条 · 已存本机";
+                                        }
+                                        // 打开页面时把上次那份读回来（只本机，不上服务端）
+                                        function ovbizIssueRestore() {
+                                        const saved = ovbizIssueLoadLocal();
+                                        if (!saved) { ovbizIssuePaintSource(); return false; }
+                                        ovbizIssueRowsAll = saved.rows;
+                                        ovbizIssueSourceName = saved.source || "";
+                                        ovbizIssueRange = { mode: "all", from: "", to: "" };
+                                        ovbizIssueFillSelects();
+                                        ovbizIssueRefilter();
+                                        ovbizIssuePaintSource();
+                                        ovbizIssueSetHint("已载入本机保存的 " + saved.rows.length + " 条" + (saved.source ? "（" + saved.source + "）" : "") + "，切范围 / 导出直接用");
+                                        return true;
+                                        }
                                     function ovbizIssueAnalyze(rows) {
                                         const chTotal = {}, typeTotal = {}, dayTotal = {}, dayCh = {}, pair = {}, regionTotal = {};
                                         rows.forEach(function (r) {
@@ -15085,53 +15224,81 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                                     }
 
                                     function ovbizIssueRun() {
+                                        if (ovbizIssueRunning) return null;
                                         const ta = document.getElementById("ovbizIssueInput");
-                                        const raw = (ta && ta.value) || "";
+                                        const typed = (ta && ta.value) || "";
+                                        const raw = String(typed.trim() ? typed : ovbizIssueRawText || "");
                                         if (!raw.trim()) {
-                                            ovbizIssueLast = null;
-                                            ovbizIssueRender(null);
-                                            ovbizIssueSetHint("先把「…SDK和邮件回复.csv」粘进来，或点「📥 导入 CSV」");
-                                            return null;
+                                        ovbizIssueLast = null;
+                                        ovbizIssueRender(null);
+                                        ovbizIssueSetHint("先把「…SDK和邮件回复.csv」粘进来，或点「📥 导入 CSV」");
+                                        return null;
                                         }
-                                        const p = ovbizIssueParse(raw);
+                                        ovbizIssueRunning = true;
+                                        ovbizIssueSetHint("解析中…（分片跑，页面不会卡）");
+                                        ovbizIssueParseAsync(raw, function (done, total, n) {
+                                        ovbizIssueSetHint("解析中 " + Math.round(100 * done / Math.max(1, total)) + "%（已读 " + n + " 行）");
+                                        }).then(function (p) {
+                                        ovbizIssueRunning = false;
                                         if (!p.rows.length) {
-                                            ovbizIssueLast = null;
-                                            ovbizIssueRender(null);
-                                            ovbizIssueSetHint("没认出数据：一行至少要有「日期 + 渠道」或「日期 + 问题类型」");
-                                            return null;
+                                        ovbizIssueLast = null;
+                                        ovbizIssueRender(null);
+                                        ovbizIssueSetHint("没认出数据：一行至少要有「日期 + 渠道」或「日期 + 问题类型」");
+                                        return;
                                         }
                                         ovbizIssueRowsAll = p.rows;
                                         ovbizIssueRange = { mode: "all", from: "", to: "" };
                                         const exSel = document.getElementById("ovbizIssueExportRange");
                                         if (exSel) exSel.value = "follow";
                                         ovbizIssueFillSelects();
-                                        const st = ovbizIssueRefilter();
-                                        ovbizIssueSetHint("认出 " + p.rows.length + " 条" + (p.hasHeader ? "（按表头对齐）" : "（没表头，按列序猜的）"));
-                                        return st;
-                                    }
+                                        ovbizIssueRefilter();
+                                        const saveErr = ovbizIssueSaveLocal(p.rows, ovbizIssueSourceName);
+                                        ovbizIssuePaintSource();
+                                        ovbizIssueSetHint("认出 " + p.rows.length + " 条" + (p.hasHeader ? "（按表头对齐）" : "（没表头，按列序猜的）") + (saveErr || "；已存本机，刷新后还在"));
+                                        });
+                                        return null;
+                                        }
                                     function ovbizIssueImportFile(file) {
                                         if (!file) return;
                                         const reader = new FileReader();
                                         reader.onload = function () {
-                                            const ta = document.getElementById("ovbizIssueInput");
-                                            if (ta) ta.value = String(reader.result || "");
-                                            ovbizIssueRun();
+                                        const text = String(reader.result || "");
+                                        const ta = document.getElementById("ovbizIssueInput");
+                                        ovbizIssueSourceName = file.name || "";
+                                        if (text.length > 200000) {
+                                        // 6MB 文本塞进 textarea 会直接拖死页面：只放内存，输入框留个说明
+                                        ovbizIssueRawText = text;
+                                        if (ta) {
+                                        ta.value = "";
+                                        ta.placeholder = "已导入 " + (file.name || "CSV") + "（" + (text.length / 1024 / 1024).toFixed(1) + " MB）—— 不用再粘，点「🔎 分析」即可";
+                                        }
+                                        } else {
+                                        ovbizIssueRawText = text;
+                                        if (ta) ta.value = text;
+                                        }
+                                        ovbizIssueSetHint("已读入 " + (file.name || "文件") + "（" + (text.length / 1024 / 1024).toFixed(1) + " MB），开始解析…");
+                                        ovbizIssueRun();
                                         };
                                         reader.onerror = function () { ovbizIssueSetHint("读这个文件失败"); };
                                         reader.readAsText(file, "utf-8");
-                                    }
+                                        }
                                     function ovbizIssueClear() {
                                         const ta = document.getElementById("ovbizIssueInput");
-                                        if (ta) ta.value = "";
+                                        if (ta) { ta.value = ""; ta.placeholder = OVBIZ_ISSUE_PLACEHOLDER; }
                                         ovbizIssueLast = null;
                                         ovbizIssueRowsAll = null;
+                                        ovbizIssueRawText = "";
+                                        ovbizIssueSourceName = "";
                                         ovbizIssueRange = { mode: "all", from: "", to: "" };
+                                        const exSel = document.getElementById("ovbizIssueExportRange");
+                                        if (exSel) exSel.value = "follow";
+                                        ovbizIssueClearLocal();
                                         ovbizIssueFillSelects();
                                         ovbizIssueRangePaint();
                                         ovbizIssueRender(null);
-                                        ovbizIssueSetHint("已清空（分析只在内存里，本来就没存）");
-                                    }
-
+                                        ovbizIssuePaintSource();
+                                        ovbizIssueSetHint("已清空（本机存的那份也删了）");
+                                        }
                                     function ovbizDetailValue(day, sel) {
                                         if (!sel || sel === 'all') return day.total || 0;
                                         return (day.items && day.items[sel]) || 0;
@@ -19850,6 +20017,8 @@ function thlRun() {
                                             if (to) to.addEventListener('change', onPick);
                                             const exRange = document.getElementById('ovbizIssueExportRange');
                                             if (exRange) exRange.addEventListener("change", ovbizIssueExportSay);
+                                            // 2026-11 用户：问题分析的数据也像其他数据一样存本机，刷新后读回来
+                                            ovbizIssueRestore();
                                         })();
                                         setClick('ovbizIssueClearBtn', ovbizIssueClear);
                                         (function () {
