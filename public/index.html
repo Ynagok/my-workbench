@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="x-build" content="2026-11-06 活动查询-v31-涂色去书名页+放大">
+    <meta name="x-build" content="2026-11-06 活动查询-v32-涂色去掉导入图片">
     <title>客服冷静演绎工作台</title>
     <link rel="icon" type="image/gif" href="/my-icon.gif">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -5064,14 +5064,11 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                 </div>
                 <div class="color-stage" id="coloringStage"></div>
                 <div class="flex-row" style="margin-top:10px; flex-wrap:wrap; gap:8px;">
-                    <label class="secondary" for="coloringImgInput" style="cursor:pointer; margin:0;">📥 导入图片（PNG / JPG，截图也行）</label>
-                    <input type="file" id="coloringImgInput" accept="image/*" style="display:none;">
-                    <button id="coloringBackBtn" class="secondary" style="display:none;">↩️ 回到内置线稿</button>
-                    <span class="hint-text" id="coloringImgHint" style="margin:0;">导入后点哪儿填哪儿 —— 跟 Anycolor 一样是位图填充，黑线自动当边界（画布 1200×1200，放大着涂）</span>
+                    <span class="hint-text" id="coloringImgHint" style="margin:0;">选一张图 → 点哪儿填哪儿（跟 Anycolor 一样是位图填充，黑线自动当边界；画布 1200×1200）</span>
                 </div>
                 <canvas id="coloringCanvas" width="1200" height="1200" style="display:none; width:100%; max-width:780px; margin-top:10px; background:#fff; border:1px solid var(--line-1); border-radius: var(--r-md); cursor: crosshair;"></canvas>
                 <p class="hint-text" style="margin:8px 0 0;">
-                    💡 跟 Anycolor 一样：点画面里的空白区域就填上当前颜色；小区域不好点就切「橡皮」再点回来，或者用撤销/重做慢慢调。想涂别的图，用「📥 导入图片」。
+                    💡 跟 Anycolor 一样：点画面里的空白区域就填上当前颜色；小区域不好点就切「橡皮」再点回来，或者用撤销/重做慢慢调。想涂哪张就在上面「📚 内置图库」里点。
                 </p>
             </div>
             </div><!-- /sub-panel-color -->
@@ -17538,10 +17535,8 @@ function coloringImgSetHint(msg) {
 function coloringImgModeOn(on) {
     const cv = document.getElementById("coloringCanvas");
     const stage = document.getElementById("coloringStage");
-    const back = document.getElementById("coloringBackBtn");
     if (cv) cv.style.display = on ? "" : "none";
     if (stage) stage.style.display = on ? "none" : "";
-    if (back) back.style.display = on ? "" : "none";
 }
 function coloringImgDrawBase() {
     const cv = document.getElementById("coloringCanvas");
@@ -17657,25 +17652,6 @@ function coloringOpenLibPic(slug) {
     img.src = it.file;
 }
 
-function coloringImgImport(file) {
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = function () {
-        const img = new Image();
-        img.onload = function () {
-            coloringImgEl = img;
-            coloringImgUndo = [];
-            coloringImgRedo = [];
-            coloringImgModeOn(true);
-            if (!coloringImgDrawBase()) return;
-            coloringImgSetHint("已导入「" + (file.name || "图片") + "」：点哪儿填哪儿（黑线自动当边界）");
-        };
-        img.onerror = function () { coloringImgSetHint("这张图读不出来，换一张试试"); };
-        img.src = String(reader.result || "");
-    };
-    reader.onerror = function () { coloringImgSetHint("读这个文件失败"); };
-    reader.readAsDataURL(file);
-}
 function coloringImgUndoStep() {
     const cv = document.getElementById("coloringCanvas");
     const ctx = coloringCanvasCtx();
@@ -17779,15 +17755,6 @@ function coloringDownloadStep() {
 }
 function coloringInit() {
     coloringLoadLibrary();
-    const imgInput = document.getElementById("coloringImgInput");
-    if (imgInput && !imgInput.dataset.bound) {
-        imgInput.dataset.bound = "1";
-        imgInput.addEventListener("change", function () {
-            const f = imgInput.files && imgInput.files[0];
-            coloringImgImport(f);
-            imgInput.value = "";
-        });
-    }
     const cv = document.getElementById("coloringCanvas");
     if (cv && !cv.dataset.bound) {
         cv.dataset.bound = "1";
@@ -17798,17 +17765,6 @@ function coloringInit() {
             const px = Math.floor((e.clientX - (r ? r.left : 0)) * cv.width / rw);
             const py = Math.floor((e.clientY - (r ? r.top : 0)) * cv.height / rh);
             coloringImgFill(px, py);
-        });
-    }
-    const back = document.getElementById("coloringBackBtn");
-    if (back && !back.dataset.bound) {
-        back.dataset.bound = "1";
-        back.addEventListener("click", function () {
-            coloringImgEl = null;
-            coloringImgUndo = [];
-            coloringImgRedo = [];
-            coloringImgModeOn(false);
-            coloringImgSetHint("回到内置线稿了");
         });
     }
     coloringRenderPics();

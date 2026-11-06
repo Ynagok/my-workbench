@@ -3402,13 +3402,13 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
       '镜像解析全程只在本机（0 请求）', posts.slice(posts8z).map(p => p.url).join(' | '));
   }
 
-  console.log('--- 8z-2. 涂色游戏（Anycolor 玩法：内置图库 / 导入图片 / 位图填充）---');
+  console.log('--- 8z-2. 涂色游戏（Anycolor 玩法：内置图库 + 位图填充）---');
   {
     const posts9 = posts.length;
     doc.querySelector('.tab-btn[data-tab="script"]').click();
     await sleep(80);
-    check(!!$('coloringCard') && !!$('coloringPics') && !!$('coloringPalette') && !!$('coloringCanvas') && !!$('coloringImgInput'),
-      '小游戏页有「🎨 涂色游戏」卡（图库 / 调色板 / 画布 / 导入入口都在）');
+    check(!!$('coloringCard') && !!$('coloringPics') && !!$('coloringPalette') && !!$('coloringCanvas') && !!$('coloringHint'),
+      '小游戏页有「🎨 涂色游戏」卡（图库 / 调色板 / 画布都在）');
     const colorTab = doc.querySelector('#tab-script .sub-tab[data-sub="color"]');
     check(!!colorTab && /涂色/.test(colorTab.textContent) && !$('sub-panel-color').classList.contains('active'),
       '涂色游戏是小游戏里的**独立子页**（第三个 sub-tab，默认没展开）', colorTab && colorTab.textContent);
@@ -3453,18 +3453,17 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     await sleep(30);
     check(/没有可下载的图|不支持下载/.test($('coloringHint').textContent), '没有图时点下载只提示', $('coloringHint').textContent);
 
-    // 导入图片（位图模式）的入口还在
-    check($('coloringImgInput').getAttribute('accept') === 'image/*' && $('coloringCanvas').getAttribute('width') === '1200'
-      && $('coloringBackBtn').style.display === 'none',
-      '「📥 导入图片」入口在（accept=image/*、画布 600、回到内置线稿默认收起）');
+    // 「导入图片」按用户要求删掉了，只留内置图库
+    check(!$('coloringImgInput') && !$('coloringBackBtn'),
+      '「📥 导入图片」入口已经删掉（没有 file input，也没有「回到内置线稿」）');
+    check($('coloringCanvas').getAttribute('width') === '1200'
+      && /max-width:\s*780px/.test($('coloringCanvas').getAttribute('style') || ''),
+      '画布 1200×1200、显示最宽 780px（放大着涂）', $('coloringCanvas').getAttribute('style'));
     const hintBefore = $('coloringImgHint').textContent;
     $('coloringCanvas').dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
     await sleep(30);
     check($('coloringImgHint').textContent === hintBefore,
-      '没导入图片时点画布什么都不做（不去碰 canvas 2d，jsdom 里也不会报 Not implemented）');
-    $('coloringBackBtn').click();
-    await sleep(30);
-    check(/回到内置线稿了/.test($('coloringImgHint').textContent), '「回到内置线稿」能切回去', $('coloringImgHint').textContent);
+      '还没选图时点画布什么都不做（jsdom 里没 canvas 2d 也不会报 Not implemented）', $('coloringImgHint').textContent);
 
     check(posts.slice(posts9).every(p => /coloring\/manifest\.json/.test(String(p.url))),
       '涂色这页只请求自己的 manifest，别的都不发', posts.slice(posts9).map(p => p.url).join(' | '));

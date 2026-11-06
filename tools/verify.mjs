@@ -942,7 +942,9 @@ ok(/const SD_SCHEDULE = \[/.test(s)
 ok(/data-sub="color">🎨 涂色</.test(s) && /id="sub-panel-color"/.test(s)
   && /id="coloringCard"/.test(s) && /id="coloringPalette"/.test(s) && /id="coloringPics"/.test(s)
   && /id="coloringCustomColor"/.test(s) && /id="coloringCanvas"/.test(s)
-  && /id="coloringImgInput"/.test(s) && /id="coloringBackBtn"/.test(s)
+  // 2026-11 用户：「导入图片的不用了」→ 入口整个删掉，只留内置图库
+  && !/id="coloringImgInput"/.test(s) && !/id="coloringBackBtn"/.test(s)
+  && !/function coloringImgImport\(file\)/.test(s) && !/导入图片/.test(s.slice(s.indexOf('id="coloringCard"'), s.indexOf('id="coloringCard"') + 3000))
   && /const COLORING_PALETTE = \[/.test(s)
   // 2026-11 用户：「将原来的图去掉，内置这几本书里的线稿图」→ 手画的几何线稿整段删除
   && /const COLORING_PICS = \[\]/.test(s)
@@ -957,14 +959,14 @@ ok(/data-sub="color">🎨 涂色</.test(s) && /id="sub-panel-color"/.test(s)
   && /"coloring:manifest": "node tools\/coloring-manifest\.mjs"/.test(fs.readFileSync('package.json', 'utf8'))
   // 位图模式（导入图片 / 图库点开都是它）
   && /const COLORING_FILL_TOL = \d+/.test(s)
-  && /function coloringImgFill\(px, py\)/.test(s) && /function coloringImgImport\(file\)/.test(s)
+  && /function coloringImgFill\(px, py\)/.test(s)
   && /function coloringImgDrawBase\(\)/.test(s) && /function coloringImgModeOn\(on\)/.test(s)
   && /if \(coloringImgEl\) \{ coloringImgUndoStep\(\); return; \}/.test(s)
   && /\.color-pics \.color-tier/.test(s),
   '小游戏页的「🎨 涂色游戏」是小游戏里的独立子页（data-sub="color" → #sub-panel-color）：'
   + '图都来自三本涂色书（public/coloring/ 的 36 张页 + manifest.json，点一张铺到 canvas 走位图填充），'
   + '原来手画的几何线稿（COLORING_MORE / COLORING_HEAVY / 三杯分档）已整段删除；'
-  + '另外可以「📥 导入图片」（PNG / JPG）走同一套 flood fill（黑线当边界）；14 色调色板 + 橡皮 / 撤销 / 重做 / 清空 / 下载，状态只在本机');
+  + '点开的图铺到 1200×1200 画布上走 flood fill（黑线当边界）；14 色调色板 + 橡皮 / 撤销 / 重做 / 清空 / 下载，状态只在本机（**「📥 导入图片」入口按用户要求删掉了**）');
 ok(/data-seg="tanghulu" data-n="01">糖葫芦对决</.test(s) && /id="genTanghuluPane"/.test(s)
   && /id="thlInput"/.test(s) && /id="thlParseBtn"/.test(s) && /id="thlOutput"/.test(s) && /id="thlChips"/.test(s)
   && /const THL_BEHAVIOR_TEXT = \{ '1': '匹配', '2': '结算', '3': '进度' \};/.test(s)

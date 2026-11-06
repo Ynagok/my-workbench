@@ -399,32 +399,12 @@ npm run verify     # 改完代码、push 前的完整自检
   - **怎么挑页（`tools/out/build-coloring-from-pdf.mjs`，临时脚本没入库）**：sharp 缩 320px 算指标 —— 墨迹占比（`lum<200`，3%–50%）、彩色占比（≤10%）、**4×4 格子墨迹离散度**（文字页只有几格有墨，`spread>1.05` 甩掉）、空白格 ≤4；再跳过前 6 页（封面 / 版权 / 前言）和 `EXCLUDE` 里那几页。
   - **sharp 是临时装的**（`npm i sharp --no-save`，没进 `package.json`）：重抽图时再装一次，抽完可以删。
   - 图库读取：`coloringLoadLibrary()` 异步取 `coloring/manifest.json` → `coloringRenderPics()` 只渲染这一组；一张都没有时显示「内置图库还空着：把图片放进 public/coloring/ 再跑 npm run coloring:manifest」。点一张 → `coloringOpenLibPic(slug)` → 同源 `Image` → canvas 位图模式（黑线当边界，点哪儿填哪儿）。
-- **图都来自三本涂色书（2026-11 用户：「将原来的图去掉，内置这几本书里的线稿图」）**：手画的几何线稿（原来 9 张基础 + 20 张简单 + 14 张小难/有点难，`COLORING_MORE` / `COLORING_HEAVY` / `coloringTierOf` 那一整套）**已整段删除** —— `const COLORING_PICS = [];` 保持空数组，`coloringRenderPics` 现在只渲染「📚 内置图库」。
-  - 三本书：**《梦境花园》（蜜桃老师）/《时尚的诞生》（(韩) 姜旻枝）/《童色年华·幻想卷》（名绘堂）**，各抽 12 页，共 **36 张**，都在 `public/coloring/`（`dream-008.png` … `fashion-020.png` … `child-020.png`），出处写在 `public/coloring/coloring-sources.json`（书名 + 页码 + 「书内页（内部使用，勿外发）」）。
-  - ⚠️ **版权**：这三本是买来的电子书，页图只能内部涂着玩，**别外发、别进公开仓库/线上演示**；`public/coloring/README.md` 里也写了这条。
-  - **怎么抽的（`tools/extract-pdf-images.mjs`）**：这几本 PDF 每页就是一张 `DCTDecode`（JPEG）图，所以不用装 poppler / ghostscript —— 直接扫 `stream` 前后的字典，认 `/Subtype /Image` + `DCTDecode`，按 JPEG 结束符 `FFD9` 截断抽出来。**本机没有 pdftoppm / magick / python，这条纯 Node 的路子是最省事的**。
-  - **怎么挑页（`tools/out/build-coloring-from-pdf.mjs`，临时脚本没入库）**：用 sharp 缩到 320px 算指标 —— 墨迹占比（`lum<200`，3%–50%）、彩色占比（≤10%）、**4×4 格子的墨迹离散度**（文字页只有几格有墨，`spread>1.05` 的直接甩掉）、空白格数 ≤4；再跳过前 6 页（封面 / 版权 / 前言）。挑中的页用 sharp 缩到 900px、转灰度、调色板 PNG（16 色），一张 100–250KB。
-  - **sharp 只是临时装的**（`npm i sharp --no-save`，没进 `package.json`）：抽完图就不需要了，下次要重抽再装一次。
-  - 图库读取：`coloringLoadLibrary()` 异步取 `coloring/manifest.json` → `coloringRenderPics()` 只渲染这一组；一张都没有时显示「内置图库还空着：把图片放进 public/coloring/ 再跑 npm run coloring:manifest」。点一张 → `coloringOpenLibPic(slug)` → 同源 `Image` → canvas 位图模式（黑线当边界，点哪儿填哪儿）。
-- **调色板** `COLORING_PALETTE`：14 色（含白），另加 `<input type="color" id="coloringCustomColor">` 自定义取色。
-- **交互**：点区域 → 用当前颜色填充（`coloringPaint`，记一条 undo）；`🧽 橡皮` 开着时点区域 → 擦回白色（`aria-pressed` 标状态）；`↩️ 撤销` / `↪️ 重做` 走 `coloringUndo` / `coloringRedo`；`🧹 清空` 清当前图（连撤销栈）；`⬇️ 下载` 把 SVG 序列化成 `.svg` 下下来。
-- ⚠️ **下载在 jsdom / 无头环境里直接跳过**（点 `<a download>` 会被 jsdom 记成 navigation 错误）：`coloringDownloadStep` 里先判 `navigator.userAgent` 含 `jsdom` 就只给提示 —— 别删这段守卫，否则冒烟会红。
-- 状态只放内存 `coloringState`（`{ 图案key: { 区域id: 颜色 } }`），**不写 localStorage、不上服务端**（画着玩的，刷新就白）。
-- **导入图片 · 位图模式（2026-11 用户：「能不能直接搬 Anycolor 里的图」「在各种网页抓取线稿图」之后加的）**：内置线稿那 38 张是 SVG 面填充，网页上抓来的图（PNG / JPG / 截图）走另一套 —— 铺到 `<canvas id="coloringCanvas">`（600×600，等比居中、白底）上，**点哪儿就用容差 flood fill 填哪儿**，黑线天然当边界，玩法跟 Anycolor 一致。
-  - 入口：`#coloringImgInput`（`<input type="file" accept="image/*" style="display:none">`）+ `<label for="coloringImgInput">📥 导入图片</label>`，旁边 `#coloringImgHint` 写玩法；导入后出现 `#coloringBackBtn`（↩️ 回到内置线稿）切回 SVG 那套。
-  - 实现：`coloringImgImport(file)`（FileReader → dataURL → Image）、`coloringImgDrawBase()`（白底 + `drawImage` 等比居中）、`coloringImgFill(px, py)`（`getImageData` + 栈式 4 邻域 flood fill，容差 `COLORING_FILL_TOL = 52`，RGB 距离平方比较）、`coloringImgUndoStep` / `coloringImgRedoStep`（存 `ImageData`，最多 10 步）、`coloringImgClearStep`（重画原图）、`coloringImgDownloadStep`（`canvas.toDataURL("image/png")` → `<a download>制涂色_导入图.png`）。
-  - **撤销 / 重做 / 清空 / 下载四个按钮在函数开头分流**：`if (coloringImgEl) { 位图那套; return; }` —— 别把 SVG 那套删了，没导入图片时还是它。
-  - ⚠️ **jsdom 里没有 canvas 2d**（`getContext` 会抛 "Not implemented" 并记成 jsdomError，冒烟最后那条「页面无未捕获异常」就会红）：所以 `coloringCanvasCtx()` 用 try/catch 包住，**并且没有任何初始化路径会调 getContext**（只有导入图片 / 点画布才碰）—— 冒烟只验入口和「没图时点画布什么都不做」。另外 `toDataURL` / `<a download>` 同样只在浏览器里能用，所以下载路径先判 `navigator.userAgent` 含 `jsdom` 就只提示。
-  - ⚠️ **跨域图会 taint 画布**：`getImageData` 抛错时提示「这张图跨域了，涂不了（换成本地图片）」，所以**不要**去 `drawImage` 一个外链 URL（比如直接把 Anycolor / HP Printables 的图 URL 塞进来）—— 用户自己存下来的图走 dataURL，没这问题。
-  - ⚠️ **别人的素材不要内置进仓库**：HP Printables / Anycolor 那类站点的图只授权「自己打印」，抓下来塞进公司工具不合适；要玩就用「导入图片」，图留在用户本机。
-  - 现在的取舍：**能抓到外网的图（`web_fetch` 通），但网页上的线稿多是「描边 + 白底」，直接当 SVG 塞进来点不动**；位图模式就是为这个场景准备的 —— 黑线当边界、白区当填充区，跟 Anycolor 一模一样。
-- **📚 内置图库（A：2026-11 用户「A 和 B 都要」）**：图片放 `public/coloring/`，跑 `npm run coloring:manifest`（= `node tools/coloring-manifest.mjs`）把目录扫成 `public/coloring/manifest.json`，页面「🎨 涂色」子页最下面就多一组「📚 内置图库 · N 张」，点一张 → 同源 `Image` → 铺到 canvas 走**位图模式**（点哪儿填哪儿）。
-  - 文件名就是显示名（`小狐狸.png` → 「小狐狸」）；出处可以放 `public/coloring/coloring-sources.json`（`{ "文件.png": { license, author, page } }`），脚本会并进 manifest；旧 manifest 里的字段也会继承。
-  - 页面侧：`coloringLoadLibrary()`（`fetch("coloring/manifest.json")`，**失败/空就静默不显示那一组**，jsdom 里取不到也不会红）、`coloringLibRenderHtml()`（拼 `[data-tier="lib"]` 那组）、`coloringOpenLibPic(slug)`（同源加载，**不会被 taint**，能取像素能下载）。
-  - `public/coloring/README.md` 写了「丢图 → 跑脚本 → 刷新」的流程和「能放什么图」：自己画的 / 公司内部素材 / **公有领域·CC0·CC BY** 线稿；⚠️ **不要**放只授权「自己打印」的（HP Printables、Anycolor、Dover 样张、各种 free coloring pages 站）。
-  - **抓取脚本 `tools/fetch-coloring.mjs`（`npm run coloring:fetch`）**：从 Wikimedia Commons 按主题搜 `filetype:drawing`，只收 `Public domain / CC0 / CC BY`、只收 **SVG**（缩略图是 PNG 才能解码），再用内置的 PNG 解码 + 像素指标（白底占比 / 深色线占比 / 彩色占比 / 色块种类）筛掉地图、徽章、剪影、彩图。
-  - ⚠️ **实测可用率很低**：Commons 里 `filetype:drawing` 大多是地图 / 徽章 / 示意图；一口气跑十几个主题会被限流（`You are making too many requests`）。所以**默认别指望它凑满一屏** —— 实际路线是「批量丢图 + `coloring:manifest`」，抓取只是补充。想批量内置好图，就得从授权明确的库（PD-old 童书、NIH BioArt、openclipart 的 CC0）里挑。
-- **测试**：`tools/smoke.cjs` 第 **8z-2** 节 **16 条**（独立的「🎨 涂色」子页 / 卡片上 图库·调色板·画布·导入入口 都在 / **选图区已经没有手画的 `[data-pic]`** / **内置图库列出 ≥30 张、抬头写张数、按钮带书名**（fetch mock 直接喂真实 `manifest.json`）/ 14 色调色板 + 点色块换色 / 橡皮 `aria-pressed` / 没有画布时清空与下载只给提示 / **导入入口（accept=image/*、画布 600、回到内置线稿默认收起）** / 没导入图片时点画布不动（jsdom 没 canvas 2d 也不报 Not implemented）/ 回到内置线稿 / 这页只请求自己的 `coloring/manifest.json`）；`tools/verify.mjs` 有静态断言（页面元素、`COLORING_PICS` 空、`COLORING_MORE`/`COLORING_HEAVY`/`coloringTierOf` **必须不存在**、图库三件套、manifest ≥30 张且每张都有 license、`coloring:manifest` 脚本、位图模式那几个函数）。
+- **调色板** `COLORING_PALETTE`：14 色（含白），另加 `<input type="color" id="coloringCustomColor">` 自定义取色；点色块/取色器只是换「当前颜色」，真正的上色在 `coloringImgFill`。
+- **交互**：点图 → 铺到画布 → 点区域填当前颜色；`🧽 橡皮` 开着时点 = 填回白色（`aria-pressed` 标状态）；`↩️ 撤销` / `↪️ 重做` 走 dataURL 快照栈；`🧹 清空` 重画原图（连撤销栈）；`⬇️ 下载` 出 PNG。
+- ⚠️ **下载 / canvas 在 jsdom 里都不存在**：`coloringDownloadStep` 先判 `navigator.userAgent` 含 `jsdom` 只给提示；`coloringCanvasCtx()` 用 try/catch 且初始化不碰 `getContext` —— 别删这些守卫，否则冒烟最后那条「页面无未捕获异常」会红。
+- 状态只在内存（`coloringImgEl` + `coloringImgUndo` / `coloringImgRedo` 快照栈），**不写 localStorage、不上服务端**，刷新就白。
+- ⚠️ **别人的素材不要内置**：HP Printables / Anycolor 那类站点只授权「自己打印」；内置只用买来的书页（现在这三本）或公有领域素材。
+- **测试**：`tools/smoke.cjs` 第 **8z-2** 节 **17 条**（独立的「🎨 涂色」子页 / 卡片上 图库·调色板·画布·提示 都在 / **选图区已经没有手画的 `[data-pic]`** / **内置图库列出 ≥30 张、抬头写张数、按钮带书名**（fetch mock 直接喂真实 `manifest.json`）/ 14 色调色板 + 点色块换色 / 橡皮 `aria-pressed` / 没有画布时清空与下载只给提示 / **「📥 导入图片」入口确实没了（没有 file input / 回到内置线稿）、画布 1200 显示 780px** / 没导入图片时点画布不动（jsdom 没 canvas 2d 也不报 Not implemented）/ 回到内置线稿 / 这页只请求自己的 `coloring/manifest.json`）；`tools/verify.mjs` 有静态断言（页面元素、`COLORING_PICS` 空、`COLORING_MORE`/`COLORING_HEAVY`/`coloringTierOf` **必须不存在**、图库三件套、manifest ≥30 张且每张都有 license、`coloring:manifest` 脚本、位图模式那几个函数）。
 
 ## 海外业务统计（岗位周报整表粘贴）
 
