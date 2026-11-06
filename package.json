@@ -14,7 +14,9 @@
     "build:data": "node tools/build-game-data.mjs",
     "extract:maps": "node tools/extract-maps.mjs",
     "audit:maps": "node tools/audit-maps.mjs",
-    "test": "npm run verify"
+    "test": "npm run verify",
+    "coloring:manifest": "node tools/coloring-manifest.mjs",
+    "coloring:fetch": "node tools/fetch-coloring.mjs"
   },
   "keywords": [],
   "author": "",

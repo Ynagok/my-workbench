@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="x-build" content="2026-11-06 活动查询-v28-涂色导入图片位图填充">
+    <meta name="x-build" content="2026-11-06 活动查询-v29-涂色内置图库">
     <title>客服冷静演绎工作台</title>
     <link rel="icon" type="image/gif" href="/my-icon.gif">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -18174,7 +18174,7 @@ function coloringRenderPics() {
                     + escapeHtml(p.name) + "<i>" + p.regions.length + " 块</i></button>";
             }).join("")
             + "</div></div>";
-    }).join("");
+    }).join("") + coloringLibRenderHtml();
 }
 function coloringRenderPalette() {
     const box = document.getElementById("coloringPalette");
@@ -18294,6 +18294,48 @@ function coloringImgFill(px, py) {
     ctx.putImageData(data, 0, 0);
     coloringImgSetHint((coloringErase ? "擦掉了一块" : "填了 " + hex) + "（" + painted + " 个像素）");
 }
+// ---- 内置图库（public/coloring/manifest.json，2026-11 用户：「A 和 B 都要」）----
+// 图片直接丢进 public/coloring/，跑 `npm run coloring:manifest` 就会列在这里；点一下就铺到 canvas 走位图模式。
+let coloringLibItems = null;
+function coloringLibRenderHtml() {
+    if (!coloringLibItems || !coloringLibItems.length) return "";
+    return '<div class="color-tier" data-tier="lib">'
+        + '<span class="color-tier-h">📚 内置图库 · ' + coloringLibItems.length + ' 张（public/coloring）</span>'
+        + '<div class="color-tier-list">'
+        + coloringLibItems.map(function (it) {
+            return '<button type="button" data-lib="' + escapeHtml(it.slug) + '" title="' + escapeHtml(it.title || it.name || "") + '">'
+                + escapeHtml(it.name || it.slug) + "</button>";
+        }).join("")
+        + "</div></div>";
+}
+function coloringLoadLibrary() {
+    if (typeof fetch !== "function") return;
+    try {
+        fetch("coloring/manifest.json", { cache: "no-store" }).then(function (r) {
+            if (!r.ok) return null;
+            return r.json();
+        }).then(function (j) {
+            coloringLibItems = (j && Array.isArray(j.items)) ? j.items.filter(function (x) { return x && x.file; }) : [];
+            coloringRenderPics();
+        }).catch(function () { coloringLibItems = null; });
+    } catch (e) { coloringLibItems = null; }
+}
+function coloringOpenLibPic(slug) {
+    const it = (coloringLibItems || []).filter(function (x) { return x.slug === slug; })[0];
+    if (!it) return;
+    const img = new Image();
+    img.onload = function () {
+        coloringImgEl = img;
+        coloringImgUndo = [];
+        coloringImgRedo = [];
+        coloringImgModeOn(true);
+        if (!coloringImgDrawBase()) return;
+        coloringImgSetHint("已打开「" + (it.name || slug) + "」：点哪儿填哪儿（黑线自动当边界）");
+    };
+    img.onerror = function () { coloringImgSetHint("这张图加载失败：" + it.file); };
+    img.src = it.file;
+}
+
 function coloringImgImport(file) {
     if (!file) return;
     const reader = new FileReader();
@@ -18417,6 +18459,7 @@ function coloringDownloadStep() {
     }
 }
 function coloringInit() {
+    coloringLoadLibrary();
     const imgInput = document.getElementById("coloringImgInput");
     if (imgInput && !imgInput.dataset.bound) {
         imgInput.dataset.bound = "1";
@@ -18464,6 +18507,8 @@ function coloringInit() {
     if (pics && !pics.dataset.bound) {
         pics.dataset.bound = "1";
         pics.addEventListener("click", e => {
+            const lib = e.target.closest("[data-lib]");
+            if (lib) { coloringOpenLibPic(lib.dataset.lib); return; }
             const b = e.target.closest("[data-pic]");
             if (!b) return;
             coloringPic = b.dataset.pic;

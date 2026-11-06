@@ -964,6 +964,13 @@ ok(/data-sub="color">🎨 涂色</.test(s) && /id="sub-panel-color"/.test(s)
   && /function coloringImgFill\(px, py\)/.test(s) && /function coloringImgImport\(file\)/.test(s)
   && /function coloringImgDrawBase\(\)/.test(s) && /function coloringImgModeOn\(on\)/.test(s)
   && /if \(coloringImgEl\) \{ coloringImgUndoStep\(\); return; \}/.test(s)
+  // 2026-11 用户「A 和 B 都要」：A = 内置图库（public/coloring + manifest.json + 批量入库脚本），B = 导入图片
+  && /function coloringLoadLibrary\(\)/.test(s) && /fetch\("coloring\/manifest\.json"/.test(s)
+  && /function coloringLibRenderHtml\(\)/.test(s) && /function coloringOpenLibPic\(slug\)/.test(s)
+  && /data-tier="lib"/.test(s) && /data-lib=/.test(s)
+  && fs.existsSync('public/coloring/manifest.json') && fs.existsSync('public/coloring/README.md')
+  && (() => { try { const j = JSON.parse(fs.readFileSync('public/coloring/manifest.json', 'utf8')); return Array.isArray(j.items); } catch (e) { return false; } })()
+  && /"coloring:manifest": "node tools\/coloring-manifest\.mjs"/.test(fs.readFileSync('package.json', 'utf8'))
   && /function coloringPaint\(regionId\)/.test(s) && /function coloringUndoStep\(\)/.test(s)
   && /function coloringRedoStep\(\)/.test(s) && /function coloringDownloadStep\(\)/.test(s)
   && /setClick\('coloringUndoBtn', coloringUndoStep\)/.test(s)
@@ -971,7 +978,8 @@ ok(/data-sub="color">🎨 涂色</.test(s) && /id="sub-panel-color"/.test(s)
   '小游戏页的「🎨 涂色游戏」是小游戏里的独立子页（data-sub="color" → #sub-panel-color）；'
   + '38 张内置线稿按块数分三杯（中杯 10–30 / 大杯 30–60 / 超大杯 60 块以上，里面有 4 张 200 块以上），10 块以下的图不要；'
   + '14 色调色板 + 自定义取色 + 点区域填充 / 橡皮 / 撤销 / 重做 / 清空 / 下载，状态只在本机；'
-  + '另外可以「📥 导入图片」（PNG / JPG）走位图 flood fill（跟 Anycolor 一样点哪儿填哪儿、黑线当边界），不导入时还是内置线稿那套');
+  + '另外可以「📥 导入图片」（PNG / JPG）走位图 flood fill（跟 Anycolor 一样点哪儿填哪儿、黑线当边界），不导入时还是内置线稿那套；'
+  + '「📚 内置图库」读 public/coloring/manifest.json（图丢进 public/coloring/ 后跑 npm run coloring:manifest 就会列出来），没图时不显示那一组');
 ok(/data-seg="tanghulu" data-n="01">糖葫芦对决</.test(s) && /id="genTanghuluPane"/.test(s)
   && /id="thlInput"/.test(s) && /id="thlParseBtn"/.test(s) && /id="thlOutput"/.test(s) && /id="thlChips"/.test(s)
   && /const THL_BEHAVIOR_TEXT = \{ '1': '匹配', '2': '结算', '3': '进度' \};/.test(s)

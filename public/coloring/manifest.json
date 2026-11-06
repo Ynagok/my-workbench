@@ -1,0 +1,5 @@
+{
+  "note": "这个文件由 tools/coloring-manifest.mjs 生成：把图片丢进 public/coloring/ 再跑一遍就行；license / author / page 从 coloring-sources.json 或旧 manifest 继承",
+  "updatedAt": "2026-11-06",
+  "items": []
+}

@@ -48,17 +48,19 @@ npm run verify     # 改完代码、push 前的完整自检
 
 | 命令 | 内容 |
 |---|---|
-| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 664 项 + 「接口挂起时界面仍可用」+ 服务端冒烟 42 项 |
+| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 666 项 + 「接口挂起时界面仍可用」+ 服务端冒烟 42 项 |
 | `npm run verify:static` | 只要静态校验 + 语法检查（最快） |
 | `npm run report` | 打印一份真实生成的日报，肉眼确认排版（含 ⑥伙伴弹途 / ⑦异世界勇者） |
 | `npm run build:data` | 从 GM 玩家页快照提取 4 张权威映射表 + 与硬编码常量的**差异报告**（见下「游戏数据管线」） |
 | `npm run extract:maps` | 把玩家页快照抽成 `tools/out/page-*.json` **精简映射表**（只有 id→名称，不带玩家信息），见下「游戏数据管线」 |
 | `npm run audit:maps` | 用 `tools/out/page-*.json` 对账 4 张硬编码常量表，出 `tools/out/map-audit.md`（缺 / 多 / 名称不一致） |
 | `npm run smoke:server` | 单独跑服务端冒烟（真起进程 + 真发 HTTP，42 项，含 SOP 口令 7 项） |
+| `npm run coloring:manifest` | 把 `public/coloring/` 里的图扫成 `manifest.json`（页面「📚 内置图库」读它）；丢图进去跑一下就行 |
+| `npm run coloring:fetch` | 从 Wikimedia Commons 抓 PD/CC0/CC BY 的 SVG 线稿（带像素筛选）；**能用但可用率低**，见「🎨 涂色游戏」一节 |
 | `npm run smoke:pmc` | **生管物料订单工作台**（`public/pmc.html`）自检，123 项（含加工周期工作日推算 + 在途锁定/调整建议 + 真实 8.5MB xlsx 端到端导入）；**不在 verify 里**，见下「生管物料订单工作台」一节 |
 | `npm test` | = `npm run verify` |
 
-`npm run verify` 失败就不要提交。它一共 5 段：静态结构 → 语法 → jsdom 集成冒烟 **664 项** → 接口挂起时界面仍可用 → 服务端冒烟 **42 项**。
+`npm run verify` 失败就不要提交。它一共 5 段：静态结构 → 语法 → jsdom 集成冒烟 **666 项** → 接口挂起时界面仍可用 → 服务端冒烟 **42 项**。
 
 - jsdom 未安装时前端冒烟会自动回落到本机 DSH 自带的那份。
 - `tools/smoke-server.cjs` 用 `PORT` + `DATA_FILE` 环境变量把服务端指到随机端口和 `tools/out/` 里的临时文件，**不会碰真实 `data.json`**；子进程 stdio 必须用 `ignore`/`inherit`（沙箱禁管道，`pipe` 会 EPERM）。
@@ -407,7 +409,13 @@ npm run verify     # 改完代码、push 前的完整自检
   - ⚠️ **跨域图会 taint 画布**：`getImageData` 抛错时提示「这张图跨域了，涂不了（换成本地图片）」，所以**不要**去 `drawImage` 一个外链 URL（比如直接把 Anycolor / HP Printables 的图 URL 塞进来）—— 用户自己存下来的图走 dataURL，没这问题。
   - ⚠️ **别人的素材不要内置进仓库**：HP Printables / Anycolor 那类站点的图只授权「自己打印」，抓下来塞进公司工具不合适；要玩就用「导入图片」，图留在用户本机。
   - 现在的取舍：**能抓到外网的图（`web_fetch` 通），但网页上的线稿多是「描边 + 白底」，直接当 SVG 塞进来点不动**；位图模式就是为这个场景准备的 —— 黑线当边界、白区当填充区，跟 Anycolor 一模一样。
-- **测试**：`tools/smoke.cjs` 第 **8z-2** 节 **32 条**（独立的「🎨 涂色」子页 / **选图 38 张** / **没有 10 块以下的图** / **三杯 `.color-tier` = mid,large,xl + 每杯的区间与张数（20 / 8 / 10）** / **分杯跟块数对得上、且有 200 块以上的图** / **200 块以上至少 4 张（205 / 226 / 225 / 233）** / 14 色调色板 / 猫头鹰 13 块初始白色 / 点区域上色 + 提示 / 换色再涂 / 撤销回白 / 重做回来 / 橡皮擦白 / 换成小镇 41 块 / 清空全白且撤销栈空 / 自定义取色器 / 切到曼陀罗 81 块并照样上色 / **切到高楼群 233 块并照样上色 / **导入入口（file input accept=image/*、画布 600、回到内置线稿）都在且默认收起** / **没导入图片时点画布什么都不做（不去碰 canvas 2d，jsdom 里也不会报 Not implemented）** / 提示写清「点哪儿填哪儿、黑线当边界」 / 「回到内置线稿」能切回去** / 下载只提示不抛 / 全程 0 请求）；`tools/verify.mjs` 有静态断言（`COLORING_HEAVY` / `coloringTierOf` / 三杯文案 / 200 块那几张的 key / 几何助手 / `< 10 块` 兜底 / `.color-tier` 样式）。
+- **📚 内置图库（A：2026-11 用户「A 和 B 都要」）**：图片放 `public/coloring/`，跑 `npm run coloring:manifest`（= `node tools/coloring-manifest.mjs`）把目录扫成 `public/coloring/manifest.json`，页面「🎨 涂色」子页最下面就多一组「📚 内置图库 · N 张」，点一张 → 同源 `Image` → 铺到 canvas 走**位图模式**（点哪儿填哪儿）。
+  - 文件名就是显示名（`小狐狸.png` → 「小狐狸」）；出处可以放 `public/coloring/coloring-sources.json`（`{ "文件.png": { license, author, page } }`），脚本会并进 manifest；旧 manifest 里的字段也会继承。
+  - 页面侧：`coloringLoadLibrary()`（`fetch("coloring/manifest.json")`，**失败/空就静默不显示那一组**，jsdom 里取不到也不会红）、`coloringLibRenderHtml()`（拼 `[data-tier="lib"]` 那组）、`coloringOpenLibPic(slug)`（同源加载，**不会被 taint**，能取像素能下载）。
+  - `public/coloring/README.md` 写了「丢图 → 跑脚本 → 刷新」的流程和「能放什么图」：自己画的 / 公司内部素材 / **公有领域·CC0·CC BY** 线稿；⚠️ **不要**放只授权「自己打印」的（HP Printables、Anycolor、Dover 样张、各种 free coloring pages 站）。
+  - **抓取脚本 `tools/fetch-coloring.mjs`（`npm run coloring:fetch`）**：从 Wikimedia Commons 按主题搜 `filetype:drawing`，只收 `Public domain / CC0 / CC BY`、只收 **SVG**（缩略图是 PNG 才能解码），再用内置的 PNG 解码 + 像素指标（白底占比 / 深色线占比 / 彩色占比 / 色块种类）筛掉地图、徽章、剪影、彩图。
+  - ⚠️ **实测可用率很低**：Commons 里 `filetype:drawing` 大多是地图 / 徽章 / 示意图；一口气跑十几个主题会被限流（`You are making too many requests`）。所以**默认别指望它凑满一屏** —— 实际路线是「批量丢图 + `coloring:manifest`」，抓取只是补充。想批量内置好图，就得从授权明确的库（PD-old 童书、NIH BioArt、openclipart 的 CC0）里挑。
+- **测试**：`tools/smoke.cjs` 第 **8z-2** 节 **34 条**（独立的「🎨 涂色」子页 / **选图 38 张** / **没有 10 块以下的图** / **三杯 `.color-tier` = mid,large,xl + 每杯的区间与张数（20 / 8 / 10）** / **分杯跟块数对得上、且有 200 块以上的图** / **200 块以上至少 4 张（205 / 226 / 225 / 233）** / 14 色调色板 / 猫头鹰 13 块初始白色 / 点区域上色 + 提示 / 换色再涂 / 撤销回白 / 重做回来 / 橡皮擦白 / 换成小镇 41 块 / 清空全白且撤销栈空 / 自定义取色器 / 切到曼陀罗 81 块并照样上色 / **切到高楼群 233 块并照样上色 / **导入入口（file input accept=image/*、画布 600、回到内置线稿）都在且默认收起** / **没导入图片时点画布什么都不做（不去碰 canvas 2d，jsdom 里也不会报 Not implemented）** / 提示写清「点哪儿填哪儿、黑线当边界」 / 「回到内置线稿」能切回去 / **图库没图时不显示「📚 内置图库」那一组、内置线稿三杯照旧**** / 下载只提示不抛 / 全程 0 请求）；`tools/verify.mjs` 有静态断言（`COLORING_HEAVY` / `coloringTierOf` / 三杯文案 / 200 块那几张的 key / 几何助手 / `< 10 块` 兜底 / `.color-tier` 样式）。
 
 ## 海外业务统计（岗位周报整表粘贴）
 

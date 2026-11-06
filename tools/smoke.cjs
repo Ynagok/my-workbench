@@ -3531,6 +3531,13 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     check($('coloringCanvas').style.display === 'none' && /回到内置线稿了/.test($('coloringImgHint').textContent),
       '「回到内置线稿」能切回 SVG 那套', $('coloringImgHint').textContent);
 
+    // 内置图库（public/coloring + manifest.json）：没图时不出那一组，也别把内置线稿挤掉
+    check(!$('coloringPics').querySelector('[data-tier="lib"]'),
+      '图库里没图（manifest 空 / 取不到）时不显示「📚 内置图库」那一组，页面不报错',
+      $('coloringPics').textContent.slice(0, 40));
+    check(!!$('coloringPics').querySelector('[data-tier="mid"]') && !!$('coloringPics').querySelector('[data-tier="xl"]'),
+      '图库分组是附加的：内置线稿那三杯照旧在');
+
     // 下载不抛错（jsdom 里 createObjectURL 可能没有 → 只提示）
     $('coloringDownloadBtn').click();
     await sleep(40);
