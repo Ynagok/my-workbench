@@ -904,7 +904,14 @@ ok(/id="careerHeadline"/.test(s) && /id="ovbizHeadline"/.test(s) && /\.stat-head
   && /id="ovbizIssueTrend"/.test(s) && /id="ovbizIssueTop"/.test(s)
   && /function ovbizIssueGrid\(text\)/.test(s) && /function ovbizIssueParse\(text\)/.test(s)
   && /function ovbizIssueAnalyze\(rows\)/.test(s) && /function ovbizIssueRender\(st\)/.test(s)
-  && /function ovbizIssueImportFile\(file\)/.test(s) && /setClick\('ovbizIssueRunBtn', ovbizIssueRun\)/.test(s),
+  && /function ovbizIssueImportFile\(file\)/.test(s) && /setClick\('ovbizIssueRunBtn', ovbizIssueRun\)/.test(s)
+  // 2026-11 用户：「统计增加可选定时间范围计算显示各项数据」
+  && /id="ovbizIssueRangeAll"/.test(s) && /id="ovbizIssueRange7"/.test(s)
+  && /id="ovbizIssueRange30"/.test(s) && /id="ovbizIssueRange90"/.test(s)
+  && /id="ovbizIssueFrom"/.test(s) && /id="ovbizIssueTo"/.test(s)
+  && /function ovbizIssueRangeLabel\(\)/.test(s) && /function ovbizIssueSetRange\(mode, from, to\)/.test(s)
+  && /function ovbizIssueRefilter\(\)/.test(s) && /function ovbizIssueLastRange\(n\)/.test(s)
+  && /ovbizIssueRowsAll = p\.rows;/.test(s),
   '两个统计页顶部都有一句话摘要（累计 / 日均 / 最高单日 / 在岗）');
 ok(/details class="card-more"/.test(s) && /details\.card-more > summary/.test(s),
   '客服生涯工具条收拢：导出 / 导入 / 清空折进「⋯ 更多」，主按钮只留归档 + 排班休息');

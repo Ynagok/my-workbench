@@ -3521,6 +3521,33 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     check(trIssue.querySelectorAll('tbody i').length === 3,
       '趋势每条画了条形（3 天 3 根）', trIssue.querySelectorAll('tbody i').length);
 
+    // 时间范围：全部 / 近 N 天 / 自定义起止
+    check($('ovbizIssueRangeAll').classList.contains('is-on') && !!$('ovbizIssueRange7') && !!$('ovbizIssueRange30') && !!$('ovbizIssueRange90'),
+      '范围默认「全部」高亮，近 7 / 30 / 90 天按钮都在');
+    const selFrom = $('ovbizIssueFrom'), selTo = $('ovbizIssueTo');
+    check(selFrom.options.length === 3 && selTo.options.length === 3,
+      '自定义起止下拉列的是数据里真实出现的日期（3 个）', selFrom.options.length + '/' + selTo.options.length);
+    $('ovbizIssueRange7').click();
+    await sleep(40);
+    check(/共 5 条/.test($('ovbizIssueChips').textContent) && /当前范围/.test($('ovbizIssueHint').textContent),
+      '点「近 7 天」照旧 5 条（样本都在最近 3 天里）', $('ovbizIssueHint').textContent);
+    selFrom.value = '0000-11-02';
+    fire(selFrom, 'change');
+    await sleep(40);
+    selTo.value = '0000-11-03';
+    fire(selTo, 'change');
+    await sleep(40);
+    check(/共 3 条/.test($('ovbizIssueChips').textContent),
+      '自定义 11-2 ~ 11-3 → 只剩 3 条', $('ovbizIssueChips').textContent.slice(0, 60));
+    check([...$('ovbizIssueTrend').querySelectorAll('tbody tr')].length === 2,
+      '趋势表只剩这两天（11-3 / 11-2）', $('ovbizIssueTrend').querySelectorAll('tbody tr').length);
+    check(/合计/.test($('ovbizIssueMatrix').querySelector('tfoot').textContent) && /3/.test($('ovbizIssueMatrix').querySelector('tfoot').textContent),
+      '矩阵表尾合计跟着变成 3', $('ovbizIssueMatrix').querySelector('tfoot').textContent.replace(/\s+/g, ' '));
+    $('ovbizIssueRangeAll').click();
+    await sleep(40);
+    check(/共 5 条/.test($('ovbizIssueChips').textContent) && $('ovbizIssueRangeAll').classList.contains('is-on'),
+      '点回「全部」→ 又变 5 条、按钮高亮回来', $('ovbizIssueChips').textContent.slice(0, 40));
+
     $('ovbizIssueClearBtn').click();
     await sleep(40);
     check($('ovbizIssueInput').value === '' && $('ovbizIssueMatrix').innerHTML === ''
