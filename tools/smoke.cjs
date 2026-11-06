@@ -3456,9 +3456,9 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     // 「导入图片」按用户要求删掉了，只留内置图库
     check(!$('coloringImgInput') && !$('coloringBackBtn'),
       '「📥 导入图片」入口已经删掉（没有 file input，也没有「回到内置线稿」）');
-    check($('coloringCanvas').getAttribute('width') === '1200'
-      && /max-width:\s*780px/.test($('coloringCanvas').getAttribute('style') || ''),
-      '画布 1200×1200、显示最宽 780px（放大着涂）', $('coloringCanvas').getAttribute('style'));
+    check($('coloringCanvas').getAttribute('width') === '3000'
+      && /max-width:\s*1600px/.test($('coloringCanvas').getAttribute('style') || ''),
+      '画布 3000×3000、显示最宽 1600px（放大着涂）', $('coloringCanvas').getAttribute('style'));
     const hintBefore = $('coloringImgHint').textContent;
     $('coloringCanvas').dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
     await sleep(30);

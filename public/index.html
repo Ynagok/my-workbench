@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="x-build" content="2026-11-06 活动查询-v32-涂色去掉导入图片">
+    <meta name="x-build" content="2026-11-06 活动查询-v33-涂色再放大2.5倍">
     <title>客服冷静演绎工作台</title>
     <link rel="icon" type="image/gif" href="/my-icon.gif">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -5064,9 +5064,9 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                 </div>
                 <div class="color-stage" id="coloringStage"></div>
                 <div class="flex-row" style="margin-top:10px; flex-wrap:wrap; gap:8px;">
-                    <span class="hint-text" id="coloringImgHint" style="margin:0;">选一张图 → 点哪儿填哪儿（跟 Anycolor 一样是位图填充，黑线自动当边界；画布 1200×1200）</span>
+                    <span class="hint-text" id="coloringImgHint" style="margin:0;">选一张图 → 点哪儿填哪儿（跟 Anycolor 一样是位图填充，黑线自动当边界；画布 3000×3000）</span>
                 </div>
-                <canvas id="coloringCanvas" width="1200" height="1200" style="display:none; width:100%; max-width:780px; margin-top:10px; background:#fff; border:1px solid var(--line-1); border-radius: var(--r-md); cursor: crosshair;"></canvas>
+                <canvas id="coloringCanvas" width="3000" height="3000" style="display:none; width:100%; max-width:1600px; margin-top:10px; background:#fff; border:1px solid var(--line-1); border-radius: var(--r-md); cursor: crosshair;"></canvas>
                 <p class="hint-text" style="margin:8px 0 0;">
                     💡 跟 Anycolor 一样：点画面里的空白区域就填上当前颜色；小区域不好点就切「橡皮」再点回来，或者用撤销/重做慢慢调。想涂哪张就在上面「📚 内置图库」里点。
                 </p>
@@ -17591,26 +17591,46 @@ function coloringImgFill(px, py) {
     if (seed[0] === next[0] && seed[1] === next[1] && seed[2] === next[2]) { coloringImgSetHint("这块本来就这个颜色"); return; }
     coloringImgUndoPush(ctx, cv);
     const tol2 = COLORING_FILL_TOL * COLORING_FILL_TOL;
-    const seen = new Uint8Array(w * h);
-    const stack = [px, py];
-    let painted = 0;
-    while (stack.length) {
-        const y = stack.pop(), x = stack.pop();
-        if (x < 0 || y < 0 || x >= w || y >= h) continue;
-        const i = y * w + x;
-        if (seen[i]) continue;
-        seen[i] = 1;
+    // 扫描线 flood fill：3000×3000（900 万像素）也够快，别改回逐像素四邻域
+    const same = function (i) {
         const o = i * 4;
         const dr = buf[o] - seed[0], dg = buf[o + 1] - seed[1], db = buf[o + 2] - seed[2];
-        if (dr * dr + dg * dg + db * db > tol2) continue;
+        return dr * dr + dg * dg + db * db <= tol2;
+    };
+    const paint = function (i) {
+        const o = i * 4;
         buf[o] = next[0]; buf[o + 1] = next[1]; buf[o + 2] = next[2]; buf[o + 3] = 255;
-        painted++;
-        stack.push(x + 1, y, x - 1, y, x, y + 1, x, y - 1);
+    };
+    let painted = 0;
+    const stack = [px, py];
+    while (stack.length) {
+        const y = stack.pop();
+        let x = stack.pop();
+        if (y < 0 || y >= h || x < 0 || x >= w) continue;
+        const rowBase = y * w;
+        if (!same(rowBase + x)) continue;
+        while (x > 0 && same(rowBase + x - 1)) x--;
+        let upRun = false, downRun = false;
+        while (x < w && same(rowBase + x)) {
+            paint(rowBase + x);
+            painted++;
+            if (y > 0) {
+                const up = same((y - 1) * w + x);
+                if (up && !upRun) { stack.push(x, y - 1); upRun = true; }
+                else if (!up) upRun = false;
+            }
+            if (y < h - 1) {
+                const dn = same((y + 1) * w + x);
+                if (dn && !downRun) { stack.push(x, y + 1); downRun = true; }
+                else if (!dn) downRun = false;
+            }
+            x++;
+        }
     }
     ctx.putImageData(data, 0, 0);
     coloringImgSetHint((coloringErase ? "擦掉了一块" : "填了 " + hex) + "（" + painted + " 个像素）");
 }
-// ---- 内置图库（public/coloring/manifest.json，2026-11 用户：「A 和 B 都要」）----
+// ---- 内置图库（public/coloring/manifest.json）----
 // 图片直接丢进 public/coloring/，跑 `npm run coloring:manifest` 就会列在这里；点一下就铺到 canvas 走位图模式。
 let coloringLibItems = null;
 function coloringLibRenderHtml() {

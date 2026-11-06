@@ -966,7 +966,7 @@ ok(/data-sub="color">🎨 涂色</.test(s) && /id="sub-panel-color"/.test(s)
   '小游戏页的「🎨 涂色游戏」是小游戏里的独立子页（data-sub="color" → #sub-panel-color）：'
   + '图都来自三本涂色书（public/coloring/ 的 36 张页 + manifest.json，点一张铺到 canvas 走位图填充），'
   + '原来手画的几何线稿（COLORING_MORE / COLORING_HEAVY / 三杯分档）已整段删除；'
-  + '点开的图铺到 1200×1200 画布上走 flood fill（黑线当边界）；14 色调色板 + 橡皮 / 撤销 / 重做 / 清空 / 下载，状态只在本机（**「📥 导入图片」入口按用户要求删掉了**）');
+  + '点开的图铺到 3000×3000 画布上走扫描线 flood fill（黑线当边界）；14 色调色板 + 橡皮 / 撤销 / 重做 / 清空 / 下载，状态只在本机（**「📥 导入图片」入口按用户要求删掉了**）');
 ok(/data-seg="tanghulu" data-n="01">糖葫芦对决</.test(s) && /id="genTanghuluPane"/.test(s)
   && /id="thlInput"/.test(s) && /id="thlParseBtn"/.test(s) && /id="thlOutput"/.test(s) && /id="thlChips"/.test(s)
   && /const THL_BEHAVIOR_TEXT = \{ '1': '匹配', '2': '结算', '3': '进度' \};/.test(s)
