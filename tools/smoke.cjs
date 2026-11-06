@@ -2425,6 +2425,31 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     check(/认出 4 条（按表头对齐）/.test($('thlHint').textContent),
       '有表头就按表头对齐，提示里说明', $('thlHint').textContent);
 
+    // 2026-11 用户给了 GM 里真实的两段数据：结算表 + 进度表（各自带表头，都没有「行为」列）
+    $('thlInput').value = [
+      '创建时间\t排期ID\t事件UUID\t分组\t轮次\t玩家分数\t队友分数\t对手1分数\t对手2分数\t胜利\tMVP\t本轮积分\t总积分\t是否结束',
+      '2026-11-06 12:08:19\t1\tb332e6278c1a522c39786241b58129c5\t2\t1\t188\t112\t94\t118\t1\t1\t2\t2\t',
+      '',
+      '创建时间\t排期ID\t事件UUID\t轮次(before)\t玩家分数(before)\t队友分数(before)\t对手1分数(before)\t对手2分数(before)\t轮次(after)\t玩家分数(after)\t队友分数(after)\t对手1分数(after)\t对手2分数(after)',
+      '2026-11-06 12:26:30\t1\t201c3616579480b9c00b9ef9a07f29d0\t3\t169\t118\t89\t108\t3\t169\t119\t89\t117',
+      '2026-11-06 12:12:31\t1\t61be3fabed51ff160a382bf908951e08\t3\t85\t34\t37\t0\t3\t110\t34\t37\t0',
+    ].join('\n');
+    $('thlParseBtn').click();
+    await sleep(80);
+    const thlReal = $('thlOutput').value;
+    check(/^糖葫芦2v2 · 共 3 条/.test(thlReal), '两张真实表一次粘进来：共 3 条（1 条结算 + 2 条进度）', thlReal.split('\n')[0]);
+    check(/匹配 0 场 · 结算 1 场 · 进度 2 条/.test(thlReal),
+      '没有「行为」列也能按表头认出结算 / 进度（带 before/after 的算进度，带胜利 / 积分的算结算）', thlReal);
+    check(/结算战绩：胜 1 · 负 0 · MVP 1 次 · 最高总积分 2 · 打到第 3 轮/.test(thlReal),
+      '结算战绩汇总：胜 / 负 / MVP / 最高总积分 / 打到第几轮', thlReal);
+    check(/^- 11-06 12:08 · 结算 · 第1轮 · 我方 188\+112 vs 对手 94\+118 · 胜利 · MVP · 本轮积分 \+2 · 总积分 2$/m.test(thlReal),
+      '结算逐条：第几轮 / 我方·对手分数 / 胜负 / MVP / 本轮积分 / 总积分（是否结束为空就不写）', thlReal);
+    check(/^- 11-06 12:26 · 进度 · 第3轮 · 我方 169\+118 → 169\+119 · 对手 89\+108 → 89\+117$/m.test(thlReal),
+      '进度逐条：轮次 + 我方 / 对手的分数变化（before → after）', thlReal);
+    check(/胜 <b>1<\/b> · 负 <b>0<\/b> · MVP <b>1<\/b>/.test($('thlChips').innerHTML),
+      '芯片多一片「胜 / 负 / MVP」（来自结算表那两列）', $('thlChips').textContent);
+
+
     // 没表头：按内容猜（1/2/3 当行为、日期当时间、32 位十六进制当事件）
     $('thlInput').value = '37\t2\t8f2c1d3e4b5a69788796a5b4c3d2e1f0\t2026-11-12 10:00:00';
     $('thlParseBtn').click();
@@ -3369,13 +3394,25 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     await sleep(80);
     check(!!$('coloringCard') && !!$('coloringStage') && !!$('coloringPalette') && !!$('coloringPics'),
       '小游戏页多了一张「🎨 涂色游戏」卡（图纸区 / 调色板 / 选图都在）');
-    // 选图：三张内置线稿
+    // 选图：34 张，按块数分三档（简单 10–30 / 小难 30–60 / 有点难 60–120）
     const picBtns = [...$('coloringPics').querySelectorAll('[data-pic]')];
-    check(picBtns.length === 29
-      && picBtns[0].dataset.pic === 'fox' && picBtns[9].dataset.pic === 'owl'
-      && picBtns[28].dataset.pic === 'castle' && picBtns[0].classList.contains('active'),
-      '选图按钮 29 张（先 9 张基础 + 20 张更复杂的），默认第一张高亮',
-      picBtns.map(b => b.dataset.pic).join(','));
+    const blockN = b => Number(String(b.querySelector('i').textContent).replace(/[^\d]/g, ''));
+    const blocks9 = picBtns.map(blockN);
+    check(picBtns.length === 34 && picBtns[0].dataset.pic === 'owl' && picBtns[0].classList.contains('active'),
+      '选图按钮 34 张（20 简单 + 8 小难 + 6 有点难），默认第一张高亮', picBtns.map(b => b.dataset.pic).join(','));
+    check(blocks9.every(n => n >= 10),
+      '10 个色块以下的图不再出现（用户：不要 10 个色块以下的图）', blocks9.join(','));
+    const tierBoxes = [...$('coloringPics').querySelectorAll('.color-tier')];
+    check(tierBoxes.length === 3 && tierBoxes.map(b => b.dataset.tier).join(',') === 'easy,mid,hard',
+      '选图按难度分三档（简单 / 小难 / 有点难）', tierBoxes.map(b => b.dataset.tier).join(','));
+    check(/简单 · 10–30 块（20 张）/.test(tierBoxes[0].textContent) && /小难 · 30–60 块（8 张）/.test(tierBoxes[1].textContent)
+      && /有点难 · 60–120 块（6 张）/.test(tierBoxes[2].textContent),
+      '每档都写了块数区间 + 张数', tierBoxes.map(b => b.textContent.replace(/\s+/g, ' ')).join(' | '));
+    check(picBtns.every(b => {
+      const n = blockN(b), tier = b.closest('.color-tier').dataset.tier;
+      return (tier === 'easy' && n >= 10 && n <= 30) || (tier === 'mid' && n > 30 && n <= 60) || (tier === 'hard' && n > 60 && n <= 120);
+    }) && Math.max.apply(null, blocks9) >= 60,
+      '分档跟块数对得上，并且有 60 块以上的图（用户：增加 50 个色块甚至更多）', blocks9.join(','));
     const colorTab = doc.querySelector('#tab-script .sub-tab[data-sub="color"]');
     check(!!colorTab && /涂色/.test(colorTab.textContent) && !$('sub-panel-color').classList.contains('active'),
       '涂色游戏是小游戏里的**独立子页**（第三个 sub-tab，默认没展开）', colorTab && colorTab.textContent);
@@ -3390,44 +3427,44 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
       '调色板 14 色，默认选中第一个', String(swatches.length));
     // 画面区域 + 默认白色
     const regions = () => [...$('coloringStage').querySelectorAll('[data-region]')];
-    check(regions().length === 8 && regions().every(r => r.getAttribute('fill') === '#ffffff'),
-      '小狐狸这张有 8 块区域，初始都是白色（跟原作一样是空白线稿）', String(regions().length));
+    const byId = id => regions().filter(r => r.dataset.region === id)[0];
+    check(regions().length === 13 && regions().every(r => r.getAttribute('fill') === '#ffffff'),
+      '猫头鹰这张有 13 块区域，初始都是白色（跟原作一样是空白线稿）', String(regions().length));
     // 点一块 → 上色
-    regions()[3].dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+    byId('head').dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
     await sleep(40);
-    check(regions()[3].getAttribute('fill') === '#ff6b6b'
-      && regions()[3].dataset.region === 'head'
+    check(byId('head').getAttribute('fill') === '#ff6b6b'
       && /把「脑袋」涂成/.test($('coloringHint').textContent),
       '点「脑袋」那块 → 填成当前颜色（#ff6b6b），提示里写清涂了哪块', $('coloringHint').textContent);
     // 换颜色再涂
     $('coloringPalette').querySelectorAll('[data-color]')[4].dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
     await sleep(30);
-    regions()[4].dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+    byId('eyeR').dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
     await sleep(30);
-    check(regions()[4].getAttribute('fill') === '#51cf66' && swatches[4] !== undefined,
-      '换一个颜色再点另一块 → 那块用新颜色', regions()[4].getAttribute('fill'));
+    check(byId('eyeR').getAttribute('fill') === '#51cf66' && swatches[4] !== undefined,
+      '换一个颜色再点另一块 → 那块用新颜色', byId('eyeR').getAttribute('fill'));
     // 撤销 / 重做
     $('coloringUndoBtn').click();
     await sleep(40);
-    check(regions()[4].getAttribute('fill') === '#ffffff', '撤销 → 那一块退回白色', regions()[4].getAttribute('fill'));
+    check(byId('eyeR').getAttribute('fill') === '#ffffff', '撤销 → 那一块退回白色', byId('eyeR').getAttribute('fill'));
     $('coloringRedoBtn').click();
     await sleep(40);
-    check(regions()[4].getAttribute('fill') === '#51cf66', '重做 → 颜色又回来', regions()[4].getAttribute('fill'));
+    check(byId('eyeR').getAttribute('fill') === '#51cf66', '重做 → 颜色又回来', byId('eyeR').getAttribute('fill'));
     // 橡皮
     $('coloringEraseBtn').click();
     await sleep(30);
     check($('coloringEraseBtn').getAttribute('aria-pressed') === 'true', '橡皮开着（aria-pressed=true）');
-    regions()[3].dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+    byId('head').dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
     await sleep(40);
-    check(regions()[3].getAttribute('fill') === '#ffffff' && /擦掉/.test($('coloringHint').textContent),
+    check(byId('head').getAttribute('fill') === '#ffffff' && /擦掉/.test($('coloringHint').textContent),
       '橡皮状态下点区域 = 擦回白色（又跟原作「画笔 / 橡皮」那套对着）', $('coloringHint').textContent);
     $('coloringEraseBtn').click();
     await sleep(30);
-    // 换图 + 清空
-    $('coloringPics').querySelectorAll('[data-pic]')[1].dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+    // 换图（小难那档：小镇 41 块）+ 清空
+    $('coloringPics').querySelector('[data-pic="town"]').dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
     await sleep(50);
-    check(regions().length === 6 && /纸杯蛋糕/.test($('coloringHint').textContent),
-      '换成「纸杯蛋糕」→ 换成另一套 6 块区域', String(regions().length));
+    check(regions().length === 41 && /小镇/.test($('coloringHint').textContent),
+      '换成「小镇」→ 换成另一套 41 块区域（小难那档）', String(regions().length));
     regions()[1].dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
     await sleep(30);
     $('coloringClearBtn').click();
@@ -3445,6 +3482,15 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     regions()[0].dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
     await sleep(30);
     check(regions()[0].getAttribute('fill') === '#123456', '自定义取色器也能用（#123456）', regions()[0].getAttribute('fill'));
+    // 有点难那档：曼陀罗 81 块（扇形），大图照样能点着上色
+    $('coloringPics').querySelector('[data-pic="mandala"]').dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+    await sleep(60);
+    check(regions().length === 81 && /曼陀罗/.test($('coloringHint').textContent),
+      '有点难那档能切到「曼陀罗」（81 块扇形，60 块以上）', String(regions().length));
+    regions()[40].dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+    await sleep(30);
+    check(regions()[40].getAttribute('fill') === '#123456', '60 块以上的大图点一块照样上色', regions()[40].getAttribute('fill'));
+
     // 下载不抛错（jsdom 里 createObjectURL 可能没有 → 只提示）
     $('coloringDownloadBtn').click();
     await sleep(40);

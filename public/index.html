@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="x-build" content="2026-11-05 活动查询-v24-七日任务四期140条">
+    <meta name="x-build" content="2026-11-06 活动查询-v25-糖葫芦真实两张表+涂色三档线稿">
     <title>客服冷静演绎工作台</title>
     <link rel="icon" type="image/gif" href="/my-icon.gif">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1015,6 +1015,12 @@
 .color-stage svg { width: 100%; max-width: 520px; height: auto; background: #fff; border: 1px solid var(--line-1); border-radius: var(--r-md); }
 .color-stage [data-region] { cursor: pointer; stroke: #2c353d; stroke-width: 1.2; }
 .color-stage [data-region]:hover { stroke: var(--accent); stroke-width: 2; }
+.color-pics .color-tier { display: flex; flex-direction: column; gap: 6px; width: 100%; }
+.color-pics .color-tier + .color-tier { margin-top: 6px; padding-top: 6px; border-top: 1px dashed var(--line-0); }
+.color-pics .color-tier-h { font-size: 12px; color: var(--ink-2); letter-spacing: .04em; }
+.color-pics .color-tier-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.color-pics button i { font-style: normal; font-size: 11px; color: var(--ink-3); margin-left: 5px; }
+.color-pics button.active i { color: var(--dark); opacity: .7; }
 
 /* ===================== 拼豆小游戏 ===================== */
         #tab-script button,
@@ -17428,106 +17434,8 @@ const COLORING_PALETTE = [
     '#495057', '#ffffff'
 ];
 // 三张内置线稿（区域 = 一块可以填色的图形；都带 data-region 给点击用）
-const COLORING_PICS = [
-    {
-        key: 'fox', name: '小狐狸',
-        regions: [
-            { id: 'sky', name: '背景', d: 'M10,10 H190 V190 H10 Z' },
-            { id: 'tail', name: '尾巴', d: 'M132,148 C176,150 180,104 154,96 C168,116 150,128 132,124 Z' },
-            { id: 'body', name: '身子', d: 'M62,150 C52,118 74,92 100,92 C126,92 148,118 138,150 Z' },
-            { id: 'head', name: '脑袋', d: 'M70,92 C70,64 130,64 130,92 C130,116 70,116 70,92 Z' },
-            { id: 'earL', name: '左耳', d: 'M74,70 L62,34 L96,56 Z' },
-            { id: 'earR', name: '右耳', d: 'M126,70 L138,34 L104,56 Z' },
-            { id: 'face', name: '脸', d: 'M84,88 C84,78 116,78 116,88 C116,102 84,102 84,88 Z' },
-            { id: 'nose', name: '鼻子', d: 'M97,96 L103,96 L100,101 Z' },
-        ],
-    },
-    {
-        key: 'cake', name: '纸杯蛋糕',
-        regions: [
-            { id: 'bg', name: '背景', d: 'M10,10 H190 V190 H10 Z' },
-            { id: 'cup', name: '杯身', d: 'M62,116 H138 L128,172 H72 Z' },
-            { id: 'frost', name: '奶油', d: 'M58,116 C58,88 84,74 100,74 C116,74 142,88 142,116 Z' },
-            { id: 'cherry', name: '樱桃', d: 'M100,44 C112,44 118,54 112,62 C104,70 92,66 92,56 C92,48 94,44 100,44 Z' },
-            { id: 'spr1', name: '糖针一', d: 'M82,100 L94,92 L88,104 Z' },
-            { id: 'spr2', name: '糖针二', d: 'M108,96 L120,104 L106,108 Z' },
-        ],
-    },
-    {
-        key: 'sun', name: '日出',
-        regions: [
-            { id: 'sky2', name: '天空', d: 'M10,10 H190 V130 H10 Z' },
-            { id: 'sun2', name: '太阳', d: 'M100,46 m-26,0 a26,26 0 1,0 52,0 a26,26 0 1,0 -52,0' },
-            { id: 'hill1', name: '远山', d: 'M10,130 L60,86 L110,130 Z' },
-            { id: 'hill2', name: '近山', d: 'M86,130 L140,72 L190,130 Z' },
-            { id: 'ground', name: '地面', d: 'M10,130 H190 V190 H10 Z' },
-        ],
-    },
-    {
-        key: 'cat', name: '小猫',
-        regions: [
-            { id: 'catbg', name: '背景', d: 'M10,10 H190 V190 H10 Z' },
-            { id: 'cbody', name: '身子', d: 'M64,176 C60,132 84,116 100,116 C116,116 140,132 136,176 Z' },
-            { id: 'chead', name: '脑袋', d: 'M74,112 C74,80 126,80 126,112 C126,136 74,136 74,112 Z' },
-            { id: 'cearL', name: '左耳', d: 'M78,86 L70,54 L102,74 Z' },
-            { id: 'cearR', name: '右耳', d: 'M122,86 L130,54 L98,74 Z' },
-            { id: 'ctail', name: '尾巴', d: 'M136,168 C176,170 176,132 152,128 C166,144 152,152 136,150 Z' },
-        ],
-    },
-    {
-        key: 'house', name: '小房子',
-        regions: [
-            { id: 'hsky', name: '天空', d: 'M10,10 H190 V190 H10 Z' },
-            { id: 'roof', name: '屋顶', d: 'M40,104 L100,44 L160,104 Z' },
-            { id: 'wall', name: '墙', d: 'M52,104 H148 V176 H52 Z' },
-            { id: 'door', name: '门', d: 'M88,176 V140 H112 V176 Z' },
-            { id: 'win1', name: '左窗', d: 'M62,120 H80 V138 H62 Z' },
-            { id: 'win2', name: '右窗', d: 'M120,120 H138 V138 H120 Z' },
-            { id: 'chim', name: '烟囱', d: 'M126,64 H142 V96 H126 Z' },
-        ],
-    },
-    {
-        key: 'car', name: '小汽车',
-        regions: [
-            { id: 'csky', name: '天空', d: 'M10,10 H190 V190 H10 Z' },
-            { id: 'gbd', name: '车顶', d: 'M64,110 C70,84 96,78 112,80 C128,82 140,96 144,110 Z' },
-            { id: 'bd', name: '车身', d: 'M44,110 H156 C160,110 162,116 160,124 L156,142 H44 L40,124 C38,116 40,110 44,110 Z' },
-            { id: 'w1', name: '前轮', d: 'M70,152 m-16,0 a16,16 0 1,0 32,0 a16,16 0 1,0 -32,0' },
-            { id: 'w2', name: '后轮', d: 'M132,152 m-16,0 a16,16 0 1,0 32,0 a16,16 0 1,0 -32,0' },
-            { id: 'lamp', name: '车灯', d: 'M150,118 H160 V128 H150 Z' },
-        ],
-    },
-    {
-        key: 'icecream', name: '冰淇淋',
-        regions: [
-            { id: 'ibg', name: '背景', d: 'M10,10 H190 V190 H10 Z' },
-            { id: 'cone', name: '蛋筒', d: 'M76,110 H124 L100,184 Z' },
-            { id: 'scoop1', name: '下层球', d: 'M100,110 m-30,0 a30,26 0 1,0 60,0 a30,26 0 1,0 -60,0' },
-            { id: 'scoop2', name: '上层球', d: 'M100,66 m-24,0 a24,22 0 1,0 48,0 a24,22 0 1,0 -48,0' },
-            { id: 'cherry2', name: '樱桃', d: 'M100,34 m-8,0 a8,8 0 1,0 16,0 a8,8 0 1,0 -16,0' },
-        ],
-    },
-    {
-        key: 'night', name: '星星月亮',
-        regions: [
-            { id: 'nsky', name: '夜空', d: 'M10,10 H190 V190 H10 Z' },
-            { id: 'moon', name: '月亮', d: 'M132,48 C104,54 92,84 104,106 C112,122 134,130 152,122 C128,140 92,128 86,100 C80,72 104,44 132,48 Z' },
-            { id: 'star1', name: '星一', d: 'M60,60 L66,74 L82,74 L70,84 L76,100 L60,90 L44,100 L50,84 L38,74 L54,74 Z' },
-            { id: 'star2', name: '星二', d: 'M140,140 L145,152 L158,152 L148,160 L152,172 L140,164 L128,172 L132,160 L122,152 L135,152 Z' },
-            { id: 'hilln', name: '山坡', d: 'M10,150 C50,132 80,158 110,150 C140,142 170,160 190,152 V190 H10 Z' },
-        ],
-    },
-    {
-        key: 'tree', name: '小树',
-        regions: [
-            { id: 'tsky', name: '天空', d: 'M10,10 H190 V190 H10 Z' },
-            { id: 'trunk', name: '树干', d: 'M92,120 H108 V182 H92 Z' },
-            { id: 'leaf1', name: '树冠一', d: 'M100,36 C136,36 148,70 124,84 C100,98 60,96 56,70 C52,48 74,36 100,36 Z' },
-            { id: 'leaf2', name: '树冠二', d: 'M100,74 C140,74 150,112 122,120 C94,128 56,124 52,100 C48,80 74,74 100,74 Z' },
-            { id: 'groundt', name: '草地', d: 'M10,170 H190 V190 H10 Z' },
-        ],
-    },
-];
+// 2026-11 用户：「不要 10 个色块以下的图」→ 原来那 9 张 5–8 块的小图删掉，图按块数分档加在下面
+const COLORING_PICS = [];
 
 // ---- 20 张更复杂的线稿（2026-11 用户：「再加 20 张更复杂的线稿图」）----
 // 用三个几何助手拼（矩形 / 椭圆 / 多边形），每张 12–16 块，比原来那 9 张细一些。
@@ -17543,6 +17451,7 @@ function coloringPoly(points) {
 function coloringShape(kind, args) {
     if (kind === 'r') return coloringRect(args[0], args[1], args[2], args[3]);
     if (kind === 'e') return coloringEllipse(args[0], args[1], args[2], args[3]);
+    if (kind === 'd') return String(args);   // 直接给 path（曼陀罗的扇形）
     return coloringPoly(args);
 }
 const COLORING_MORE = [
@@ -17855,6 +17764,325 @@ COLORING_MORE.forEach(function (one) {
         regions: one[2].map(function (r) { return { id: r[0], name: r[1], d: coloringShape(r[2], r[3]) }; }),
     });
 });
+
+// ---- 更复杂的线稿（2026-11 用户：不要 10 个色块以下的图；10–30 简单 / 30–60 小难 / 60–120 有点难）----
+// 图都是几何形状拼的：r 矩形 / e 椭圆 / p 多边形 / d 直接给 path。
+// 名字里的「一、二、三…」用 coloringCn(n) 生成；块数多的图（摩天楼、曼陀罗、马赛克）靠网格 / 扇形批量铺。
+function coloringCn(n) {
+    const d = ['零', '一', '二', '三', '四', '五', '六', '七', '八', '九'];
+    if (n < 10) return d[n];
+    if (n === 10) return '十';
+    if (n < 20) return '十' + d[n - 10];
+    if (n < 100) return d[Math.floor(n / 10)] + '十' + (n % 10 ? d[n % 10] : '');
+    const h = Math.floor(n / 100), rest = n % 100;
+    if (!rest) return d[h] + '百';
+    return d[h] + '百' + (rest < 10 ? '零' + d[rest] : coloringCn(rest));
+}
+function coloringAdd(key, name, regions) {
+    COLORING_PICS.push({
+        key: key, name: name,
+        regions: regions.map(function (r, i) {
+            return { id: key + '-' + i, name: r[0], d: coloringShape(r[1], r[2]) };
+        }),
+    });
+}
+// 一片窗户格（楼 / 车厢 / 日历都靠它凑块数）
+function coloringWinGrid(L, label, x, y, cols, rows, w, h, gx, gy) {
+    let n = 0;
+    for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+            n++;
+            L.push([label + coloringCn(n), 'r', [x + c * (w + gx), y + r * (h + gy), w, h]]);
+        }
+    }
+}
+// 一圈扇形（曼陀罗那种）：r0~r1 之间、a0~a1 度的一块
+function coloringSector(cx, cy, r0, r1, a0, a1) {
+    const pt = function (r, deg) {
+        const t = (deg - 90) * Math.PI / 180;
+        return (cx + r * Math.cos(t)).toFixed(1) + ',' + (cy + r * Math.sin(t)).toFixed(1);
+    };
+    const big = (a1 - a0) > 180 ? 1 : 0;
+    return 'M' + pt(r0, a0) + ' L' + pt(r1, a0) + ' A' + r1 + ',' + r1 + ' 0 ' + big + ',1 ' + pt(r1, a1)
+        + ' L' + pt(r0, a1) + ' A' + r0 + ',' + r0 + ' 0 ' + big + ',0 ' + pt(r0, a0) + ' Z';
+}
+function coloringRingSectors(L, label, cx, cy, r0, r1, sectors, offset) {
+    const step = 360 / sectors;
+    for (let i = 0; i < sectors; i++) {
+        L.push([label + coloringCn(i + 1), 'd', coloringSector(cx, cy, r0, r1, step * i + (offset || 0), step * (i + 1) + (offset || 0))]);
+    }
+}
+// 块数 → 难度（用户 2026-11 给的口径：10–30 简单 / 30–60 小难 / 60–120 有点难）
+function coloringTierOf(pic) {
+    const n = (pic && pic.regions) ? pic.regions.length : 0;
+    if (n <= 30) return { key: 'easy', label: '简单', range: '10–30 块' };
+    if (n <= 60) return { key: 'mid', label: '小难', range: '30–60 块' };
+    return { key: 'hard', label: '有点难', range: '60–120 块' };
+}
+
+const COLORING_HEAVY = [
+    // ================= 小难（31–60 块）=================
+    ['town', '小镇', function () {
+        const L = [['天空', 'r', [10, 10, 180, 180]], ['太阳', 'e', [166, 34, 13, 13]],
+            ['云一', 'e', [52, 36, 17, 9]], ['云二', 'e', [96, 26, 13, 8]],
+            ['马路', 'r', [10, 166, 180, 24]]];
+        const houses = [[22, 100, 34, 66], [64, 84, 38, 82], [110, 96, 34, 70], [152, 108, 30, 58]];
+        houses.forEach(function (h, i) {
+            const n = coloringCn(i + 1);
+            L.push(['屋' + n + '顶', 'p', (h[0] - 8) + ',' + (h[1] + 18) + ' ' + (h[0] + h[2] / 2) + ',' + (h[1] - 16) + ' ' + (h[0] + h[2] + 8) + ',' + (h[1] + 18)]);
+            L.push(['屋' + n + '墙', 'r', [h[0], h[1] + 18, h[2], h[3] - 18]]);
+            L.push(['屋' + n + '门', 'r', [h[0] + h[2] / 2 - 6, h[1] + h[3] - 20, 12, 20]]);
+            L.push(['屋' + n + '烟囱', 'r', [h[0] + h[2] - 11, h[1] - 2, 7, 16]]);
+            coloringWinGrid(L, '屋' + n + '窗', h[0] + 5, h[1] + 26, 2, 2, 9, 10, h[2] - 23, 15);
+        });
+        L.push(['树一杆', 'r', [16, 128, 5, 38]]);
+        L.push(['树一冠', 'e', [18, 118, 14, 13]]);
+        L.push(['树二杆', 'r', [186, 132, 5, 34]]);
+        L.push(['树二冠', 'e', [188, 122, 10, 10]]);
+        return L;
+    }],
+    ['calendar', '日历', function () {
+        const L = [['背景', 'r', [10, 10, 180, 180]], ['纸', 'r', [24, 26, 152, 152]],
+            ['抬头', 'r', [24, 26, 152, 26]], ['环一', 'e', [46, 26, 5, 5]], ['环二', 'e', [154, 26, 5, 5]]];
+        const week = ['日', '一', '二', '三', '四', '五', '六'];
+        week.forEach(function (w, i) { L.push(['星期' + w, 'r', [30 + i * 21, 58, 18, 16]]); });
+        coloringWinGrid(L, '日', 30, 78, 7, 5, 18, 18, 3, 3);
+        return L;
+    }],
+    ['farm', '农场', function () {
+        const L = [['天空', 'r', [10, 10, 180, 180]], ['太阳', 'e', [40, 34, 14, 14]],
+            ['云一', 'e', [110, 30, 18, 9]], ['云二', 'e', [148, 40, 13, 8]],
+            ['草场', 'r', [10, 150, 180, 40]]];
+        L.push(['谷仓顶', 'p', '40,104 78,68 116,104']);
+        L.push(['谷仓墙', 'r', [46, 104, 64, 46]]);
+        L.push(['谷仓门', 'r', [68, 122, 20, 28]]);
+        L.push(['谷仓窗', 'r', [52, 112, 12, 10]]);
+        L.push(['筒仓', 'r', [120, 86, 24, 64]]);
+        L.push(['筒仓顶', 'e', [132, 86, 12, 8]]);
+        for (let i = 0; i < 4; i++) L.push(['篱笆柱' + coloringCn(i + 1), 'r', [152 + i * 12, 118, 5, 34]]);
+        for (let i = 0; i < 3; i++) L.push(['篱笆横' + coloringCn(i + 1), 'r', [148, 124 + i * 10, 50, 4]]);
+        coloringWinGrid(L, '菜畦', 22, 156, 4, 4, 30, 8, 8, 4);
+        return L;
+    }],
+    ['tank', '鱼缸', function () {
+        const L = [['缸外', 'r', [10, 10, 180, 180]], ['水', 'r', [16, 16, 168, 168]], ['沙', 'r', [16, 154, 168, 30]],
+            ['石头一', 'e', [48, 158, 14, 8]], ['石头二', 'e', [84, 162, 11, 7]], ['石头三', 'e', [152, 160, 13, 8]]];
+        for (let i = 0; i < 4; i++) L.push(['水草' + coloringCn(i + 1), 'p', (26 + i * 9) + ',156 ' + (32 + i * 9) + ',118 ' + (38 + i * 9) + ',156']);
+        for (let i = 0; i < 4; i++) L.push(['水草' + coloringCn(i + 5), 'p', (128 + i * 9) + ',156 ' + (134 + i * 9) + ',122 ' + (140 + i * 9) + ',156']);
+        const fishes = [[64, 58], [124, 92], [154, 46], [70, 118]];
+        fishes.forEach(function (f, i) {
+            const n = coloringCn(i + 1);
+            L.push(['鱼' + n + '身', 'e', [f[0], f[1], 17, 10]]);
+            L.push(['鱼' + n + '尾', 'p', (f[0] + 15) + ',' + f[1] + ' ' + (f[0] + 32) + ',' + (f[1] - 9) + ' ' + (f[0] + 32) + ',' + (f[1] + 9)]);
+            L.push(['鱼' + n + '眼', 'e', [f[0] - 9, f[1] - 2, 3, 3]]);
+            L.push(['鱼' + n + '鳍', 'p', f[0] + ',' + (f[1] - 9) + ' ' + (f[0] + 9) + ',' + (f[1] - 18) + ' ' + (f[0] + 13) + ',' + (f[1] - 7)]);
+        });
+        const bubbles = [[54, 44, 5], [66, 32, 4], [148, 70, 6], [160, 56, 4], [44, 76, 4], [136, 30, 5]];
+        bubbles.forEach(function (b, i) { L.push(['气泡' + coloringCn(i + 1), 'e', [b[0], b[1], b[2], b[2]]]); });
+        return L;
+    }],
+    ['palace', '宫殿', function () {
+        const L = [['天空', 'r', [10, 10, 180, 180]], ['地面', 'r', [10, 174, 180, 16]],
+            ['城墙', 'r', [34, 110, 132, 64]]];
+        L.push(['大门', 'p', '86,174 86,142 100,128 114,142 114,174']);
+        const towers = [[26, 66, 32], [84, 40, 32], [142, 66, 32]];
+        towers.forEach(function (t, i) {
+            const n = coloringCn(i + 1);
+            L.push(['塔' + n + '顶', 'p', (t[0] - 8) + ',' + (t[1] + 28) + ' ' + (t[0] + t[2] / 2) + ',' + t[1] + ' ' + (t[0] + t[2] + 8) + ',' + (t[1] + 28)]);
+            L.push(['塔' + n + '身', 'r', [t[0], t[1] + 28, t[2], 64]]);
+            L.push(['塔' + n + '旗', 'p', (t[0] + t[2] / 2) + ',' + t[1] + ' ' + (t[0] + t[2] / 2 + 13) + ',' + (t[1] + 7) + ' ' + (t[0] + t[2] / 2 + 1) + ',' + (t[1] + 14)]);
+            L.push(['塔' + n + '窗', 'r', [t[0] + t[2] / 2 - 5, t[1] + 40, 10, 12]]);
+        });
+        for (let i = 0; i < 8; i++) L.push(['城垛' + coloringCn(i + 1), 'r', [38 + i * 16, 102, 10, 9]]);
+        coloringWinGrid(L, '城墙窗', 44, 120, 4, 2, 12, 14, 22, 12);
+        L.push(['台阶一', 'r', [84, 174, 32, 6]]);
+        L.push(['台阶二', 'r', [78, 180, 44, 6]]);
+        return L;
+    }],
+    ['bakery', '甜点柜', function () {
+        const L = [['背景', 'r', [10, 10, 180, 180]], ['柜体', 'r', [26, 24, 148, 158]]];
+        for (let s = 0; s < 3; s++) {
+            const sy = 82 + s * 44;
+            L.push(['层板' + coloringCn(s + 1), 'r', [32, sy, 136, 5]]);
+            for (let i = 0; i < 4; i++) {
+                const x = 38 + i * 33;
+                const n = coloringCn(s * 4 + i + 1);
+                L.push(['蛋糕' + n + '底', 'r', [x, sy - 16, 26, 16]]);
+                L.push(['蛋糕' + n + '面', 'e', [x + 13, sy - 16, 13, 6]]);
+                L.push(['蛋糕' + n + '顶', 'e', [x + 13, sy - 26, 5, 5]]);
+            }
+        }
+        return L;
+    }],
+    ['station', '空间站', function () {
+        const L = [['太空', 'r', [10, 10, 180, 180]], ['地球', 'e', [40, 148, 22, 22]],
+            ['大陆一', 'e', [32, 142, 8, 6]], ['大陆二', 'e', [46, 152, 7, 5]],
+            ['星一', 'e', [30, 40, 4, 4]], ['星二', 'e', [78, 26, 3, 3]],
+            ['星三', 'e', [156, 34, 4, 4]], ['星四', 'e', [176, 66, 3, 3]]];
+        // 太阳能板：两片，每片 6 格
+        coloringWinGrid(L, '左板', 26, 74, 2, 3, 16, 12, 2, 4);
+        coloringWinGrid(L, '右板', 128, 74, 2, 3, 16, 12, 2, 4);
+        L.push(['舱体', 'r', [70, 92, 60, 40]]);
+        L.push(['舱体一', 'r', [70, 92, 30, 20]]);
+        L.push(['舱体二', 'r', [100, 92, 30, 20]]);
+        L.push(['舷窗一', 'e', [80, 122, 8, 8]]);
+        L.push(['舷窗二', 'e', [102, 122, 8, 8]]);
+        L.push(['舷窗三', 'e', [124, 122, 8, 8]]);
+        L.push(['天线', 'r', [97, 66, 4, 26]]);
+        L.push(['天线盘', 'e', [99, 62, 9, 6]]);
+        L.push(['对接口', 'r', [130, 100, 14, 24]]);
+        L.push(['小飞船', 'e', [152, 112, 10, 7]]);
+        L.push(['推进器', 'r', [60, 100, 10, 24]]);
+        L.push(['尾焰一', 'p', '60,124 65,146 70,124']);
+        L.push(['尾焰二', 'p', '74,132 79,152 84,132']);
+        return L;
+    }],
+    ['garden', '花园', function () {
+        const L = [['天空', 'r', [10, 10, 180, 180]], ['太阳', 'e', [164, 34, 14, 14]],
+            ['草地', 'r', [10, 140, 180, 50]], ['篱笆横', 'r', [10, 118, 180, 5]]];
+        for (let i = 0; i < 7; i++) L.push(['篱笆柱' + coloringCn(i + 1), 'r', [16 + i * 25, 108, 6, 34]]);
+        const flowers = [[34, 152], [72, 160], [108, 146], [144, 158], [176, 148]];
+        flowers.forEach(function (f, i) {
+            const n = coloringCn(i + 1);
+            L.push(['花' + n + '茎', 'r', [f[0] - 2, f[1], 4, 28]]);
+            L.push(['花' + n + '心', 'e', [f[0], f[1] - 4, 6, 6]]);
+            L.push(['花' + n + '瓣一', 'e', [f[0], f[1] - 16, 7, 7]]);
+            L.push(['花' + n + '瓣二', 'e', [f[0] - 12, f[1] - 4, 7, 7]]);
+            L.push(['花' + n + '瓣三', 'e', [f[0] + 12, f[1] - 4, 7, 7]]);
+            L.push(['花' + n + '瓣四', 'e', [f[0] - 9, f[1] + 8, 7, 7]]);
+            L.push(['花' + n + '瓣五', 'e', [f[0] + 9, f[1] + 8, 7, 7]]);
+        });
+        L.push(['小路', 'p', '86,190 114,190 106,140 94,140']);
+        return L;
+    }],
+    // ================= 有点难（61–120 块）=================
+    ['mandala', '曼陀罗', function () {
+        const L = [['花心', 'e', [100, 100, 15, 15]]];
+        coloringRingSectors(L, '内环', 100, 100, 16, 30, 16, 0);
+        coloringRingSectors(L, '中环', 100, 100, 30, 44, 16, 11);
+        coloringRingSectors(L, '外环', 100, 100, 44, 58, 20, 0);
+        coloringRingSectors(L, '边环', 100, 100, 58, 72, 20, 9);
+        for (let i = 0; i < 8; i++) {
+            const deg = i * 45 - 90;
+            const t = deg * Math.PI / 180;
+            L.push(['角点' + coloringCn(i + 1), 'e', [100 + 80 * Math.cos(t), 100 + 80 * Math.sin(t), 6, 6]]);
+        }
+        return L;
+    }],
+    ['tower', '摩天楼', function () {
+        const L = [['天空', 'r', [10, 10, 180, 180]], ['地面', 'r', [10, 172, 180, 18]],
+            ['月亮', 'e', [164, 36, 12, 12]], ['云一', 'e', [38, 40, 16, 9]],
+            ['云二', 'e', [78, 30, 12, 7]], ['云三', 'e', [140, 48, 14, 8]],
+            ['楼体', 'r', [58, 40, 84, 132]], ['楼顶', 'p', '54,40 100,16 146,40'],
+            ['天线', 'r', [98, 8, 4, 12]], ['大门', 'r', [92, 152, 16, 20]],
+            ['侧楼一', 'r', [30, 96, 26, 76]], ['侧楼二', 'r', [144, 88, 26, 84]]];
+        coloringWinGrid(L, '窗', 64, 48, 5, 11, 10, 7, 6, 3);
+        return L;
+    }],
+    ['dragon', '龙', function () {
+        const L = [['天空', 'r', [10, 10, 180, 180]], ['太阳', 'e', [166, 32, 13, 13]],
+            ['云一', 'e', [46, 30, 16, 9]], ['云二', 'e', [86, 20, 12, 7]], ['云三', 'e', [124, 34, 14, 8]]];
+        const body = [[36, 118, 15, 13], [52, 112, 16, 14], [70, 108, 17, 15], [89, 106, 18, 16],
+            [108, 108, 17, 15], [126, 112, 16, 14], [142, 118, 15, 13], [156, 126, 14, 12],
+            [168, 136, 13, 11], [178, 148, 11, 10]];
+        body.forEach(function (b, i) { L.push(['身' + coloringCn(i + 1), 'e', b]); });
+        body.forEach(function (b, i) {
+            L.push(['背刺' + coloringCn(i + 1), 'p', (b[0] - 4) + ',' + (b[1] - b[3] + 2) + ' ' + b[0] + ',' + (b[1] - b[3] - 14) + ' ' + (b[0] + 6) + ',' + (b[1] - b[3] + 3)]);
+        });
+        for (let i = 0; i < 24; i++) {
+            const seg = body[i % body.length];
+            const dx = ((i % 4) - 1.5) * 6, dy = (Math.floor(i / 4) % 2 ? 5 : -3);
+            L.push(['鳞' + coloringCn(i + 1), 'e', [seg[0] + dx, seg[1] + dy, 3, 3]]);
+        }
+        L.push(['头', 'e', [26, 112, 16, 13]]);
+        L.push(['吻', 'p', '12,116 26,108 26,124']);
+        L.push(['角一', 'p', '22,100 16,86 28,98']);
+        L.push(['角二', 'p', '30,100 26,84 36,98']);
+        L.push(['眼', 'e', [20, 110, 3, 3]]);
+        L.push(['翅一', 'p', '96,98 88,66 112,84']);
+        L.push(['翅二', 'p', '114,96 118,62 134,84']);
+        L.push(['翅三', 'p', '130,100 142,70 150,92']);
+        L.push(['翅四', 'p', '70,100 58,74 84,86']);
+        L.push(['腿一', 'r', [60, 130, 8, 22]]);
+        L.push(['腿二', 'r', [86, 132, 8, 22]]);
+        L.push(['腿三', 'r', [118, 132, 8, 20]]);
+        L.push(['腿四', 'r', [146, 136, 8, 18]]);
+        L.push(['爪一', 'e', [64, 152, 6, 4]]);
+        L.push(['爪二', 'e', [90, 154, 6, 4]]);
+        return L;
+    }],
+    ['peacock', '孔雀', function () {
+        const L = [['背景', 'r', [10, 10, 180, 180]], ['草地', 'r', [10, 176, 180, 14]]];
+        for (let i = 0; i < 16; i++) {
+            const deg = 186 + i * (168 / 15);
+            const t = deg * Math.PI / 180;
+            const bx = 100 + 30 * Math.cos(t), by = 132 + 30 * Math.sin(t);
+            const ex = 100 + 60 * Math.cos(t), ey = 132 + 60 * Math.sin(t);
+            const tx = 100 + 74 * Math.cos(t), ty = 132 + 74 * Math.sin(t);
+            const n = coloringCn(i + 1);
+            L.push(['羽' + n + '杆', 'p', '100,132 ' + (bx.toFixed(1) - 1.5) + ',' + by.toFixed(1) + ' ' + (bx.toFixed(1) + 1.5) + ',' + by.toFixed(1)]);
+            L.push(['羽' + n + '眼', 'e', [ex.toFixed(1), ey.toFixed(1), 6, 6]]);
+            L.push(['羽' + n + '尖', 'e', [tx.toFixed(1), ty.toFixed(1), 5, 4]]);
+        }
+        L.push(['身', 'e', [100, 150, 16, 22]]);
+        L.push(['头', 'e', [100, 118, 8, 9]]);
+        L.push(['颈', 'r', [97, 124, 6, 16]]);
+        L.push(['喙', 'p', '92,114 100,110 96,120']);
+        L.push(['眼', 'e', [98, 116, 2.5, 2.5]]);
+        L.push(['冠一', 'e', [100, 106, 3, 5]]);
+        L.push(['冠二', 'e', [94, 108, 3, 4]]);
+        L.push(['冠三', 'e', [106, 108, 3, 4]]);
+        L.push(['冠四', 'e', [90, 112, 3, 3]]);
+        L.push(['左翅', 'p', '86,140 70,156 88,158']);
+        L.push(['右翅', 'p', '114,140 130,156 112,158']);
+        L.push(['腿一', 'r', [94, 168, 4, 12]]);
+        L.push(['腿二', 'r', [104, 168, 4, 12]]);
+        L.push(['爪一', 'e', [92, 180, 5, 3]]);
+        L.push(['爪二', 'e', [108, 180, 5, 3]]);
+        return L;
+    }],
+    ['reef', '珊瑚礁', function () {
+        const L = [['海水', 'r', [10, 10, 180, 180]], ['沙地', 'r', [10, 164, 180, 26]]];
+        for (let c = 0; c < 6; c++) {
+            const x = 24 + c * 29;
+            for (let b = 0; b < 3; b++) {
+                L.push(['珊瑚' + coloringCn(c + 1) + '枝' + coloringCn(b + 1), 'p',
+                    (x + b * 4) + ',164 ' + (x + b * 4 + 3) + ',' + (124 + b * 12) + ' ' + (x + b * 4 + 7) + ',164']);
+            }
+        }
+        const fishes = [[56, 54], [120, 44], [150, 86], [70, 96], [34, 120]];
+        fishes.forEach(function (f, i) {
+            const n = coloringCn(i + 1);
+            L.push(['鱼' + n + '身', 'e', [f[0], f[1], 14, 9]]);
+            L.push(['鱼' + n + '尾', 'p', (f[0] + 12) + ',' + f[1] + ' ' + (f[0] + 26) + ',' + (f[1] - 8) + ' ' + (f[0] + 26) + ',' + (f[1] + 8)]);
+            L.push(['鱼' + n + '眼', 'e', [f[0] - 7, f[1] - 2, 2.5, 2.5]]);
+            L.push(['鱼' + n + '鳍', 'p', f[0] + ',' + (f[1] - 8) + ' ' + (f[0] + 8) + ',' + (f[1] - 15) + ' ' + (f[0] + 11) + ',' + (f[1] - 6)]);
+        });
+        for (let i = 0; i < 22; i++) {
+            const bx = 20 + (i * 37) % 168, by = 20 + (i * 53) % 120, r = 3 + (i % 3);
+            L.push(['气泡' + coloringCn(i + 1), 'e', [bx, by, r, r]]);
+        }
+        L.push(['海草一', 'p', '18,164 24,120 30,164']);
+        L.push(['海草二', 'p', '176,164 182,124 188,164']);
+        L.push(['海草三', 'p', '160,164 166,136 172,164']);
+        for (let i = 0; i < 4; i++) L.push(['贝壳' + coloringCn(i + 1), 'e', [44 + i * 40, 172, 9, 6]]);
+        L.push(['石头一', 'e', [66, 168, 12, 7]]);
+        L.push(['石头二', 'e', [128, 170, 10, 6]]);
+        L.push(['石头三', 'e', [150, 176, 14, 6]]);
+        return L;
+    }],
+    ['mosaic', '马赛克画', function () {
+        const L = [['背景', 'r', [10, 10, 180, 180]]];
+        coloringWinGrid(L, '格', 11, 30, 10, 8, 16, 16, 2, 2);
+        return L;
+    }],
+];
+COLORING_HEAVY.forEach(function (one) { coloringAdd(one[0], one[1], one[2]()); });
+// 2026-11 用户：「不要 10 个色块以下的图」→ 少于 10 块的直接不显示（以后加图也照这条滤）
+for (let i = COLORING_PICS.length - 1; i >= 0; i--) {
+    if (COLORING_PICS[i].regions.length < 10) COLORING_PICS.splice(i, 1);
+}
+
 const COLORING_BLANK = "#ffffff";
 let coloringPic = COLORING_PICS[0].key;
 let coloringColor = COLORING_PALETTE[0];
@@ -17879,9 +18107,23 @@ function coloringSetHint(msg) {
 function coloringRenderPics() {
     const box = document.getElementById("coloringPics");
     if (!box) return;
-    box.innerHTML = COLORING_PICS.map(p =>
-        '<button type="button" data-pic="' + p.key + '" class="' + (p.key === coloringPic ? "active" : "") + '">' + escapeHtml(p.name) + "</button>"
-    ).join("");
+    const tiers = [
+        { key: "easy", label: "简单", range: "10–30 块" },
+        { key: "mid", label: "小难", range: "30–60 块" },
+        { key: "hard", label: "有点难", range: "60–120 块" }
+    ];
+    box.innerHTML = tiers.map(function (tier) {
+        const list = COLORING_PICS.filter(function (p) { return coloringTierOf(p).key === tier.key; });
+        if (!list.length) return "";
+        return '<div class="color-tier" data-tier="' + tier.key + '">'
+            + '<span class="color-tier-h">' + tier.label + " · " + tier.range + "（" + list.length + " 张）</span>"
+            + '<div class="color-tier-list">'
+            + list.map(function (p) {
+                return '<button type="button" data-pic="' + p.key + '" class="' + (p.key === coloringPic ? "active" : "") + '">'
+                    + escapeHtml(p.name) + "<i>" + p.regions.length + " 块</i></button>";
+            }).join("")
+            + "</div></div>";
+    }).join("");
 }
 function coloringRenderPalette() {
     const box = document.getElementById("coloringPalette");
@@ -18017,11 +18259,13 @@ function coloringInit() {
     }
 }
 
-// ==================== 🍡 糖葫芦对决（活动类型 87 = 糖葫芦2v2）====================
-                                    // 2026-11 从 GM 玩家页反推出的口径：
-                                    //   活动类型 87 = 糖葫芦2v2；行为枚举 = 1 匹配 / 2 结算 / 3 进度；
-                                    //   奖励来源 263 = 糖葫芦比拼活动奖励。
-                                    // 所以「查询」= 把 type/87 那段查询结果粘进来 → 按排期 / 行为汇总成客服看得懂的一段。
+                                    // ==================== 🍡 糖葫芦对决（活动类型 87 = 糖葫芦2v2）====================
+                                    // 2026-11 用户给了 GM 里真实的两张表，列跟当初按「行为 1/2/3」反推的不完全一样：
+                                    //   【结算】创建时间 / 排期ID / 事件UUID / 分组 / 轮次 / 玩家分数 / 队友分数 / 对手1分数 / 对手2分数 / 胜利 / MVP / 本轮积分 / 总积分 / 是否结束
+                                    //   【进度】创建时间 / 排期ID / 事件UUID / 轮次(before) / 玩家分数(before) / 队友分数(before) / 对手1分数(before) / 对手2分数(before) /
+                                    //           轮次(after) / 玩家分数(after) / 队友分数(after) / 对手1分数(after) / 对手2分数(after)
+                                    // 两张表都没有「行为」列 → 行为按表头推断：带 (before)/(after) 的是进度，带 胜利 / 本轮积分 / 总积分 的是结算。
+                                    // 两张表可以一次一起粘（各自带表头），解析时碰到表头行就换一套列映射，不会串列。
                                     const THL_BEHAVIOR_TEXT = { '1': '匹配', '2': '结算', '3': '进度' };
                                     const THL_ALIASES = {
                                         '排期': 'schedule', '排期id': 'schedule', '活动排期': 'schedule', '活动排期id': 'schedule',
@@ -18029,12 +18273,45 @@ function coloringInit() {
                                         '事件': 'event', '事件uuid': 'event', '事件id': 'event', 'uuid': 'event',
                                         '时间': 'time', '创建时间': 'time', '发生时间': 'time',
                                         '道具': 'item', '道具名': 'item', '奖励': 'item',
-                                        '数量': 'count', '个数': 'count'
+                                        '数量': 'count', '个数': 'count',
+                                        '分组': 'group', '轮次': 'round',
+                                        '玩家分数': 'my', '队友分数': 'mate', '对手1分数': 'opp1', '对手2分数': 'opp2',
+                                        '胜利': 'win', 'mvp': 'mvp', '本轮积分': 'roundPoint', '总积分': 'totalPoint', '是否结束': 'ended',
+                                        '轮次(before)': 'roundB', '轮次(after)': 'roundA',
+                                        '玩家分数(before)': 'myB', '玩家分数(after)': 'myA',
+                                        '队友分数(before)': 'mateB', '队友分数(after)': 'mateA',
+                                        '对手1分数(before)': 'opp1B', '对手1分数(after)': 'opp1A',
+                                        '对手2分数(before)': 'opp2B', '对手2分数(after)': 'opp2A'
                                     };
+                                    const THL_NUM_KEYS = ['group', 'round', 'my', 'mate', 'opp1', 'opp2', 'win', 'mvp',
+                                        'roundPoint', 'totalPoint', 'ended',
+                                        'roundB', 'roundA', 'myB', 'myA', 'mateB', 'mateA', 'opp1B', 'opp1A', 'opp2B', 'opp2A'];
                                     function thlCells(line) {
                                         if (line.indexOf('\t') !== -1) return line.split('\t').map(s => s.trim());
                                         if (line.indexOf(',') !== -1) return line.split(',').map(s => s.trim().replace(/^"|"$/g, ''));
                                         return line.split(/\s{2,}/).map(s => s.trim()).filter(Boolean);
+                                    }
+                                    function thlHeadKey(c) {
+                                        return String(c == null ? '' : c).trim().toLowerCase()
+                                            .replace(/（/g, '(').replace(/）/g, ')').replace(/\s+/g, '');
+                                    }
+                                    // 一行表头 → { map: { 字段: 列号 }, hits: 命中几个列名 }
+                                    function thlHeadMap(cells) {
+                                        const map = {};
+                                        let hits = 0;
+                                        cells.forEach((c, i) => {
+                                            const key = THL_ALIASES[thlHeadKey(c)];
+                                            if (key && map[key] === undefined) { map[key] = i; hits++; }
+                                        });
+                                        return { map: map, hits: hits };
+                                    }
+                                    // 没有「行为」列时按表头推：认得分前后两列 → 进度；认得出胜负 / 积分 → 结算
+                                    function thlBehaviorOfMap(map) {
+                                        if (!map) return '';
+                                        const has = k => map[k] !== undefined;
+                                        if (has('roundB') || has('roundA') || has('myB') || has('myA')) return '进度';
+                                        if (has('win') || has('mvp') || has('roundPoint') || has('totalPoint') || has('ended') || has('group')) return '结算';
+                                        return '';
                                     }
                                     function thlBehavior(v) {
                                         const s = String(v == null ? '' : v).trim();
@@ -18052,16 +18329,17 @@ function coloringInit() {
                                         const p2 = n => (String(n).length < 2 ? '0' + n : String(n));
                                         return p2(m[2]) + '-' + p2(m[3]) + ' ' + p2(m[4]) + ':' + m[5];
                                     }
-                                    // 一行 → { schedule, behavior, event, time, item, count }
-                                    function thlRow(cells, map) {
+                                    // 一行 → { schedule, behavior, event, time, item, count, 以及结算/进度那些分数列 }
+                                    function thlRow(cells, map, forced) {
                                         const row = { schedule: '', behavior: '', event: '', time: '', item: '', count: '' };
+                                        THL_NUM_KEYS.forEach(k => { row[k] = ''; });
                                         if (map) {
                                             Object.keys(map).forEach(key => {
                                                 const idx = map[key];
                                                 if (idx < 0 || idx >= cells.length) return;
                                                 row[key] = cells[idx];
                                             });
-                                            row.behavior = thlBehavior(row.behavior) || row.behavior;
+                                            row.behavior = thlBehavior(row.behavior) || forced || '';
                                             return row;
                                         }
                                         // 没表头：按内容猜（1–3 那个数当行为，日期当时间，32 位十六进制当事件，短数字当排期）
@@ -18075,28 +18353,65 @@ function coloringInit() {
                                             if (!row.schedule && /^\d{1,4}$/.test(s)) { row.schedule = s; return; }
                                             if (!row.item && /[\u4e00-\u9fa5]/.test(s) && s.length <= 24) { row.item = s; return; }
                                         });
+                                        // 一整行全是数字（结算表那种 10 列以上）→ 当结算，别硬猜成别的行为
+                                        if (!row.behavior) {
+                                            const nums = cells.filter(c => /^\d+$/.test(String(c).trim())).length;
+                                            if (nums >= 10) row.behavior = '结算';
+                                        }
                                         return row;
                                     }
                                     function thlParse(raw) {
                                         const lines = String(raw || '').split(/\r?\n/).filter(l => l.trim());
-                                        if (!lines.length) return { rows: [], hasHeader: false };
-                                        // 表头识别：首行至少两个列名命中别名才当表头
-                                        let map = null, start = 0;
-                                        const headCells = thlCells(lines[0]);
-                                        const guess = {};
-                                        let hits = 0;
-                                        headCells.forEach((c, i) => {
-                                            const key = THL_ALIASES[String(c).trim().toLowerCase().replace(/\s+/g, '')];
-                                            if (key && guess[key] === undefined) { guess[key] = i; hits++; }
-                                        });
-                                        if (hits >= 2) { map = guess; start = 1; }
+                                        if (!lines.length) return { rows: [], hasHeader: false, headers: 0 };
+                                        let map = null, forced = '', headers = 0;
                                         const rows = [];
-                                        for (let i = start; i < lines.length; i++) {
-                                            const row = thlRow(thlCells(lines[i]), map);
+                                        for (let i = 0; i < lines.length; i++) {
+                                            const cells = thlCells(lines[i]);
+                                            const g = thlHeadMap(cells);
+                                            if (g.hits >= 2) { map = g.map; forced = thlBehaviorOfMap(map); headers++; continue; }
+                                            const row = thlRow(cells, map, forced);
                                             if (!row.behavior && !row.schedule && !row.time && !row.event) continue;
                                             rows.push(row);
                                         }
-                                        return { rows: rows, hasHeader: !!map };
+                                        return { rows: rows, hasHeader: headers > 0, headers: headers };
+                                    }
+                                    function thlPair(a, b) {
+                                        if (a === '' && b === '') return '';
+                                        return (a === '' ? '?' : a) + '+' + (b === '' ? '?' : b);
+                                    }
+                                    function thlArrow(a, b) { return a === b ? a : (a + ' → ' + b); }
+                                    // 结算一条：时间 · 结算 · 第几轮 · 我方 a+b vs 对手 c+d · 胜负 · MVP · 本轮积分 · 总积分 · 是否结束
+                                    function thlSettleLine(r) {
+                                        const bits = [thlClock(r.time || '') || '—', '结算'];
+                                        if (r.round !== '') bits.push('第' + r.round + '轮');
+                                        const mine = thlPair(r.my, r.mate);
+                                        const rival = thlPair(r.opp1, r.opp2);
+                                        if (mine || rival) bits.push('我方 ' + (mine || '?') + ' vs 对手 ' + (rival || '?'));
+                                        if (r.win === '1') bits.push('胜利');
+                                        else if (r.win === '0') bits.push('失败');
+                                        else if (r.win !== '') bits.push('胜利值 ' + r.win);
+                                        if (r.mvp === '1') bits.push('MVP');
+                                        if (r.roundPoint !== '') bits.push('本轮积分 +' + r.roundPoint);
+                                        if (r.totalPoint !== '') bits.push('总积分 ' + r.totalPoint);
+                                        if (r.ended === '1') bits.push('已结束');
+                                        else if (r.ended === '0') bits.push('未结束');
+                                        // 老格式（只有行为 + 事件，没有分数列）兜底：带上事件UUID 后 8 位
+                                        if (!mine && !rival && r.event) bits.push(String(r.event).slice(-8));
+                                        return '- ' + bits.join(' · ');
+                                    }
+                                    // 进度一条：时间 · 进度 · 第几轮 · 我方 169+118 → 169+119 · 对手 89+108 → 89+117
+                                    function thlProgressLine(r) {
+                                        const bits = [thlClock(r.time || '') || '—', '进度'];
+                                        const rb = String(r.roundB || ''), ra = String(r.roundA || '');
+                                        if (rb || ra) bits.push('第' + thlArrow(rb || '?', ra || '?') + '轮');
+                                        const mine = thlPair(r.myB, r.mateB) && thlPair(r.myA, r.mateA)
+                                            ? thlPair(r.myB, r.mateB) + ' → ' + thlPair(r.myA, r.mateA) : '';
+                                        const rival = thlPair(r.opp1B, r.opp2B) && thlPair(r.opp1A, r.opp2A)
+                                            ? thlPair(r.opp1B, r.opp2B) + ' → ' + thlPair(r.opp1A, r.opp2A) : '';
+                                        if (mine) bits.push('我方 ' + mine);
+                                        if (rival) bits.push('对手 ' + rival);
+                                        if (!mine && !rival && r.event) bits.push(String(r.event).slice(-8));
+                                        return '- ' + bits.filter(Boolean).join(' · ');
                                     }
                                     function thlBuild(raw) {
                                         const p = thlParse(raw);
@@ -18111,17 +18426,33 @@ function coloringInit() {
                                         const count = (list, name) => list.filter(r => r.behavior === name).length;
                                         const lines = ['糖葫芦2v2 · 共 ' + rows.length + ' 条'];
                                         const groups = [];
+                                        const CAP = 20;
                                         order.forEach(key => {
                                             const list = bySch[key];
                                             const times = list.map(r => String(r.time || '')).filter(Boolean).sort();
                                             const span = times.length ? (thlClock(times[0]) + ' ~ ' + thlClock(times[times.length - 1])) : '';
+                                            const sorted = list.slice().sort((a, b) => String(a.time || '').localeCompare(String(b.time || '')));
+                                            const settles = sorted.filter(r => r.behavior === '结算');
+                                            const progs = sorted.filter(r => r.behavior === '进度');
+                                            const win = settles.filter(r => r.win === '1').length;
+                                            const lose = settles.filter(r => r.win === '0').length;
+                                            const mvp = settles.filter(r => r.mvp === '1').length;
+                                            const totals = settles.map(r => r.totalPoint).filter(v => v !== '' && isFinite(Number(v))).map(Number);
+                                            const best = totals.length ? Math.max.apply(null, totals) : null;
+                                            const rounds = list.map(r => Number(r.round || r.roundA || r.roundB)).filter(n => n > 0);
+                                            const maxRound = rounds.length ? Math.max.apply(null, rounds) : 0;
                                             const g = {
                                                 schedule: key,
                                                 total: list.length,
                                                 match: count(list, '匹配'),
-                                                settle: count(list, '结算'),
-                                                progress: count(list, '进度'),
+                                                settle: settles.length,
+                                                progress: progs.length,
                                                 span: span,
+                                                win: win,
+                                                lose: lose,
+                                                mvp: mvp,
+                                                best: best,
+                                                maxRound: maxRound,
                                                 others: list.filter(r => !r.behavior).length
                                             };
                                             groups.push(g);
@@ -18129,16 +18460,21 @@ function coloringInit() {
                                             lines.push('活动排期 ' + key + sdScheduleTail(key) + ' · ' + list.length + ' 条');
                                             lines.push('匹配 ' + g.match + ' 场 · 结算 ' + g.settle + ' 场 · 进度 ' + g.progress + ' 条'
                                                 + (g.others ? ' · 其他 ' + g.others + ' 条' : ''));
+                                            if (settles.length) {
+                                                lines.push('结算战绩：胜 ' + win + ' · 负 ' + lose + ' · MVP ' + mvp + ' 次'
+                                                    + (best !== null ? ' · 最高总积分 ' + best : '')
+                                                    + (maxRound ? ' · 打到第 ' + maxRound + ' 轮' : ''));
+                                            }
                                             if (span) lines.push('时间跨度：' + span);
-                                            // 结算明细（客服最常被问「这期结算了没」）：条数不多时逐条列出
-                                            const settles = list.filter(r => r.behavior === '结算');
-                                            if (settles.length && settles.length <= 12) {
-                                                settles.forEach(r => {
-                                                    const bits = [thlClock(r.time || '') || '—', '结算'];
-                                                    if (r.item) bits.push(r.item + (r.count ? '×' + r.count : ''));
-                                                    if (r.event) bits.push(String(r.event).slice(-8));
-                                                    lines.push('- ' + bits.join(' · '));
-                                                });
+                                            if (settles.length) {
+                                                lines.push('【结算】' + (settles.length > CAP ? '前 ' + CAP + ' 条 / 共 ' + settles.length + ' 条' : ''));
+                                                settles.slice(0, CAP).forEach(r => lines.push(thlSettleLine(r)));
+                                                if (settles.length > CAP) lines.push('…还有 ' + (settles.length - CAP) + ' 条结算没列出来');
+                                            }
+                                            if (progs.length) {
+                                                lines.push('【进度】' + (progs.length > CAP ? '前 ' + CAP + ' 条 / 共 ' + progs.length + ' 条' : ''));
+                                                progs.slice(0, CAP).forEach(r => lines.push(thlProgressLine(r)));
+                                                if (progs.length > CAP) lines.push('…还有 ' + (progs.length - CAP) + ' 条进度没列出来');
                                             }
                                         });
                                         const chips = {
@@ -18151,7 +18487,9 @@ function coloringInit() {
                                         };
                                         return { text: lines.join('\n'), chips: chips, rows: rows, groups: groups, hasHeader: p.hasHeader };
                                     }
-                                    function thlRun() {
+
+
+function thlRun() {
                                         const input = document.getElementById('thlInput');
                                         const outEl = document.getElementById('thlOutput');
                                         const chipsEl = document.getElementById('thlChips');
@@ -18171,11 +18509,19 @@ function coloringInit() {
                                                     statChip({ html: '匹配 <b>' + res.chips.match + '</b> 场' }, 'k-accent', '行为 1 = 匹配'),
                                                     statChip({ html: '结算 <b>' + res.chips.settle + '</b> 场' }, 'k-op', '行为 2 = 结算'),
                                                     statChip({ html: '进度 <b>' + res.chips.progress + '</b> 条' }, 'k-plain', '行为 3 = 进度'),
-                                                    statChip({ html: '排期 <b>' + escapeHtml(String(res.chips.scheds || '—')) + '</b>' }, 'k-plain', '活动排期ID（时间窗来自七日任务排期表，认不出只写 id）')
+                                                    statChip({ html: '排期 <b>' + escapeHtml(String(res.chips.scheds || '—')) + '</b>' }, 'k-plain', '活动排期ID（时间窗来自七日任务排期表，认不出只写 id）'),
+                                                    (function () {
+                                                        const gs = res.chips.groups || [];
+                                                        const win = gs.reduce((s, g) => s + (g.win || 0), 0);
+                                                        const lose = gs.reduce((s, g) => s + (g.lose || 0), 0);
+                                                        const mvp = gs.reduce((s, g) => s + (g.mvp || 0), 0);
+                                                        if (!win && !lose) return '';
+                                                        return statChip({ html: '胜 <b>' + win + '</b> · 负 <b>' + lose + '</b> · MVP <b>' + mvp + '</b>' }, 'k-accent', '结算表里的「胜利 / MVP」两列');
+                                                    })()
                                                 ].join('')
                                                 : '';
                                         }
-                                        if (!res.rows.length) teaSetHint('thlHint', '没认出记录：一行里至少要有「行为（匹配 / 结算 / 进度 或 1 / 2 / 3）」或时间 / 事件UUID 之一');
+                                        if (!res.rows.length) teaSetHint('thlHint', '没认出记录：把 GM 的【结算】表或【进度】表连表头一起粘进来（两张可以一起粘，各自带表头）');
                                         else teaSetHint('thlHint', '认出 ' + res.rows.length + ' 条' + (res.hasHeader ? '（按表头对齐）' : '（没表头，按内容猜的）'));
                                         return res;
                                     }

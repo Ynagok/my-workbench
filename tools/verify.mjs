@@ -942,27 +942,43 @@ ok(/const SD_SCHEDULE = \[/.test(s)
 ok(/data-sub="color">🎨 涂色</.test(s) && /id="sub-panel-color"/.test(s)
   && /id="coloringCard"/.test(s) && /id="coloringStage"/.test(s) && /id="coloringPalette"/.test(s)
   && /id="coloringPics"/.test(s) && /id="coloringCustomColor"/.test(s)
-  && /const COLORING_PALETTE = \[/.test(s) && /const COLORING_PICS = \[/.test(s)
-  && /key: 'fox', name: '小狐狸'/.test(s) && /key: 'cake', name: '纸杯蛋糕'/.test(s) && /key: 'sun', name: '日出'/.test(s)
-  && /key: 'cat', name: '小猫'/.test(s) && /key: 'house', name: '小房子'/.test(s) && /key: 'car', name: '小汽车'/.test(s)
-  && /key: 'icecream', name: '冰淇淋'/.test(s) && /key: 'night', name: '星星月亮'/.test(s) && /key: 'tree', name: '小树'/.test(s)
-  // 2026-11 用户：「再加 20 张更复杂的线稿图」→ COLORING_MORE 用 r/e/p 三个几何助手拼，每张 12–16 块
+  && /const COLORING_PALETTE = \[/.test(s) && /const COLORING_PICS = \[\]/.test(s)
+  // 2026-11 用户：「不要 10 个色块以下的图」→ 原来那 9 张 5–8 块的小图删掉，加图也照这条滤
+  && /regions\.length < 10/.test(s)
   && /const COLORING_MORE = \[/.test(s) && /function coloringShape\(kind, args\)/.test(s)
   && /\['owl', '猫头鹰', \[/.test(s) && /\['castle', '城堡', \[/.test(s)
   && /COLORING_MORE\.forEach\(function \(one\) \{/.test(s)
+  // 2026-11 用户：「增加 50 个色块甚至更多的图；10–30 简单 / 30–60 小难 / 60–120 有点难」
+  && /const COLORING_HEAVY = \[/.test(s) && /function coloringTierOf\(pic\)/.test(s)
+  && /label: '简单', range: '10–30 块'/.test(s) && /label: '小难', range: '30–60 块'/.test(s)
+  && /label: '有点难', range: '60–120 块'/.test(s)
+  && /function coloringCn\(n\)/.test(s) && /function coloringWinGrid\(/.test(s)
+  && /function coloringSector\(/.test(s) && /function coloringRingSectors\(/.test(s)
+  && /\['town', '小镇'/.test(s) && /\['calendar', '日历'/.test(s) && /\['mandala', '曼陀罗'/.test(s)
+  && /\['tower', '摩天楼'/.test(s) && /\['mosaic', '马赛克画'/.test(s)
+  && /if \(kind === 'd'\) return String\(args\)/.test(s)
   && /function coloringPaint\(regionId\)/.test(s) && /function coloringUndoStep\(\)/.test(s)
   && /function coloringRedoStep\(\)/.test(s) && /function coloringDownloadStep\(\)/.test(s)
   && /setClick\('coloringUndoBtn', coloringUndoStep\)/.test(s)
-  && /data-region/.test(s) && /\.color-stage \[data-region\]/.test(s),
-  '小游戏页新增「🎨 涂色游戏」（照 Poki Anycolor 反推），是小游戏里的独立子页（data-sub="color" → #sub-panel-color）；'
-  + '29 张内置线稿（9 张基础 + 20 张更复杂的 12–16 块）+ 14 色调色板 + 自定义取色 + 点区域填充 / 橡皮 / 撤销 / 重做 / 清空 / 下载，状态只在本机');
+  && /data-region/.test(s) && /\.color-stage \[data-region\]/.test(s) && /\.color-pics \.color-tier/.test(s),
+  '小游戏页的「🎨 涂色游戏」是小游戏里的独立子页（data-sub="color" → #sub-panel-color）；'
+  + '34 张内置线稿按块数分三档（简单 10–30 / 小难 30–60 / 有点难 60–120），10 块以下的图不要；'
+  + '14 色调色板 + 自定义取色 + 点区域填充 / 橡皮 / 撤销 / 重做 / 清空 / 下载，状态只在本机');
 ok(/data-seg="tanghulu" data-n="01">糖葫芦对决</.test(s) && /id="genTanghuluPane"/.test(s)
   && /id="thlInput"/.test(s) && /id="thlParseBtn"/.test(s) && /id="thlOutput"/.test(s) && /id="thlChips"/.test(s)
   && /const THL_BEHAVIOR_TEXT = \{ '1': '匹配', '2': '结算', '3': '进度' \};/.test(s)
+  // 2026-11 用户给了 GM 里真实的两张表 → 按表头认列，行为按表头推（结算 / 进度），两张可以一起粘
+  && /'创建时间': 'time'/.test(s) && /'胜利': 'win'/.test(s) && /'mvp': 'mvp'/.test(s)
+  && /'本轮积分': 'roundPoint'/.test(s) && /'总积分': 'totalPoint'/.test(s) && /'是否结束': 'ended'/.test(s)
+  && /'轮次\(before\)': 'roundB'/.test(s) && /'玩家分数\(after\)': 'myA'/.test(s)
+  && /function thlHeadKey\(c\)/.test(s) && /function thlBehaviorOfMap\(map\)/.test(s)
+  && /function thlSettleLine\(r\)/.test(s) && /function thlProgressLine\(r\)/.test(s)
+  && /结算战绩：胜 '/.test(s)
   && /function thlParse\(raw\)/.test(s) && /function thlRun\(\)/.test(s)
   && /setClick\('thlParseBtn', thlRun\)/.test(s) && /setClick\('thlClearBtn', thlClear\)/.test(s)
   && /活动排期 ' \+ key \+ sdScheduleTail\(key\)/.test(s),
-  '糖葫芦对决（活动类型 87 = 糖葫芦2v2）：话术生成页多一段「04 糖葫芦对决」，粘 GM 查询结果 → 按排期 / 行为（1 匹配 / 2 结算 / 3 进度）汇总');
+  '糖葫芦对决（活动类型 87 = 糖葫芦2v2）：活动查询页第一段，粘 GM 的【结算】/【进度】表（连表头，两张可一起粘）'
+  + ' → 按表头认列、按排期分组汇总；结算逐条写第几轮 / 双方分数 / 胜负 / MVP / 本轮积分 / 总积分 / 是否结束，进度写分数变化');
 ok(!/id="sdTaskFold"/.test(s) && !/id="sdTaskInput"/.test(s) && !/id="sdTaskSub"/.test(s)
   && !/sdInitTaskTable/.test(s) && !/sdTaskResetBtn/.test(s) && !/sdClearTask/.test(s),
   '任务表完全不上界面：页面上没有折叠区 / 只读框 / 条数副标（也没有「清掉任务表」按钮）');
