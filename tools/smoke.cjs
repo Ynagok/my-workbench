@@ -2035,8 +2035,8 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     check(!more.open, '点浮层外面 → 浮层收起');
     doc.querySelector('.tab-btn[data-tab="overseas"]').click();
     await sleep(60);
-    check(doc.querySelectorAll('#tab-overseas .seg-btn').length === 3,
-      '海外业务分成 3 段（总览 / 逐项明细 / 导入与导出）', doc.querySelectorAll('#tab-overseas .seg-btn').length);
+    check(doc.querySelectorAll('#tab-overseas .seg-btn').length === 4,
+      '海外业务分成 4 段（总览 / 逐项明细 / 导入与导出 / 问题分析）', doc.querySelectorAll('#tab-overseas .seg-btn').length);
     ids = onSeg('tab-overseas');
     check(ids.includes('ovbizCardOverview') && !ids.includes('ovbizCardItems'), '海外默认停在总览段', ids);
     doc.querySelector('#tab-overseas .seg-btn[data-seg="data"]').click();
@@ -3468,6 +3468,73 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     check(posts.slice(posts9).every(p => /coloring\/manifest\.json/.test(String(p.url))),
       '涂色这页只请求自己的 manifest，别的都不发', posts.slice(posts9).map(p => p.url).join(' | '));
   }
+
+  console.log('--- 8z-3. 海外业务 · 问题分析（粘贴/导入 SDK和邮件回复.csv → 渠道 × 问题类型 + 趋势）---');
+  {
+    const postsIssue = posts.length;
+    doc.querySelector('.tab-btn[data-tab="overseas"]').click();
+    await sleep(60);
+    const issueSeg = doc.querySelector('.seg-bar[data-for="tab-overseas"] .seg-btn[data-seg="issue"]');
+    check(!!issueSeg && /问题分析/.test(issueSeg.textContent),
+      '海外业务分段多了「04 问题分析」', issueSeg && issueSeg.textContent);
+    issueSeg.click();
+    await sleep(60);
+    check($('tab-overseas').dataset.seg === 'issue' && $('ovbizIssueCard').classList.contains('seg-on')
+      && !!$('ovbizIssueInput') && !!$('ovbizIssueRunBtn') && !!$('ovbizIssueFile'),
+      '切过去只显示问题分析那几张卡（输入框 / 分析按钮 / 导入 CSV 都在）');
+
+    // 粘一份带「跨行引号字段」的小样本：证明整段按 RFC4180 解析，不会把一条拆成两行
+    $('ovbizIssueInput').value = [
+      '日期\t来访地区\t来访渠道\t问题类型\t问题类型（账号类型）\t工单号\t玩家问题\t回复内容',
+      '11月1日\t马来西亚\tSDK\t游戏问题\t\t\t"礼包码在哪里输入？\n第二行也算同一条"\t说明',
+      '11月1日\t新加坡\tSDK\t账号问题\t\t\t账号丢了\t说明',
+      '11月2日\t马来西亚\t邮件\t充值问题\t\t\t充值没到账\t说明',
+      '11月2日\t马来西亚\tFB\t游戏问题\t\t\t卡住了\t说明',
+      '11月3日\t台湾\tSDK\t游戏问题\t\t\t闪退\t说明',
+    ].join('\n');
+    $('ovbizIssueRunBtn').click();
+    await sleep(80);
+    check(/认出 5 条（按表头对齐）/.test($('ovbizIssueHint').textContent),
+      '认出 5 条（跨行引号字段算同一条，没有被拆成两条）', $('ovbizIssueHint').textContent);
+    const chipsIssue = $('ovbizIssueChips').textContent;
+    check(/共 5 条/.test(chipsIssue) && /渠道 3 个/.test(chipsIssue) && /问题类型 3 类/.test(chipsIssue) && /覆盖 3 天/.test(chipsIssue),
+      '芯片：共 5 条 / 渠道 3 / 类型 3 / 覆盖 3 天', chipsIssue);
+
+    const mx = $('ovbizIssueMatrix');
+    const mxHead = [...mx.querySelectorAll('thead th')].map(th => th.textContent.trim());
+    check(mxHead[0] === '渠道' && mxHead.indexOf('游戏问题') > 0 && mxHead[mxHead.length - 1] === '合计',
+      '矩阵表头 = 渠道 + 问题类型列 + 合计', mxHead.join(' | '));
+    const sdkRow = [...mx.querySelectorAll('tbody tr')].filter(tr => /SDK/.test(tr.textContent))[0];
+    check(!!sdkRow && /3/.test(sdkRow.textContent),
+      'SDK 那一行合计 3 条（游戏问题 2 + 账号问题 1）', sdkRow && sdkRow.textContent.replace(/\s+/g, ' '));
+    const mxFoot = mx.querySelector('tfoot') ? mx.querySelector('tfoot').textContent : '';
+    check(/合计/.test(mxFoot) && /5/.test(mxFoot), '表尾有合计行，总量 5', mxFoot.replace(/\s+/g, ' '));
+
+    const topIssue = $('ovbizIssueTop').textContent;
+    check(/Top 问题类型/.test($('ovbizIssueTop').querySelector('thead').textContent) && /账号问题/.test(topIssue),
+      '每渠道 Top3 表出来了（SDK 里能看到账号问题）', topIssue.replace(/\s+/g, ' ').slice(0, 80));
+
+    const trIssue = $('ovbizIssueTrend');
+    const trRows = [...trIssue.querySelectorAll('tbody tr')].map(tr => tr.textContent.replace(/\s+/g, ''));
+    check(trRows.length === 3 && /11-3/.test(trRows[0]) && /11-1/.test(trRows[2]),
+      '趋势表按日期倒序（11-3 在最上、11-1 在最下）', trRows.join(' | '));
+    check(trIssue.querySelectorAll('tbody i').length === 3,
+      '趋势每条画了条形（3 天 3 根）', trIssue.querySelectorAll('tbody i').length);
+
+    $('ovbizIssueClearBtn').click();
+    await sleep(40);
+    check($('ovbizIssueInput').value === '' && $('ovbizIssueMatrix').innerHTML === ''
+      && /已清空/.test($('ovbizIssueHint').textContent),
+      '🧹 清空把输入和三张表都清掉', $('ovbizIssueHint').textContent);
+
+    $('ovbizIssueRunBtn').click();
+    await sleep(40);
+    check(/先把「…SDK和邮件回复.csv」粘进来/.test($('ovbizIssueHint').textContent),
+      '空输入点分析只提示怎么粘', $('ovbizIssueHint').textContent);
+    check(posts.length === postsIssue,
+      '问题分析全程只在本机（0 请求）', posts.slice(postsIssue).map(p => p.url).join(' | '));
+  }
+
 
   console.log('--- 9. 无未捕获异常 ---');
   check(!warns.some(w => w.startsWith('ERROR')), 'console.error 未被调用：' + warns.filter(w => w.startsWith('ERROR')).join(' | '));

@@ -896,9 +896,15 @@ ok(/class="seg-bar" data-for="tab-career"/.test(s) && /class="seg-bar" data-for=
   && (s.match(/data-seg-card=/g) || []).length >= 17
   && /function statsSetSeg\(tabId, seg\)/.test(s) && /statsSetSeg\('tab-career', 'overview'\)/.test(s)
   && !/jump-bar/.test(s) && !/jump-chip/.test(s),
-  '统计页改「分段导航」（客服生涯 4 段 / 海外 3 段），旧的页内跳转条已整段移除');
+  '统计页改「分段导航」（客服生涯 4 段 / 海外 4 段，其中「问题分析」是 2026-11 加的），旧的页内跳转条已整段移除');
 ok(/id="careerHeadline"/.test(s) && /id="ovbizHeadline"/.test(s) && /\.stat-headline\b/.test(s)
-  && /statsSetSeg\('tab-overseas', 'overview'\)/.test(s),
+  && /statsSetSeg\('tab-overseas', 'overview'\)/.test(s)
+  && /data-seg="issue" data-n="04">问题分析</.test(s) && /id="ovbizIssueCard"/.test(s)
+  && /id="ovbizIssueInput"/.test(s) && /id="ovbizIssueFile"/.test(s) && /id="ovbizIssueMatrix"/.test(s)
+  && /id="ovbizIssueTrend"/.test(s) && /id="ovbizIssueTop"/.test(s)
+  && /function ovbizIssueGrid\(text\)/.test(s) && /function ovbizIssueParse\(text\)/.test(s)
+  && /function ovbizIssueAnalyze\(rows\)/.test(s) && /function ovbizIssueRender\(st\)/.test(s)
+  && /function ovbizIssueImportFile\(file\)/.test(s) && /setClick\('ovbizIssueRunBtn', ovbizIssueRun\)/.test(s),
   '两个统计页顶部都有一句话摘要（累计 / 日均 / 最高单日 / 在岗）');
 ok(/details class="card-more"/.test(s) && /details\.card-more > summary/.test(s),
   '客服生涯工具条收拢：导出 / 导入 / 清空折进「⋯ 更多」，主按钮只留归档 + 排班休息');

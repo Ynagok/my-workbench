@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="x-build" content="2026-11-06 活动查询-v33-涂色再放大2.5倍">
+    <meta name="x-build" content="2026-11-06 海外问题分析+涂色2.5倍">
     <title>客服冷静演绎工作台</title>
     <link rel="icon" type="image/gif" href="/my-icon.gif">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -4815,6 +4815,7 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                 <button type="button" class="seg-btn active" data-seg="overview" data-n="01">总览</button>
                 <button type="button" class="seg-btn" data-seg="detail" data-n="02">逐项明细</button>
                 <button type="button" class="seg-btn" data-seg="data" data-n="03">导入与导出</button>
+                <button type="button" class="seg-btn" data-seg="issue" data-n="04">问题分析</button>
             </div>
 
             <div class="card" id="ovbizCardPaste" data-seg-card="data">
@@ -4886,6 +4887,38 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                 <div class="career-scroll" style="margin-top: 10px;"><table class="career-table" id="ovbizPeopleTable"></table></div>
             </div>
 
+            <div class="card" id="ovbizIssueCard" data-seg-card="issue">
+                <label>🔎 问题分析 <span class="card-sub">粘贴 / 导入「…SDK和邮件回复.csv」→ 各渠道 × 各问题类型的量与按天趋势</span></label>
+                <details class="stat-fold">
+                    <summary>粘什么 / 怎么算 / 存哪</summary>
+                    <div>
+                        一行 = 一条来信：<b>日期 · 来访地区 · 来访渠道 · 问题类型 · 问题类型（账号类型）</b>，后面的 工单号 / 玩家问题 / 回复内容 / 备注 不参与统计（多出来的空列会自动忽略）。<br>
+                        「问题类型」为空时用「问题类型（账号类型）」兜底，都空算「(未填)」；渠道为空也记「(未填)」。<br>
+                        日期认 <b>11月1日</b> / 2026-11-01 / 11-01 / 11/1 这几种写法。<br>
+                        <b>只在内存里算，不存本机、不上服务端</b>：刷新就没了，要留证据自己截图。
+                    </div>
+                </details>
+                <textarea id="ovbizIssueInput" rows="8" placeholder="日期&#9;来访地区&#9;来访渠道&#9;问题类型&#9;问题类型（账号类型）&#9;工单号&#9;玩家问题&#9;回复内容&#10;11月1日&#9;马来西亚&#9;SDK&#9;游戏问题&#9;&#9;&#9;礼包码在哪里输入？&#9;…"></textarea>
+                <div class="flex-row" style="margin-top:10px;">
+                    <button id="ovbizIssueRunBtn">🔎 分析</button>
+                    <label class="secondary" for="ovbizIssueFile" style="cursor:pointer; margin:0;">📥 导入 CSV</label>
+                    <input type="file" id="ovbizIssueFile" accept=".csv,.txt,text/csv" style="display:none;">
+                    <button id="ovbizIssueClearBtn" class="reset-btn">🧹 清空分析</button>
+                    <span class="hint-text" id="ovbizIssueHint"></span>
+                </div>
+                <div class="stat-chips" id="ovbizIssueChips" style="margin-top:8px;"></div>
+            </div>
+
+            <div class="card" id="ovbizIssueMatrixCard" data-seg-card="issue">
+                <label>🧮 渠道 × 问题类型 <span class="card-sub">行 = 渠道，列 = 问题类型（按总量降序，最多 12 列）</span></label>
+                <div class="career-scroll" style="margin-top:10px; max-height:420px;"><table class="career-table" id="ovbizIssueMatrix"></table></div>
+                <div class="career-scroll" style="margin-top:14px;"><table class="career-table" id="ovbizIssueTop"></table></div>
+            </div>
+
+            <div class="card" id="ovbizIssueTrendCard" data-seg-card="issue">
+                <label>📈 按天趋势 <span class="card-sub">总量 + 各渠道分解（最新在上）</span></label>
+                <div class="career-scroll" style="margin-top:10px; max-height:420px;"><table class="career-table" id="ovbizIssueTrend"></table></div>
+            </div>
             <div class="card" id="ovbizCardDaily" data-seg-card="detail">
                 <label>📆 每日明细 <span class="card-sub">按天合计 · 最新在上</span></label>
                 <div class="career-scroll" style="margin-top: 10px; max-height: 400px;"><table class="career-table" id="ovbizDailyTable"></table></div>
@@ -14460,6 +14493,249 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                                         ]);
                                     }
                                     // 取某一天（按天合计后）某个范围的值：'all' = 当天总量，其余 = 那一项
+                                    // ==================== 海外业务 · 问题分析（2026-11 用户：「增加问题分析的页，可以粘贴或者导入数据统计各渠道各个问题类型的量，趋势等」）====================
+                                    const OVBIZ_ISSUE_EMPTY = "(未填)";
+                                    let ovbizIssueLast = null;
+                                    function ovbizIssueSetHint(msg) {
+                                        const el = document.getElementById("ovbizIssueHint");
+                                        if (el) el.textContent = msg || "";
+                                    }
+                                    // 日期："11月1日" / "2026-11-01" / "11-01" / "11/1" → { key: "11-01", label: "11-01" }
+                                    function ovbizIssueDate(v) {
+                                        const s = String(v == null ? "" : v).trim();
+                                        let m = /^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})$/.exec(s);
+                                        if (m) return { key: m[1] + "-" + (m[2].length < 2 ? "0" + m[2] : m[2]) + "-" + (m[3].length < 2 ? "0" + m[3] : m[3]), label: m[2] + "-" + m[3] };
+                                        m = /^(\d{1,2})[-/.](\d{1,2})$/.exec(s);
+                                        if (m) return { key: "0000-" + (m[1].length < 2 ? "0" + m[1] : m[1]) + "-" + (m[2].length < 2 ? "0" + m[2] : m[2]), label: m[1] + "-" + m[2] };
+                                        m = /^(\d{1,2})月(\d{1,2})日?$/.exec(s);
+                                        if (m) return { key: "0000-" + (m[1].length < 2 ? "0" + m[1] : m[1]) + "-" + (m[2].length < 2 ? "0" + m[2] : m[2]), label: m[1] + "-" + m[2] };
+                                        return { key: s ? "zzz-" + s : "zzz", label: s || OVBIZ_ISSUE_EMPTY };
+                                    }
+                                    function ovbizIssueIndex(head) {
+                                        const find = function (re) {
+                                            for (let i = 0; i < head.length; i++) if (re.test(String(head[i]).replace(/\s+/g, ""))) return i;
+                                            return -1;
+                                        };
+                                        return {
+                                            date: find(/^日期$|^时间$|^创建时间$/),
+                                            region: find(/来访地区|地区$/),
+                                            channel: find(/来访渠道|渠道$/),
+                                            type: find(/^问题类型$/),
+                                            accType: find(/问题类型.*账号类型|账号类型/),
+                                        };
+                                    }
+                                    // 整段 CSV/TSV → 二维表（必须按 RFC4180 解析：玩家问题 / 回复内容里有换行和逗号）
+                                    function ovbizIssueGrid(text) {
+                                        const s = String(text == null ? "" : text).replace(/\r\n?/g, "\n");
+                                        const firstLine = s.split("\n", 1)[0] || "";
+                                        const delim = firstLine.indexOf("\t") !== -1 ? "\t" : ",";
+                                        const rows = [];
+                                        let cur = [], field = "", q = false;
+                                        for (let i = 0; i < s.length; i++) {
+                                            const ch = s[i];
+                                            if (q) {
+                                                if (ch === '"') {
+                                                    if (s[i + 1] === '"') { field += '"'; i++; } else q = false;
+                                                } else field += ch;
+                                            } else if (ch === '"') q = true;
+                                            else if (ch === delim) { cur.push(field); field = ""; }
+                                            else if (ch === "\n") { cur.push(field); rows.push(cur); cur = []; field = ""; }
+                                            else field += ch;
+                                        }
+                                        if (field.length || cur.length) { cur.push(field); rows.push(cur); }
+                                        return rows.filter(function (r) { return r.some(function (c) { return String(c).trim(); }); });
+                                    }
+                                    // 一段文本 → { rows, hasHeader }（一行一条来信）
+                                    function ovbizIssueParse(text) {
+                                        const grid = ovbizIssueGrid(text);
+                                        if (!grid.length) return { rows: [], hasHeader: false };
+                                        const head = grid[0].map(function (c) { return String(c).trim(); });
+                                        const idx = ovbizIssueIndex(head);
+                                        const hasHeader = idx.date >= 0 || idx.channel >= 0 || idx.type >= 0;
+                                        const rows = [];
+                                        for (let i = hasHeader ? 1 : 0; i < grid.length; i++) {
+                                            const cells = grid[i].map(function (c) { return String(c).trim(); });
+                                            if (!cells.length) continue;
+                                            const day = ovbizIssueDate(idx.date >= 0 ? cells[idx.date] : cells[0]);
+                                            const channel = String((idx.channel >= 0 ? cells[idx.channel] : "") || "").trim() || OVBIZ_ISSUE_EMPTY;
+                                            let type = String((idx.type >= 0 ? cells[idx.type] : "") || "").trim();
+                                            if (!type && idx.accType >= 0) type = String(cells[idx.accType] || "").trim();
+                                            if (!type) type = OVBIZ_ISSUE_EMPTY;
+                                            const region = String((idx.region >= 0 ? cells[idx.region] : "") || "").trim() || OVBIZ_ISSUE_EMPTY;
+                                            rows.push({ day: day, channel: channel, type: type, region: region });
+                                        }
+                                        return { rows: rows, hasHeader: hasHeader };
+                                    }
+                                    function ovbizIssueAnalyze(rows) {
+                                        const chTotal = {}, typeTotal = {}, dayTotal = {}, dayCh = {}, pair = {}, regionTotal = {};
+                                        rows.forEach(function (r) {
+                                            chTotal[r.channel] = (chTotal[r.channel] || 0) + 1;
+                                            typeTotal[r.type] = (typeTotal[r.type] || 0) + 1;
+                                            dayTotal[r.day.key] = (dayTotal[r.day.key] || 0) + 1;
+                                            regionTotal[r.region] = (regionTotal[r.region] || 0) + 1;
+                                            const dk = r.day.key;
+                                            if (!dayCh[dk]) dayCh[dk] = {};
+                                            dayCh[dk][r.channel] = (dayCh[dk][r.channel] || 0) + 1;
+                                            const pk = r.channel + "\u0001" + r.type;
+                                            pair[pk] = (pair[pk] || 0) + 1;
+                                        });
+                                        const sortObj = function (o) {
+                                            return Object.keys(o).sort(function (a, b) { return o[b] - o[a] || String(a).localeCompare(String(b)); });
+                                        };
+                                        const channels = sortObj(chTotal);
+                                        const types = sortObj(typeTotal);
+                                        const noDate = Object.keys(dayTotal).filter(function (k) { return /^zzz/.test(k); })
+                                            .reduce(function (s, k) { return s + dayTotal[k]; }, 0);
+                                        const days = Object.keys(dayTotal).filter(function (k) { return !/^zzz/.test(k); }).sort();
+                                        return {
+                                            total: rows.length, channels: channels, types: types, days: days,
+                                            chTotal: chTotal, typeTotal: typeTotal, dayTotal: dayTotal, dayCh: dayCh, pair: pair, noDate: noDate,
+                                            regionTotal: regionTotal,
+                                        };
+                                    }
+                                    function ovbizIssueBar(n, max) {
+                                        const w = max > 0 ? Math.max(1, Math.round(12 * n / max)) : 0;
+                                        return "<i style=\"display:inline-block;height:8px;width:" + (w * 6) + "px;background:var(--accent);border-radius:2px;vertical-align:middle;\"></i>";
+                                    }
+                                    function ovbizIssueRender(st) {
+                                        const chips = document.getElementById("ovbizIssueChips");
+                                        const matrix = document.getElementById("ovbizIssueMatrix");
+                                        const top = document.getElementById("ovbizIssueTop");
+                                        const trend = document.getElementById("ovbizIssueTrend");
+                                        if (!st || !st.total) {
+                                            if (chips) chips.innerHTML = "";
+                                            if (matrix) matrix.innerHTML = "";
+                                            if (top) top.innerHTML = "";
+                                            if (trend) trend.innerHTML = "";
+                                            return;
+                                        }
+                                        const peak = st.days.slice().sort(function (a, b) { return st.dayTotal[b] - st.dayTotal[a]; })[0];
+                                        const peakLabel = (function () {
+                                            const hit = st.days.filter(function (d) { return d === peak; })[0];
+                                            if (!hit) return "—";
+                                            const parts = hit.split("-");
+                                            return parts[0] === "0000" ? (Number(parts[1]) + "-" + Number(parts[2])) : hit;
+                                        })();
+                                        if (chips) chips.innerHTML = [
+                                            statChip({ html: "共 <b>" + st.total + "</b> 条" }, "k-plain", null),
+                                            statChip({ html: "渠道 <b>" + st.channels.length + "</b> 个" }, "k-accent", null),
+                                            statChip({ html: "问题类型 <b>" + st.types.length + "</b> 类" }, "k-accent", null),
+                                            statChip({ html: "覆盖 <b>" + st.days.length + "</b> 天" }, "k-plain", null),
+                                            statChip({ html: "峰值 <b>" + peakLabel + "</b> · " + (st.dayTotal[peak] || 0) + " 条" }, "k-warn", null),
+                                            statChip({ html: "地区 <b>" + Object.keys(st.regionTotal).length + "</b> 个" }, "k-op", null),
+                                            (st.noDate ? statChip({ html: "无日期 <b>" + st.noDate + "</b> 条" }, "k-plain", "日期认不出，只计入总量和渠道/类型，不进趋势") : ""),
+                                        ].join("");
+
+                                        const MAX_TYPE_COLS = 12;
+                                        const cols = st.types.slice(0, MAX_TYPE_COLS);
+                                        const restTypes = st.types.slice(MAX_TYPE_COLS);
+                                        let live = cols.slice();
+                                        if (restTypes.length) live = live.concat(["(其他 " + restTypes.length + " 类)"]);
+                                        const cellOf = function (ch, tName, isRest) {
+                                            if (isRest) {
+                                                let n = 0;
+                                                restTypes.forEach(function (t2) { n += st.pair[ch + "\u0001" + t2] || 0; });
+                                                return n;
+                                            }
+                                            return st.pair[ch + "\u0001" + tName] || 0;
+                                        };
+                                        if (matrix) {
+                                            let html = "<thead><tr><th>渠道</th>";
+                                            live.forEach(function (tName, i) { html += "<th>" + escapeHtml(tName) + "</th>"; });
+                                            html += "<th>合计</th></tr></thead><tbody>";
+                                            st.channels.forEach(function (ch) {
+                                                html += "<tr><th>" + escapeHtml(ch) + "</th>";
+                                                live.forEach(function (tName, i) {
+                                                    const n = cellOf(ch, tName, restTypes.length && i === live.length - 1);
+                                                    html += "<td>" + (n ? n : "·") + "</td>";
+                                                });
+                                                html += "<td><b>" + (st.chTotal[ch] || 0) + "</b></td></tr>";
+                                            });
+                                            html += "</tbody><tfoot><tr><th>合计</th>";
+                                            live.forEach(function (tName, i) {
+                                                let n = 0;
+                                                const isRest = restTypes.length && i === live.length - 1;
+                                                st.channels.forEach(function (ch) { n += cellOf(ch, tName, isRest); });
+                                                html += "<td><b>" + n + "</b></td>";
+                                            });
+                                            html += "<td><b>" + st.total + "</b></td></tr></tfoot>";
+                                            matrix.innerHTML = html;
+                                        }
+                                        if (top) {
+                                            let html = "<thead><tr><th>渠道</th><th>Top 问题类型</th><th>条数</th><th>占比</th></tr></thead><tbody>";
+                                            st.channels.forEach(function (ch) {
+                                                const list = st.types.map(function (tName) { return { t: tName, n: st.pair[ch + "\u0001" + tName] || 0 }; })
+                                                    .filter(function (x) { return x.n > 0; })
+                                                    .sort(function (a, b) { return b.n - a.n; })
+                                                    .slice(0, 3);
+                                                const total = st.chTotal[ch] || 1;
+                                                html += "<tr><th>" + escapeHtml(ch) + "</th><td>"
+                                                    + list.map(function (x) { return escapeHtml(x.t) + " " + x.n; }).join(" · ")
+                                                    + "</td><td>" + (list[0] ? list[0].n : 0) + "</td><td>"
+                                                    + (list[0] ? Math.round(100 * list[0].n / total) + "%" : "—") + "</td></tr>";
+                                            });
+                                            top.innerHTML = html + "</tbody>";
+                                        }
+                                        if (trend) {
+                                            const maxDay = Math.max.apply(null, st.days.map(function (d) { return st.dayTotal[d] || 0; }));
+                                            let html = "<thead><tr><th>日期</th><th>总量</th><th></th>";
+                                            st.channels.forEach(function (ch) { html += "<th>" + escapeHtml(ch) + "</th>"; });
+                                            html += "</tr></thead><tbody>";
+                                            st.days.slice().reverse().forEach(function (dk) {
+                                                const parts = dk.split("-");
+                                                const label = parts[0] === "0000" ? (Number(parts[1]) + "-" + Number(parts[2])) : dk;
+                                                const n = st.dayTotal[dk] || 0;
+                                                html += "<tr><th>" + escapeHtml(label) + "</th><td><b>" + n + "</b></td><td>" + ovbizIssueBar(n, maxDay) + "</td>";
+                                                st.channels.forEach(function (ch) {
+                                                    const v = (st.dayCh[dk] || {})[ch] || 0;
+                                                    html += "<td>" + (v ? v : "·") + "</td>";
+                                                });
+                                                html += "</tr>";
+                                            });
+                                            trend.innerHTML = html + "</tbody>";
+                                        }
+                                    }
+                                    function ovbizIssueRun() {
+                                        const ta = document.getElementById("ovbizIssueInput");
+                                        const raw = (ta && ta.value) || "";
+                                        if (!raw.trim()) {
+                                            ovbizIssueLast = null;
+                                            ovbizIssueRender(null);
+                                            ovbizIssueSetHint("先把「…SDK和邮件回复.csv」粘进来，或点「📥 导入 CSV」");
+                                            return null;
+                                        }
+                                        const p = ovbizIssueParse(raw);
+                                        if (!p.rows.length) {
+                                            ovbizIssueLast = null;
+                                            ovbizIssueRender(null);
+                                            ovbizIssueSetHint("没认出数据：一行至少要有「日期 + 渠道」或「日期 + 问题类型」");
+                                            return null;
+                                        }
+                                        const st = ovbizIssueAnalyze(p.rows);
+                                        ovbizIssueLast = st;
+                                        ovbizIssueRender(st);
+                                        ovbizIssueSetHint("认出 " + p.rows.length + " 条" + (p.hasHeader ? "（按表头对齐）" : "（没表头，按列序猜的）"));
+                                        return st;
+                                    }
+                                    function ovbizIssueImportFile(file) {
+                                        if (!file) return;
+                                        const reader = new FileReader();
+                                        reader.onload = function () {
+                                            const ta = document.getElementById("ovbizIssueInput");
+                                            if (ta) ta.value = String(reader.result || "");
+                                            ovbizIssueRun();
+                                        };
+                                        reader.onerror = function () { ovbizIssueSetHint("读这个文件失败"); };
+                                        reader.readAsText(file, "utf-8");
+                                    }
+                                    function ovbizIssueClear() {
+                                        const ta = document.getElementById("ovbizIssueInput");
+                                        if (ta) ta.value = "";
+                                        ovbizIssueLast = null;
+                                        ovbizIssueRender(null);
+                                        ovbizIssueSetHint("已清空（分析只在内存里，本来就没存）");
+                                    }
+
                                     function ovbizDetailValue(day, sel) {
                                         if (!sel || sel === 'all') return day.total || 0;
                                         return (day.items && day.items[sel]) || 0;
@@ -19159,6 +19435,15 @@ function thlRun() {
                                         setClick('careerImportBtn', careerImport);
                                         // 海外业务统计
                                         setClick('ovbizImportBtn', ovbizImport);
+                                        setClick('ovbizIssueRunBtn', ovbizIssueRun);
+                                        setClick('ovbizIssueClearBtn', ovbizIssueClear);
+                                        (function () {
+                                            const f = document.getElementById('ovbizIssueFile');
+                                            if (f) f.addEventListener('change', function () {
+                                                ovbizIssueImportFile(f.files && f.files[0]);
+                                                f.value = '';
+                                            });
+                                        })();
                                         setClick('ovbizImportNewBtn', ovbizImportNew);
                                         setClick('ovbizExportBtn', () => {
                                             if (!careerDownload('海外业务统计_' + careerToday() + '.csv', ovbizCsvText(), 'text/csv')) alert('当前环境不支持导出');
