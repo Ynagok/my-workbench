@@ -48,7 +48,7 @@ npm run verify     # 改完代码、push 前的完整自检
 
 | 命令 | 内容 |
 |---|---|
-| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 711 项 + 「接口挂起时界面仍可用」+ 服务端冒烟 42 项 |
+| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 717 项 + 「接口挂起时界面仍可用」+ 服务端冒烟 42 项 |
 | `npm run verify:static` | 只要静态校验 + 语法检查（最快） |
 | `npm run report` | 打印一份真实生成的日报，肉眼确认排版（含 ⑥伙伴弹途 / ⑦异世界勇者） |
 | `npm run build:data` | 从 GM 玩家页快照提取 4 张权威映射表 + 与硬编码常量的**差异报告**（见下「游戏数据管线」） |
@@ -60,7 +60,7 @@ npm run verify     # 改完代码、push 前的完整自检
 | `npm run smoke:pmc` | **生管物料订单工作台**（`public/pmc.html`）自检，123 项（含加工周期工作日推算 + 在途锁定/调整建议 + 真实 8.5MB xlsx 端到端导入）；**不在 verify 里**，见下「生管物料订单工作台」一节 |
 | `npm test` | = `npm run verify` |
 
-`npm run verify` 失败就不要提交。它一共 5 段：静态结构 → 语法 → jsdom 集成冒烟 **711 项** → 接口挂起时界面仍可用 → 服务端冒烟 **42 项**。
+`npm run verify` 失败就不要提交。它一共 5 段：静态结构 → 语法 → jsdom 集成冒烟 **717 项** → 接口挂起时界面仍可用 → 服务端冒烟 **42 项**。
 
 - jsdom 未安装时前端冒烟会自动回落到本机 DSH 自带的那份。
 - `tools/smoke-server.cjs` 用 `PORT` + `DATA_FILE` 环境变量把服务端指到随机端口和 `tools/out/` 里的临时文件，**不会碰真实 `data.json`**；子进程 stdio 必须用 `ignore`/`inherit`（沙箱禁管道，`pipe` 会 EPERM）。
@@ -93,7 +93,7 @@ npm run verify     # 改完代码、push 前的完整自检
     - **修 5 条名称**：`217` 梦华录联动-赵盼儿 / `218` 梦华录联动-宋引章（原来两条都写「初始头像框」）、`600608` 金秋纸伞 / `600609` 秋季游林（原来**对调了**）、`4000003` 海外GP奖励头像框**-**红狐狸框（页面用半角连字符，不是「·」）。
     - `901001`–`901009` 青岚 / 桃禧 / 金曜锦鲤是**上一轮凭粘贴加的**，这次真文件里也有（`"901001":` 在 `allPresentGoods` 的 `901000` 分类下），**保留**。
   - ⚠️⚠️ **`tools/extract-maps.mjs` 的物品名分类原来是写死的清单**（只有 100/200/150/1000000/2000000/900/9000/610/130/840/4100000/4209000），页面新加的 **`901000` 锦鲤道具整类被漏统计**，于是 `audit:maps` 会把这 9 条误报成「硬编码有、页面没有（多）」。**现已改成遍历 `allPresentGoods` 的所有分类**（除了已经单独落盘的 `10000` / `500000` / `600`）—— 以后页面加新分类不会再漏。
-  - ⚠️ 页面里**没有**棋盘镜像 JSON（镜像 tab 是 ajax 空壳），所以「镜像认不出背包」那件事只能靠兼容写法兜（见下「🧩 棋盘镜像」一节），要精准修还需要用户贴一段真实镜像 JSON。
+  - ⚠️ 页面里**没有**棋盘镜像 JSON（镜像 tab 是 ajax 空壳）；「镜像认不出背包」那件事已经按用户后来贴的**真实镜像 JSON** 修掉了（`stackData` 四个有序栈 + `backpack` 里数量 0 的空位，见下「🧩 棋盘镜像」一节）。
 - **2026-11 第四轮核对（用户给的整页 GM 玩家页快照，1.1MB `新建文本文档.txt`）—— 来源 +8、活动类型 +1**：这份快照只有页面骨架（1 张玩家基础信息表，各 tab 的数据是 ajax 空的），所以只对出两张纯映射表：**来源映射** 页面 268 / 硬编码 260 → 补 `258` 走地图活动-棋子兑换活动体力 / `259` 新拼图活动-初始化 / `260` 新拼图活动-点亮拼图 / `261` 新拼图活动-领取碎片 / `262` 春生宝库 / `263` 糖葫芦比拼活动奖励 / `268` 支付宝蚂蚁庄园活动奖励 / `269` 道具使用-锦鲤（**多 0、名称不一致 0**）；**活动类型** 页面 41 / 硬编码 40 → 补 `87` 糖葫芦2v2（**多 0、名称不一致 0**）。卡包名 / 物品名：页面里没有 `allPresentGoods`，沿用 `tools/out/page-goods-*.json`，仍 0 缺 0 多。
   - 顺带反推出 **糖葫芦2v2 的行为枚举 `1 匹配 / 2 结算 / 3 进度`**（见「🍡 糖葫芦对决」一节）和 **七日任务 35 条活动排期**（`SD_SCHEDULE`）。
   - 核对姿势同前：`npm run extract:maps -- tools/fixtures/player-page.html` → `npm run audit:maps`，看 `tools/out/map-audit.md`。
@@ -628,7 +628,7 @@ npm run verify     # 改完代码、push 前的完整自检
 - **连带删掉的联动**：「智能解析 / CSV 上传」解析完把流水同步给游戏数据的那一段也去掉了（`smartParseAndFill` / `processFlowCsv` 里已无 `gdFlowImport`）。
 - **抬头**：`.crh-kicker` = `BOARD MIRROR / 棋盘镜像`，`#boardReportSub` / `#boardReportMeta` 由 `boardRender` 填。
 - **自动解析**：只保留 `#boardInput` 的 400ms 去抖自动解析（粘完不用点按钮）。
-- **测试**：`tools/smoke.cjs` 第 **8z** 节 **26 条**（是「梦幻消除站」组子项 / 标签就是「棋盘镜像」/ 页内 0 个 seg-btn 且没有 mergeInput、gdItemInput、gdFlowBox、gdBanner / 三块默认收起 / 解析出主棋盘·棋子·背包·仓库 / 主棋盘 3×2 画 6 格 / 其它棋盘 / 临时背包与仓库列表 / 输名字·输 id·查不到 / 坏 JSON 只提示 / 清空 / 0 请求）；`tools/verify.mjs` 3g-3 另有 **15 条**静态断言（DOM 与绑定、抬头、解析函数、主棋盘、三处数量、三段式话术、只在本机 + **4 条反向断言**：资源核对的 DOM / 分段条 / JS / 流水联动都删干净了）。
+- **测试**：`tools/smoke.cjs` 第 **8z** 节 **32 条**（是「梦幻消除站」组子项 / 标签就是「棋盘镜像」/ 页内 0 个 seg-btn 且没有 mergeInput、gdItemInput、gdFlowBox、gdBanner / 三块默认收起 / 解析出主棋盘·棋子·背包·仓库 / 主棋盘 3×2 画 6 格 / 其它棋盘 / 临时背包与仓库列表 / **stackData 四个栈 + backpack 数量 0 的空位** / 输名字·输 id·查不到 / 坏 JSON 只提示 / 清空 / 0 请求）；`tools/verify.mjs` 3g-3 另有 **12 条**静态断言（DOM 与绑定、抬头、解析函数、主棋盘、三处数量、**背包认 stackData**、三段式话术、只在本机 + **4 条反向断言**：资源核对的 DOM / 分段条 / JS / 流水联动都删干净了）。
 
 ## 🧩 棋盘镜像（`#tab-gamedata` 唯一内容 · 粘 GM 镜像 JSON，2026-10）
 
@@ -638,27 +638,32 @@ npm run verify     # 改完代码、push 前的完整自检
 - **五块**（id 都别改）：
   1. `#boardInput` 粘贴框 + `#boardParseBtn`（🔍 解析并展示）/ `#boardClearBtn`（🧹 清空）+ 提示 `#boardHint` + 汇总芯片 `#boardSummary`。
   2. `#boardMainCard`：主棋盘 `#boardMainGrid`（`.board-grid`，`--bw` 控制列数）+ 其它棋盘 `#boardOtherGrids`。
-  3. `#boardBagCard`：临时背包 `#boardBagList` + 仓库 `#boardWareList`（`.board-chip` 一片一个）。
+  3. `#boardBagCard`：**背包 `#boardStackList`**（`stackData` 四个有序栈，`#boardBagSub` 写「棋子栈 1 项」这种副标）→ 临时背包 `#boardBagList` + 仓库 `#boardWareList`（`.board-chip` 一片一个，栈分组用 `.board-stack` / `.board-stack-title`）。
   4. `#boardAskCard`：`#boardAskInput`（道具名或 id）+ `#boardAskBtn` / `#boardAskCopyBtn` + `#boardAskHint` + 话术框 `#boardAskOut`（回车也能查）。
   5. 抬头：`.crh-kicker` 写 `BOARD MIRROR / 棋盘镜像`，`#boardReportSub` / `#boardReportMeta` 由 `boardRender` 填。
 - **⑤ 最近一次操作 / 在跑订单（2026-11 用户：「其他的功能呢」）**：`lastInstruction` / `orderData` 以前**只解析不展示**（死字段），现在镜像页多一块 `#boardExtraCard`（`#boardExtraBox`）：
-  - 字段名换中文（`BOARD_FIELD_LABELS`：opId 指令ID / opFrom 来源 / chessboardId 棋盘 / cellId 格子 / eventUUID 事件UUID / pieceId 棋子 / orderId 订单ID / orderType 订单类型 / refreshAt 刷新时间 …），认不出的键原样显示；
+  - 字段名换中文（`BOARD_FIELD_LABELS`：opId 指令ID / **op 操作码** / opFrom 来源 / chessboardId·**cbId** 棋盘 / cellId 格子 / **bCellIdx 起点格 / aCellIdx 落点格 / uid 玩家UID** / eventUUID 事件UUID / pieceId 棋子 / orderId 订单ID / orderType 订单类型 / refreshAt 刷新时间 …），认不出的键原样显示；
   - `opFrom` 走 `resolveSource()` 换成来源名（如 13 → 完成订单）；`pieceId` / `goodsId` 走 `boardNameOf()` 换成道具名；秒级 / 毫秒级时间戳都转成 `YYYY-MM-DD HH:mm:ss`；
   - 每块都带 `<details>`「看原始 JSON」（`pre.thl-detail`，最高 240px），字段认不全时还能看原文；
-  - 两个字段都没有时这块整体收起（`model.lastInstruction || model.orderData` 才显示）。
+  - **多一块「🎯 当前活动棋盘」**（`activityChessBoardData`，只挑标量字段：排期ID / 活动类型（走 `activityTypeMap` 换名字）/ 棋盘）；全是嵌套对象就当没有（`boardScalarObj`），免得冒出一块「没有可读字段」；
+  - 三块都没有时整块收起（`boardExtraOn(model)` = lastInstruction / orderData / 有标量的 activityChessBoardData 任一存在）。
   - ⚠️ 为什么要它：客服排查时最常见的问题是「玩家的道具是不是被订单吃掉 / 被合成消耗了」，订单与最近一次操作就是答案。
   - **⚠️ 2026-11 用户：「镜像无法正确识别背包等数据」→ 现在四种写法都认（`boardEntryList` / `boardNumOf` / `boardIdOf` / `boardPickList`）**：
     - **map**（`{"3000004": 3}`）、**对象数组**（`[{goodsId: 3000004, num: 5}]`，认 `goodsId/goodsID/goods_id/goods/id/itemCodeStr/itemCode/pieceId/propId` 和 `num/count/n/nums/quantity/amount/value/inventory/pieceNum`）、**id 数组**（每个算 1 个）、**`[id, n]` 二元组**；多包一层 `{"分组": {"10101": 3}}` 也拆得开。
-    - **背包**：`backpack` / `backpackData` / `backpackList` / `backpackItems` / `tempBackpack` / `tempBackpackData` 都试，`backpackGoodsIds`（或 `backpack.goodsIds`）兜底 —— 以前**只认 `backpack` 是 map**，其它写法一律 0 项，所以用户看到「临时背包是空的」。
+    - **临时背包**：`backpack` / `backpackData` / `backpackList` / `backpackItems` / `tempBackpack` / `tempBackpackData` 都试，`backpackGoodsIds`（或 `backpack.goodsIds`）兜底 —— 以前**只认 `backpack` 是 map**，其它写法一律 0 项，所以用户看到「临时背包是空的」。
+    - **⚠️ 2026-11 用户贴了真实镜像 JSON：「背包还是没有正确识别」→ 背包真正的内容在 `stackData` 的四个有序栈里**（`BOARD_STACK_LABELS`：`cardStack` 卡包栈 / `pieceStack` 棋子栈 / `activityStack` 活动棋子栈 / `chessMapStack` 地图棋子栈），而 `backpack` 往往只有空位（`{"3000004":0,"":0}`）。现在的口径：
+      - 四个栈都读，每个条目算 1 个、**同 id 合并成 ×N**（`activityStack:[50801,50801]` → 一片 ×2）；空栈不出空分组。
+      - **`backpack` 里数量 0 的只当「空位」**（进 `model.bagZero`，汇总条写「backpack 空位 N 个」，背包列表写「临时背包是空的（backpack 里 N 个位置数量为 0）」），**不再用 `(x.n || 1)` 把 0 当成 1 件**；`backpackGoodsIds` 兜底也要跳过这些明确写 0 的 id（`bagZeroIds`）。
+      - 栈里的东西算「背包」（`inBackpack`），所以「查道具在哪」那句「临时背包有 N 个」把栈里的一起算。
     - **仓库**：`warehouseData` / `warehouse` 里依次找 `pieceDataList` / `pieces` / `pieceList` / `list` / `items`（活动仓库同理，`activityChessBoardData.warehouse.*` 或 `activityChessBoardData.pieces`）；仓库条目带 `num` 时按数量算件数，渲染显示 `×N`。
     - **货币**：`currencies` / `currency` / `currencyData` / `money` 都认；**根是数组 / `{data:{…}}` 也拆**（取第一个对象 / `.data`）。
     - 计数口径：棋盘每格 1 个、仓库按 `n`（默认 1）、背包按 `n`（默认 1）；`empty` 判定把「只有货币」也算有数据。
 - **数据来源**（GM 玩家页镜像 JSON，原样贴；前面带「镜像数据：」之类的文字也认 —— `boardJsonText()` 取第一个 `{` 到最后一个 `}`）：
   - `chessboardDataList[]`：每块 `{ chessboardId, cellNumW, cellNumH, cellTotalNum, expirationTime, cells[] }`；`cells[].pieceData` = 棋子（`pieceType` / `goodsId` / `itemCodeStr` / `inventory` / `capacity` / `spawnList` / `others.uniqueId`）。**主棋盘 = `chessboardId === 1`**，没有就取第一块；其余当「其它棋盘」（活动棋盘 9 之类）。
   - `warehouseData.pieceDataList[]` = 仓库棋子；`activityChessBoardData.warehouse.pieces[]` = 活动仓库（有就一起算仓库）。
-  - `backpack`（`{ goodsId: 数量 }`）= **临时背包**；`backpackGoodsIds` 里出现的空 key（`""`）要跳过。
+  - `stackData`（`{ cardStack: [...], pieceStack: [...], activityStack: [...], chessMapStack: [...] }`）= **背包的有序栈**（元素是 id 数字或 `{goodsId, num}` 都认）；`backpack`（`{ goodsId: 数量 }`）= **临时背包**（经常全是 0）；`backpackGoodsIds` 里出现的空 key（`""`）要跳过。
   - `currencies`（`{ 101: 16, 102: 86130, … }`）= 货币芯片。
-- **汇总芯片**：只留「主棋盘 W×H / 另有 N 块 / 棋子 N / 格 M / 临时背包 N 项 / 仓库 N 件」—— **货币（101/102/103）不在这显示**（那是「玩家数据」那边的事，对账行会用）；背包 / 仓库的芯片**只写名字 + ×数量 / 库存**，id 收进 `title`（认不出名字的才把 id 写在脸上）。
+- **汇总芯片**：只留「主棋盘 W×H / 另有 N 块 / 棋子 N / 格 M / 临时背包 N 项 / **有序栈 N 项（backpack 空位 K 个）** / 仓库 N 件」—— **货币（101/102/103）不在这显示**（那是「玩家数据」那边的事，对账行会用）；背包 / 仓库的芯片**只写名字 + ×数量 / 库存**，id 收进 `title`（认不出名字的才把 id 写在脸上）。
 - **棋盘怎么画**：按 `cellNumW × cellNumH` 铺格子（7×9 = 63 格），按 `cellIdx` 定位；三种样子 —— 有 `pieceData` = 棋子（名字来自 `itemNameMap`，产出棋 `pieceType` 11/12/31/32 标黄底并显示 `库存/上限`）、`lockState !== 2` = 未解锁（虚线「锁」）、其余 = 空位（虚线「·」）。`title` 里有 id / 库存 / 类型 / 格号。
 - **查询 / 话术**（`boardIdsOfQuery` + `boardAskScript`）：
   - 全数字 → 直接当 id；否则用 `itemNameMap` 反查：**先精确匹配名字，再不精确到「真名里包含查询」**（⚠️ 反过来「查询里包含真名」不行 —— 会让「不存在的道具」命中名字叫「道具」的那几条）。
@@ -667,11 +672,11 @@ npm run verify     # 改完代码、push 前的完整自检
     【棋盘镜像 · <名字>（<id>）】
     棋盘上有 X 个，临时背包有 Y 个，仓库有 Z 个。
     ```
-  - **计数口径**：棋盘上 **每格算 1 个**（两块棋盘一起数）；仓库 **每件算 1 个**（`warehouseData` + 活动仓库）；临时背包 **取 `backpack` 里的数量值**。三处分开存 `model.counts[id] = { onBoard, inBackpack, inWarehouse }`。
+  - **计数口径**：棋盘上 **每格算 1 个**（两块棋盘一起数）；仓库 **每件算 1 个**（`warehouseData` + 活动仓库）；临时背包 **取 `backpack` 里的数量值**（数量 0 = 空位，不算 1 个）**+ `stackData` 四个栈里每一条算 1 个**。三处分开存 `model.counts[id] = { onBoard, inBackpack, inWarehouse }`。
   - 名字对不上时话术直接说 `镜像里没找到「…」这个道具 / 棋子`，提示里也写「换个写法或直接输 id」。
 - ⚠️ **只在本机内存里**（`boardModel` 变量）：不写 `/api/data`、不塞 localStorage，刷新就没了（想留就重新贴）。
 - ⚠️ 活动棋盘的 `activityPieceIdMap` 里那批 id（826xx / 827xx / 610xx…）**物品名表里没有**，会显示成 `#82601` 这种原 id —— 想显示真名就去「映射管理」里补 `itemNameMap`，补完刷新即可（`boardNameOf()` 读的就是它）。
-- **测试**：`tools/smoke.cjs` 第 **8z** 节 **26 条**（是「梦幻消除站」组的子项 / 标签就是「棋盘镜像」/ 页内 0 个 seg-btn 且没有 mergeInput、gdItemInput、gdFlowBox、gdBanner / 三块默认收起 / 汇总芯片不含货币、背包仓库 id 在 title / 解析出主棋盘 3×2 + 棋盘数 + 棋子 4·格 8 + 背包 1 项 + 仓库 2 件 / 三块都显示 / 主棋盘 6 格含 3 棋子·1 未解锁·1 产出棋 / 名字换成「相思鸟」「云栖茶壶」且带 80/80 库存 / 其它棋盘单独画 / 背包「×3」/ 仓库认识换名·不认识写 id 带库存 / 输名字出话术（棋盘 2·背包 0·仓库 0）/ 输 id 出话术（棋盘 1·背包 0·仓库 1）/ 查不到就说没找到 / 坏 JSON 只提示不炸 / 清空全收 / 全程 0 请求）；`tools/verify.mjs` 3g-3 有 **11 条**静态断言（DOM 与绑定、抬头、解析函数、主棋盘、三处数量、三段式话术、只在本机，外加 4 条反向断言：资源核对 DOM / 分段条 / JS / 流水联动都删干净了）。
+- **测试**：`tools/smoke.cjs` 第 **8z** 节 **32 条**（是「梦幻消除站」组的子项 / 标签就是「棋盘镜像」/ 页内 0 个 seg-btn 且没有 mergeInput、gdItemInput、gdFlowBox、gdBanner / 三块默认收起 / 汇总芯片不含货币、背包仓库 id 在 title / 解析出主棋盘 3×2 + 棋盘数 + 棋子 4·格 8 + 背包 1 项 + 仓库 2 件 / 三块都显示 / 主棋盘 6 格含 3 棋子·1 未解锁·1 产出棋 / 名字换成「相思鸟」「云栖茶壶」且带 80/80 库存 / 其它棋盘单独画 / 背包「×3」/ 仓库认识换名·不认识写 id 带库存 / **stackData 的三栈都认、空栈不出分组、同 id 合并 ×2、backpack 数量 0 只当空位、汇总条「有序栈 3 项（backpack 空位 1 个）」、查栈里的道具有数量、⑤ 多一块「当前活动棋盘」** / 输名字出话术（棋盘 2·背包 0·仓库 0）/ 输 id 出话术（棋盘 1·背包 0·仓库 1）/ 查不到就说没找到 / 坏 JSON 只提示不炸 / 清空全收 / 全程 0 请求）；`tools/verify.mjs` 3g-3 有 **12 条**静态断言（DOM 与绑定、抬头、解析函数、主棋盘、三处数量、**背包认 stackData**、三段式话术、只在本机，外加 4 条反向断言：资源核对 DOM / 分段条 / JS / 流水联动都删干净了）。
 
 ## SOP 助手（**已删除** · 2026-10，用户要求）
 

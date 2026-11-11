@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="x-build" content="2026-11-12 活动日历标签页">
+    <meta name="x-build" content="2026-11-12 镜像背包认 stackData">
     <title>客服冷静演绎工作台</title>
     <link rel="icon" type="image/gif" href="/my-icon.gif">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -3686,6 +3686,9 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
         }
         .board-chip b { color: var(--ink-0); }
         .board-chip em { font-style: normal; color: var(--ink-3); margin-left: 4px; font-size: 10.5px; }
+        .board-stack { margin-top: 10px; }
+        .board-stack-title { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--ink-2); }
+        .board-stack-title em { font-style: normal; font-weight: 400; font-size: 10.5px; color: var(--ink-3); }
         #boardAskOut { background: var(--surface-2); }
 
         /* ---------- 统计页通用：紧凑信息条（少写字、多给数） ---------- */
@@ -5267,7 +5270,9 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
             </div>
 
             <div class="card" id="boardBagCard" style="display:none;">
-                <label>③ 临时背包 <span class="card-sub">backpack：道具 → 数量</span></label>
+                <label>③ 背包 <span class="card-sub" id="boardBagSub">stackData：卡包栈 / 棋子栈 / 活动棋子栈 / 地图棋子栈</span></label>
+                <div id="boardStackList"></div>
+                <label style="margin-top:16px;">临时背包 <span class="card-sub">backpack：道具 → 数量（很多镜像这里只有空位，真实内容看上面的栈）</span></label>
                 <div class="board-list" id="boardBagList"></div>
                 <label style="margin-top:16px;">④ 仓库 <span class="card-sub">warehouseData.pieceDataList：棋子 → 件数</span></label>
                 <div class="board-list" id="boardWareList"></div>
@@ -18394,11 +18399,13 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                                         }
                                         return null;
                                         }
+                                    // 真实镜像里背包内容在 stackData 的四个有序栈里，名字跟 GM 页那四块一致
+                                    const BOARD_STACK_LABELS = { cardStack: "卡包栈", pieceStack: "棋子栈", activityStack: "活动棋子栈", chessMapStack: "地图棋子栈" };
                                     function boardParse(raw) {
                                         const model = {
                                             boards: [], main: null, warehouse: [], activityWarehouse: [],
-                                            backpack: [], currencies: [], counts: {}, error: '', empty: true,
-                                            orderData: null, lastInstruction: null
+                                            backpack: [], stacks: [], bagZero: 0, currencies: [], counts: {}, error: '', empty: true,
+                                            orderData: null, lastInstruction: null, activityBoard: null
                                         };
                                         const txt = boardJsonText(raw);
                                         if (!txt) return model;
@@ -18441,15 +18448,36 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                                         const r = e.raw || {};
                                         return { id: e.id, n: e.n, pieceType: r.pieceType, inventory: r.inventory, capacity: r.capacity };
                                         });
+                                        // 背包：真实镜像里「背包里有什么」写在 stackData 的四个有序栈里（GM 页那四块），
+                                        // backpack 经常只有空位（例如 {"3000004":0,"":0}）—— 两边都要认，不然背包永远是空的。
+                                        const stackSrc = (data.stackData && typeof data.stackData === 'object') ? data.stackData : {};
+                                        Object.keys(BOARD_STACK_LABELS).forEach(function (sk) {
+                                        const arr = Array.isArray(stackSrc[sk]) ? stackSrc[sk] : [];
+                                        const items = [];
+                                        boardEntryList(arr).forEach(function (e) {
+                                        const n = (e.n == null ? 1 : e.n);
+                                        if (!(n > 0)) return;
+                                        const hit = items.filter(function (x) { return x.id === e.id; })[0];
+                                        if (hit) hit.n += n;
+                                        else items.push({ id: e.id, n: n });
+                                        });
+                                        if (!items.length) return;
+                                        model.stacks.push({ key: sk, label: BOARD_STACK_LABELS[sk], items: items });
+                                        });
                                         // 临时背包：backpack（map / 数组 / 二元组都认）+ backpackGoodsIds 兜底
                                         const bpSrc = data.backpack || data.backpackData || data.backpackList || data.backpackItems
                                         || data.tempBackpack || data.tempBackpackData || {};
-                                        model.backpack = boardEntryList(bpSrc).map(function (e) { return { id: e.id, n: e.n }; });
+                                        const bagZeroIds = {};
+                                        boardEntryList(bpSrc).forEach(function (e) {
+                                        if (!(e.n > 0)) { model.bagZero += 1; bagZeroIds[e.id] = 1; return; }   // 数量 0 = 空位，不能当成 1 件
+                                        model.backpack.push({ id: e.id, n: e.n, stack: '' });
+                                        });
                                         const bagIds = data.backpackGoodsIds || (data.backpack && data.backpack.goodsIds) || [];
                                         (Array.isArray(bagIds) ? bagIds : []).forEach(function (id) {
                                         const k = String(id || "").trim();
                                         if (!k) return;
-                                        if (!model.backpack.some(function (x) { return x.id === k; })) model.backpack.push({ id: k, n: 1 });
+                                        if (bagZeroIds[k]) return;   // 镜像里已经写明 0 的，别用 id 列表兜底成 1 件
+                                        if (!model.backpack.some(function (x) { return x.id === k; })) model.backpack.push({ id: k, n: 1, stack: "" });
                                         });
                                         const curSrc = data.currencies || data.currency || data.currencyData || data.money || {};
                                         model.currencies = boardEntryList(curSrc).map(function (e) { return { id: e.id, n: e.n }; });
@@ -18466,11 +18494,14 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                                         }));
                                         model.warehouse.forEach(x => { if (x.id != null) slot(x.id).inWarehouse += (x.n || 1); });
                                         model.activityWarehouse.forEach(x => { if (x.id != null) slot(x.id).inWarehouse += (x.n || 1); });
-                                        model.backpack.forEach(x => { slot(x.id).inBackpack += (x.n || 1); });
-                                        model.empty = !model.boards.length && !model.warehouse.length && !model.backpack.length && !model.currencies.length;
+                                        model.backpack.forEach(x => { slot(x.id).inBackpack += (x.n == null ? 1 : x.n); });
+                                        model.stacks.forEach(function (st) { st.items.forEach(function (x) { slot(x.id).inBackpack += x.n; }); });
+                                        model.empty = !model.boards.length && !model.warehouse.length && !model.backpack.length
+                                        && !model.stacks.length && !model.currencies.length;
                                         // 订单消耗 / 最近一次操作明细（异常自查用：道具到底是「被吞」还是「交订单/合成消耗」）
                                         model.orderData = (data.orderData && typeof data.orderData === 'object') ? data.orderData : null;
                                         model.lastInstruction = (data.lastInstruction && typeof data.lastInstruction === 'object') ? data.lastInstruction : null;
+                                        model.activityBoard = (data.activityChessBoardData && typeof data.activityChessBoardData === 'object') ? data.activityChessBoardData : null;
                                         return model;
                                     }
                                     function boardCellHtml(c) {
@@ -18506,7 +18537,8 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                                     }
                                         // 镜像里这两个字段以前只解析、不展示（死字段）：客服排查「道具是不是被订单吃掉 / 被合成消耗」时正是要它
                                         const BOARD_FIELD_LABELS = {
-                                        opId: "指令ID", opFrom: "来源", chessboardId: "棋盘", cellId: "格子", eventUUID: "事件UUID",
+                                        opId: "指令ID", op: "操作码", opFrom: "来源", chessboardId: "棋盘", cbId: "棋盘", cellId: "格子",
+                                        bCellIdx: "起点格", aCellIdx: "落点格", uid: "玩家UID", eventUUID: "事件UUID",
                                         pieceId: "棋子", goodsId: "道具", num: "数量", count: "数量",
                                         createTime: "时间", instructionTime: "时间", opTime: "时间", updateTime: "时间",
                                         orderId: "订单ID", orderType: "订单类型", orderNum: "订单序号", slotId: "槽位",
@@ -18516,7 +18548,8 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                                         const sv = String(v);
                                         if (k === "opFrom") return resolveSource(sv) || sv;
                                         if (k === "pieceId" || k === "goodsId") return boardNameOf(sv) ? (boardNameOf(sv) + "（" + sv + "）") : sv;
-                                        if (k === "chessboardId") return sv + (sv === "1" ? "（主棋盘）" : "");
+                                        if (k === "chessboardId" || k === "cbId") return sv + (sv === "1" ? "（主棋盘）" : "");
+                                        if (k === "activityType") { const nm = (activityTypeMap && activityTypeMap[sv]) || ""; return nm ? (nm + "（" + sv + "）") : sv; }
                                         if (/Time$|At$|^time$/i.test(k) && /^\d{9,}$/.test(sv)) {
                                         const d = new Date(Number(sv) * (sv.length <= 10 ? 1000 : 1));
                                         if (!isNaN(d.getTime())) return d.toISOString().replace("T", " ").slice(0, 19);
@@ -18537,9 +18570,24 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                                         + '<div class="stat-chips" style="margin-top:6px;">' + (chips.join("") || '<span class="hint-text">没有可读字段</span>') + "</div>"
                                         + full + "</div>";
                                         }
+                                        // 只留「能直接读的标量字段」，全是嵌套对象就当没有（免得 ⑤ 冒出一块「没有可读字段」）
+                                        function boardScalarObj(o) {
+                                        if (!o || typeof o !== "object") return null;
+                                        const out = {};
+                                        Object.keys(o).forEach(function (k) {
+                                        const v = o[k];
+                                        if (v == null || v === "" || typeof v === "object") return;
+                                        out[k] = v;
+                                        });
+                                        return Object.keys(out).length ? out : null;
+                                        }
+                                        function boardExtraOn(model) {
+                                        return !!(model && (model.lastInstruction || model.orderData || boardScalarObj(model.activityBoard)));
+                                        }
                                         function boardExtraHtml(model) {
                                         return (boardObjectBlock("🔎 最近一次操作（lastInstruction）", model && model.lastInstruction)
-                                        + boardObjectBlock("📦 在跑的订单（orderData）", model && model.orderData));
+                                        + boardObjectBlock("📦 在跑的订单（orderData）", model && model.orderData)
+                                        + boardObjectBlock("🎯 当前活动棋盘（activityChessBoardData）", boardScalarObj(model && model.activityBoard)));
                                         }
                                     function boardRender(model) {
                                         const sum = document.getElementById('boardSummary');
@@ -18561,7 +18609,7 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                                         // ⑤ 最近一次操作 / 在跑订单（没有就收起）
                                         const extraBox = document.getElementById("boardExtraBox");
                                         if (extraBox) extraBox.innerHTML = boardExtraHtml(model);
-                                        if (extraCard) extraCard.style.display = (model.lastInstruction || model.orderData) ? "" : "none";
+                                        if (extraCard) extraCard.style.display = boardExtraOn(model) ? "" : "none";
                                         const pieceN = model.boards.reduce((a, b) => a + (b.cells || []).filter(c => c && c.pieceData).length, 0);
                                         const cellN = model.boards.reduce((a, b) => a + b.w * b.h, 0);
                                         if (sum) {
@@ -18570,12 +18618,14 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                                             if (model.boards.length > 1) chips.push(statChip('另有 ' + (model.boards.length - 1) + ' 块棋盘'));
                                             chips.push(statChip('棋子 ' + pieceN + ' / 格 ' + cellN));
                                             chips.push(statChip('临时背包 ' + model.backpack.length + ' 项'));
+                                            if (model.stacks.length) chips.push(statChip('有序栈 ' + model.stacks.reduce(function (a, st) { return a + st.items.length; }, 0) + ' 项' + (model.bagZero ? '（backpack 空位 ' + model.bagZero + ' 个）' : ''), 'k-accent'));
                                             chips.push(statChip('仓库 ' + model.warehouse.concat(model.activityWarehouse).reduce(function (a, x) { return a + (x.n || 1); }, 0) + ' 件'));
                                             sum.innerHTML = chips.join('');
                                         }
                                         if (sub) {
                                             sub.textContent = '主棋盘 ' + (model.main ? model.main.w + '×' + model.main.h : '—')
-                                                + '　·　棋盘 ' + model.boards.length + ' 块　·　仓库 ' + (model.warehouse.length + model.activityWarehouse.length) + ' 件　·　临时背包 ' + model.backpack.length + ' 项';
+                                                + '　·　棋盘 ' + model.boards.length + ' 块　·　仓库 ' + (model.warehouse.length + model.activityWarehouse.length) + ' 件　·　临时背包 ' + model.backpack.length + ' 项'
+                                                + (model.stacks.length ? '　·　有序栈 ' + model.stacks.map(function (st) { return st.label + ' ' + st.items.length; }).join(' / ') : '');
                                         }
                                         if (meta) {
                                             meta.innerHTML = statChips([
@@ -18599,6 +18649,25 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                                                     + boardGridHtml(b) + '</div>').join('')
                                                 + '</div>' : '';
                                         }
+                                        const bagSub = document.getElementById('boardBagSub');
+                                        if (bagSub) bagSub.textContent = model.stacks.length
+                                            ? ('stackData：' + model.stacks.map(function (st) { return st.label + ' ' + st.items.length + ' 项'; }).join(' · '))
+                                            : 'stackData：卡包栈 / 棋子栈 / 活动棋子栈 / 地图棋子栈（这份镜像里都没有）';
+                                        const stackBox = document.getElementById('boardStackList');
+                                        if (stackBox) {
+                                            stackBox.innerHTML = model.stacks.length
+                                                ? model.stacks.map(function (st) {
+                                                    return '<div class="board-stack"><div class="board-stack-title">' + escapeHtml(st.label)
+                                                        + '<em>' + st.items.length + ' 项</em></div><div class="board-list">'
+                                                        + st.items.map(function (x) {
+                                                            const nm = boardNameOf(x.id);
+                                                            return '<span class="board-chip" title="' + escapeHtml('栈里的道具 ' + x.id + (nm ? '（' + nm + '）' : ''))
+                                                                + '"><b>' + escapeHtml(nm || ('道具 ' + x.id)) + '</b><em>×' + x.n + '</em></span>';
+                                                        }).join('')
+                                                        + '</div></div>';
+                                                }).join('')
+                                                : '<span class="hint-text">这份镜像里没有 stackData 的四个栈</span>';
+                                        }
                                         const bag = document.getElementById('boardBagList');
                                         if (bag) {
                                             bag.innerHTML = model.backpack.length
@@ -18607,7 +18676,9 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                                                     return '<span class="board-chip" title="' + escapeHtml('道具 ' + x.id + (nm ? '（' + nm + '）' : ''))
                                                         + '"><b>' + escapeHtml(nm || ('道具 ' + x.id)) + '</b><em>×' + x.n + '</em></span>';
                                                 }).join('')
-                                                : '<span class="hint-text">临时背包是空的</span>';
+                                                : '<span class="hint-text">' + (model.bagZero > 0
+                                                    ? ('临时背包是空的（backpack 里 ' + model.bagZero + ' 个位置数量为 0）')
+                                                    : '临时背包是空的') + '</span>';
                                         }
                                         const ware = document.getElementById('boardWareList');
                                         if (ware) {
@@ -18649,7 +18720,8 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                                         else {
                                             const pieceN = model.boards.reduce((a, b) => a + (b.cells || []).filter(c => c && c.pieceData).length, 0);
                                             teaSetHint('boardHint', '认出 ' + model.boards.length + ' 块棋盘（棋子 ' + pieceN + ' 个）· 仓库 '
-                                                + (model.warehouse.length + model.activityWarehouse.length) + ' 件 · 临时背包 ' + model.backpack.length + ' 项');
+                                                + (model.warehouse.length + model.activityWarehouse.length) + ' 件 · 临时背包 ' + model.backpack.length + ' 项'
+                                                + (model.stacks.length ? (' · 有序栈 ' + model.stacks.length + ' 个') : ''));
                                         }
                                         return model;
                                     }

@@ -806,9 +806,21 @@ ok(/model\.main = model\.boards\.filter\(x => String\(x\.id\) === '1'\)\[0\] \|\
   '主棋盘按 cellNumW×cellNumH 画格子（棋子 / 空位 / 未解锁三种样子，产出棋标黄），其它棋盘另起一块');
 ok(/model\.counts\[k\] = \{ onBoard: 0, inBackpack: 0, inWarehouse: 0 \}/.test(s)
   && /slot\(id\)\.onBoard \+= 1/.test(s) && /slot\(x\.id\)\.inWarehouse \+= \(x\.n \|\| 1\)/.test(s)
-  && /slot\(x\.id\)\.inBackpack \+= \(x\.n \|\| 1\)/.test(s)
+  && /slot\(x\.id\)\.inBackpack \+= \(x\.n == null \? 1 : x\.n\)/.test(s)
+  && /model\.stacks\.forEach\(function \(st\)/.test(s)
   && /function boardIdsOfQuery\(q\)/.test(s) && /nm\.indexOf\(t\) !== -1/.test(s) && /itemNameMap/.test(s),
-  '三处数量分开数：棋盘上（每格 1 个）/ 仓库（每件 1 个）/ 临时背包（数量）；查询支持 id，也支持用物品名表反查名字（只认「真名包含查询」，避免误命中）');
+  '三处数量分开数：棋盘上（每格 1 个）/ 仓库（每件 1 个）/ 临时背包 + 有序栈（数量）；数量 0 的空位不算 1 件；查询支持 id，也支持用物品名表反查名字（只认「真名包含查询」，避免误命中）');
+// 2026-11 用户：「背包还是没有正确识别」→ 真实镜像里背包内容在 stackData 的四个有序栈里
+ok(/const BOARD_STACK_LABELS = \{ cardStack: "卡包栈", pieceStack: "棋子栈", activityStack: "活动棋子栈", chessMapStack: "地图棋子栈" \}/.test(s)
+  && /const stackSrc = \(data\.stackData && typeof data\.stackData === 'object'\)/.test(s)
+  && /if \(!\(e\.n > 0\)\) \{ model\.bagZero \+= 1; bagZeroIds\[e\.id\] = 1; return; \}/.test(s)
+  && /if \(bagZeroIds\[k\]\) return;/.test(s)
+  && /model\.stacks\.push\(\{ key: sk, label: BOARD_STACK_LABELS\[sk\], items: items \}\)/.test(s)
+  && /id="boardStackList"/.test(s) && /id="boardBagSub"/.test(s)
+  && /board-stack-title/.test(s) && /stackData：卡包栈 \/ 棋子栈 \/ 活动棋子栈 \/ 地图棋子栈/.test(s)
+  && /boardExtraOn\(model\)/.test(s) && /function boardScalarObj\(o\)/.test(s)
+  && /当前活动棋盘（activityChessBoardData）/.test(s),
+  '背包认 stackData 的四个有序栈（空栈不出分组、同 id 合并数量），backpack 里数量 0 只当空位；⑤ 多一块当前活动棋盘');
 // 2026-11 用户：「镜像无法正确识别背包等数据」→ 四种写法都要认
 ok(/function boardEntryList\(src\)/.test(s) && /function boardNumOf\(v\)/.test(s) && /function boardIdOf\(o\)/.test(s)
   && /function boardPickList\(obj, names\)/.test(s)

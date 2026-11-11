@@ -3426,6 +3426,42 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
       '根是 {data:{…}} + 仓库是数组 + 背包是 [id,n] 二元组 / 纯 id 也能认', sumTwo.slice(0, 120));
     check(/×4/.test($('boardBagList').textContent) && /×1/.test($('boardBagList').textContent),
       '背包二元组的数量（4）和纯 id（按 1 个）都对', $('boardBagList').textContent.slice(0, 90));
+    // 2026-11 用户：「背包还是没有正确识别」→ 真实镜像里背包内容在 stackData 的四个有序栈里，
+    // 而 backpack 往往只有空位（{"3000004":0,"":0}），数量 0 不能当成 1 件。
+    $('boardInput').value = JSON.stringify({
+      chessboardDataList: [{ cellTotalNum: 1, chessboardId: 1, cellNumW: 1, cellNumH: 1, cells: [{ cellIdx: 0, lockState: 2, pieceData: { pieceType: 2, goodsId: 21108 } }] }],
+      warehouseData: { pieceDataList: [{ pieceType: 6, goodsId: 60401 }], factory: {}, capacity: 0, numByFriend: 5 },
+      stackData: { chessMapStack: [], pieceStack: [30901], activityStack: [50801, 50801], cardStack: [90002] },
+      backpack: { '3000004': 0, '': 0 },
+      backpackGoodsIds: ['', '3000004'],
+      currencies: { '102': 86130, '101': 16, '103': 0 },
+      activityChessBoardData: { scheduleId: 550014, activityType: 43, chessboardId: 8 },
+      lastInstruction: { aCellIdx: 38, opId: 2421775, uid: 68037458, op: 100, bCellIdx: 37, cbId: 1, sTime: 1794380413 },
+      orderData: { orderDojoMap: { 5397332861: 1 } }
+    });
+    $('boardParseBtn').click();
+    await sleep(100);
+    const stackBox = $('boardStackList').textContent;
+    check(/棋子栈/.test(stackBox) && /卡包栈/.test(stackBox) && /活动棋子栈/.test(stackBox)
+      && !/地图棋子栈/.test(stackBox),
+      'stackData 的四个有序栈都认，空栈（地图棋子栈）不出空分组', stackBox.replace(/\s+/g, ' ').slice(0, 120));
+    check($('boardStackList').querySelectorAll('.board-chip').length === 3
+      && /×2/.test(stackBox) && /×1/.test(stackBox),
+      '栈里的每个道具都出芯片（pieceStack 1 + activityStack 2 + cardStack 1 → 3 片，同 id 合并成 ×2）',
+      $('boardStackList').querySelectorAll('.board-chip').length + ' 片');
+    check(/临时背包是空的（backpack 里 1 个位置数量为 0）/.test($('boardBagList').textContent),
+      'backpack 里数量 0 的是空位，不再当成「×1 件」硬塞进背包', $('boardBagList').textContent.slice(0, 80));
+    check(/有序栈 3 项（backpack 空位 1 个）/.test($('boardSummary').textContent),
+      '汇总条：有序栈 N 项 + backpack 空位几个（一眼看出不是背包丢了）', $('boardSummary').textContent.slice(0, 200));
+    $('boardAskInput').value = '50801';
+    $('boardAskBtn').click();
+    await sleep(60);
+    check(/临时背包有 2 个/.test($('boardAskOut').value),
+      '查栈里的道具时，「临时背包有 N 个」把栈里的一起算（50801 在活动棋子栈里 2 个）',
+      $('boardAskOut').value.replace(/\n/g, ' | '));
+    check(/当前活动棋盘/.test($('boardExtraBox').textContent) && /排期|550014/.test($('boardExtraBox').textContent),
+      '⑤ 多出一块「当前活动棋盘」（activityChessBoardData 里只有标量，直接摊成芯片）',
+      $('boardExtraBox').textContent.replace(/\s+/g, ' ').slice(0, 140));
     // 坏的 JSON：只提示，不炸
     $('boardInput').value = '{ 这不是 JSON }';
     $('boardParseBtn').click();
