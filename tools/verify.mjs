@@ -824,6 +824,18 @@ ok(/function boardExtraHtml\(model\)/.test(s) && /function boardObjectBlock\(tit
   && /if \(k === "opFrom"\) return resolveSource\(sv\)/.test(s)
   && /最近一次操作（lastInstruction）/.test(s) && /在跑的订单（orderData）/.test(s)
   && /看原始 JSON/.test(s), '镜像：⑤ 最近一次操作 / 在跑订单（opFrom 换成来源名、时间戳换成时间、原始 JSON 可展开）');
+// 2026-11 用户：「能否将这些排期弄成活动日历的标签页」
+ok(/data-tab="calendar"/.test(s) && /id="tab-calendar"/.test(s) && /ACTIVITY CALENDAR/.test(s)
+  && /id="calGrid"/.test(s) && /id="calWeek"/.test(s) && /id="calPrev"/.test(s) && /id="calNext"/.test(s)
+  && /id="calMonth"/.test(s) && /id="calTodayBtn"/.test(s) && /id="calKindChips"/.test(s)
+  && /id="calDayList"/.test(s) && /id="calUpcoming"/.test(s)
+  && /const CAL_KINDS = \[/.test(s) && /const CAL_TABLE = \{/.test(s)
+  && /function calEvents\(\)/.test(s) && /SD_SCHEDULE\.forEach/.test(s)
+  && /function calRender\(\)/.test(s) && /function calStepMonth\(n\)/.test(s) && /function calSetMonth\(y, m\)/.test(s)
+  && /function calEventsOnDay\(d\)/.test(s) && /function calDateOf\(v\)/.test(s)
+  && /厨王争霸 147–210：每周一期/.test(s)
+  && /setClick\('calPrev'/.test(s) && /setClick\('calNext'/.test(s) && /calInit\(\);/.test(s),
+  '活动日历：侧边栏标签 + 月历（前面补空格子/周末底色/今天高亮）+ 分类筛选 + 点某天看全 + 接下来 30 天（七日任务复用 SD_SCHEDULE，厨王争霸按周生成）');
 ok(/棋盘上有 ' \+ onBoard \+ ' 个，临时背包有 ' \+ inBag \+ ' 个，仓库有 ' \+ inWare \+ ' 个。/.test(s)
   && /镜像里没找到「'/.test(s) && /【棋盘镜像 · '/.test(s),
   '确认话术就是三段式：棋盘上有 X 个，临时背包有 Y 个，仓库有 Z 个；查不到时直说没找到');

@@ -3447,6 +3447,62 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
       '镜像解析全程只在本机（0 请求）', posts.slice(posts8z).map(p => p.url).join(' | '));
   }
 
+  console.log('--- 8z-4. 活动日历（把各活动排期摊成月历）---');
+  {
+    const postsCal = posts.length;
+    doc.querySelector('.tab-btn[data-tab="calendar"]').click();
+    await sleep(80);
+    check(doc.querySelector('.tab-btn[data-tab="calendar"]').textContent.trim() === '活动日历'
+      && !!doc.getElementById('calGrid') && !!doc.getElementById('calUpcoming'),
+      '侧边栏有「活动日历」，页里有月历和「接下来 30 天」');
+    const monthEl = doc.getElementById('calMonth');
+    monthEl.value = '2026-11';
+    fire(monthEl, 'change');
+    await sleep(80);
+    check(/2026 年 11 月/.test(doc.getElementById('calTitle').textContent),
+      '跳到 2026-11：抬头跟着变', doc.getElementById('calTitle').textContent);
+    const cells = [...doc.getElementById('calGrid').querySelectorAll('.cal-cell')];
+    const dayCells = cells.filter(c => !c.classList.contains('is-blank'));
+    check(dayCells.length === 30, '11 月画了 30 天（前面按星期补空）', dayCells.length);
+    const evShown = [...doc.getElementById('calGrid').querySelectorAll('.cal-ev')];
+    check(evShown.length >= 10, '有排期的日子都挂了活动条', evShown.length);
+    const cell4 = cells.filter(c => c.getAttribute('data-day') === '2026-11-4')[0];
+    check(!!cell4 && cell4.querySelectorAll('.cal-ev').length === 3 && /\+\d+/.test(cell4.textContent),
+      '一天多期时最多挂 3 条，多出来的写「+N」', cell4 && cell4.textContent.replace(/\s+/g, ' '));
+    cell4.click();
+    await sleep(60);
+    check(/茶楼经营簿/.test(doc.getElementById('calDayList').textContent),
+      '点 11/4 → 下面能看全（茶楼经营簿 11/4~12/10 那期）', doc.getElementById('calDayList').textContent.slice(0, 90));
+    // ⚠️ 每次重画都会换一批格子节点，得重新查（旧引用点不动）
+    const cell15 = [...doc.getElementById('calGrid').querySelectorAll('.cal-cell')]
+      .filter(c => c.getAttribute('data-day') === '2026-11-15')[0];
+    cell15.click();
+    await sleep(60);
+    check(/限时排行榜/.test(doc.getElementById('calDayList').textContent)
+      && /37 期/.test(doc.getElementById('calDayList').textContent),
+      '点某天 → 下面列出这天在跑的活动（含期号）', doc.getElementById('calDayList').textContent.slice(0, 90));
+    const chipCard = doc.querySelector('#calKindChips .stat-chip[data-kind="card"]');
+    chipCard.click();
+    await sleep(60);
+    const evCard = [...doc.getElementById('calGrid').querySelectorAll('.cal-ev')].map(e => e.textContent);
+    check(evCard.length > 0 && evCard.every(t => /集卡/.test(t)),
+      '筛选「集卡」→ 只剩集卡那几期', evCard.join(' | '));
+    doc.querySelector('#calKindChips .stat-chip[data-kind="all"]').click();
+    await sleep(40);
+    doc.getElementById('calPrev').click();
+    await sleep(60);
+    check(/2026 年 10 月/.test(doc.getElementById('calTitle').textContent),
+      '‹ 退到 2026 年 10 月', doc.getElementById('calTitle').textContent);
+    doc.getElementById('calTodayBtn').click();
+    await sleep(60);
+    const now = new Date();
+    check(new RegExp(now.getFullYear() + ' 年 ' + (now.getMonth() + 1) + ' 月').test(doc.getElementById('calTitle').textContent),
+      '「回到今天」跳回当月', doc.getElementById('calTitle').textContent);
+    check(!!doc.getElementById('calUpcoming').textContent.trim(),
+      '「接下来 30 天」有内容（没有排期也会写一句提示）');
+    check(posts.length === postsCal,
+      '活动日历全程只在本机（0 请求）', posts.slice(postsCal).map(p => p.url).join(' | '));
+  }
   console.log('--- 8z-2. 涂色游戏（Anycolor 玩法：内置图库 + 位图填充）---');
   {
     const posts9 = posts.length;

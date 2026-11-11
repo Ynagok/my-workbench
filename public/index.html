@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="x-build" content="2026-11-12 镜像：最近操作/订单 + 背包兼容">
+    <meta name="x-build" content="2026-11-12 活动日历标签页">
     <title>客服冷静演绎工作台</title>
     <link rel="icon" type="image/gif" href="/my-icon.gif">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -4092,6 +4092,27 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
         .issue-paste > textarea { margin-top: 6px; }
         #ovbizIssueCard > .flex-row > label { font-size: 13.5px; }
 
+        /* ===== 活动日历 ===== */
+        .cal-week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin: 10px 0 4px; }
+        .cal-week span { text-align: center; font-size: 11.5px; color: var(--ink-3); letter-spacing: .06em; }
+        .cal-week span.is-weekend { color: var(--danger); }
+        .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+        .cal-cell { min-height: 78px; padding: 5px 6px; border: 1px solid var(--line-0); border-radius: var(--r-sm);
+            background: var(--surface); overflow: hidden; }
+        .cal-cell.is-weekend { background: var(--surface-2); }
+        .cal-cell.is-today { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent-line); }
+        .cal-cell.is-picked { border-color: var(--accent); background: var(--accent-dim); }
+        .cal-cell.is-blank { background: transparent; border-color: transparent; }
+        .cal-cell > b { font-size: 12px; color: var(--ink-2); display: block; }
+        .cal-cell.is-today > b { color: var(--accent-ink); }
+        .cal-ev { display: block; margin-top: 3px; font-size: 10.5px; line-height: 1.35; padding: 1px 4px;
+            border-radius: 4px; color: #0a0c0e; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .cal-more { font-size: 10px; color: var(--ink-3); }
+        .cal-row { display: flex; align-items: baseline; gap: 8px; padding: 5px 0;
+            border-bottom: 1px dashed var(--line-0); font-size: 12.5px; }
+        .cal-row i { width: 8px; height: 8px; border-radius: 999px; flex: none; align-self: center; }
+        .cal-row em { font-style: normal; color: var(--ink-3); font-size: 11.5px; }
+
 </style>
 </head>
 
@@ -4143,6 +4164,7 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
             <button class="tab-btn tab-btn-sub active" data-tab="gen"> 话术生成</button>
             <button class="tab-btn tab-btn-sub" data-tab="card"> 集卡分析</button>
             <button class="tab-btn tab-btn-sub" data-tab="activity"> 活动查询</button>
+            <button class="tab-btn tab-btn-sub" data-tab="calendar"> 活动日历</button>
             <button class="tab-btn tab-btn-sub" data-tab="gamedata"> 棋盘镜像</button>
 
             <button class="tab-btn" data-tab="reply"> 工单回复</button>
@@ -4154,6 +4176,37 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
             <button class="tab-btn" data-tab="script">小游戏</button>
         </div>
 
+
+        <!-- ==================== 活动日历（把各活动的排期摊成月历，2026-11 用户要求） ==================== -->
+        <div id="tab-calendar" class="tab-content">
+            <div class="career-report-head">
+                <div>
+                    <div class="crh-kicker">ACTIVITY CALENDAR / 活动日历</div>
+                    <div class="crh-title">活动日历</div>
+                    <div class="crh-sub" id="calSub">—</div>
+                </div>
+                <div class="crh-meta" id="calMeta"></div>
+            </div>
+            <div class="card">
+                <div class="rest-cal-bar">
+                    <button type="button" class="rest-cal-nav" id="calPrev" title="上个月" aria-label="上个月">‹</button>
+                    <span class="rest-cal-title" id="calTitle">—</span>
+                    <button type="button" class="rest-cal-nav" id="calNext" title="下个月" aria-label="下个月">›</button>
+                    <input type="month" class="rest-cal-month" id="calMonth" title="跳到某个月">
+                    <button type="button" id="calTodayBtn" class="secondary">回到今天</button>
+                    <span class="hint-text" id="calHint"></span>
+                </div>
+                <div class="stat-chips" id="calKindChips" style="margin:10px 0 0;"></div>
+                <div id="calWeek" class="cal-week"></div>
+                <div id="calGrid" class="cal-grid"></div>
+                <div class="stat-chips" id="calDayBar" style="margin-top:10px;"></div>
+                <div id="calDayList" style="margin-top:4px;"></div>
+            </div>
+            <div class="card">
+                <label>📌 接下来 30 天 <span class="card-sub">进行中的先列，再按开始时间——「这期到几号」「下一期什么时候」一眼看到</span></label>
+                <div id="calUpcoming" style="margin-top:10px;"></div>
+            </div>
+        </div>
 
         <!-- ==================== 活动查询 activity（七日任务 / 糖葫芦对决 / 吉运节节高） ==================== -->
         <div id="tab-activity" class="tab-content">
@@ -17985,6 +18038,244 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                                         const totalVotes = list.reduce((a, v) => a + v.shopIds.length, 0);
                                         return { devices: list.length, totalVotes: totalVotes, rows: rows };
                                     }
+// ==================== 📅 活动日历（把各活动的排期摊成月历，2026-11 用户：「能否将这些排期弄成活动日历的标签页」）====================
+                                    // 数据都是「已经能确定」的排期：七日任务取自 SD_SCHEDULE，其余从 GM 玩家页各活动的排期下拉里抄下来。
+                                    // ⚠️ 纯展示，只在本机算，不进 /api/data、不写 localStorage。
+                                    const CAL_KINDS = [
+                                        { key: "seven", name: "七日任务", color: "#c89500" },
+                                        { key: "card", name: "集卡", color: "#5b8ff9" },
+                                        { key: "rank", name: "限时排行榜", color: "#f6bd16" },
+                                        { key: "king", name: "厨王争霸", color: "#9270ca" },
+                                        { key: "lottery", name: "联动抽签", color: "#5ad8a6" },
+                                        { key: "free", name: "限时0元购", color: "#e8684a" },
+                                        { key: "share", name: "限时分享", color: "#6dc8ec" },
+                                        { key: "medal", name: "茶楼经营簿", color: "#ff9d4d" },
+                                    ];
+                                    const CAL_TABLE = {
+                                        // 排期ID|开始|结束
+                                        card: [
+                                            "90002|2025-05-21 11:00:00|2025-07-05 10:00:59",
+                                            "90003|2025-07-05 14:00:00|2025-08-14 10:00:59",
+                                            "90004|2025-08-14 11:00:00|2025-09-23 10:59:59",
+                                            "90005|2025-09-23 11:00:00|2025-11-02 10:59:59",
+                                            "90006|2025-11-02 11:00:00|2025-12-12 10:59:59",
+                                            "90007|2025-12-12 11:00:00|2026-01-21 10:59:59",
+                                            "90008|2026-01-21 11:00:00|2026-03-02 10:59:59",
+                                            "90009|2026-03-02 11:00:00|2026-04-11 10:59:59",
+                                            "90010|2026-04-11 11:00:00|2026-05-21 10:59:59",
+                                            "90011|2026-05-21 11:00:00|2026-06-30 10:59:59",
+                                            "90012|2026-06-30 11:00:00|2026-08-09 10:59:59",
+                                            "90013|2026-08-09 11:00:00|2026-09-20 10:59:59",
+                                            "90014|2026-09-20 11:00:00|2026-10-30 10:59:59",
+                                            "90015|2026-10-30 11:00:00|2026-12-09 10:59:59",
+                                        ],
+                                        rank: [
+                                            "35|2026/10/18 10:00|2026/10/22 10:00",
+                                            "36|2026/10/25 10:00|2026/10/29 10:00",
+                                            "37|2026/11/15 10:00|2026/11/19 10:00",
+                                            "38|2026/11/22 10:00|2026/11/26 10:00",
+                                        ],
+                                        lottery: [
+                                            "1|2025/12/19 11:00|2026/1/15 14:25",
+                                            "2|2026/2/4 10:59|2026/3/2 10:59",
+                                            "3|2026/6/1 10:59|2026/6/30 10:59",
+                                            "4|2026/10/1 11:00|2026/10/30 10:59",
+                                        ],
+                                        free: [
+                                            "1|2025/9/4 10:00|2025/9/30 10:00",
+                                            "2|2025/10/20 10:00|2025/10/24 10:00",
+                                        ],
+                                        share: ["1|2026/6/27 10:00|2026/8/9 10:00"],
+                                        medal: ["2|2026/11/4 11:00|2026/12/10 20:00"],
+                                    };
+                                    function calDateOf(v) {
+                                    const t = String(v == null ? "" : v).trim().replace(/\//g, "-");
+                                    const m = /^(\d{4})-(\d{1,2})-(\d{1,2})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?)?$/.exec(t);
+                                    if (!m) return null;
+                                    return new Date(+m[1], +m[2] - 1, +m[3], +(m[4] || 0), +(m[5] || 0), +(m[6] || 0));
+                                    }
+                                    let calEventsCache = null;
+                                    function calEvents() {
+                                    if (calEventsCache) return calEventsCache;
+                                    const out = [];
+                                    const add = function (kind, id, start, end) {
+                                    const a = calDateOf(start), b = calDateOf(end);
+                                    if (!a || !b || b < a) return;
+                                    out.push({ kind: kind, id: String(id), start: a, end: b });
+                                    };
+                                    SD_SCHEDULE.forEach(function (line) {
+                                    const m = /^(\d+)\|([^~]+)~(.+)$/.exec(line);
+                                    if (m) add("seven", m[1], m[2].trim(), m[3].trim());
+                                    });
+                                    ["card", "rank", "lottery", "free", "share", "medal"].forEach(function (kind) {
+                                    (CAL_TABLE[kind] || []).forEach(function (row) {
+                                    const p = String(row).split("|");
+                                    add(kind, p[0], p[1], p[2]);
+                                    });
+                                    });
+                                    // 厨王争霸 147–210：每周一期，周五 10:00 开、下周四 20:00 收
+                                    (function () {
+                                    const first = new Date(2026, 9, 9, 10, 0, 0);
+                                    for (let i = 0; i < 64; i++) {
+                                    const start = new Date(first.getTime() + i * 7 * 86400000);
+                                    const end = new Date(start.getTime() + 6 * 86400000);
+                                    end.setHours(20, 0, 0, 0);
+                                    out.push({ kind: "king", id: String(147 + i), start: start, end: end });
+                                    }
+                                    })();
+                                    out.sort(function (a, b) { return a.start - b.start || a.kind.localeCompare(b.kind); });
+                                    calEventsCache = out;
+                                    return out;
+                                    }
+                                    function calKindOf(k) {
+                                    return CAL_KINDS.filter(function (x) { return x.key === k; })[0] || { key: k, name: k, color: "#8b959f" };
+                                    }
+                                    function calDayStart(d) { return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime(); }
+                                    function calDayEnd(d) { return calDayStart(d) + 86400000 - 1; }
+                                    function calEventsOnDay(d) {
+                                    const a = calDayStart(d), b = calDayEnd(d);
+                                    return calEvents().filter(function (e) {
+                                    if (calState.kind !== "all" && e.kind !== calState.kind) return false;
+                                    return e.start.getTime() <= b && e.end.getTime() >= a;
+                                    });
+                                    }
+                                    function calFmt(d) {
+                                    const p = function (n) { return (n < 10 ? "0" : "") + n; };
+                                    return (d.getMonth() + 1) + "-" + d.getDate() + " " + p(d.getHours()) + ":" + p(d.getMinutes());
+                                    }
+                                    function calRange(e) { return calFmt(e.start) + " ~ " + calFmt(e.end); }
+                                    let calState = { y: 0, m: 0, kind: "all", day: "" };
+                                    function calSetMonth(y, m) {
+                                    calState.y = y; calState.m = m;
+                                    const el = document.getElementById("calMonth");
+                                    if (el) el.value = y + "-" + ((m < 10 ? "0" : "") + m);
+                                    calRender();
+                                    }
+                                    function calStepMonth(n) {
+                                    const d = new Date(calState.y, calState.m - 1 + n, 1);
+                                    calSetMonth(d.getFullYear(), d.getMonth() + 1);
+                                    }
+                                    function calRender() {
+                                    const title = document.getElementById("calTitle");
+                                    const week = document.getElementById("calWeek");
+                                    const grid = document.getElementById("calGrid");
+                                    const sub = document.getElementById("calSub");
+                                    const meta = document.getElementById("calMeta");
+                                    const dayBar = document.getElementById("calDayBar");
+                                    const dayList = document.getElementById("calDayList");
+                                    const upcoming = document.getElementById("calUpcoming");
+                                    const kindChips = document.getElementById("calKindChips");
+                                    const y = calState.y, m = calState.m;
+                                    if (title) title.textContent = y + " 年 " + m + " 月";
+                                    if (kindChips) {
+                                    const chips = [statChip({ html: "<b>全部</b>" }, calState.kind === "all" ? "k-accent" : "k-plain", null)];
+                                    CAL_KINDS.forEach(function (k) {
+                                    chips.push(statChip({ html: "<b>" + escapeHtml(k.name) + "</b>" }, calState.kind === k.key ? "k-accent" : "k-plain", null));
+                                    });
+                                    kindChips.innerHTML = chips.join("");
+                                    Array.prototype.forEach.call(kindChips.querySelectorAll(".stat-chip"), function (el, i) {
+                                    el.style.cursor = "pointer";
+                                    el.setAttribute("data-kind", i === 0 ? "all" : CAL_KINDS[i - 1].key);
+                                    });
+                                    }
+                                    const labels = ["日", "一", "二", "三", "四", "五", "六"];
+                                    if (week) {
+                                    week.innerHTML = labels.map(function (t, i) {
+                                    return '<span class="' + (i === 0 || i === 6 ? "is-weekend" : "") + '">' + t + "</span>";
+                                    }).join("");
+                                    }
+                                    if (grid) {
+                                    const first = new Date(y, m - 1, 1);
+                                    const firstDow = first.getDay();
+                                    const daysInMonth = new Date(y, m, 0).getDate();
+                                    const todayKey = (function () { const d = new Date(); return d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate(); })();
+                                    let html = "";
+                                    for (let i = 0; i < firstDow; i++) html += '<div class="cal-cell is-blank"></div>';
+                                    for (let d = 1; d <= daysInMonth; d++) {
+                                    const cur = new Date(y, m - 1, d);
+                                    const key = y + "-" + m + "-" + d;
+                                    const list = calEventsOnDay(cur);
+                                    const cls = ["cal-cell"];
+                                    if (cur.getDay() === 0 || cur.getDay() === 6) cls.push("is-weekend");
+                                    if (key === todayKey) cls.push("is-today");
+                                    if (calState.day === key) cls.push("is-picked");
+                                    html += '<div class="' + cls.join(" ") + '" data-day="' + key + '"><b>' + d + "</b>";
+                                    list.slice(0, 3).forEach(function (e) {
+                                    const k = calKindOf(e.kind);
+                                    html += '<span class="cal-ev" style="background:' + k.color + '" title="' + escapeHtml(k.name + " " + e.id + " · " + calRange(e)) + '">'
+                                    + escapeHtml(k.name + " " + e.id) + "</span>";
+                                    });
+                                    if (list.length > 3) html += '<span class="cal-more">+' + (list.length - 3) + "</span>";
+                                    html += "</div>";
+                                    }
+                                    grid.innerHTML = html;
+                                    }
+                                    // 当月统计
+                                    const monthFrom = new Date(y, m - 1, 1).getTime();
+                                    const monthTo = new Date(y, m, 1).getTime() - 1;
+                                    const monthEvents = calEvents().filter(function (e) {
+                                    if (calState.kind !== "all" && e.kind !== calState.kind) return false;
+                                    return e.start.getTime() <= monthTo && e.end.getTime() >= monthFrom;
+                                    });
+                                    const now = Date.now();
+                                    const running = monthEvents.filter(function (e) { return e.start.getTime() <= now && e.end.getTime() >= now; });
+                                    if (sub) sub.textContent = y + " 年 " + m + " 月 · 活动 " + monthEvents.length + " 个" + (running.length ? "（进行中 " + running.length + "）" : "");
+                                    if (meta) {
+                                    meta.innerHTML = statChips([
+                                    ["本月活动", monthEvents.length + " 个"],
+                                    ["进行中", running.length + " 个"],
+                                    ["筛选", calState.kind === "all" ? "全部" : calKindOf(calState.kind).name],
+                                    ]);
+                                    }
+                                    // 点选的某天
+                                    if (calState.day) {
+                                    const p = calState.day.split("-").map(Number);
+                                    const day = new Date(p[0], p[1] - 1, p[2]);
+                                    const list = calEventsOnDay(day);
+                                    if (dayBar) dayBar.innerHTML = statChips([["这天", calState.day.replace(/-/g, "/")], ["活动", list.length + " 个"]]);
+                                    if (dayList) {
+                                    dayList.innerHTML = list.length ? list.map(function (e) {
+                                    const k = calKindOf(e.kind);
+                                    return '<div class="cal-row"><i style="background:' + k.color + '"></i><b>' + escapeHtml(k.name)
+                                    + (e.id && e.id !== "0" ? " " + escapeHtml(e.id) + " 期" : "") + '</b><em>' + escapeHtml(calRange(e)) + "</em></div>";
+                                    }).join("") : '<div class="hint-text">这天没有活动</div>';
+                                    }
+                                    } else {
+                                    if (dayBar) dayBar.innerHTML = statChips([["点日历上任意一天", "看这天有哪些活动"]]);
+                                    if (dayList) dayList.innerHTML = "";
+                                    }
+                                    // 接下来 30 天
+                                    if (upcoming) {
+                                    const todayStart = calDayStart(new Date());
+                                    const in30 = todayStart + 30 * 86400000;
+                                    const list = calEvents().filter(function (e) {
+                                    if (calState.kind !== "all" && e.kind !== calState.kind) return false;
+                                    return e.end.getTime() >= todayStart && e.start.getTime() <= in30;
+                                    }).sort(function (a, b) {
+                                    const ar = a.start.getTime() <= now && a.end.getTime() >= now ? 0 : 1;
+                                    const br = b.start.getTime() <= now && b.end.getTime() >= now ? 0 : 1;
+                                    return ar - br || a.start - b.start;
+                                    });
+                                    upcoming.innerHTML = list.length ? list.map(function (e) {
+                                    const k = calKindOf(e.kind);
+                                    const isRun = e.start.getTime() <= now && e.end.getTime() >= now;
+                                    const left = Math.ceil((e.end.getTime() - now) / 86400000);
+                                    return '<div class="cal-row"><i style="background:' + k.color + '"></i><b>' + escapeHtml(k.name)
+                                    + (e.id && e.id !== "0" ? " " + escapeHtml(e.id) + " 期" : "") + '</b><em>' + escapeHtml(calRange(e)) + "</em>"
+                                    + (isRun ? '<em style="color:var(--accent-ink);">进行中 · 还剩 ' + Math.max(0, left) + " 天</em>" : "") + "</div>";
+                                    }).join("") : '<div class="hint-text">接下来 30 天没有已知排期</div>';
+                                    }
+                                    }
+                                    function calInit() {
+                                    const d = new Date();
+                                    calState.y = d.getFullYear();
+                                    calState.m = d.getMonth() + 1;
+                                    calState.day = "";
+                                    const el = document.getElementById("calMonth");
+                                    if (el) el.value = calState.y + "-" + (calState.m < 10 ? "0" : "") + calState.m;
+                                    calRender();
+                                    }
+
                                     // ==================== 🧩 棋盘镜像（GM 镜像 JSON → 主棋盘 / 背包 / 仓库 + 位置话术）====================
                                     // 用户：「增加一个棋盘镜像功能，可以粘贴棋盘镜像数据生成类似展示主棋盘，背包，仓库的页面，
                                     //   还可以输入道具名称或者id，来生成有几个xx在棋盘上，几个xx在临时背包，几个xx在仓库这样的话术」
@@ -20453,6 +20744,34 @@ function thlRun() {
                                         setClick('thlCopyBtn', thlCopy);
                                         setClick('thlClearBtn', thlClear);
                                         // 🧩 棋盘镜像（粘镜像 JSON → 主棋盘 / 背包 / 仓库 + 「在哪几个」话术）
+                                        // 📅 活动日历
+                                        setClick('calPrev', function () { calStepMonth(-1); });
+                                        setClick('calNext', function () { calStepMonth(1); });
+                                        setClick('calTodayBtn', function () { calInit(); calState.day = ''; calRender(); });
+                                        (function () {
+                                        const el = document.getElementById('calMonth');
+                                        if (el) el.addEventListener('change', function () {
+                                        const m = /^(\d{4})-(\d{2})$/.exec(el.value || '');
+                                        if (!m) return;
+                                        calState.day = '';
+                                        calSetMonth(+m[1], +m[2]);
+                                        });
+                                        const grid = document.getElementById('calGrid');
+                                        if (grid) grid.addEventListener('click', function (ev) {
+                                        const cell = ev.target.closest('.cal-cell');
+                                        if (!cell || cell.classList.contains('is-blank')) return;
+                                        calState.day = cell.getAttribute('data-day') || '';
+                                        calRender();
+                                        });
+                                        const chips = document.getElementById('calKindChips');
+                                        if (chips) chips.addEventListener('click', function (ev) {
+                                        const chip = ev.target.closest('.stat-chip');
+                                        if (!chip) return;
+                                        calState.kind = chip.getAttribute('data-kind') || 'all';
+                                        calRender();
+                                        });
+                                        calInit();
+                                        })();
                                         setClick('boardParseBtn', boardRun);
                                         setClick('boardClearBtn', boardClear);
                                         setClick('boardAskBtn', boardAskRun);
