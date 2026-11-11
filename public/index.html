@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="x-build" content="2026-11-07 问题分析加类型筛选">
+    <meta name="x-build" content="2026-11-12 镜像兼容背包写法 + 物品名表补 13 条">
     <title>客服冷静演绎工作台</title>
     <link rel="icon" type="image/gif" href="/my-icon.gif">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -5633,10 +5633,23 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                                         "802": "体力排行榜道具",
                                         "803": "戏符",
                                         "804": "孔明灯积分",
+                                        "805": "糖葫芦积分",
+                                        "806": "糖葫芦胜点",
+                                        "807": "火锅积分",
+                                        "808": "喜羊羊积分",
                                         "840": "--特殊补偿道具",
                                         "900": "--活动道具",
                                         "997": "茶楼经营簿茶壶",
                                         "998": "七日任务绒绒",
+                                        "901001": "青岚锦鲤",
+                                        "901002": "桃禧锦鲤",
+                                        "901003": "金曜锦鲤",
+                                        "901004": "青岚锦鲤",
+                                        "901005": "桃禧锦鲤",
+                                        "901006": "金曜锦鲤",
+                                        "901007": "青岚锦鲤",
+                                        "901008": "桃禧锦鲤",
+                                        "901009": "金曜锦鲤",
                                         "9000": "--好感度道具",
                                         "9001": "手掌",
                                         "9002": "玄墨玉佩",
@@ -6644,6 +6657,7 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                                         "3000008": "打怪棋盘类型3积分",
                                         "4000001": "初始头像框",
                                         "4000002": "初始头像框",
+                                        "4000003": "海外GP奖励头像框·红狐狸框",
                                         "4100000": "--换装部件道具",
                                         "4100001": "初始发型",
                                         "4100002": "初始妆容",
@@ -17983,6 +17997,82 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                                         });
                                     }
                                     // 解析成 { boards, main, warehouse, activityWarehouse, backpack, currencies, counts, error }
+                                        // 镜像里同一种数据有好几种写法：map（id → 数量）/ 对象数组（{goodsId, num}）/ id 数组 / [id, n] 二元组
+                                        // 2026-11 用户：「镜像无法正确识别背包等数据」→ 之前只认 map + pieceDataList 两种，其它写法一律当空
+                                        function boardNumOf(v) {
+                                        if (v == null) return 0;
+                                        if (typeof v === "number") return isFinite(v) ? v : 0;
+                                        if (typeof v === "string") { const n = Number(v); return v.trim() !== "" && isFinite(n) ? n : 1; }
+                                        if (typeof v === "object") {
+                                        const keys = ["num", "count", "n", "nums", "quantity", "amount", "value", "inventory", "pieceNum"];
+                                        for (let i = 0; i < keys.length; i++) {
+                                        const raw = v[keys[i]];
+                                        if (raw == null || raw === "") continue;
+                                        const n = Number(raw);
+                                        if (isFinite(n)) return n;
+                                        }
+                                        return 1;
+                                        }
+                                        return 0;
+                                        }
+                                        function boardIdOf(o) {
+                                        if (o == null) return "";
+                                        if (typeof o === "number" || typeof o === "string") return String(o);
+                                        const keys = ["goodsId", "goodsID", "goods_id", "goods", "id", "itemCodeStr", "itemCode", "pieceId", "propId"];
+                                        for (let i = 0; i < keys.length; i++) {
+                                        const v = o[keys[i]];
+                                        if (v != null && typeof v !== "object" && String(v) !== "") return String(v);
+                                        }
+                                        return "";
+                                        }
+                                        // → [{ id, n, raw }]（raw 保留原对象，仓库还要用 capacity / inventory）
+                                        function boardEntryList(src) {
+                                        const out = [];
+                                        const push = function (id, n, raw) {
+                                        const k = String(id == null ? "" : id).trim();
+                                        if (!k || k === "undefined" || k === "null") return;
+                                        out.push({ id: k, n: n, raw: raw || null });
+                                        };
+                                        if (!src) return out;
+                                        if (Array.isArray(src)) {
+                                        src.forEach(function (x) {
+                                        if (Array.isArray(x)) { push(x[0], boardNumOf(x[1]), null); return; }
+                                        if (x && typeof x === "object") { push(boardIdOf(x), boardNumOf(x), x); return; }
+                                        push(x, 1, null);
+                                        });
+                                        return out;
+                                        }
+                                        if (typeof src === "object") {
+                                        Object.keys(src).forEach(function (k) {
+                                        if (!k) return;
+                                        const v = src[k];
+                                        const selfKeys = ["goodsId", "goodsID", "goods_id", "id", "itemCodeStr", "itemCode", "num", "count", "inventory"];
+                                        const isSelf = v && typeof v === "object" && !Array.isArray(v)
+                                        && selfKeys.some(function (kk) { return kk in v; });
+                                        // { "分组": { "10101": 3 } } 这种多包一层
+                                        if (v && typeof v === "object" && !Array.isArray(v) && !isSelf) {
+                                        Object.keys(v).forEach(function (k2) {
+                                        const v2 = v[k2];
+                                        push(k2, boardNumOf(v2), (v2 && typeof v2 === "object") ? v2 : null);
+                                        });
+                                        return;
+                                        }
+                                        push(k, boardNumOf(v), (v && typeof v === "object") ? v : null);
+                                        });
+                                        }
+                                        return out;
+                                        }
+                                        // 从一坨可能的容器里找列表
+                                        function boardPickList(obj, names) {
+                                        if (!obj) return null;
+                                        if (Array.isArray(obj)) return obj;
+                                        if (typeof obj !== "object") return null;
+                                        for (let i = 0; i < names.length; i++) {
+                                        const v = obj[names[i]];
+                                        if (Array.isArray(v) || (v && typeof v === "object")) return v;
+                                        }
+                                        return null;
+                                        }
                                     function boardParse(raw) {
                                         const model = {
                                             boards: [], main: null, warehouse: [], activityWarehouse: [],
@@ -17996,6 +18086,8 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                                             model.error = 'JSON 解析失败：' + String((e && e.message) || e);
                                             return model;
                                         }
+                                        if (Array.isArray(data)) data = data.filter(function (x) { return x && typeof x === 'object'; })[0] || null;
+                                        if (data && typeof data === 'object' && !data.chessboardDataList && data.data && typeof data.data === 'object') data = data.data;
                                         if (!data || typeof data !== 'object') {
                                             model.error = '贴进来的不是 JSON 对象';
                                             return model;
@@ -18013,27 +18105,33 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                                         });
                                         model.boards.sort((a, b) => a.id - b.id);
                                         model.main = model.boards.filter(x => String(x.id) === '1')[0] || model.boards[0] || null;
-                                        const wh = (data.warehouseData && Array.isArray(data.warehouseData.pieceDataList)) ? data.warehouseData.pieceDataList : [];
-                                        model.warehouse = wh.map(p => ({
-                                            id: (p && p.goodsId != null) ? p.goodsId : (p && p.itemCodeStr),
-                                            pieceType: p && p.pieceType, inventory: p && p.inventory,
-                                            capacity: p && p.capacity, cellIdx: p && p.cellIdx
-                                        }));
-                                        const aw = (data.activityChessBoardData && data.activityChessBoardData.warehouse
-                                            && Array.isArray(data.activityChessBoardData.warehouse.pieces)) ? data.activityChessBoardData.warehouse.pieces : [];
-                                        model.activityWarehouse = aw.map(p => ({
-                                            id: (p && p.goodsId != null) ? p.goodsId : (p && p.itemCodeStr),
-                                            pieceType: p && p.pieceType, inventory: p && p.inventory, capacity: p && p.capacity
-                                        }));
-                                        const bp = (data.backpack && typeof data.backpack === 'object') ? data.backpack : {};
-                                        Object.keys(bp).forEach(id => { if (id) model.backpack.push({ id: id, n: +bp[id] || 0 }); });
-                                        (Array.isArray(data.backpackGoodsIds) ? data.backpackGoodsIds : []).forEach(id => {
-                                            const k = String(id || '');
-                                            if (!k) return;
-                                            if (!model.backpack.some(x => x.id === k)) model.backpack.push({ id: k, n: +bp[k] || 0 });
+                                        const whSrc = boardPickList(data.warehouseData, ["pieceDataList", "pieces", "pieceList", "list", "items"])
+                                        || boardPickList(data.warehouse, ["pieceDataList", "pieces", "pieceList", "list", "items"])
+                                        || data.warehouseData || data.warehouse || [];
+                                        model.warehouse = boardEntryList(whSrc).map(function (e) {
+                                        const r = e.raw || {};
+                                        return { id: e.id, n: e.n, pieceType: r.pieceType, inventory: r.inventory, capacity: r.capacity, cellIdx: r.cellIdx };
                                         });
-                                        const cur = (data.currencies && typeof data.currencies === 'object') ? data.currencies : {};
-                                        Object.keys(cur).forEach(id => model.currencies.push({ id: id, n: +cur[id] || 0 }));
+                                        const awSrc = data.activityChessBoardData
+                                        ? (boardPickList(data.activityChessBoardData.warehouse, ["pieces", "pieceDataList", "list", "items"])
+                                        || boardPickList(data.activityChessBoardData, ["warehousePieces", "pieces"]))
+                                        : null;
+                                        model.activityWarehouse = boardEntryList(awSrc || []).map(function (e) {
+                                        const r = e.raw || {};
+                                        return { id: e.id, n: e.n, pieceType: r.pieceType, inventory: r.inventory, capacity: r.capacity };
+                                        });
+                                        // 临时背包：backpack（map / 数组 / 二元组都认）+ backpackGoodsIds 兜底
+                                        const bpSrc = data.backpack || data.backpackData || data.backpackList || data.backpackItems
+                                        || data.tempBackpack || data.tempBackpackData || {};
+                                        model.backpack = boardEntryList(bpSrc).map(function (e) { return { id: e.id, n: e.n }; });
+                                        const bagIds = data.backpackGoodsIds || (data.backpack && data.backpack.goodsIds) || [];
+                                        (Array.isArray(bagIds) ? bagIds : []).forEach(function (id) {
+                                        const k = String(id || "").trim();
+                                        if (!k) return;
+                                        if (!model.backpack.some(function (x) { return x.id === k; })) model.backpack.push({ id: k, n: 1 });
+                                        });
+                                        const curSrc = data.currencies || data.currency || data.currencyData || data.money || {};
+                                        model.currencies = boardEntryList(curSrc).map(function (e) { return { id: e.id, n: e.n }; });
                                         // 三处数量汇总：棋盘上一格 = 1 个；仓库一件 = 1 个；临时背包是数量
                                         const slot = (id) => {
                                             const k = String(id);
@@ -18045,10 +18143,10 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                                             const id = (p.goodsId != null) ? p.goodsId : p.itemCodeStr;
                                             if (id != null && String(id) !== '') slot(id).onBoard += 1;
                                         }));
-                                        model.warehouse.forEach(x => { if (x.id != null) slot(x.id).inWarehouse += 1; });
-                                        model.activityWarehouse.forEach(x => { if (x.id != null) slot(x.id).inWarehouse += 1; });
-                                        model.backpack.forEach(x => { slot(x.id).inBackpack = x.n; });
-                                        model.empty = !model.boards.length && !model.warehouse.length && !model.backpack.length;
+                                        model.warehouse.forEach(x => { if (x.id != null) slot(x.id).inWarehouse += (x.n || 1); });
+                                        model.activityWarehouse.forEach(x => { if (x.id != null) slot(x.id).inWarehouse += (x.n || 1); });
+                                        model.backpack.forEach(x => { slot(x.id).inBackpack += (x.n || 1); });
+                                        model.empty = !model.boards.length && !model.warehouse.length && !model.backpack.length && !model.currencies.length;
                                         // 订单消耗 / 最近一次操作明细（异常自查用：道具到底是「被吞」还是「交订单/合成消耗」）
                                         model.orderData = (data.orderData && typeof data.orderData === 'object') ? data.orderData : null;
                                         model.lastInstruction = (data.lastInstruction && typeof data.lastInstruction === 'object') ? data.lastInstruction : null;
@@ -18109,7 +18207,7 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                                             if (model.boards.length > 1) chips.push(statChip('另有 ' + (model.boards.length - 1) + ' 块棋盘'));
                                             chips.push(statChip('棋子 ' + pieceN + ' / 格 ' + cellN));
                                             chips.push(statChip('临时背包 ' + model.backpack.length + ' 项'));
-                                            chips.push(statChip('仓库 ' + (model.warehouse.length + model.activityWarehouse.length) + ' 件'));
+                                            chips.push(statChip('仓库 ' + model.warehouse.concat(model.activityWarehouse).reduce(function (a, x) { return a + (x.n || 1); }, 0) + ' 件'));
                                             sum.innerHTML = chips.join('');
                                         }
                                         if (sub) {
@@ -18156,7 +18254,7 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                                                     const nm = boardNameOf(x.id);
                                                     return '<span class="board-chip" title="' + escapeHtml('棋子 ' + x.id + (nm ? '（' + nm + '）' : ''))
                                                         + '"><b>' + escapeHtml(nm || ('棋子 ' + x.id)) + '</b>'
-                                                        + (x.capacity != null ? '<em>库存 ' + (x.inventory || 0) + '/' + x.capacity + '</em>' : '') + '</span>';
+                                                        + (x.capacity != null ? '<em>库存 ' + (x.inventory || 0) + '/' + x.capacity + '</em>' : ((x.n || 1) > 1 ? '<em>×' + x.n + '</em>' : '')) + '</span>';
                                                 }).join('')
                                                 : '<span class="hint-text">仓库是空的</span>';
                                         }

@@ -805,10 +805,18 @@ ok(/model\.main = model\.boards\.filter\(x => String\(x\.id\) === '1'\)\[0\] \|\
   && /\.board-cell\.t-producer/.test(s) && /\.board-cell\.is-locked/.test(s),
   '主棋盘按 cellNumW×cellNumH 画格子（棋子 / 空位 / 未解锁三种样子，产出棋标黄），其它棋盘另起一块');
 ok(/model\.counts\[k\] = \{ onBoard: 0, inBackpack: 0, inWarehouse: 0 \}/.test(s)
-  && /slot\(id\)\.onBoard \+= 1/.test(s) && /slot\(x\.id\)\.inWarehouse \+= 1/.test(s)
-  && /slot\(x\.id\)\.inBackpack = x\.n/.test(s)
+  && /slot\(id\)\.onBoard \+= 1/.test(s) && /slot\(x\.id\)\.inWarehouse \+= \(x\.n \|\| 1\)/.test(s)
+  && /slot\(x\.id\)\.inBackpack \+= \(x\.n \|\| 1\)/.test(s)
   && /function boardIdsOfQuery\(q\)/.test(s) && /nm\.indexOf\(t\) !== -1/.test(s) && /itemNameMap/.test(s),
   '三处数量分开数：棋盘上（每格 1 个）/ 仓库（每件 1 个）/ 临时背包（数量）；查询支持 id，也支持用物品名表反查名字（只认「真名包含查询」，避免误命中）');
+// 2026-11 用户：「镜像无法正确识别背包等数据」→ 四种写法都要认
+ok(/function boardEntryList\(src\)/.test(s) && /function boardNumOf\(v\)/.test(s) && /function boardIdOf\(o\)/.test(s)
+  && /function boardPickList\(obj, names\)/.test(s)
+  && /data\.backpackData \|\| data\.backpackList \|\| data\.backpackItems/.test(s)
+  && /boardEntryList\(bpSrc\)/.test(s) && /boardEntryList\(whSrc\)/.test(s)
+  && /"pieceDataList", "pieces", "pieceList", "list", "items"/.test(s)
+  && /Array\.isArray\(data\) \? undefined/.test(s) === false
+  && /Array\.isArray\(data\)\) data = data\.filter/.test(s), '镜像：背包 / 仓库 / 货币支持 map、对象数组、id 数组、[id,n] 四种写法');
 ok(/棋盘上有 ' \+ onBoard \+ ' 个，临时背包有 ' \+ inBag \+ ' 个，仓库有 ' \+ inWare \+ ' 个。/.test(s)
   && /镜像里没找到「'/.test(s) && /【棋盘镜像 · '/.test(s),
   '确认话术就是三段式：棋盘上有 X 个，临时背包有 Y 个，仓库有 Z 个；查不到时直说没找到');

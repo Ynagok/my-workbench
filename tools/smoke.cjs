@@ -3382,6 +3382,39 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
       && /镜像里没有这个名字/.test($('boardAskHint').textContent),
       '镜像里没有的道具 → 话术里直接说没找到', $('boardAskOut').value.slice(0, 60));
 
+    // 2026-11 用户：「镜像无法正确识别背包等数据」→ 别的写法也要认（对象数组 / 二元组 / id 数组 / 仓库 pieces）
+    $('boardInput').value = JSON.stringify({
+      chessboardDataList: [{ cellTotalNum: 1, chessboardId: 1, cellNumW: 1, cellNumH: 1, cells: [{ cellIdx: 0, lockState: 2, pieceData: { pieceType: 2, goodsId: 21108 } }] }],
+      warehouseData: { pieces: [{ goodsId: 60401, num: 2 }, { goodsId: 21108 }] },
+      backpack: [{ goodsId: 3000004, num: 5 }, { id: 21108, count: 2 }],
+      currencies: [{ goodsId: 101, num: 9 }]
+    });
+    $('boardParseBtn').click();
+    await sleep(100);
+    const sumOther = $('boardSummary').textContent;
+    check(/仓库 3 件/.test(sumOther) && /临时背包 2 项/.test(sumOther),
+      '仓库 pieces（对象数组 + num）/ 背包对象数组 都认出来了（仓库 2+1=3 件、背包 2 项）', sumOther.slice(0, 120));
+    check(/×2/.test($('boardWareList').textContent),
+      '仓库一件多个时显示 ×N', $('boardWareList').textContent.slice(0, 80));
+    $('boardAskInput').value = '打怪棋盘步数道具';
+    $('boardAskBtn').click();
+    await sleep(60);
+    check(/临时背包有 5 个/.test($('boardAskOut').value),
+      '背包 [{goodsId, num}] 的数量进话术（5 个）', $('boardAskOut').value.replace(/\n/g, ' | '));
+    // 再换一种：二元组 + id 数组 + 根是数组包一层 data
+    $('boardInput').value = JSON.stringify({ data: {
+      chessboardDataList: [{ cellTotalNum: 1, chessboardId: 1, cellNumW: 1, cellNumH: 1, cells: [{ cellIdx: 0, lockState: 2, pieceData: { pieceType: 2, goodsId: 21108 } }] }],
+      warehouseData: [{ goodsId: 60401 }],
+      backpack: [['3000004', 4], '21108'],
+      currencies: { '102': 3 }
+    } });
+    $('boardParseBtn').click();
+    await sleep(100);
+    const sumTwo = $('boardSummary').textContent;
+    check(/仓库 1 件/.test(sumTwo) && /临时背包 2 项/.test(sumTwo),
+      '根是 {data:{…}} + 仓库是数组 + 背包是 [id,n] 二元组 / 纯 id 也能认', sumTwo.slice(0, 120));
+    check(/×4/.test($('boardBagList').textContent) && /×1/.test($('boardBagList').textContent),
+      '背包二元组的数量（4）和纯 id（按 1 个）都对', $('boardBagList').textContent.slice(0, 90));
     // 坏的 JSON：只提示，不炸
     $('boardInput').value = '{ 这不是 JSON }';
     $('boardParseBtn').click();
