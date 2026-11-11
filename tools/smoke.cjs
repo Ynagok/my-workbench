@@ -3331,7 +3331,9 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
       activityChessBoardData: { warehouse: { pieces: [] } },
       backpack: { '3000004': 3 },
       backpackGoodsIds: ['', '3000004'],
-      currencies: { '102': 86130, '101': 16 }
+      currencies: { '102': 86130, '101': 16 },
+      lastInstruction: { opId: 2421775, opFrom: 13, chessboardId: 1, cellId: 2, pieceId: 10207, instructionTime: 1762900000 },
+      orderData: { orderId: 50881, orderType: 'PARROT', num: 3, refreshAt: 1762903600 }
     };
     $('boardInput').value = '镜像数据：' + JSON.stringify(boardPayload);
     $('boardParseBtn').click();
@@ -3343,6 +3345,13 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     check($('boardMainCard').style.display !== 'none' && $('boardBagCard').style.display !== 'none'
       && $('boardAskCard').style.display !== 'none',
       '三块都显示了（棋盘 / 背包仓库 / 查询）');
+    check($('boardExtraCard').style.display !== 'none'
+      && /指令ID/.test($('boardExtraBox').textContent) && /完成订单/.test($('boardExtraBox').textContent)
+      && /订单类型/.test($('boardExtraBox').textContent) && /PARROT/.test($('boardExtraBox').textContent),
+      '⑤ 最近一次操作 / 在跑订单：指令ID、来源（13→完成订单）、订单类型都换成中文标出来',
+      $('boardExtraBox').textContent.replace(/\s+/g, ' ').slice(0, 120));
+    check(/看原始 JSON/.test($('boardExtraBox').textContent),
+      '两块都带「看原始 JSON」折叠（字段认不全时还能看原文）');
     const mainCells = $('boardMainGrid').querySelectorAll('.board-cell');
     check(mainCells.length === 6
       && $('boardMainGrid').querySelectorAll('.board-cell.is-piece').length === 3
@@ -3391,6 +3400,8 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     });
     $('boardParseBtn').click();
     await sleep(100);
+    check($('boardExtraCard').style.display === 'none',
+      '镜像里没有 lastInstruction / orderData → ⑤ 那块收起', $('boardExtraCard').style.display);
     const sumOther = $('boardSummary').textContent;
     check(/仓库 3 件/.test(sumOther) && /临时背包 2 项/.test(sumOther),
       '仓库 pieces（对象数组 + num）/ 背包对象数组 都认出来了（仓库 2+1=3 件、背包 2 项）', sumOther.slice(0, 120));
@@ -3428,7 +3439,8 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     $('boardClearBtn').click();
     await sleep(60);
     check($('boardInput').value === '' && $('boardAskOut').value === ''
-      && $('boardMainCard').style.display === 'none' && $('boardSummary').innerHTML === '',
+      && $('boardMainCard').style.display === 'none' && $('boardExtraCard').style.display === 'none'
+      && $('boardSummary').innerHTML === '',
       '「清空」把输入 / 棋盘 / 背包仓库 / 话术一起收掉');
 
     check(posts.slice(posts8z).filter(p => /careerData|board|dailyData/.test(p.url) || /board/i.test(p.url)).length === 0,

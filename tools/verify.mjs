@@ -817,6 +817,13 @@ ok(/function boardEntryList\(src\)/.test(s) && /function boardNumOf\(v\)/.test(s
   && /"pieceDataList", "pieces", "pieceList", "list", "items"/.test(s)
   && /Array\.isArray\(data\) \? undefined/.test(s) === false
   && /Array\.isArray\(data\)\) data = data\.filter/.test(s), '镜像：背包 / 仓库 / 货币支持 map、对象数组、id 数组、[id,n] 四种写法');
+// 2026-11 用户：「其他的功能呢」→ 镜像里解析了却没展示的两个字段补上
+ok(/function boardExtraHtml\(model\)/.test(s) && /function boardObjectBlock\(title, obj\)/.test(s)
+  && /BOARD_FIELD_LABELS/.test(s) && /function boardFieldText\(k, v\)/.test(s)
+  && /id="boardExtraCard"/.test(s) && /id="boardExtraBox"/.test(s)
+  && /if \(k === "opFrom"\) return resolveSource\(sv\)/.test(s)
+  && /最近一次操作（lastInstruction）/.test(s) && /在跑的订单（orderData）/.test(s)
+  && /看原始 JSON/.test(s), '镜像：⑤ 最近一次操作 / 在跑订单（opFrom 换成来源名、时间戳换成时间、原始 JSON 可展开）');
 ok(/棋盘上有 ' \+ onBoard \+ ' 个，临时背包有 ' \+ inBag \+ ' 个，仓库有 ' \+ inWare \+ ' 个。/.test(s)
   && /镜像里没找到「'/.test(s) && /【棋盘镜像 · '/.test(s),
   '确认话术就是三段式：棋盘上有 X 个，临时背包有 Y 个，仓库有 Z 个；查不到时直说没找到');

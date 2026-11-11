@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="x-build" content="2026-11-12 镜像兼容背包写法 + 物品名表 0 缺 0 多">
+    <meta name="x-build" content="2026-11-12 镜像：最近操作/订单 + 背包兼容">
     <title>客服冷静演绎工作台</title>
     <link rel="icon" type="image/gif" href="/my-icon.gif">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -5220,8 +5220,13 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                 <div class="board-list" id="boardWareList"></div>
             </div>
 
+            <div class="card" id="boardExtraCard" style="display:none;">
+                <label>⑤ 最近一次操作 / 在跑订单 <span class="card-sub">lastInstruction / orderData：道具到底是「被合成」还是「被订单吃掉」，先看这里</span></label>
+                <div id="boardExtraBox" style="margin-top:10px;"></div>
+            </div>
+
             <div class="card" id="boardAskCard" style="display:none;">
-                <label>⑤ 查道具 / 棋子在哪
+                <label>⑥ 查道具 / 棋子在哪
                     <span class="card-sub">输道具名或 id（如「相思鸟」/「21108」），出「棋盘上 / 临时背包 / 仓库 各有几个」的确认话术</span>
                 </label>
                 <div class="flex-row" style="margin-top:10px;">
@@ -18208,6 +18213,43 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                                         for (let i = 0; i < board.w * board.h; i++) h += boardCellHtml(byIdx[i]);
                                         return h + '</div>';
                                     }
+                                        // 镜像里这两个字段以前只解析、不展示（死字段）：客服排查「道具是不是被订单吃掉 / 被合成消耗」时正是要它
+                                        const BOARD_FIELD_LABELS = {
+                                        opId: "指令ID", opFrom: "来源", chessboardId: "棋盘", cellId: "格子", eventUUID: "事件UUID",
+                                        pieceId: "棋子", goodsId: "道具", num: "数量", count: "数量",
+                                        createTime: "时间", instructionTime: "时间", opTime: "时间", updateTime: "时间",
+                                        orderId: "订单ID", orderType: "订单类型", orderNum: "订单序号", slotId: "槽位",
+                                        refreshAt: "刷新时间", expireTime: "过期时间", score: "分数",
+                                        };
+                                        function boardFieldText(k, v) {
+                                        const sv = String(v);
+                                        if (k === "opFrom") return resolveSource(sv) || sv;
+                                        if (k === "pieceId" || k === "goodsId") return boardNameOf(sv) ? (boardNameOf(sv) + "（" + sv + "）") : sv;
+                                        if (k === "chessboardId") return sv + (sv === "1" ? "（主棋盘）" : "");
+                                        if (/Time$|At$|^time$/i.test(k) && /^\d{9,}$/.test(sv)) {
+                                        const d = new Date(Number(sv) * (sv.length <= 10 ? 1000 : 1));
+                                        if (!isNaN(d.getTime())) return d.toISOString().replace("T", " ").slice(0, 19);
+                                        }
+                                        return sv;
+                                        }
+                                        function boardObjectBlock(title, obj) {
+                                        if (!obj || typeof obj !== "object") return "";
+                                        const chips = [];
+                                        Object.keys(obj).forEach(function (k) {
+                                        const v = obj[k];
+                                        if (v == null || v === "" || typeof v === "object") return;
+                                        chips.push(statChip({ html: "<b>" + escapeHtml(BOARD_FIELD_LABELS[k] || k) + "</b> " + escapeHtml(boardFieldText(k, v)) }, "k-plain", null));
+                                        });
+                                        const full = '<details class="stat-fold" style="margin-top:8px;"><summary>看原始 JSON</summary>'
+                                        + '<pre class="thl-detail" style="max-height:240px;">' + escapeHtml(JSON.stringify(obj, null, 2)) + "</pre></details>";
+                                        return '<div style="margin-top:10px;"><b style="font-size:13px;">' + escapeHtml(title) + "</b>"
+                                        + '<div class="stat-chips" style="margin-top:6px;">' + (chips.join("") || '<span class="hint-text">没有可读字段</span>') + "</div>"
+                                        + full + "</div>";
+                                        }
+                                        function boardExtraHtml(model) {
+                                        return (boardObjectBlock("🔎 最近一次操作（lastInstruction）", model && model.lastInstruction)
+                                        + boardObjectBlock("📦 在跑的订单（orderData）", model && model.orderData));
+                                        }
                                     function boardRender(model) {
                                         const sum = document.getElementById('boardSummary');
                                         const sub = document.getElementById('boardReportSub');
@@ -18215,7 +18257,8 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                                         const mainCard = document.getElementById('boardMainCard');
                                         const bagCard = document.getElementById('boardBagCard');
                                         const askCard = document.getElementById('boardAskCard');
-                                        const show = [mainCard, bagCard, askCard];
+                                        const extraCard = document.getElementById('boardExtraCard');
+                                        const show = [mainCard, bagCard, askCard, extraCard];
                                         if (!model || model.empty) {
                                             show.forEach(el => { if (el) el.style.display = 'none'; });
                                             if (sum) sum.innerHTML = '';
@@ -18224,6 +18267,10 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                                                 return;
                                         }
                                         show.forEach(el => { if (el) el.style.display = ''; });
+                                        // ⑤ 最近一次操作 / 在跑订单（没有就收起）
+                                        const extraBox = document.getElementById("boardExtraBox");
+                                        if (extraBox) extraBox.innerHTML = boardExtraHtml(model);
+                                        if (extraCard) extraCard.style.display = (model.lastInstruction || model.orderData) ? "" : "none";
                                         const pieceN = model.boards.reduce((a, b) => a + (b.cells || []).filter(c => c && c.pieceData).length, 0);
                                         const cellN = model.boards.reduce((a, b) => a + b.w * b.h, 0);
                                         if (sum) {
