@@ -133,9 +133,13 @@ write('page-pack.json', pack);
 // ④ 物品名（按页面的分类拆三份，方便分块复核）
 write('page-goods-1.json', names('10000'));
 write('page-goods-2.json', { ...names('500000'), ...names('600') });
+// ⚠️ 别写死分类清单：页面以后会加新分类（901000 锦鲤道具就是这么漏掉的），
+//    除了已经单独落盘的 10000 / 500000 / 600，其余分类全并进来
+const SKIP_CATS = new Set(['10000', '500000', '600']);
 const rest = {};
-for (const cat of ['100', '200', '150', '1000000', '2000000', '900', '9000', '610', '130', '840', '4100000', '4209000']) {
-  Object.assign(rest, names(cat));
+for (const cat of Object.keys(all)) {
+  if (SKIP_CATS.has(String(cat))) continue;
+  Object.assign(rest, names(String(cat)));
 }
 write('page-goods-3.json', rest);
 
