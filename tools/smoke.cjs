@@ -874,7 +874,7 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
   const sideOverseas = $('careerSideOverseas').textContent;
   check(/工单侧累计\s*17/.test(sideTicket), '工单侧单独统计：累计 17', sideTicket.slice(0, 40));
   check(/海外侧累计\s*53/.test(sideOverseas), '海外侧单独统计：累计 53', sideOverseas.slice(0, 40));
-  check(/53客服在线/.test(sideTicket) && /支付宝在线/.test(sideTicket) && /乐缤纷CP后台/.test(sideTicket)
+  check(/53客服在线/.test(sideTicket) && /支付宝在线/.test(sideTicket) && /乐缤纷·CP后台/.test(sideTicket)
     && /①繁花·微信/.test(sideTicket) && /④梦幻消除战·微信/.test(sideTicket) && /⑥异世界勇者·微信/.test(sideTicket)
     && /⑦梦幻抖店·服务工单/.test(sideTicket)
     && !/dy在线/.test(sideTicket) && !/异世界群维系/.test(sideTicket) && !/猫之城/.test(sideTicket),
@@ -2060,16 +2060,16 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     doc.querySelector('.tab-btn[data-tab="daily"]').click();
     await sleep(60);
     const ticketForm = $('dailyFormTicket');
-    check(ticketForm.querySelectorAll('.daily-group').length === 11,
-      '工单日报表单分成 11 组（一片一组）', ticketForm.querySelectorAll('.daily-group').length);
+    check(ticketForm.querySelectorAll('.daily-group').length === 10,
+      '工单日报表单分成 10 组（一片一组）', ticketForm.querySelectorAll('.daily-group').length);
     const titles = Array.from(ticketForm.querySelectorAll('.dg-title')).map(el => el.textContent);
     check(titles.indexOf('① 繁花') !== -1 && titles.indexOf('⑥ 异世界勇者') !== -1
       && titles.indexOf('⑦ 梦幻抖店') !== -1
-      && titles.some(t => t.indexOf('1、SSO工单') === 0) && titles.indexOf('2、乐缤纷CP后台') !== -1,
-      '组标题跟日报正文对齐（1、SSO工单… / 2、乐缤纷CP后台 / ① 繁花 … ⑦ 梦幻抖店）', titles.join(' | '));
+      && titles.some(t => t.indexOf('1、SSO工单') === 0) && titles.indexOf('② 乐缤纷') !== -1,
+      '组标题跟日报正文对齐（1、SSO工单… / ① 繁花 … ⑦ 梦幻抖店）', titles.join(' | '));
     const nums = Array.from(ticketForm.querySelectorAll('.dg-n')).map(el => el.textContent);
-    check(nums[0] === '01' && nums[nums.length - 1] === '11',
-      '每组带两位数编号（01…11）', nums.join(','));
+    check(nums[0] === '01' && nums[nums.length - 1] === '10',
+      '每组带两位数编号（01…10）', nums.join(','));
     check(ticketForm.querySelectorAll('[data-key]').length === 24,
       '24 项：跟日报正文一一对应（姓名/班次 + 三行），没填不进的项', ticketForm.querySelectorAll('[data-key]').length);
     const g1 = ticketForm.querySelector('[data-group="g1"]');
@@ -2082,6 +2082,9 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     const line1Keys = Array.from(ticketForm.querySelectorAll('[data-group="line1"] [data-key]')).map(el => el.dataset.key);
     check(line1Keys.join(',') === 'sso,kf53,alipay',
       '「1、」那一片是 SSO工单 / 53客服在线 / 支付宝在线', line1Keys.join(','));
+    const g2Keys = Array.from(ticketForm.querySelectorAll('[data-group="g2"] [data-key]')).map(el => el.dataset.key);
+    check(g2Keys.join(',') === 'g2_wx,g2_dy,lb_cp',
+      '② 乐缤纷那一片 = 微信 / 抖音 / CP后台（CP后台 不再单开一片）', g2Keys.join(','));
     const g7Keys = Array.from(ticketForm.querySelectorAll('[data-group="g7"] [data-key]')).map(el => el.dataset.key);
     check(g7Keys.join(',') === 'dshop_online,dshop_service,dshop_after',
       '⑦ 梦幻抖店那一片是 在线 / 服务工单 / 售后工单', g7Keys.join(','));
@@ -2116,7 +2119,7 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
       '邮箱四项（梦幻 / 爱江山 / 月光 / 猫旅馆）单独占一片、各一个输入框', emailKeys.join(','));
     $('dailyTabTicket').click();
     await sleep(40);
-    check($('dailyFormTicket').querySelectorAll('.daily-group').length === 11
+    check($('dailyFormTicket').querySelectorAll('.daily-group').length === 10
       && $('dailyFormTicket').querySelectorAll('[data-key]').length === 24,
       '切回工单栏重新渲染，分组与字段数都还原');
   }

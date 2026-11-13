@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="x-build" content="2026-11-12 工单日报新模板·表单对齐">
+    <meta name="x-build" content="2026-11-12 工单日报新模板·CP后台并片">
     <title>客服冷静演绎工作台</title>
     <link rel="icon" type="image/gif" href="/my-icon.gif">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -7679,14 +7679,14 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                                         { key: 'sso', label: 'SSO工单', type: 'number', group: 'line1' },
                                         { key: 'kf53', label: '53客服在线', type: 'number', group: 'line1' },
                                         { key: 'alipay', label: '支付宝在线', type: 'number', group: 'line1' },
-                                        // 正文第 2 行
-                                        { key: 'lb_cp', label: '乐缤纷CP后台', type: 'number', group: 'line2' },
                                         // 正文第 3 行：①~⑦（2026-11 新模板：③你的江湖 / ④梦幻消除战 / ⑤伙伴弹途 / ⑥异世界勇者 / ⑦梦幻抖店）
                                         { key: 'g1_wx', label: '①繁花·微信', type: 'number', group: 'g1' },
                                         { key: 'g1_dy', label: '①繁花·抖音', type: 'number', group: 'g1' },
                                         { key: 'g1_qq', label: '①繁花·手Q', type: 'number', group: 'g1' },
                                         { key: 'g2_wx', label: '②乐缤纷·微信', type: 'number', group: 'g2' },
                                         { key: 'g2_dy', label: '②乐缤纷·抖音', type: 'number', group: 'g2' },
+                                        // 乐缤纷CP后台 跟着 ② 乐缤纷 一片填，正文里仍然是「2、乐缤纷CP后台0」那一行
+                                        { key: 'lb_cp', label: '②乐缤纷·CP后台', type: 'number', group: 'g2' },
                                         // ③ 你的江湖：key 仍是 g4_* 不动（老记录里的数字不会串到别的游戏上）
                                         { key: 'g4_wx', label: '③你的江湖·微信', type: 'number', group: 'g3' },
                                         { key: 'g4_dy', label: '③你的江湖·抖音', type: 'number', group: 'g3' },
@@ -7710,9 +7710,8 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                                     const DAILY_TICKET_GROUPS = [
                                         { id: 'base', title: '👤 基础信息', sub: '姓名 · 班次' },
                                         { id: 'line1', title: '1、SSO工单 · 53客服在线 · 支付宝在线', sub: '正文第 1 行' },
-                                        { id: 'line2', title: '2、乐缤纷CP后台', sub: '正文第 2 行' },
                                         { id: 'g1', title: '① 繁花', sub: '微信 · 抖音 · 手Q' },
-                                        { id: 'g2', title: '② 乐缤纷', sub: '微信 · 抖音' },
+                                        { id: 'g2', title: '② 乐缤纷', sub: '微信 · 抖音 · CP后台（正文第 2 行）' },
                                         { id: 'g3', title: '③ 你的江湖', sub: '微信 · 抖音' },
                                         { id: 'g4', title: '④ 梦幻消除战', sub: '微信 · 抖音 · 支付宝后台' },
                                         { id: 'g5', title: '⑤ 伙伴弹途', sub: '微信 · 抖音' },
@@ -14123,6 +14122,9 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                                         m['抖店在线'] = 'dshop_online';
                                         m['梦幻抖店在线'] = 'dshop_online';
                                         m['梦幻抖店·在线'] = 'dshop_online';
+                                        // 乐缤纷CP后台 并进 ② 乐缤纷 后，正文/老日报里还是写「乐缤纷CP后台」
+                                        m['乐缤纷CP后台'] = 'lb_cp';
+                                        m['乐缤纷·CP后台'] = 'lb_cp';
                                         return m;
                                     })();
                                     const CAREER_OVERSEAS_LABEL_TO_KEY = (function () {

@@ -324,7 +324,7 @@ ok(/data-tab="career"/.test(s) && /id="tab-career"/.test(s), '客服生涯标签
   const oGroupsBlk = (s.match(/const DAILY_OVERSEAS_GROUPS = \[[\s\S]*?\n\s*\];/) || [''])[0];
   const tN = (tGroupsBlk.match(/\{ id: '/g) || []).length;
   const oN = (oGroupsBlk.match(/\{ id: '/g) || []).length;
-  ok(tN === 11, `工单日报分 ${tN} 组（基础 / 工单后台 / ①~⑦ / 其他后台 / 待跟进）`);
+  ok(tN === 10, `工单日报分 ${tN} 组（基础 / 1、行 / ①~⑦ / 待跟进，CP后台 并进 ② 乐缤纷）`);
   ok(oN === 7 && /id: 'email', title: '📮 邮箱（来访）'/.test(oGroupsBlk),
   `海外日报分 ${oN} 组（基础 / 评价来访 / 邮箱 / SDk / 工单 / 监控 / 群维系）—— 邮箱三项自己一片`);
   const tFieldsBlk = (s.match(/const DAILY_TICKET_FIELDS = \[[\s\S]*?\n\s*\];/) || [''])[0];
