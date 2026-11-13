@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>游戏舆情监测 · 梦幻消除战</title>
+<style>
+  :root {
+    --bg: #eef1f4;
+    --surface: #fbfcfd;
+    --surface-2: #f1f4f7;
+    --ink: #1b2228;
+    --ink-2: #5b6672;
+    --ink-3: #8b959f;
+    --accent: #c89500;
+    --accent-ink: #8a6200;
+    --accent-dim: rgba(200, 149, 0, 0.12);
+    --line: #e3e8ed;
+    --line-2: #b7c0c9;
+    --danger: #cf3b30;
+    --warn: #bd7300;
+    --good: #2e7d32;
+    --r: 12px;
+    --r-sm: 8px;
+    --shadow: 0 1px 3px rgba(20, 30, 40, 0.08);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 14px;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+  .wrap { max-width: 960px; margin: 0 auto; }
+  header { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
+  header h1 { font-size: 18px; margin: 0; letter-spacing: .02em; }
+  header .sub { color: var(--ink-2); font-size: 12px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-left: auto; }
+  .chip {
+    font-size: 11.5px; padding: 2px 9px; border-radius: 999px;
+    border: 1px solid var(--line); background: var(--surface); color: var(--ink-2);
+  }
+  .chip.ok { color: var(--good); border-color: #bcd9bd; background: #f0f7f0; }
+  .chip.warn { color: var(--warn); border-color: #e5d2a6; background: #fbf6ea; }
+  .chip.danger { color: var(--danger); border-color: #e7bcb8; background: #fdf1f0; }
+
+  .card {
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: var(--r); padding: 16px 18px; margin-bottom: 14px; box-shadow: var(--shadow);
+  }
+  .card h2 { font-size: 15px; margin: 0 0 12px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  .field label { font-size: 12px; color: var(--ink-2); }
+  input[type=text], input[type=number], textarea, select {
+    font: inherit; color: var(--ink); background: #fff;
+    border: 1px solid var(--line-2); border-radius: var(--r-sm);
+    padding: 7px 10px; width: 100%;
+  }
+  input:focus, textarea:focus, select:focus {
+    outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim);
+  }
+  textarea { min-height: 180px; resize: vertical; }
+  .mode-row { display: flex; gap: 16px; align-items: center; }
+  .mode-row label { display: flex; align-items: center; gap: 5px; cursor: pointer; }
+  .actions { display: flex; gap: 10px; align-items: center; margin-top: 12px; }
+  button {
+    font: inherit; font-weight: 600; color: #0a0c0e; background: var(--accent);
+    border: none; border-radius: 999px; padding: 8px 20px; cursor: pointer; letter-spacing: .02em;
+  }
+  button:hover { background: #b38700; }
+  button.ghost { background: var(--surface-2); color: var(--ink); border: 1px solid var(--line-2); font-weight: 500; }
+  button:disabled { opacity: .55; cursor: not-allowed; }
+  .hint { font-size: 12px; color: var(--ink-3); }
+
+  #loading { display: none; color: var(--accent-ink); margin-top: 10px; }
+  .error { background: #fdf1f0; color: var(--danger); border: 1px solid #e7bcb8; border-radius: var(--r-sm); padding: 10px 14px; margin-top: 10px; }
+
+  /* 看板 */
+  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+  .kpi { background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r); padding: 12px 14px; }
+  .kpi .n { font-size: 26px; font-weight: 700; }
+  .kpi .l { font-size: 12px; color: var(--ink-2); }
+  .kpi .n.neg { color: var(--danger); }
+  .kpi .n.pos { color: var(--good); }
+  .bar { height: 10px; border-radius: 999px; overflow: hidden; display: flex; margin-top: 10px; background: var(--surface-2); }
+  .bar i { display: block; height: 100%; }
+  .legend { display: flex; gap: 14px; margin-top: 6px; font-size: 12px; color: var(--ink-2); }
+  .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 4px; vertical-align: -1px; }
+
+  .alert { border-left: 3px solid var(--warn); background: #fbf6ea; padding: 8px 12px; border-radius: var(--r-sm); margin-bottom: 8px; }
+  .alert.high { border-left-color: var(--danger); background: #fdf1f0; }
+  .alert.medium { border-left-color: var(--warn); }
+  .alert.low { border-left-color: var(--line-2); background: var(--surface-2); }
+
+  /* 报告 */
+  .report { font-size: 14px; }
+  .report h1 { font-size: 19px; margin: 0 0 4px; }
+  .report .kicker { color: var(--ink-3); font-size: 11px; letter-spacing: .18em; text-transform: uppercase; }
+  .report h3 { font-size: 15px; margin: 22px 0 8px; padding-bottom: 6px; border-bottom: 1px solid var(--line); }
+  .report h4 { font-size: 13.5px; margin: 14px 0 4px; color: var(--accent-ink); }
+  .report p { margin: 6px 0; }
+  .report ul, .report ol { margin: 6px 0; padding-left: 22px; }
+  .report blockquote {
+    margin: 8px 0; padding: 6px 12px; border-left: 3px solid var(--accent);
+    background: var(--surface-2); border-radius: 0 var(--r-sm) var(--r-sm) 0; color: var(--ink-2);
+  }
+  .report .src { font-size: 11.5px; color: var(--ink-3); }
+  .pill { display: inline-block; font-size: 11px; padding: 1px 8px; border-radius: 999px; background: var(--accent-dim); color: var(--accent-ink); margin-left: 6px; }
+  footer { text-align: center; color: var(--ink-3); font-size: 11.5px; margin-top: 18px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>🎮 游戏舆情监测</h1>
+      <div class="sub">目标游戏：梦幻消除战 · 个人研究用 · 只走官方搜索 API，不爬虫</div>
+    </div>
+    <div class="chips" id="status"></div>
+  </header>
+
+  <section class="card">
+    <h2>① 输入</h2>
+    <div class="grid">
+      <div class="field">
+        <label>游戏名</label>
+        <input type="text" id="gameName" value="梦幻消除战" />
+      </div>
+      <div class="field">
+        <label>回看天数</label>
+        <input type="number" id="days" value="7" min="1" max="365" />
+      </div>
+      <div class="field" style="grid-column: 1 / -1;">
+        <label>附加要求（可选）</label>
+        <input type="text" id="extra" placeholder="例如：重点关注最近一次版本更新、某个活动" />
+      </div>
+    </div>
+
+    <div class="mode-row" style="margin-top:12px;">
+      <label><input type="radio" name="mode" value="paste" checked /> 手动粘贴玩家发言</label>
+      <label><input type="radio" name="mode" value="auto" /> 自动检索（需 Tavily Key）</label>
+    </div>
+
+    <div id="pasteBox">
+      <div class="field" style="margin-top:10px;">
+        <label>把从贴吧 / B站 / 抖音等复制的玩家发言原文粘进来（可多段，每段一条）</label>
+        <textarea id="pastedText" placeholder="示例：&#10;这游戏抽卡概率太离谱了，200抽没出UP，是不是暗改概率了&#10;昨天更新完一直闪退，进都进不去&#10;客服根本不回，封号也不说原因"></textarea>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button id="btnRun">▶ 开始分析</button>
+      <span class="hint">分析用 DeepSeek，约需 30–90 秒</span>
+    </div>
+    <div id="loading">⏳ 正在分析，请稍候…</div>
+  </section>
+
+  <section id="result"></section>
+
+  <footer>
+    个人研究使用 · 结果只在当前浏览器内存中，不落盘、不存玩家昵称/头像等个人信息 · 不对外发布
+  </footer>
+</div>
+
+<script>
+const $ = (s) => document.querySelector(s);
+
+function escapeHtml(s) {
+  return String(s ?? "").replace(/[&<>"']/g, (c) => (
+    { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]
+  ));
+}
+
+function chip(text, cls) {
+  const el = document.createElement("span");
+  el.className = "chip " + (cls || "");
+  el.textContent = text;
+  return el;
+}
+
+async function loadConfig() {
+  let c;
+  try { c = await (await fetch("/api/config")).json(); }
+  catch (_) { return; }
+  const st = $("#status"); st.innerHTML = "";
+  if (c.hasTavily) st.appendChild(chip("Tavily 已配置", "ok"));
+  else st.appendChild(chip("未配置 Tavily（仅手动粘贴）", "warn"));
+  if (c.hasDeepSeek) st.appendChild(chip("DeepSeek 已配置 · " + c.model, "ok"));
+  else st.appendChild(chip("未配置 DeepSeek（无法分析）", "danger"));
+
+  const autoBtn = document.querySelector('input[name="mode"][value="auto"]');
+  if (!c.hasTavily) autoBtn.disabled = true;
+  if (c.defaultGame) $("#gameName").value = c.defaultGame;
+}
+
+function setMode(m) {
+  document.querySelectorAll('input[name="mode"]').forEach(r => { r.checked = (r.value === m); });
+  $("#pasteBox").style.display = (m === "paste") ? "" : "none";
+}
+
+document.querySelectorAll('input[name="mode"]').forEach(r => {
+  r.addEventListener("change", () => setMode(r.value));
+});
+
+async function run() {
+  const game = $("#gameName").value.trim() || "梦幻消除战";
+  const days = parseInt($("#days").value, 10) || 7;
+  const mode = document.querySelector('input[name="mode"]:checked').value;
+  const pastedText = $("#pastedText").value;
+  const extra = $("#extra").value.trim();
+
+  const out = $("#result");
+  out.innerHTML = "";
+  $("#loading").style.display = "";
+  $("#btnRun").disabled = true;
+
+  try {
+    const r = await fetch("/api/analyze", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ game, days, mode, pastedText, extra }),
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || ("HTTP " + r.status));
+    render(data);
+  } catch (e) {
+    out.innerHTML = `<div class="error">${escapeHtml(e.message)}</div>`;
+  } finally {
+    $("#loading").style.display = "none";
+    $("#btnRun").disabled = false;
+  }
+}
+
+function render(data) {
+  const a = data.analysis || {};
+  const html = [
+    `<div class="card"><div class="hint">检索方式：${data.usedSearch ? "搜索 API 自动检索" : "手动粘贴"} · ${data.sourceCount} 条材料 · 近 ${data.days} 天</div></div>`,
+    dashboardHtml(a),
+    reportHtml(a),
+  ].join("");
+  $("#result").innerHTML = html;
+  $("#result").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function pct(x) { return Math.round((Number(x) || 0) * 100); }
+
+function dashboardHtml(a) {
+  const db = a.dataBoard || {};
+  const s = db.sentiment || {};
+  const alerts = (db.alerts || []).map(al =>
+    `<div class="alert ${escapeHtml(al.level || "low")}">⚠️ ${escapeHtml(al.text || "")}</div>`
+  ).join("");
+
+  const complaints = (a.player?.complaints || []).slice(0, 6).map(c =>
+    `<li><b>${escapeHtml(c.topic || "未命名")}</b> <span class="pill">提及 ${escapeHtml(c.mentions ?? "?")}</span><br>` +
+    `<span class="src">${escapeHtml(c.sample || "")}${c.source ? " — " + escapeHtml(c.source) : ""}${c.time ? " · " + escapeHtml(c.time) : ""}</span></li>`
+  ).join("");
+
+  return `
+  <div class="card">
+    <h2>② 舆情看板</h2>
+    <div class="kpis">
+      <div class="kpi"><div class="l">本期声量</div><div class="n">${escapeHtml(db.volume ?? "—")}</div></div>
+      <div class="kpi"><div class="l">正面</div><div class="n pos">${pct(s.positive)}%</div></div>
+      <div class="kpi"><div class="l">中性</div><div class="n">${pct(s.neutral)}%</div></div>
+      <div class="kpi"><div class="l">负面</div><div class="n neg">${pct(s.negative)}%</div></div>
+      <div class="kpi"><div class="l">环比</div><div class="n" style="font-size:14px;">${escapeHtml(db.mom || "—")}</div></div>
+    </div>
+    <div class="bar">
+      <i style="width:${pct(s.positive)}%;background:var(--good)"></i>
+      <i style="width:${pct(s.neutral)}%;background:#9aa5af"></i>
+      <i style="width:${pct(s.negative)}%;background:var(--danger)"></i>
+    </div>
+    <div class="legend">
+      <span><i style="background:var(--good)"></i>正面</span>
+      <span><i style="background:#9aa5af"></i>中性</span>
+      <span><i style="background:var(--danger)"></i>负面</span>
+    </div>
+    ${(db.top3 || []).length ? `<p style="margin:10px 0 0"><b>热度 TOP3：</b>${(db.top3 || []).map(escapeHtml).join("、")}</p>` : ""}
+    ${alerts ? `<div style="margin-top:10px;"><b>预警：</b></div>${alerts}` : ""}
+    ${complaints ? `<div style="margin-top:10px;"><b>高频吐槽：</b><ul style="margin:6px 0;padding-left:20px">${complaints}</ul></div>` : ""}
+  </div>`;
+}
+
+function reportHtml(a) {
+  const db = a.dataBoard || {};
+  const p = a.player || {};
+  const v = a.versionActivity || {};
+  const r = a.risk || {};
+  const ch = a.channels || {};
+  const cp = a.competitors || {};
+  const act = a.actions || {};
+
+  const quotes = (p.quotes || []).map(q =>
+    `<blockquote>“${escapeHtml(q.text || "")}”<div class="src">— ${escapeHtml(q.source || "")}${q.time ? " · " + escapeHtml(q.time) : ""}</div></blockquote>`
+  ).join("");
+
+  const highlights = (p.highlights || []).map(h => `<li>${escapeHtml(h)}</li>`).join("");
+
+  const kv = (label, val) => val ? `<h4>${label}</h4><p>${escapeHtml(val)}</p>` : "";
+  const list = (label, arr) => (arr && arr.length) ? `<h4>${label}</h4><ul>${arr.map(x => `<li>${escapeHtml(typeof x === "string" ? x : (x.text || x.action || JSON.stringify(x)))}</li>`).join("")}</ul>` : "";
+
+  return `
+  <div class="card report">
+    <div class="kicker">Game Opinion Report</div>
+    <h1>【玩家舆情】梦幻消除战 玩家口碑与舆情监测报告</h1>
+    <div class="src">生成时间：${new Date().toLocaleString("zh-CN")}</div>
+
+    <h3>1.0 本期舆情概览</h3>
+    <p><b>一句话判断：</b>${escapeHtml(a.headline || "—")}</p>
+    <p>声量 ${escapeHtml(db.volume ?? "—")} · 正面 ${pct(db.sentiment?.positive)}% / 中性 ${pct(db.sentiment?.neutral)}% / 负面 ${pct(db.sentiment?.negative)}% · ${escapeHtml(db.mom || "暂无环比")}</p>
+    ${(db.top3 || []).length ? `<p><b>热度 TOP3：</b>${(db.top3 || []).map(escapeHtml).join("、")}</p>` : ""}
+
+    <h3>2.0 玩家情绪与核心诉求</h3>
+    ${kv("2.1 情感分布与走势", p.sentimentTrend)}
+    <h4>2.2 高频吐槽点排行</h4>
+    ${(p.complaints || []).length ? `<ul>${(p.complaints || []).map(c => `<li><b>${escapeHtml(c.topic)}</b>（提及 ${escapeHtml(c.mentions ?? "?")}）${c.sample ? " — " + escapeHtml(c.sample) : ""}</li>`).join("")}</ul>` : "<p>信息不足</p>"}
+    ${highlights ? `<h4>2.3 玩家自发好评与亮点</h4><ul>${highlights}</ul>` : ""}
+    ${quotes ? `<h4>2.4 玩家原声摘录</h4>${quotes}` : ""}
+
+    <h3>3.0 版本与活动口碑</h3>
+    ${kv("3.1 版本更新评价", v.versionReview)}
+    ${kv("3.2 活动满意度与性价比", v.activitySatisfaction)}
+    ${kv("3.3 付费点与商业化反馈", v.payment)}
+    ${kv("3.4 玩法与数值平衡争议", v.balance)}
+
+    <h3>4.0 风险议题专项</h3>
+    ${kv("4.1 外挂、脚本与工作室", r.cheat)}
+    ${kv("4.2 服务器稳定性、卡顿与掉线", r.server)}
+    ${kv("4.3 封号与客服处理", r.banService)}
+    ${kv("4.4 内容合规与舆论敏感点", r.compliance)}
+    ${kv("4.5 疑似竞品拉踩或有组织刷屏", r.astroturf)}
+
+    <h3>5.0 传播渠道表现</h3>
+    ${kv("5.1 贴吧", ch.tieba)}
+    ${kv("5.2 B站", ch.bili)}
+    ${kv("5.3 抖音", ch.douyin)}
+    ${kv("5.4 小红书", ch.xiaohongshu)}
+    ${kv("5.5 知乎", ch.zhihu)}
+
+    <h3>6.0 竞品动态对照</h3>
+    ${kv("6.1 竞品同期动作", cp.actions)}
+    ${kv("6.2 竞品口碑表现对比", cp.comparison)}
+    ${kv("6.3 玩家迁移意向与流失信号", cp.churnSignals)}
+
+    <h3>7.0 运营行动建议</h3>
+    ${list("7.1 今日内响应", act.today)}
+    ${list("7.2 公告口径建议", act.announcement)}
+    ${list("7.3 补偿与活动调整建议", act.compensation)}
+    ${list("7.4 下期重点监测方向", act.nextWatch)}
+  </div>`;
+}
+
+document.getElementById("btnRun").addEventListener("click", run);
+setMode("paste");
+loadConfig();
+</script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+{
+  "name": "game-opinion",
+  "version": "0.1.0",
+  "private": true,
+  "description": "游戏舆情监测（梦幻消除战）· 个人研究用 · 只看官方搜索 API，不爬虫",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}
