@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="x-build" content="2026-11-12 镜像背包认 stackData">
+    <meta name="x-build" content="2026-11-12 工单日报新模板">
     <title>客服冷静演绎工作台</title>
     <link rel="icon" type="image/gif" href="/my-icon.gif">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -7675,48 +7675,62 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                                     const DAILY_TICKET_FIELDS = [
                                         { key: 'name', label: '姓名', type: 'text', group: 'base', placeholder: '如：客服' },
                                         { key: 'shift', label: '班次', type: 'select', group: 'base', options: DAILY_SHIFT_CODES, default: 'A' },
+                                        // 正文「1、」「2、」两行
                                         { key: 'sso', label: 'SSO工单', type: 'number', group: 'ticket' },
                                         { key: 'kf53', label: '53客服在线', type: 'number', group: 'ticket' },
                                         { key: 'alipay', label: '支付宝在线', type: 'number', group: 'ticket' },
-                                        { key: 'ajs_cp', label: '爱江山CP后台', type: 'number', group: 'ticket' },
-                                        { key: 'fh_cp', label: '繁花CP后台', type: 'number', group: 'ticket' },
                                         { key: 'lb_cp', label: '乐缤纷CP后台', type: 'number', group: 'ticket' },
-                                        { key: 'bcq_cp', label: '不差钱CP后台', type: 'number', group: 'ticket' },
+                                        // ① 繁花（微信 / 抖音 / 手Q 进正文，dy在线只存档）
                                         { key: 'g1_wx', label: '①繁花·微信', type: 'number', group: 'g1' },
                                         { key: 'g1_dy', label: '①繁花·抖音', type: 'number', group: 'g1' },
-                                        { key: 'g1_dyol', label: '①繁花·dy在线', type: 'number', group: 'g1' },
                                         { key: 'g1_qq', label: '①繁花·手Q', type: 'number', group: 'g1' },
+                                        { key: 'g1_dyol', label: '①繁花·dy在线', type: 'number', group: 'g1' },
+                                        // ② 乐缤纷
                                         { key: 'g2_wx', label: '②乐缤纷·微信', type: 'number', group: 'g2' },
                                         { key: 'g2_dy', label: '②乐缤纷·抖音', type: 'number', group: 'g2' },
                                         { key: 'g2_dyol', label: '②乐缤纷·dy在线', type: 'number', group: 'g2' },
-                                        { key: 'g3_wx', label: '③不差钱·微信', type: 'number', group: 'g3' },
-                                        { key: 'g3_dy', label: '③不差钱·抖音', type: 'number', group: 'g3' },
-                                        { key: 'g3_dyol', label: '③不差钱·dy在线', type: 'number', group: 'g3' },
-                                        { key: 'g4_wx', label: '④你的江湖·微信', type: 'number', group: 'g4' },
-                                        { key: 'g4_dy', label: '④你的江湖·抖音', type: 'number', group: 'g4' },
-                                        { key: 'g4_dyol', label: '④你的江湖·dy在线', type: 'number', group: 'g4' },
-                                        { key: 'g5_wx', label: '⑤梦幻消除战·微信', type: 'number', group: 'g5' },
-                                        { key: 'g5_dy', label: '⑤梦幻消除战·抖音', type: 'number', group: 'g5' },
-                                        { key: 'g5_alipay', label: '⑤梦幻消除战·支付宝后台', type: 'number', group: 'g5' },
-                                        { key: 'g6_wx', label: '⑥伙伴弹途·微信', type: 'number', group: 'g6' },
-                                        { key: 'g6_dy', label: '⑥伙伴弹途·抖音', type: 'number', group: 'g6' },
-                                        { key: 'g6_dyol', label: '⑥伙伴弹途·dy在线', type: 'number', group: 'g6' },
-                                        { key: 'g7_wx', label: '⑦异世界勇者·微信', type: 'number', group: 'g7' },
-                                        { key: 'g7_dy', label: '⑦异世界勇者·抖音', type: 'number', group: 'g7' },
-                                        { key: 'g7_dyol', label: '⑦异世界勇者·dy在线', type: 'number', group: 'g7' },
+                                        // ③ 你的江湖（新模板里是 ③，原来是 ④；**key 仍是 g4_ 不动**，历史数据别串）
+                                        { key: 'g4_wx', label: '③你的江湖·微信', type: 'number', group: 'g3' },
+                                        { key: 'g4_dy', label: '③你的江湖·抖音', type: 'number', group: 'g3' },
+                                        { key: 'g4_dyol', label: '③你的江湖·dy在线', type: 'number', group: 'g3' },
+                                        // ④ 梦幻消除战（原 ⑤）
+                                        { key: 'g5_wx', label: '④梦幻消除战·微信', type: 'number', group: 'g4' },
+                                        { key: 'g5_dy', label: '④梦幻消除战·抖音', type: 'number', group: 'g4' },
+                                        { key: 'g5_alipay', label: '④梦幻消除战·支付宝后台', type: 'number', group: 'g4' },
+                                        { key: 'g5_dyol', label: '④梦幻消除战·dy在线', type: 'number', group: 'g4' },
+                                        // ⑤ 伙伴弹途（原 ⑥）
+                                        { key: 'g6_wx', label: '⑤伙伴弹途·微信', type: 'number', group: 'g5' },
+                                        { key: 'g6_dy', label: '⑤伙伴弹途·抖音', type: 'number', group: 'g5' },
+                                        { key: 'g6_dyol', label: '⑤伙伴弹途·dy在线', type: 'number', group: 'g5' },
+                                        // ⑥ 异世界勇者（原 ⑦）
+                                        { key: 'g7_wx', label: '⑥异世界勇者·微信', type: 'number', group: 'g6' },
+                                        { key: 'g7_dy', label: '⑥异世界勇者·抖音', type: 'number', group: 'g6' },
+                                        { key: 'g7_dyol', label: '⑥异世界勇者·dy在线', type: 'number', group: 'g6' },
+                                        // ⑦ 梦幻抖店（2026-11 新增：在线 / 服务工单 / 售后工单）
+                                        { key: 'dshop_online', label: '⑦梦幻抖店·在线', type: 'number', group: 'g7' },
+                                        { key: 'dshop_service', label: '⑦梦幻抖店·服务工单', type: 'number', group: 'g7' },
+                                        { key: 'dshop_after', label: '⑦梦幻抖店·售后工单', type: 'number', group: 'g7' },
+                                        // 📦 其他后台：只进表单 / 统计，**不写进日报正文**（新模板不再报这几项；留着是为了不丢历史口径）
+                                        { key: 'ajs_cp', label: '爱江山CP后台', type: 'number', group: 'extra' },
+                                        { key: 'fh_cp', label: '繁花CP后台', type: 'number', group: 'extra' },
+                                        { key: 'bcq_cp', label: '不差钱CP后台', type: 'number', group: 'extra' },
+                                        { key: 'g3_wx', label: '不差钱·微信', type: 'number', group: 'extra' },
+                                        { key: 'g3_dy', label: '不差钱·抖音', type: 'number', group: 'extra' },
+                                        { key: 'g3_dyol', label: '不差钱·dy在线', type: 'number', group: 'extra' },
                                         { key: 'pending', label: '待跟进', type: 'textarea', group: 'note', fullWidth: true, placeholder: '例：xxx问题需要跟进' }
                                     ];
                                     // 日报表单的分组（顺序 = 表单里从上到下的顺序；字段通过 group 归组）
                                     const DAILY_TICKET_GROUPS = [
                                         { id: 'base', title: '👤 基础信息', sub: '姓名 · 班次' },
-                                        { id: 'ticket', title: '🎫 工单与后台', sub: 'SSO / 53 在线 / 支付宝在线 / 四个 CP 后台' },
-                                        { id: 'g1', title: '① 繁花', sub: '微信 · 抖音 · dy在线 · 手Q' },
-                                        { id: 'g2', title: '② 乐缤纷', sub: '微信 · 抖音 · dy在线' },
-                                        { id: 'g3', title: '③ 不差钱', sub: '微信 · 抖音 · dy在线' },
-                                        { id: 'g4', title: '④ 你的江湖', sub: '微信 · 抖音 · dy在线' },
-                                        { id: 'g5', title: '⑤ 梦幻消除战', sub: '微信 · 抖音 · 支付宝后台' },
-                                        { id: 'g6', title: '⑥ 伙伴弹途', sub: '微信 · 抖音 · dy在线' },
-                                        { id: 'g7', title: '⑦ 异世界勇者', sub: '微信 · 抖音 · dy在线' },
+                                        { id: 'ticket', title: '🎫 工单与后台', sub: 'SSO工单 · 53客服在线 · 支付宝在线 · 乐缤纷CP后台' },
+                                        { id: 'g1', title: '① 繁花', sub: '微信 · 抖音 · 手Q（dy在线只存档）' },
+                                        { id: 'g2', title: '② 乐缤纷', sub: '微信 · 抖音（dy在线只存档）' },
+                                        { id: 'g3', title: '③ 你的江湖', sub: '微信 · 抖音（dy在线只存档）' },
+                                        { id: 'g4', title: '④ 梦幻消除战', sub: '微信 · 抖音 · 支付宝后台（dy在线只存档）' },
+                                        { id: 'g5', title: '⑤ 伙伴弹途', sub: '微信 · 抖音（dy在线只存档）' },
+                                        { id: 'g6', title: '⑥ 异世界勇者', sub: '微信 · 抖音（dy在线只存档）' },
+                                        { id: 'g7', title: '⑦ 梦幻抖店', sub: '在线 · 服务工单 · 售后工单' },
+                                        { id: 'extra', title: '📦 其他后台', sub: '不写进日报正文（只存档 / 进统计）' },
                                         { id: 'note', title: '📝 待跟进', sub: '写进日报正文，一行一条' }
                                     ];
 
@@ -7809,7 +7823,7 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                                     function careerTicketKind(key) {
                                         // [需求] CP后台 与 ①~⑦群维系 都并进「工单/后台」这一组，不再单独分组
                                         if (key === 'kf53' || key === 'alipay') return '在线客服';
-                                        if (key === 'sso' || /_cp$/.test(key) || /^g\d/.test(key)) return '工单/后台';
+                                        if (key === 'sso' || /_cp$/.test(key) || /^g\d/.test(key) || /^dshop_/.test(key)) return '工单/后台';
                                         return '其他';
                                     }
                                     const CAREER_TICKET_ITEMS = DAILY_TICKET_FIELDS
@@ -12921,20 +12935,20 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                                         let text = '';
 
                                         if (tab === 'ticket') {
+                                            // 2026-11 用户给的新模板：1、SSO/53/支付宝 2、乐缤纷CP后台 3、①~⑦ 分游戏，末行「月.日待跟进：…」
                                             text += `${date.month}月${date.day}日工作日报（${d.shift || 'A'}班）：\n`;
                                             text += `${d.name || ''}：\n`;
                                             text += `1、SSO工单${d.sso || 0}，53客服在线${d.kf53 || 0}，支付宝在线${d.alipay || 0}\n`;
-                                            text += `2、爱江山CP后台${d.ajs_cp || 0}，繁花CP后台${d.fh_cp || 0}\n`;
-                                            text += `     乐缤纷CP后台${d.lb_cp || 0}，不差钱CP后台${d.bcq_cp || 0}\n`;
-                                            text += `3、①繁花微信【${d.g1_wx || 0}】，抖音【${d.g1_dy || 0}】，dy在线【${d.g1_dyol || 0}】，手Q【${d.g1_qq || 0}】\n`;
-                                            text += `      ②乐缤纷微信【${d.g2_wx || 0}】，抖音【${d.g2_dy || 0}】，dy在线【${d.g2_dyol || 0}】\n`;
-                                            text += `      ③不差钱微信【${d.g3_wx || 0}】，抖音【${d.g3_dy || 0}】，dy在线【${d.g3_dyol || 0}】\n`;
-                                            text += `      ④你的江湖微信【${d.g4_wx || 0}】，抖音【${d.g4_dy || 0}】，dy在线【${d.g4_dyol || 0}】\n`;
-                                            text += `      ⑤梦幻消除战微信【${d.g5_wx || 0}】，抖音【${d.g5_dy || 0}】，支付宝后台【${d.g5_alipay || 0}】\n`;
-                                            text += `      ⑥伙伴弹途微信【${d.g6_wx || 0}】，抖音【${d.g6_dy || 0}】，dy在线【${d.g6_dyol || 0}】\n`;
-                                            text += `      ⑦异世界勇者微信【${d.g7_wx || 0}】，抖音【${d.g7_dy || 0}】，dy在线【${d.g7_dyol || 0}】\n`;
-                                            text += `\n${date.month}.${date.day}待跟进：\n`;
-                                            text += `${d.pending || ''}\n`;
+                                            text += `2、乐缤纷CP后台${d.lb_cp || 0}\n`;
+                                            text += `3、①繁花微信【${d.g1_wx || 0}】，抖音【${d.g1_dy || 0}】，手Q【${d.g1_qq || 0}】\n`;
+                                            text += `      ②乐缤纷微信【${d.g2_wx || 0}】，抖音【${d.g2_dy || 0}】\n`;
+                                            text += `      ③你的江湖微信【${d.g4_wx || 0}】，抖音【${d.g4_dy || 0}】\n`;
+                                            text += `      ④梦幻消除战微信【${d.g5_wx || 0}】，抖音【${d.g5_dy || 0}】，支付宝后台【${d.g5_alipay || 0}】\n`;
+                                            text += `      ⑤伙伴弹途微信【${d.g6_wx || 0}】，抖音【${d.g6_dy || 0}】\n`;
+                                            text += `      ⑥异世界勇者微信【${d.g7_wx || 0}】，抖音【${d.g7_dy || 0}】\n`;
+                                            // ⑦ 这三项用户模板里是空【】（没填就留空），所以不带 `|| 0`
+                                            text += `      ⑦梦幻抖店在线【${d.dshop_online || ''}】，服务工单【${d.dshop_service || ''}】，售后工单【${d.dshop_after || ''}】\n`;
+                                            text += `\n${date.month}.${date.day}待跟进：${d.pending || ''}\n`;
 
                                             const customs = dailyData.ticketCustom || [];
                                             const valid = customs.filter(c => (c.label || c.value));
@@ -14101,11 +14115,27 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                                     // 标签 → 日报字段 key：直接从 daily 字段定义推导，日报改了这里自动跟着变
                                     const CAREER_TICKET_LABEL_TO_KEY = (function () {
                                         const m = {};
+                                        const circles = ['①', '②', '③', '④', '⑤', '⑥', '⑦'];
                                         for (const f of DAILY_TICKET_FIELDS) {
                                             if (f.type !== 'number') continue;
                                             m[f.label] = f.key;                       // 「SSO工单」「爱江山CP后台」
                                             m[f.label.replace(/·/g, '')] = f.key;     // 日报正文里写成「①繁花微信【2】」
+                                            // ①~⑦ 的号码会挪（2026-11 新模板：③不差钱退场、③你的江湖…⑥异世界勇者、⑦梦幻抖店），
+                                            // 所以「游戏名 + 平台」的写法**所有圆号都认**，旧日报文本照样能导进来。
+                                            const mm = f.label.match(/^([①②③④⑤⑥⑦])?(.+?)·(.+)$/);
+                                            if (mm) {
+                                                [''].concat(circles).forEach(function (c) {
+                                                m[c + mm[2] + '·' + mm[3]] = f.key;
+                                                m[c + mm[2] + mm[3]] = f.key;
+                                                });
+                                            }
                                         }
+                                        // ⑦ 那一行在正文里是「⑦梦幻抖店在线【】，服务工单【】，售后工单【】」——后两项不带游戏名
+                                        m['服务工单'] = 'dshop_service';
+                                        m['售后工单'] = 'dshop_after';
+                                        m['抖店在线'] = 'dshop_online';
+                                        m['梦幻抖店在线'] = 'dshop_online';
+                                        m['梦幻抖店·在线'] = 'dshop_online';
                                         return m;
                                     })();
                                     const CAREER_OVERSEAS_LABEL_TO_KEY = (function () {
@@ -14178,19 +14208,31 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                                             if (hn) { if (!cur.name) cur.name = hn[1].trim(); continue; }
                                             const body = line.replace(/^\d+、/, '');
                                             // ③ 组行：①繁花微信【2】，抖音【0】，dy在线【0】，手Q【0】
-                                            const mg = body.match(/^([①②③④⑤⑥⑦][^【]*?)(微信|抖音|dy在线|手Q|支付宝后台)【(\d+)】/);
+                                            const mg = body.match(/^([①②③④⑤⑥⑦][^【]*?)(微信|抖音|dy在线|手Q|支付宝后台)【(\d*)】/);
                                             if (mg) {
                                                 const prefix = mg[1];
                                                 const put = (plat, val) => {
+                                                    if (val === '' || val == null) return;          // 【】= 没填，别记成 0
                                                     const k = CAREER_TICKET_LABEL_TO_KEY[prefix + plat];
-                                                    if (k) cur.t[k] = val;
+                                                    if (k) cur.t[k] = parseInt(val, 10) || 0;
                                                 };
-                                                put(mg[2], parseInt(mg[3], 10) || 0);
-                                                for (const mm of body.matchAll(/[，,]\s*(微信|抖音|dy在线|手Q|支付宝后台)【(\d+)】/g)) {
-                                                    put(mm[1], parseInt(mm[2], 10) || 0);
+                                                put(mg[2], mg[3]);
+                                                for (const mm of body.matchAll(/[，,]\s*(微信|抖音|dy在线|手Q|支付宝后台)【(\d*)】/g)) {
+                                                    put(mm[1], mm[2]);
                                                 }
+                                                cur.hasTicket = true;
                                                 continue;
                                             }
+                                            // ③-2 兜底：整标签带【】的写法（⑦梦幻抖店在线【3】，服务工单【1】，售后工单【0】）
+                                            const mk = body.matchAll(/(?:^|[，,])\s*([^，,【]+?)【(\d*)】/g);
+                                            let mkHit = false;
+                                            for (const m4 of mk) {
+                                                const k = CAREER_TICKET_LABEL_TO_KEY[m4[1].trim()];
+                                                if (!k) continue;
+                                                mkHit = true;
+                                                if (m4[2] !== '') cur.t[k] = parseInt(m4[2], 10);
+                                            }
+                                            if (mkHit) { cur.hasTicket = true; continue; }
                                             // ④ 其余「标签+数字」或「标签：数字」（海外写法带「例」）
                                             for (const part of body.split(/[，,]/)) {
                                                 const m1 = part.match(/^(.+?)[：:]\s*(\d+)\s*例?$/);

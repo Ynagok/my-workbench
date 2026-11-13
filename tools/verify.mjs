@@ -262,7 +262,7 @@ ok(/data-tab="career"/.test(s) && /id="tab-career"/.test(s), '客服生涯标签
   ok(/const CAREER_TICKET_EXCLUDE_PREFIX = \[\]/.test(s),
     '工单侧不排除任何字段（用户清单：SSO工单…⑦异世界勇者 全要）');
   const genTicket = ticketFields.slice();
-  ok(ticketFields.length === 29 && genTicket.length === 29, `工单侧 = 工单日报全部 ${genTicket.length} 个数值字段`);
+  ok(ticketFields.length === 33 && genTicket.length === 33, `工单侧 = 工单日报全部 ${genTicket.length} 个数值字段`);
   ok(genTicket.indexOf('g1_wx') !== -1 && genTicket.indexOf('g7_wx') !== -1 && genTicket.indexOf('g6_wx') !== -1,
     '①②⑤⑦ 都在工单侧（按用户清单）');
   // 两处的「异世界」是不同数据：工单侧 ⑦ = 各平台工单来访；海外侧 = 群维系来访（读海外日报自己的字段）
@@ -324,7 +324,7 @@ ok(/data-tab="career"/.test(s) && /id="tab-career"/.test(s), '客服生涯标签
   const oGroupsBlk = (s.match(/const DAILY_OVERSEAS_GROUPS = \[[\s\S]*?\n\s*\];/) || [''])[0];
   const tN = (tGroupsBlk.match(/\{ id: '/g) || []).length;
   const oN = (oGroupsBlk.match(/\{ id: '/g) || []).length;
-  ok(tN === 10, `工单日报分 ${tN} 组（基础 / 工单后台 / ①~⑦ / 待跟进）`);
+  ok(tN === 11, `工单日报分 ${tN} 组（基础 / 工单后台 / ①~⑦ / 其他后台 / 待跟进）`);
   ok(oN === 7 && /id: 'email', title: '📮 邮箱（来访）'/.test(oGroupsBlk),
   `海外日报分 ${oN} 组（基础 / 评价来访 / 邮箱 / SDk / 工单 / 监控 / 群维系）—— 邮箱三项自己一片`);
   const tFieldsBlk = (s.match(/const DAILY_TICKET_FIELDS = \[[\s\S]*?\n\s*\];/) || [''])[0];
@@ -658,10 +658,26 @@ ok(/themeInit\(\);/.test(s) && /setClick\('themeGear'/.test(s) && /setClick\('th
   && /getElementById\('themePanel'\);\s*\n\s*if \(themed\) tabsEl\.appendChild\(themed\);/.test(s)
   && /contains\('tabs-head'\)/.test(s),
   '界面设置：启动即应用、齿轮开合（含点外面 / Esc 收起）、拖拽排序不会把它挤到中间');
-// 工单侧分组：CP后台 与 ①~⑦群维系 都并进「工单/后台」
-ok(/function careerTicketKind\(key\) \{[\s\S]{0,320}?if \(key === 'sso' \|\| \/_cp\$\/\.test\(key\) \|\| \/\^g\\d\/\.test\(key\)\) return '工单\/后台';/.test(s)
+// 工单侧分组：CP后台 与 ①~⑦群维系 都并进「工单/后台」（2026-11 又多一类 ⑦梦幻抖店 dshop_*）
+ok(/function careerTicketKind\(key\) \{[\s\S]{0,400}?if \(key === 'sso' \|\| \/_cp\$\/\.test\(key\) \|\| \/\^g\\d\/\.test\(key\)(?: \|\| \/\^dshop_\/\.test\(key\))?\) return '工单\/后台';/.test(s)
   && !/return 'CP后台'/.test(s) && !/return '群维系'/.test(s.slice(s.indexOf('function careerTicketKind'), s.indexOf('function careerTicketKind') + 400)),
-  '工单统计：CP后台 + 群维系 已合并进「工单/后台」分组');
+  '工单统计：CP后台 + 群维系 + ⑦梦幻抖店 已合并进「工单/后台」分组');
+// 2026-11 用户给的新工单日报模板（1、2、3、①~⑦ + 末行「月.日待跟进：…」）
+ok(/text \+= `1、SSO工单\$\{d\.sso \|\| 0\}，53客服在线\$\{d\.kf53 \|\| 0\}，支付宝在线\$\{d\.alipay \|\| 0\}\\n`;/.test(s)
+  && /text \+= `2、乐缤纷CP后台\$\{d\.lb_cp \|\| 0\}\\n`;/.test(s)
+  && /text \+= `3、①繁花微信【\$\{d\.g1_wx \|\| 0\}】，抖音【\$\{d\.g1_dy \|\| 0\}】，手Q【\$\{d\.g1_qq \|\| 0\}】\\n`;/.test(s)
+  && /③你的江湖微信【\$\{d\.g4_wx \|\| 0\}】/.test(s)
+  && /④梦幻消除战微信【\$\{d\.g5_wx \|\| 0\}】，抖音【\$\{d\.g5_dy \|\| 0\}】，支付宝后台【\$\{d\.g5_alipay \|\| 0\}】/.test(s)
+  && /⑥异世界勇者微信【\$\{d\.g7_wx \|\| 0\}】，抖音【\$\{d\.g7_dy \|\| 0\}】/.test(s)
+  && /⑦梦幻抖店在线【\$\{d\.dshop_online \|\| ''\}】，服务工单【\$\{d\.dshop_service \|\| ''\}】，售后工单【\$\{d\.dshop_after \|\| ''\}】/.test(s)
+  && /text \+= `\\n\$\{date\.month\}\.\$\{date\.day\}待跟进：\$\{d\.pending \|\| ''\}\\n`;/.test(s)
+  && !/dy在线【\$\{d\.g1_dyol/.test(s),
+  '工单日报正文 = 2026-11 新模板（1、SSO/53/支付宝 2、乐缤纷CP后台 3、①~⑦；⑦ = 梦幻抖店在线/服务工单/售后工单；末行「月.日待跟进：…」）');
+ok(/const circles = \['①', '②', '③', '④', '⑤', '⑥', '⑦'\];/.test(s)
+  && /const mm = f\.label\.match\(\/\^\(\[①②③④⑤⑥⑦\]\)\?\(\.\+\?\)·\(\.\+\)\$\/\);/.test(s)
+  && /m\['服务工单'\] = 'dshop_service';/.test(s) && /m\['售后工单'\] = 'dshop_after';/.test(s)
+  && /const mg = body\.match\(\/\^\(\[①②③④⑤⑥⑦\]\[\^【\]\*\?\)\(微信\|抖音\|dy在线\|手Q\|支付宝后台\)【\(\\d\*\)】\/\);/.test(s),
+  '旧日报文本仍能导入：①~⑦ 号码挪位后按「游戏名 + 平台」全圆号兼容，组行容忍空【】，⑦那一行两项不带游戏名也认');
 // 重置模板不清姓名（用户需求）：只有当旧数据里真有 name 键时才把值带过去
 ok(/const keepName = \(prevTab && Object\.prototype\.hasOwnProperty\.call\(prevTab, 'name'\)\) \? prevTab\.name : undefined;/.test(s)
   && /if \(keepName !== undefined\) dailyData\[tab\]\.name = keepName;/.test(s)

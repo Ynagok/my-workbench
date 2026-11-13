@@ -427,17 +427,26 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     check(dailyPosts.length === 1, '5 次输入只产生 1 次 POST（防抖生效）', dailyPosts.length);
   }
 
-  console.log('--- 7b. 日报模板 ⑥⑦（伙伴弹途 / 异世界勇者） ---');
+  console.log('--- 7b. 工单日报正文（2026-11 用户给的新模板） ---');
   const newKeys = $('dailyFormTicket').querySelectorAll('[data-key^="g6_"], [data-key^="g7_"]');
-  check(newKeys.length === 6, '⑥⑦ 共 6 个输入项已渲染', newKeys.length);
+  check(newKeys.length === 6, '⑤⑥（原 ⑥⑦）共 6 个输入项已渲染', newKeys.length);
   const g6wx = $('dailyFormTicket').querySelector('[data-key="g6_wx"]');
   if (g6wx) { g6wx.value = '5'; fire(g6wx, 'input'); }
+  const dshop = $('dailyFormTicket').querySelector('[data-key="dshop_service"]');
+  if (dshop) { dshop.value = '2'; fire(dshop, 'input'); }
   $('generateDailyBtn').click();
   const report = $('dailyResultArea').value;
-  check(report.includes('⑥伙伴弹途微信【5】，抖音【0】，dy在线【0】'), '⑥ 行数值正确带入', (report.match(/⑥.*/) || [''])[0]);
-  check(report.includes('⑦异世界勇者微信【0】，抖音【0】，dy在线【0】'), '⑦ 行已生成', (report.match(/⑦.*/) || [''])[0]);
-  check(/①繁花微信【0】/.test(report) && /⑤梦幻消除战微信【0】/.test(report), '原有 ①~⑤ 行未被破坏');
-  check(report.indexOf('⑤梦幻消除战') < report.indexOf('⑥伙伴弹途') && report.indexOf('⑥伙伴弹途') < report.indexOf('⑦异世界勇者'), '⑥⑦ 排在 ⑤ 之后，顺序正确');
+  check(report.includes('1、SSO工单') && report.includes('2、乐缤纷CP后台'), '正文 1、2 两行按新模板', report.split('\n').slice(2, 4).join(' | '));
+  check(report.includes('3、①繁花微信【0】，抖音【0】，手Q【0】'), '3、①繁花那行是「微信/抖音/手Q」', (report.match(/①.*/) || [''])[0]);
+  check(report.includes('③你的江湖微信【0】，抖音【0】') && !report.includes('不差钱'), '③ 是「你的江湖」，不差钱不再写进正文');
+  check(report.includes('④梦幻消除战微信【0】，抖音【0】，支付宝后台【0】'), '④ 梦幻消除战带支付宝后台');
+  check(report.includes('⑤伙伴弹途微信【5】，抖音【0】'), '⑤ 行数值正确带入', (report.match(/⑤.*/) || [''])[0]);
+  check(report.includes('⑥异世界勇者微信【0】，抖音【0】'), '⑥ 异世界勇者那行已生成', (report.match(/⑥.*/) || [''])[0]);
+  check(report.includes('⑦梦幻抖店在线【】，服务工单【2】，售后工单【】'), '⑦ 梦幻抖店三项（没填的留空【】、填了的带数）', (report.match(/⑦.*/) || [''])[0]);
+  check(/\n\d+\.\d+待跟进：/.test(report), '末行是「月.日待跟进：…」（同一行，不再换行）', (report.match(/待跟进.*/) || [''])[0]);
+  check(report.indexOf('⑤伙伴弹途') < report.indexOf('⑥异世界勇者') && report.indexOf('⑥异世界勇者') < report.indexOf('⑦梦幻抖店'), '⑥⑦ 排在 ⑤ 之后，顺序正确');
+  // ⑦ 梦幻抖店是这次新加的统计项，清掉别影响后面「工单侧 17 分」的基线
+  if (dshop) { dshop.value = ''; fire(dshop, 'input'); }
 
   console.log('--- 8. 模态框 Esc 关闭 ---');
   $('manageSourceRulesBtn').click();
@@ -866,9 +875,10 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
   check(/工单侧累计\s*17/.test(sideTicket), '工单侧单独统计：累计 17', sideTicket.slice(0, 40));
   check(/海外侧累计\s*53/.test(sideOverseas), '海外侧单独统计：累计 53', sideOverseas.slice(0, 40));
   check(/53客服在线/.test(sideTicket) && /支付宝在线/.test(sideTicket) && /爱江山CP后台/.test(sideTicket)
-    && /①繁花·微信/.test(sideTicket) && /⑤梦幻消除战·微信/.test(sideTicket) && /⑦异世界勇者·微信/.test(sideTicket)
+    && /①繁花·微信/.test(sideTicket) && /④梦幻消除战·微信/.test(sideTicket) && /⑥异世界勇者·微信/.test(sideTicket)
+    && /⑦梦幻抖店·服务工单/.test(sideTicket)
     && !/异世界群维系/.test(sideTicket) && !/猫之城/.test(sideTicket),
-    '工单侧 = 工单日报全部字段（①②⑤⑦ 都在），且不含只存档项', sideTicket.slice(0, 60));
+    '工单侧 = 工单日报全部字段（①②④⑥⑦ 都在，含新的⑦梦幻抖店），且不含只存档项', sideTicket.slice(0, 60));
   check(/异世界群维系/.test(sideOverseas) && /（梦幻\/繁花\/乐缤纷）群维系/.test(sideOverseas)
     && /国内工单/.test(sideOverseas) && /海外CP后台工单/.test(sideOverseas) && /海外FB·月光/.test(sideOverseas) && /监控禁言/.test(sideOverseas),
     '海外侧含 异世界群维系 /（梦幻/繁花/乐缤纷）群维系 / 国内工单 / 海外CP后台工单 / 海外FB·月光 / 禁言封号');
@@ -1086,8 +1096,8 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
   $('generateDailyBtn').click();
   await sleep(40);
   const tkReportText = $('dailyResultArea').value;
-  check(/①繁花微信【2】/.test(tkReportText) && /⑦异世界勇者微信【3】，抖音【1】/.test(tkReportText) && /SSO工单5/.test(tkReportText),
-    '工单日报正文含各字段的值', tkReportText.slice(0, 90));
+  check(/①繁花微信【2】/.test(tkReportText) && /⑥异世界勇者微信【3】，抖音【1】/.test(tkReportText) && /SSO工单5/.test(tkReportText),
+    '工单日报正文含各字段的值（新模板：① 繁花 / ⑥ 异世界勇者 / SSO）', tkReportText.slice(0, 90));
   const totalWithSj = 74;                         // 工单 17 + 海外 53 + 异世界群维系 4
 
   // 先把当天记录删掉，证明接下来的数字确实是导入出来的
@@ -2050,24 +2060,31 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     doc.querySelector('.tab-btn[data-tab="daily"]').click();
     await sleep(60);
     const ticketForm = $('dailyFormTicket');
-    check(ticketForm.querySelectorAll('.daily-group').length === 10,
-      '工单日报表单分成 10 组（一片一组）', ticketForm.querySelectorAll('.daily-group').length);
+    check(ticketForm.querySelectorAll('.daily-group').length === 11,
+      '工单日报表单分成 11 组（一片一组）', ticketForm.querySelectorAll('.daily-group').length);
     const titles = Array.from(ticketForm.querySelectorAll('.dg-title')).map(el => el.textContent);
-    check(titles.indexOf('① 繁花') !== -1 && titles.indexOf('⑦ 异世界勇者') !== -1
+    check(titles.indexOf('① 繁花') !== -1 && titles.indexOf('⑥ 异世界勇者') !== -1
+      && titles.indexOf('⑦ 梦幻抖店') !== -1 && titles.indexOf('📦 其他后台') !== -1
       && titles.some(t => t.indexOf('工单与后台') !== -1),
-      '组标题写的是业务名（① 繁花 / ⑦ 异世界勇者 / 工单与后台）', titles.join(' | '));
+      '组标题写的是业务名（① 繁花 / ⑥ 异世界勇者 / ⑦ 梦幻抖店 / 其他后台）', titles.join(' | '));
     const nums = Array.from(ticketForm.querySelectorAll('.dg-n')).map(el => el.textContent);
-    check(nums[0] === '01' && nums[nums.length - 1] === '10',
-      '每组带两位数编号（01…10）', nums.join(','));
-    check(ticketForm.querySelectorAll('[data-key]').length === 32,
-      '32 个字段一个都没少（分组只是排版，不动字段）', ticketForm.querySelectorAll('[data-key]').length);
+    check(nums[0] === '01' && nums[nums.length - 1] === '11',
+      '每组带两位数编号（01…11）', nums.join(','));
+    check(ticketForm.querySelectorAll('[data-key]').length === 36,
+      '36 个字段一个都没少（分组只是排版，不动字段）', ticketForm.querySelectorAll('[data-key]').length);
     const g1 = ticketForm.querySelector('[data-group="g1"]');
     const g1Keys = Array.from(g1.querySelectorAll('[data-key]')).map(el => el.dataset.key);
-    check(g1Keys.join(',') === 'g1_wx,g1_dy,g1_dyol,g1_qq',
-      '① 繁花那一片只装它自己的 4 个平台（微信/抖音/dy在线/手Q）', g1Keys.join(','));
+    check(g1Keys.join(',') === 'g1_wx,g1_dy,g1_qq,g1_dyol',
+      '① 繁花那一片只装它自己的 4 个平台（微信/抖音/手Q/dy在线）', g1Keys.join(','));
     const g1Label = Array.from(g1.querySelectorAll('label')).map(el => el.textContent).join(',');
-    check(g1Label === '①繁花·微信,①繁花·抖音,①繁花·dy在线,①繁花·手Q',
+    check(g1Label === '①繁花·微信,①繁花·抖音,①繁花·手Q,①繁花·dy在线',
       '字段名照旧（还是「①繁花·微信」这种全称，只是换了位置）', g1Label);
+    const g7Keys = Array.from(ticketForm.querySelectorAll('[data-group="g7"] [data-key]')).map(el => el.dataset.key);
+    check(g7Keys.join(',') === 'dshop_online,dshop_service,dshop_after',
+      '⑦ 梦幻抖店那一片是 在线 / 服务工单 / 售后工单', g7Keys.join(','));
+    const extraKeys = Array.from(ticketForm.querySelectorAll('[data-group="extra"] [data-key]')).map(el => el.dataset.key);
+    check(extraKeys.join(',') === 'ajs_cp,fh_cp,bcq_cp,g3_wx,g3_dy,g3_dyol',
+      '不写进正文的那几项收进「📦 其他后台」（爱江山/繁花/不差钱 CP后台 + 不差钱三平台）', extraKeys.join(','));
     check(!ticketForm.querySelector('[data-group="misc"]'),
       '所有字段都归了组，没有落进「其他」兜底片');
     const noteChip = ticketForm.querySelector('[data-group="note"] [data-fill]');
@@ -2099,8 +2116,8 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
       '邮箱四项（梦幻 / 爱江山 / 月光 / 猫旅馆）单独占一片、各一个输入框', emailKeys.join(','));
     $('dailyTabTicket').click();
     await sleep(40);
-    check($('dailyFormTicket').querySelectorAll('.daily-group').length === 10
-      && $('dailyFormTicket').querySelectorAll('[data-key]').length === 32,
+    check($('dailyFormTicket').querySelectorAll('.daily-group').length === 11
+      && $('dailyFormTicket').querySelectorAll('[data-key]').length === 36,
       '切回工单栏重新渲染，分组与字段数都还原');
   }
 
