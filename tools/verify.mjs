@@ -262,7 +262,7 @@ ok(/data-tab="career"/.test(s) && /id="tab-career"/.test(s), '客服生涯标签
   ok(/const CAREER_TICKET_EXCLUDE_PREFIX = \[\]/.test(s),
     '工单侧不排除任何字段（用户清单：SSO工单…⑦异世界勇者 全要）');
   const genTicket = ticketFields.slice();
-  ok(ticketFields.length === 33 && genTicket.length === 33, `工单侧 = 工单日报全部 ${genTicket.length} 个数值字段`);
+  ok(ticketFields.length === 21 && genTicket.length === 21, `工单侧 = 工单日报全部 ${genTicket.length} 个数值字段`);
   ok(genTicket.indexOf('g1_wx') !== -1 && genTicket.indexOf('g7_wx') !== -1 && genTicket.indexOf('g6_wx') !== -1,
     '①②⑤⑦ 都在工单侧（按用户清单）');
   // 两处的「异世界」是不同数据：工单侧 ⑦ = 各平台工单来访；海外侧 = 群维系来访（读海外日报自己的字段）
