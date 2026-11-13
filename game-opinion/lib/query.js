@@ -11,7 +11,7 @@ const FOCUS_DIMENSIONS = [
 ];
 
 // 平台偏好（写进 query，影响检索倾向）
-const PLATFORM_HINT = "贴吧、B站、抖音、小红书、微博超话、知乎";
+const PLATFORM_HINT = "小红书（重点：笔记正文与评论区）、贴吧、B站、抖音、微博超话、知乎";
 
 function buildQuery(game, days, extra = "") {
   const since = new Date(Date.now() - days * 86400000).toISOString().slice(0, 10);
