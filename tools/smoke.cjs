@@ -297,9 +297,48 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
   check(actTwo.split('\n\n').length === 2, '不同时间/来源 → 不合并', actTwo.replace(/\n+/g, ' ⏎ '));
   $('flowResourceSelect').value = '体力';
 
+  console.log('--- 2e. 订单日志：2026-11 新版格式（按行分块，不再取固定下标） ---');
+  doc.querySelector('input[name="parseMode"][value="order"]').checked = true;
+  const orderNew = [
+    '82288034\t5542969238\t109 - 随机订单\t7\t宫玉琢\t\t20906 - Lv.6 - 翡翠平安锁',
+    '97\t铜钱 x 54',
+    '好评点 x 1 好评点占位',
+    '1星百戏锦囊 x 1 集卡',
+    '火锅积分 x 35 主题装扮',
+    '道具 x 1 49探险活动棋盘',
+    '装饰券 x 5 装修券大放送',
+    '2026-11-16 11:03:28\t完成\t2026-11-16 18:17:36',
+  ].join('\n');
+  $('globalResultArea').value = '';
+  $('smartPasteInput').value = orderNew;
+  $('smartParseBtn').click();
+  await sleep(30);
+  const orderOut = $('globalResultArea').value;
+  check(/在2026\/11\/16 18:17:36提交/.test(orderOut) && /完成订单/.test(orderOut),
+    '订单日志：用「完成时间」+「完成订单」出话术', orderOut || '(空)');
+  check(/宫玉琢/.test(orderOut) && /翡翠平安锁/.test(orderOut) && !/20906|Lv\.?\s*6/.test(orderOut),
+    '棋子认出来了（表头名字 + 「20906 - Lv.6 - 翡翠平安锁」只留名字）', orderOut);
+  check(/铜钱[：:]54/.test(orderOut) && /好评点[：:]1/.test(orderOut) && /1星百戏锦囊[：:]1/.test(orderOut)
+    && /火锅积分[：:]35/.test(orderOut) && /道具[：:]1/.test(orderOut) && /装饰券[：:]5/.test(orderOut),
+    '6 条奖励的数量都对（「97」那个奖励组 id 不会混进名字）', orderOut);
+  check(!/好评点占位|主题装扮|探险活动棋盘|装修券大放送/.test(orderOut),
+    '奖励行尾巴上的来源说明不会串进名字', orderOut);
+  $('globalResultArea').value = '';
+  $('smartPasteInput').value = '创建\t完成\t2026-04-20 16:04:00\t普通订单\t是\t2026-04-20 16:04:00\t10101\t竹子\t10';
+  $('smartParseBtn').click();
+  await sleep(30);
+  check(/提交竹子完成订单/.test($('globalResultArea').value),
+    '旧的一行式订单日志仍然认（创建→完成 取「完成」）', $('globalResultArea').value || '(空)');
+  $('globalResultArea').value = '';
+  $('smartPasteInput').value = orderNew + '\n' + orderNew;
+  $('smartParseBtn').click();
+  await sleep(30);
+  check($('globalResultArea').value.split('\n\n').filter(x => x.trim()).length === 2,
+    '一次贴两条订单 → 两句（按状态行切块）', $('globalResultArea').value.split('\n\n').length);
+  doc.querySelector('input[name="parseMode"][value="resource"]').checked = true;
+
   console.log('--- 3. 其他三种解析模式 ---');
   for (const [mode, sample, label] of [
-    ['order', '创建\t完成\t2026-04-20 16:04:00\t普通订单\t是\t2026-04-20 16:04:00\t10101\t竹子\t10', '订单日志'],
     ['review', '当前轮次: 普通\n2026-04-20 16:04:00\t竹子\n2026-04-20 16:04:00\t竹片', '好评奖励'],
     ['chess', '2026-04-20 16:04:00\tx\t10101/竹子\t1\t0\t1\t棋盘操作-常规母棋生产', '棋子流水'],
   ]) {

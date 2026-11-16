@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="x-build" content="2026-11-12 工单日报新模板·CP后台并片">
+    <meta name="x-build" content="2026-11-16 订单日志新格式">
     <title>客服冷静演绎工作台</title>
     <link rel="icon" type="image/gif" href="/my-icon.gif">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -8375,6 +8375,22 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                                         return result.replace(/\s+/g, ' ').trim();
                                     }
 
+                                    // 订单话术里带时间戳；默认的奖励替换规则会把「:」换成「：」（奖励写成「铜钱：54」好看），
+                                    // 但时间也会被换成「18：17：36」—— 所以先给时间戳打个占位，转完再放回去。
+                                    function applyAllConversionsKeepTime(text) {
+                                        if (!text) return text;
+                                        const times = [];
+                                        const masked = String(text).replace(/\d{4}[-\/]\d{1,2}[-\/]\d{1,2}\s+\d{1,2}:\d{1,2}(?::\d{1,2})?/g, function (m) {
+                                            times.push(m);
+                                            return '\u0000T' + (times.length - 1) + '\u0000';
+                                        });
+                                        let out = applyAllConversions(masked);
+                                        out = out.replace(/\u0000T(\d+)\u0000/g, function (_, idx) {
+                                            return times[Number(idx)] !== undefined ? times[Number(idx)] : '';
+                                        });
+                                        return out;
+                                    }
+
                                     // 物品ID解析
                                     function resolveItemName(id, name) {
                                         name = (name || '').trim();
@@ -8865,84 +8881,142 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                                         return [result];
                                     }
 
-                                    // ==================== 解析：订单日志 ====================
+                                                                        // ==================== 解析：订单日志 ====================
+                                    // 2026-11 用户：「订单日志的数据格式更新了，现在是这样，优化一下识别逻辑」——新版一条订单长这样（制表符分隔）：
+                                    //   82288034	5542969238	109 - 随机订单	7	宫玉琢		20906 - Lv.6 - 翡翠平安锁
+                                    //   97	铜钱 x 54
+                                    //   好评点 x 1 好评点占位
+                                    //   2026-11-16 11:03:28	完成	2026-11-16 18:17:36
+                                    // 所以不再「整段 split('\t') 取固定下标」（换个列序就全错），改成**按行分块**：
+                                    //   表头行（订单ID / UID / 类型 / 数量 / 棋子…）→ 中间若干「名字 x 数量 [来源]」奖励行 → 状态行（时间 / 完成 / 时间）。
+                                    // 旧的一行式写法（`创建 完成 时间 普通订单 是 时间 10101 竹子 10`）也仍然认（表头就从状态行里拆）。
+                                    const ORDER_STATUS_WORDS = ['完成', '删除', '创建', '过期'];
+                                    const ORDER_TIME_RE = /\d{4}[-\/]\d{1,2}[-\/]\d{1,2}\s+\d{1,2}:\d{1,2}(?::\d{1,2})?/;
+                                    function orderTimeList(text) { return String(text || '').match(new RegExp(ORDER_TIME_RE.source, 'g')) || []; }
                                     function parseOrderLog(rawText) {
-                                        let text = rawText.replace(/\r\n/g, '\n');
-                                        const parts = text.split('\t').map(p => p.trim());
-                                        if (parts.length < 8) { appendDebug('\n❌ 订单日志字段不足'); return []; }
-                                        const fullText = rawText.toLowerCase();
-                                        const orderType = parts[3] || '未知订单';
-                                        const firstTime = extractTime(rawText) || '';
-                                        if (fullText.includes('过期')) return [`${orderType}已在${firstTime}过期`];
-                                        let statusIdx = -1, statusText = '', finalTime = '';
-                                        const timeRgx = /^\d{4}[-\/]\d{1,2}[-\/]\d{1,2}\s+\d{1,2}:\d{1,2}(:\d{1,2})?/;
-                                        for (let i = 0; i < parts.length; i++) {
-                                            if (['完成', '删除', '创建'].includes(parts[i])) {
-                                                statusIdx = i; statusText = parts[i];
-                                                // [优化] 校验后续字段是否为时间，若不是则回退
-                                                if (i + 1 < parts.length && timeRgx.test(parts[i + 1])) {
-                                                    finalTime = parts[i + 1];
-                                                }
-                                                break;
-                                            }
-                                        }
-                                        if (statusIdx === -1 || !finalTime) {
-                                            const timeMatches = rawText.match(/(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})/g);
-                                            if (timeMatches) finalTime = timeMatches[timeMatches.length - 1];
-                                            if (!statusText) statusText = '操作';
-                                        }
-                                        let chessStartIdx = 5;
-                                        if (parts[chessStartIdx] === '是') chessStartIdx = 6;
-                                        let chessNames = [], fiveDigitFound = false;
-                                        for (let i = chessStartIdx; i < parts.length; i++) {
-                                            const segment = parts[i];
-                                            const fiveDigitMatch = segment.match(/\b\d{5}\b/);
-                                            if (fiveDigitMatch) {
-                                                const beforeFive = segment.substring(0, segment.indexOf(fiveDigitMatch[0]));
-                                                const chineseMatches = beforeFive.match(/[\u4e00-\u9fa5]+/g);
-                                                if (chineseMatches) chessNames.push(...chineseMatches);
-                                                fiveDigitFound = true; break;
-                                            } else {
-                                                const chinese = segment.match(/[\u4e00-\u9fa5]+/g);
-                                                if (chinese) chessNames.push(...chinese);
-                                            }
-                                        }
-                                        const convertedNames = chessNames.map(name => applyChessNameConversion(name));
-                                        const chessStr = convertedNames.length ? [...new Set(convertedNames)].join('、') : '棋子';
-                                        let rewardRaw = '';
-                                        if (fiveDigitFound) {
-                                            let fiveIdxInRaw = -1;
-                                            for (let i = chessStartIdx; i < parts.length; i++) if (/\b\d{5}\b/.test(parts[i])) { fiveIdxInRaw = i; break; }
-                                            if (fiveIdxInRaw !== -1) {
-                                                const beforeReward = parts.slice(0, fiveIdxInRaw + 3).join('\t');
-                                                const rewardStartPos = beforeReward.length + (fiveIdxInRaw > 0 ? 1 : 0);
-                                                const statusPos = rawText.indexOf(statusText);
-                                                const rewardEndPos = (statusIdx !== -1 && statusPos !== -1) ? statusPos : rawText.lastIndexOf(finalTime);
-                                                if (rewardEndPos > rewardStartPos) rewardRaw = rawText.substring(rewardStartPos, rewardEndPos);
-                                            }
-                                        } else {
-                                            const endPos = statusIdx !== -1 ? parts.slice(0, statusIdx).join('\t').length : rawText.lastIndexOf(finalTime);
-                                            if (endPos > 0) rewardRaw = rawText.substring(0, endPos);
-                                        }
-                                        rewardRaw = rewardRaw.replace(/\t/g, ' ').replace(/\d{4}-\d{2}-\d{2}\s+\d{1,2}:\d{2}:\d{2}/g, '').trim();
-                                        rewardRaw = applyRewardConversion(rewardRaw);
-                                        const lines = rewardRaw.split(/\n/).map(l => l.trim()).filter(l => l.length > 0);
-                                        const rewardItems = [];
-                                        for (let line of lines) {
-                                            if (/^\d+$/.test(line)) continue;
-                                            const numMatch = line.match(/(?:[:：]\s*)?(\d+)\s*$/);
-                                            let itemDesc = line, count = 1;
-                                            if (numMatch) {
-                                                count = parseInt(numMatch[1], 10);
-                                                itemDesc = line.substring(0, numMatch.index).trim();
-                                                itemDesc = itemDesc.replace(/[:：]\s*$/, '').trim();
-                                            }
-                                            if (itemDesc) rewardItems.push(`${itemDesc}:${count}`);
-                                        }
-                                        const rewardStr = rewardItems.length ? [...new Set(rewardItems)].join('，') : '奖励';
-                                        const actionVerb = statusText === '完成' ? '完成订单' : (statusText === '删除' ? '删除订单' : '操作订单');
-                                        return [`在${finalTime.replace(/-/g, '/')}提交${chessStr}${actionVerb}，获得${rewardStr}`];
+                                        const text = String(rawText || '').replace(/\r\n?/g, '\n');
+                                        const lines = text.split('\n').map(function (l) { return l.trim(); }).filter(function (l) { return l.length; });
+                                        if (!lines.length) { appendDebug('\n❌ 订单日志是空的'); return []; }
+                                        // ① 按「状态行」切块：状态行 = 含 完成/删除/创建/过期 且带时间（这样一次贴多条订单也能分开）
+                                        const blocks = [];
+                                        let cur = [];
+                                        lines.forEach(function (line) {
+                                            cur.push(line);
+                                            const hasStatus = ORDER_STATUS_WORDS.some(function (w) { return line.indexOf(w) !== -1; });
+                                            if (hasStatus && ORDER_TIME_RE.test(line)) { blocks.push(cur); cur = []; }
+                                        });
+                                        if (cur.length) blocks.push(cur);
+                                        const out = [];
+                                        blocks.forEach(function (block) {
+                                            const one = parseOneOrderBlock(block);
+                                            if (one) out.push(one);
+                                        });
+                                        if (!out.length) appendDebug('\n❌ 订单日志没认出棋盘 / 奖励（确认贴的是「订单日志」那块）');
+                                        return out;
                                     }
+                                    // 一条订单（一个块）→ 一句话术
+                                    function parseOneOrderBlock(lines) {
+                                        const isStatusLine = function (l) {
+                                            return ORDER_TIME_RE.test(l) && ORDER_STATUS_WORDS.some(function (w) { return l.indexOf(w) !== -1; });
+                                        };
+                                        let statusLine = '';
+                                        lines.forEach(function (l) { if (isStatusLine(l)) statusLine = l; });
+                                        // 表头 = 第一条非状态行；剩下的都是奖励行。旧的一行式写法没有表头行 → 从状态行里拆字段。
+                                        const bodyLines = lines.filter(function (l) { return l !== statusLine; });
+                                        let headerFields = [];
+                                        let rewardLines = [];
+                                        if (bodyLines.length) {
+                                            headerFields = bodyLines[0].split('\t').map(function (t) { return t.trim(); });
+                                            rewardLines = bodyLines.slice(1);
+                                        } else {
+                                            headerFields = (statusLine || '').split('\t').map(function (t) { return t.trim(); });
+                                        }
+                                        // ② 状态 / 时间：状态行里的第一个时间是「接单」，最后一个是「完成」
+                                        let statusText = '';
+                                        let startTime = '';
+                                        let finalTime = '';
+                                        if (statusLine) {
+                                            const sf = statusLine.split('\t').map(function (t) { return t.trim(); });
+                                            // 状态行里可能同时有「创建」「完成」（一行式老写法），按优先级取终态
+                                            const order = ['完成', '删除', '创建', '过期'];
+                                            for (let w = 0; w < order.length; w++) {
+                                                if (sf.indexOf(order[w]) !== -1) { statusText = order[w]; break; }
+                                            }
+                                            const times = orderTimeList(statusLine);
+                                            if (times.length) { startTime = times[0]; finalTime = times[times.length - 1]; }
+                                        }
+                                        if (!statusText) statusText = '操作';
+                                        if (!finalTime) {
+                                            const all = orderTimeList(lines.join('\n'));
+                                            finalTime = all.length ? all[all.length - 1] : '';
+                                            if (!startTime) startTime = all.length ? all[0] : '';
+                                        }
+                                        // ③ 订单类型：「109 - 随机订单」这种「id - 名字」，或者旧版里直接一个「普通订单」
+                                        const isTimeField = function (f) { return !f || ORDER_TIME_RE.test(f) || /^\d{10,}$/.test(f); };
+                                        let orderType = '';
+                                        for (let k = 0; k < headerFields.length; k++) {
+                                            const f = headerFields[k];
+                                            if (isTimeField(f) || ORDER_STATUS_WORDS.indexOf(f) !== -1) continue;
+                                            const m = f.match(/^(\d+)\s*[-–—]\s*(.+)$/);
+                                            if (m && m[2].indexOf('订单') !== -1) { orderType = m[2].trim(); break; }
+                                        }
+                                        if (!orderType) {
+                                            for (let k = 0; k < headerFields.length; k++) {
+                                                const f = headerFields[k];
+                                                if (!isTimeField(f) && f.indexOf('订单') !== -1 && ORDER_STATUS_WORDS.indexOf(f) === -1) { orderType = f; break; }
+                                            }
+                                        }
+                                        if (!orderType) orderType = '未知订单';
+                                        // ④ 棋子：优先「20906 - Lv.6 - 翡翠平安锁」这种带 id/等级的，其次表头里的纯中文名字（如「宫玉琢」）
+                                        const pieces = [];
+                                        const pushPiece = function (n) {
+                                            const v = String(n || '').trim();
+                                            if (!v || !/[\u4e00-\u9fa5]/.test(v)) return;
+                                            if (pieces.indexOf(v) === -1) pieces.push(v);
+                                        };
+                                        headerFields.forEach(function (f) {
+                                            if (isTimeField(f) || ORDER_STATUS_WORDS.indexOf(f) !== -1) return;
+                                            if (f === orderType || f === '是' || f === '否' || f === '-' || f === '--') return;
+                                            if (/\bLv\.?\s*\d+/i.test(f) || /\d+\s*-\s*Lv/i.test(f)) {
+                                                const segs = f.split(/\s*-\s*/).map(function (x) { return x.trim(); }).filter(function (x) { return x; });
+                                                pushPiece(segs.length ? segs[segs.length - 1] : '');
+                                                return;
+                                            }
+                                            if (/^\d+$/.test(f)) return;                       // 订单ID / UID / 数量
+                                            if (/^\d+\s*[-–—]/.test(f)) return;                // 其它「编号 - 名字」的列（类型已单独取过）
+                                            if (/^[\d.]+$/.test(f)) return;
+                                            if (/^[\u4e00-\u9fa5A-Za-z·（）()\-\s]+$/.test(f)) pushPiece(f);
+                                        });
+                                        // ⑤ 奖励：一行一个「名字 x 数量 [来源]」，前面可能挂一个奖励组 id（「97\t铜钱 x 54」）
+                                        const rewardItems = [];
+                                        const pushReward = function (name, count) {
+                                            let nm = String(name == null ? '' : name).trim();
+                                            if (!nm || !/[\u4e00-\u9fa5A-Za-z]/.test(nm)) return;
+                                            nm = applyRewardConversion(nm);
+                                            const one = nm + ':' + (count || 1);
+                                            if (rewardItems.indexOf(one) === -1) rewardItems.push(one);
+                                        };
+                                        rewardLines.forEach(function (line) {
+                                            const segs = line.split('\t').map(function (t) { return t.trim(); }).filter(function (t) {
+                                                return t.length && !/^\d+$/.test(t);
+                                            });
+                                            const payload = (segs.length ? segs.join(' ') : line).trim();
+                                            if (!payload) return;
+                                            const m = payload.match(/^(.+?)\s*[x×✕]\s*(\d+)\s*(.*)$/);
+                                            if (m) { pushReward(m[1], parseInt(m[2], 10)); return; }
+                                            const m2 = payload.match(/^(.+?)[\s:：]+(\d+)\s*$/);
+                                            if (m2) { pushReward(m2[1], parseInt(m2[2], 10)); return; }
+                                            if (/^\d+$/.test(payload)) return;
+                                            pushReward(payload.replace(/[（(].*?[)）]/g, ''), 1);
+                                        });
+                                        const rewardStr = rewardItems.length ? rewardItems.join('，') : '奖励';
+                                        const chessStr = pieces.length ? pieces.join('、') : '棋子';
+                                        const when = (finalTime || startTime || '').replace(/-/g, '/');
+                                        if (/过期/.test(lines.join(''))) return orderType + '已在' + (when || '—') + '过期';
+                                        const actionVerb = statusText === '完成' ? '完成订单' : (statusText === '删除' ? '删除订单' : '操作订单');
+                                        return `在${when}提交${chessStr}${actionVerb}，获得${rewardStr}`;
+                                    }
+
 
                                     // ==================== 解析：棋子流水 ====================
                                     function parseChessLog(raw) {
@@ -9011,7 +9085,7 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                                         if (mode === 'order') {
                                             resetDebug('📦 订单日志解析...');
                                             if (raw.includes('创建')) debugConsole.textContent += '\n⚠️ 检测到"创建"订单，可能无法提取完整奖励';
-                                            const s = parseOrderLog(raw).map(sentence => applyAllConversions(sentence));
+                                            const s = parseOrderLog(raw).map(sentence => applyAllConversionsKeepTime(sentence));
                                             globalResultArea.value = s.join('\n\n');
                                             globalResultCount.textContent = `${s.length} 条`;
                                             resultSourceHint.textContent = '订单日志解析';
@@ -20216,7 +20290,7 @@ function thlRun() {
                                             }
                                             if (mode === 'order') {
                                                 resetDebug('📦 订单日志（文件）解析...');
-                                                const s = parseOrderLog(text).map(x => applyAllConversions(x));
+                                                const s = parseOrderLog(text).map(x => applyAllConversionsKeepTime(x));
                                                 globalResultArea.value = s.join('\n\n');
                                                 globalResultCount.textContent = `${s.length} 条`;
                                                 resultSourceHint.textContent = '订单日志（上传）';
