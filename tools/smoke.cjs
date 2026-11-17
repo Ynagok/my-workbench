@@ -346,8 +346,10 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     '「订单需求」那一格的第二行也是棋子', (tableOut.match(/提交[^完]*完成订单/) || [''])[0]);
   check(!/旺财/.test(tableOut), 'NPC 名字（旺财）不会混进话术', tableOut);
   check(!/20509/.test(tableOut) && !/Lv\.?9/.test(tableOut), '棋子那一行不会被当成奖励', tableOut);
-  check(/火锅积分[：:]358/.test(tableOut) && /铜钱[：:]264/.test(tableOut) && !/火锅积分[：:]200/.test(tableOut),
-    '同名奖励合并相加（火锅积分 200+53+105 = 358）', (tableOut.match(/火锅积分[^，]*/g) || []).join(' | '));
+  check(/火锅积分[：:]200/.test(tableOut) && /火锅积分[：:]53/.test(tableOut) && /火锅积分[：:]105/.test(tableOut)
+    && !/火锅积分[：:]358/.test(tableOut) && /铜钱[：:]264/.test(tableOut),
+    '同名奖励各自保留、不累加（火锅积分 200 / 53 / 105 三条都在，不出 358）',
+    (tableOut.match(/火锅积分[^，]*/g) || []).join(' | '));
   check(/瑶池觅宝竞速积分[：:]143/.test(tableOut) && /道具[：:]3/.test(tableOut),
     '其它奖励照常认（瑶池觅宝竞速积分 / 道具）', tableOut);
   $('globalResultArea').value = '';

@@ -9014,8 +9014,9 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                                             });
                                         }
                                         // ⑤ 奖励：一行一个「名字 x 数量 [来源]」，前面可能挂奖励组 id（「97\t铜钱 x 54」）；
-                                        //    同名奖励合并相加（火锅积分 200 / 53 / 105 → 358）；「订单需求」的续行不当奖励。
-                                        const rewardMap = new Map();
+                                        //    ⚠️ 2026-11 用户：「奖励的装饰积分会合并计算，尽量不要」→ **同名奖励各自保留、不累加**
+                                        //    （火锅积分 200 / 53 / 105 就出三条，来源不同本来就是不同的账）；完全一样的两行才去重。
+                                        const rewardItems = [];
                                         const pushReward = function (name, count) {
                                             let nm = String(name == null ? '' : name).trim();
                                             if (!nm || !/[\u4e00-\u9fa5A-Za-z]/.test(nm)) return;
@@ -9023,7 +9024,8 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                                             nm = applyRewardConversion(nm);
                                             if (!nm) return;
                                             const n = parseInt(count, 10);
-                                            rewardMap.set(nm, (rewardMap.get(nm) || 0) + (n > 0 ? n : 1));
+                                            const one = nm + ':' + (n > 0 ? n : 1);
+                                            if (rewardItems.indexOf(one) === -1) rewardItems.push(one);
                                         };
                                         const absorbRewardLine = function (line, loose) {
                                             const segs = line.split('\t').map(function (t) { return t.trim(); }).filter(function (t) {
@@ -9043,8 +9045,6 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                                         };
                                         headerFields.forEach(function (f) { absorbRewardLine(f, false); });   // 一行式粘贴时奖励也挤在表头里
                                         rewardLines.forEach(function (l) { absorbRewardLine(l, true); });
-                                        const rewardItems = [];
-                                        rewardMap.forEach(function (n, k) { rewardItems.push(k + ':' + n); });
                                         const rewardStr = rewardItems.length ? rewardItems.join('，') : '奖励';
                                         const chessStr = pieces.length ? pieces.join('、') : '棋子';
                                         const when = (finalTime || startTime || '').replace(/-/g, '/');
