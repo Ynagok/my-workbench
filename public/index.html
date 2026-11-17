@@ -8969,21 +8969,30 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                                             finalTime = all.length ? all[all.length - 1] : '';
                                             if (!startTime) startTime = all.length ? all[0] : '';
                                         }
-                                        // ③ 订单类型：「109 - 随机订单」这种「id - 名字」，或者旧版里直接一个「普通订单」
+                                                                                // ③ 订单类型：「109 - 随机订单」这种「id - 名字」，或者旧版里直接一个「普通订单」。
+                                        //    ⚠️ 用户 2026-11：原文里「113 - 鹦鹉订单 - No.17」有时**夹在奖励行中间**（火锅积分那几行下面），
+                                        //    所以表头找不到就继续往下扫奖励行，并把位置记下来（标注要跟原文位置一致）。
                                         const isTimeField = function (f) { return !f || ORDER_TIME_RE.test(f) || /^\d{10,}$/.test(f); };
-                                        let orderType = '';
-                                        for (let k = 0; k < headerFields.length; k++) {
-                                            const f = headerFields[k];
-                                            if (isTimeField(f) || ORDER_STATUS_WORDS.indexOf(f) !== -1) continue;
-                                            const m = f.match(/^(\d+)\s*[-–—]\s*(.+)$/);
-                                            if (m && m[2].indexOf('订单') !== -1) { orderType = m[2].trim(); break; }
-                                        }
-                                        if (!orderType) {
-                                            for (let k = 0; k < headerFields.length; k++) {
-                                                const f = headerFields[k];
-                                                if (!isTimeField(f) && f.indexOf('订单') !== -1 && ORDER_STATUS_WORDS.indexOf(f) === -1) { orderType = f; break; }
+                                        const scanOrderType = function (cells, lineIdx) {
+                                            for (let k = 0; k < cells.length; k++) {
+                                                const f = String(cells[k] == null ? '' : cells[k]).trim();
+                                                if (!f || isTimeField(f) || ORDER_STATUS_WORDS.indexOf(f) !== -1) continue;
+                                                const m = f.match(/^(\d+)\s*[-–—]\s*(.+)$/);
+                                                if (m && m[2].indexOf('订单') !== -1) return { t: m[2].trim(), line: lineIdx };
                                             }
+                                            for (let k = 0; k < cells.length; k++) {
+                                                const f = String(cells[k] == null ? '' : cells[k]).trim();
+                                                if (f && f.indexOf('订单') !== -1 && !isTimeField(f) && ORDER_STATUS_WORDS.indexOf(f) === -1) return { t: f, line: lineIdx };
+                                            }
+                                            return null;
+                                        };
+                                        let orderType = '';
+                                        let orderTypeLine = -1;                      // -1 = 在表头（标注放最后）；≥0 = 第几条奖励行
+                                        let hitType = scanOrderType(headerFields, -1);
+                                        for (let k = 0; k < rewardLines.length && !hitType; k++) {
+                                            hitType = scanOrderType(rewardLines[k].split('\t'), k);
                                         }
+                                        if (hitType) { orderType = hitType.t; orderTypeLine = hitType.line; }
                                         if (!orderType) orderType = '未知订单';
                                         // ④ 棋子只认「订单需求」那几格：`20609 - Lv.9 - 蝶恋花头簪`（一格多行时后续行也算棋子）。
                                         //    ⚠️ NPC（旺财）/ 措施 / 难度分 这类纯文字列**不能**当棋子；带「订单」二字的是订单类型。
@@ -9071,13 +9080,18 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                                             pushReward(payload.replace(/[（(].*?[)）]/g, ''), 1);
                                         };
                                         headerFields.forEach(function (f) { absorbRewardLine(f, false); });   // 一行式粘贴时奖励也挤在表头里
-                                        rewardLines.forEach(function (l) { absorbRewardLine(l, true); });
-                                        const rewardStr = rewardItems.length ? rewardItems.join('，') : '奖励';
+                                                                                rewardLines.forEach(function (l, idx) {
+                                            if (orderTag && orderTypeLine === idx) rewardItems.push(orderTag);   // 原文里就在这个位置
+                                            absorbRewardLine(l, true);
+                                        });
+                                        if (!rewardItems.length) rewardItems.push('奖励');
+                                        if (orderTag && (orderTypeLine < 0 || orderTypeLine >= rewardLines.length)) rewardItems.push(orderTag);
+                                        const rewardStr = rewardItems.join('，');
                                         const chessStr = pieces.length ? pieces.join('、') : '棋子';
                                         const when = (finalTime || startTime || '').replace(/-/g, '/');
                                         if (/过期/.test(lines.join(''))) return orderType + '已在' + (when || '—') + '过期';
                                         const actionVerb = statusText === '完成' ? '完成订单' : (statusText === '删除' ? '删除订单' : '操作订单');
-                                        return `在${when}提交${chessStr}${actionVerb}，获得${rewardStr}${orderTag}`;
+                                        return `在${when}提交${chessStr}${actionVerb}，获得${rewardStr}`;
                                     }
 
 

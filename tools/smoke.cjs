@@ -355,6 +355,28 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     (tableOut.match(/火锅积分[^，]*/g) || []).join(' | '));
   check(/瑶池觅宝竞速积分[：:]143/.test(tableOut) && /道具[：:]3/.test(tableOut),
     '其它奖励照常认（瑶池觅宝竞速积分 / 道具）', tableOut);
+  // 用户原文里「113 - 鹦鹉订单 - No.17」是夹在奖励行中间的（火锅积分那几条后面）→ 标注也插在那个位置
+  $('globalResultArea').value = '';
+  $('smartPasteInput').value = [
+    '27335885\t5539406769\t16\t旺财\t\t20609 - Lv.9 - 蝶恋花头簪',
+    '20509 - Lv.9 - 百花提篮灯',
+    '铜钱 x 264',
+    '火锅积分 x 200 主题装扮',
+    '火锅积分 x 53 酷酷番茄buff',
+    '火锅积分 x 105 主题装扮',
+    '113 - 鹦鹉订单 - No.17',
+    '好评点 x 2 好评点占位',
+    '道具 x 3 49探险活动棋盘',
+    '瑶池觅宝竞速积分 x 143 染花大侠',
+    '2026-11-16 08:57:29\t完成\t2026-11-16 10:15:13',
+  ].join('\n');
+  $('smartParseBtn').click();
+  await sleep(30);
+  const midTagOut = $('globalResultArea').value;
+  check(/火锅积分[：:]105，（鹦鹉订单），好评点[：:]2/.test(midTagOut),
+    '标注插在原文那个位置（火锅积分那几条后面），不是一律放末尾', midTagOut);
+  check(/提交蝶恋花头簪、百花提篮灯完成订单/.test(midTagOut) && !/旺财/.test(midTagOut),
+    '订单类型搬到奖励行中间也能认出棋子，NPC 仍不混进话术', midTagOut);
   // 没有 NPC（NPC 列空着）→ 即使类型是鹦鹉订单也不标注
   $('globalResultArea').value = '';
   $('smartPasteInput').value = [
