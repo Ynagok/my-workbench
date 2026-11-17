@@ -318,8 +318,8 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     '订单日志：用「完成时间」+「完成订单」出话术', orderOut || '(空)');
   check(!/提交宫玉琢/.test(orderOut) && /翡翠平安锁/.test(orderOut) && !/20906|Lv\.?\s*6/.test(orderOut),
     '棋子只认「id - Lv.N - 名字」（NPC 名字不当棋子）', orderOut);
-  check(/装饰券[：:]5（宫玉琢订单）$/.test(orderOut.trim()),
-    'NPC 名字改成标注在奖励后面：（宫玉琢订单）', orderOut);
+  check(!/（宫玉琢订单）/.test(orderOut) && /装饰券[：:]5$/.test(orderOut.trim()),
+    '随机订单（不是鹦鹉/特殊订单）不加标注', orderOut);
   check(/铜钱[：:]54/.test(orderOut) && /好评点[：:]1/.test(orderOut) && /1星百戏锦囊[：:]1/.test(orderOut)
     && /火锅积分[：:]35/.test(orderOut) && /道具[：:]1/.test(orderOut) && /装饰券[：:]5/.test(orderOut),
     '6 条奖励的数量都对（「97」那个奖励组 id 不会混进名字）', orderOut);
@@ -346,8 +346,8 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
   const tableOut = $('globalResultArea').value;
   check(/提交蝶恋花头簪、百花提篮灯完成订单/.test(tableOut),
     '「订单需求」那一格的第二行也是棋子', (tableOut.match(/提交[^完]*完成订单/) || [''])[0]);
-  check(!/提交旺财/.test(tableOut) && /（旺财订单）$/.test(tableOut.trim()),
-    'NPC 名字不混进棋子，改成标注在奖励后面：（旺财订单）', tableOut);
+  check(!/提交旺财/.test(tableOut) && /（鹦鹉订单）$/.test(tableOut.trim()),
+    'NPC 名字不混进棋子；鹦鹉订单的奖励后面标「鹦鹉订单」（不是 NPC 名）', tableOut);
   check(!/20509/.test(tableOut) && !/Lv\.?9/.test(tableOut), '棋子那一行不会被当成奖励', tableOut);
   check(/火锅积分[：:]200/.test(tableOut) && /火锅积分[：:]53/.test(tableOut) && /火锅积分[：:]105/.test(tableOut)
     && !/火锅积分[：:]358/.test(tableOut) && /铜钱[：:]264/.test(tableOut),
@@ -355,7 +355,7 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     (tableOut.match(/火锅积分[^，]*/g) || []).join(' | '));
   check(/瑶池觅宝竞速积分[：:]143/.test(tableOut) && /道具[：:]3/.test(tableOut),
     '其它奖励照常认（瑶池觅宝竞速积分 / 道具）', tableOut);
-  // 没有 NPC 列内容、但订单类型是「鹦鹉订单 / 特殊订单」时，用类型名标注
+  // 没有 NPC（NPC 列空着）→ 即使类型是鹦鹉订单也不标注
   $('globalResultArea').value = '';
   $('smartPasteInput').value = [
     '990001\t1234567890\t113 - 鹦鹉订单 - No.3\t16\t\t\t20801 - Lv.4 - 花草灯',
@@ -365,8 +365,8 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
   $('smartParseBtn').click();
   await sleep(30);
   const parrotOut = $('globalResultArea').value;
-  check(/花草灯完成订单/.test(parrotOut) && /铜钱[：:]9（鹦鹉订单）$/.test(parrotOut.trim()),
-    '没有 NPC 时按类型标注：（鹦鹉订单）', parrotOut || '(空)');
+  check(/花草灯完成订单/.test(parrotOut) && !/（鹦鹉订单）/.test(parrotOut) && /铜钱[：:]9$/.test(parrotOut.trim()),
+    '没有 NPC 就不标注（鹦鹉订单也一样）', parrotOut || '(空)');
   $('globalResultArea').value = '';
   $('smartPasteInput').value = '创建\t完成\t2026-04-20 16:04:00\t普通订单\t是\t2026-04-20 16:04:00\t10101\t竹子\t10';
   $('smartParseBtn').click();

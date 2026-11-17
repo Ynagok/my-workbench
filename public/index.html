@@ -9031,10 +9031,10 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                                                 break;
                                             }
                                         }
+                                        // 标注内容用**订单类型名**（鹦鹉订单 / 特殊订单），不是 NPC 名字；**没有 NPC 就不标**
+                                        // （2026-11 用户：「要标的是鹦鹉订单对应的奖励，没有 npc 就不标」）。
                                         let orderTag = '';
-                                        if (npcName) {
-                                            orderTag = '（' + (/订单$/.test(npcName) ? npcName : npcName + '订单') + '）';
-                                        } else if (/鹦鹉|特殊/.test(orderType)) {
+                                        if (npcName && /鹦鹉|特殊/.test(orderType)) {
                                             const nm = orderType.replace(/^\d+\s*[-–—]\s*/, '')
                                                 .replace(/\s*[-–—]\s*No\.?\s*\d+\s*$/i, '')
                                                 .replace(/订单$/, '').trim();
