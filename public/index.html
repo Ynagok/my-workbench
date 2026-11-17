@@ -9013,6 +9013,33 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                                                 if (/^[\u4e00-\u9fa5A-Za-z·（）()\-\s]+$/.test(f) && f.length <= 12) pushPiece(f);
                                             });
                                         }
+                                        // ④-2 NPC 订单名：订单需求（棋子那格）**前面**最近的一个纯中文短列（旺财 / 宫玉琢 …）。
+                                        //      2026-11 用户：「鹦鹉订单或者其他 NPC 位置有写的订单，就把「XX订单」标注在对应奖励后面」
+                                        //      → 奖励串末尾补一个（旺财订单）；没有 NPC 但类型是鹦鹉/特殊订单时用类型名。
+                                        let npcName = '';
+                                        const npcIdx = headerFields.findIndex(function (f) {
+                                            const nm = pieceNameOf(f);
+                                            return !!nm && !/订单/.test(nm);
+                                        });
+                                        if (npcIdx > 0) {
+                                            for (let k = npcIdx - 1; k >= 0; k--) {
+                                                const f = headerFields[k];
+                                                if (!f) continue;
+                                                if (f === '是' || f === '否' || ORDER_STATUS_WORDS.indexOf(f) !== -1 || isTimeField(f)) continue;
+                                                if (/\d/.test(f)) break;
+                                                if (/^[\u4e00-\u9fa5·]{2,8}$/.test(f)) npcName = f;
+                                                break;
+                                            }
+                                        }
+                                        let orderTag = '';
+                                        if (npcName) {
+                                            orderTag = '（' + (/订单$/.test(npcName) ? npcName : npcName + '订单') + '）';
+                                        } else if (/鹦鹉|特殊/.test(orderType)) {
+                                            const nm = orderType.replace(/^\d+\s*[-–—]\s*/, '')
+                                                .replace(/\s*[-–—]\s*No\.?\s*\d+\s*$/i, '')
+                                                .replace(/订单$/, '').trim();
+                                            if (nm) orderTag = '（' + nm + '订单）';
+                                        }
                                         // ⑤ 奖励：一行一个「名字 x 数量 [来源]」，前面可能挂奖励组 id（「97\t铜钱 x 54」）；
                                         //    ⚠️ 2026-11 用户：「奖励的装饰积分会合并计算，尽量不要」→ **同名奖励各自保留、不累加**
                                         //    （火锅积分 200 / 53 / 105 就出三条，来源不同本来就是不同的账）；完全一样的两行才去重。
@@ -9050,7 +9077,7 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                                         const when = (finalTime || startTime || '').replace(/-/g, '/');
                                         if (/过期/.test(lines.join(''))) return orderType + '已在' + (when || '—') + '过期';
                                         const actionVerb = statusText === '完成' ? '完成订单' : (statusText === '删除' ? '删除订单' : '操作订单');
-                                        return `在${when}提交${chessStr}${actionVerb}，获得${rewardStr}`;
+                                        return `在${when}提交${chessStr}${actionVerb}，获得${rewardStr}${orderTag}`;
                                     }
 
 
