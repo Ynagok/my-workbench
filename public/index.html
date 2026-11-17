@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="x-build" content="2026-11-16 订单日志新格式">
+    <meta name="x-build" content="2026-11-16 订单日志/好评奖励再校准">
     <title>客服冷静演绎工作台</title>
     <link rel="icon" type="image/gif" href="/my-icon.gif">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -8843,41 +8843,59 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                                     }
 
                                     // ==================== 解析：好评奖励 ====================
-                                    function parseReviewLog(rawText) {
-                                        const lines = rawText.split(/\r?\n/).map(l => l.trim()).filter(l => l);
-                                        if (lines.length < 1) return ['❌ 数据格式不正确，请检查'];
-                                        let timeStr = '';
-                                        const timeRegex = /(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})/g;
-                                        let match, lastValidTime = null;
-                                        while ((match = timeRegex.exec(rawText)) !== null) {
-                                            const timeCandidate = match[1];
-                                            const beforeMatch = rawText.substring(0, match.index);
-                                            const lineStart = beforeMatch.lastIndexOf('\n') + 1;
-                                            const lineEnd = rawText.indexOf('\n', match.index);
-                                            const line = rawText.substring(lineStart, lineEnd === -1 ? rawText.length : lineEnd).trim();
-                                            if (!/开始时间|结束时间|当前轮次|是否成功|超级解锁状态/.test(line)) lastValidTime = timeCandidate;
-                                        }
-                                        if (lastValidTime) timeStr = lastValidTime.replace(/-/g, '/');
-                                        else return ['❌ 未找到有效时间（请检查数据中是否包含领取时间）'];
+                                                                                function parseReviewLog(rawText) {
+                                                const lines = rawText.split(/\r?\n/).map(l => l.trim()).filter(l => l);
+                                                if (lines.length < 1) return ['❌ 数据格式不正确，请检查'];
+                                                let timeStr = '';
+                                                const timeRegex = /(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})/g;
+                                                let match, lastValidTime = null, anyTime = null;
+                                                while ((match = timeRegex.exec(rawText)) !== null) {
+                                                    const timeCandidate = match[1];
+                                                    anyTime = timeCandidate;
+                                                    const beforeMatch = rawText.substring(0, match.index);
+                                                    const lineStart = beforeMatch.lastIndexOf('\n') + 1;
+                                                    const lineEnd = rawText.indexOf('\n', match.index);
+                                                    const line = rawText.substring(lineStart, lineEnd === -1 ? rawText.length : lineEnd).trim();
+                                                    if (!/开始时间|结束时间|轮次|是否成功|超级解锁状态|刷新/.test(line)) lastValidTime = timeCandidate;
+                                                }
+                                                if (lastValidTime) timeStr = lastValidTime.replace(/-/g, '/');
+                                                else if (anyTime) timeStr = anyTime.replace(/-/g, '/');
+                                                else return ['❌ 未找到有效时间（请检查数据中是否包含领取时间）'];
 
-                                        const itemCount = new Map();
-                                        // [优化] 放宽中文正则：允许中文 + 数字 + 常见符号
-                                        const itemRegex = /^[\u4e00-\u9fa5][\u4e00-\u9fa5\d\w·\-（）()【】]*$/;
-                                        const firstLineParts = lines[0].split('\t');
-                                        const firstItem = firstLineParts[firstLineParts.length - 1]?.trim();
-                                        if (firstItem && itemRegex.test(firstItem)) itemCount.set(firstItem, (itemCount.get(firstItem) || 0) + 1);
-                                        for (let i = 1; i < lines.length; i++) {
-                                            const line = lines[i];
-                                            if (/当前轮次|开始时间|结束时间|是否成功|超级解锁状态/.test(line)) continue;
-                                            if (itemRegex.test(line)) itemCount.set(line, (itemCount.get(line) || 0) + 1);
-                                        }
-                                        if (itemCount.size === 0) return ['未解析到有效奖励数据'];
+                                                const itemCount = new Map();
+                                                // [优化] 放宽中文正则：允许中文 + 数字 + 常见符号
+                                                const itemRegex = /^[\u4e00-\u9fa5][\u4e00-\u9fa5\d\w·\-（）()【】]*$/;
+                                                // 说明行（轮次 / 时间 / 状态 / 刷新 / 解锁…）不是奖励
+                                                const skipLine = /轮次|开始时间|结束时间|是否|状态|刷新|解锁/;
+                                                const addItem = function (name) {
+                                                    const nm = String(name == null ? '' : name).trim();
+                                                    if (!nm) return;
+                                                    itemCount.set(nm, (itemCount.get(nm) || 0) + 1);
+                                                };
+                                                for (let i = 0; i < lines.length; i++) {
+                                                    const line = lines[i];
+                                                    if (!line || skipLine.test(line)) continue;
+                                                    // 一行多列时取最后一列（「20504\t椭圆灯笼」这种）
+                                                    const segs = line.split('\t').map(function (t) { return t.trim(); }).filter(function (t) { return t; });
+                                                    const cand = (segs.length ? segs[segs.length - 1] : line).trim();
+                                                    if (!cand) continue;
+                                                    // 只给了棋子 id（20504 / 20505 这种）→ 用物品名表换成名字
+                                                    if (/^\d{3,}$/.test(cand)) {
+                                                        const nm = resolveItemName(cand);
+                                                        if (nm && nm !== cand && /[\u4e00-\u9fa5]/.test(nm)) addItem(nm);
+                                                        continue;
+                                                    }
+                                                    if (itemRegex.test(cand)) addItem(cand);
+                                                }
+                                                if (itemCount.size === 0) return ['未解析到有效奖励数据'];
 
-                                        const statsList = [];
-                                        for (let [name, count] of itemCount) statsList.push(`${name}*${count}`);
-                                        let result;
-                                        if (rawText.includes('当前轮次: 超级')) result = `在${timeStr}，获得超级好评点全部奖励：${statsList.join('，')}`;
-                                        else result = `在${timeStr}，获得好评奖励：${statsList.join('，')}`;
+                                                const statsList = [];
+                                                for (let [name, count] of itemCount) statsList.push(`${name}*${count}`);
+                                                // 新版只写「下一轮次: 超级」，所以按「轮次: 超级」认，别只认「当前轮次」
+                                                const isSuper = /轮次[:：]\s*超级/.test(rawText) || rawText.indexOf('超级好评点') !== -1;
+                                                const result = isSuper
+                                                    ? `在${timeStr}，获得超级好评点全部奖励：${statsList.join('，')}`
+                                                    : `在${timeStr}，获得好评奖励：${statsList.join('，')}`;
                                         return [result];
                                     }
 
@@ -8967,48 +8985,66 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                                             }
                                         }
                                         if (!orderType) orderType = '未知订单';
-                                        // ④ 棋子：优先「20906 - Lv.6 - 翡翠平安锁」这种带 id/等级的，其次表头里的纯中文名字（如「宫玉琢」）
+                                        // ④ 棋子只认「订单需求」那几格：`20609 - Lv.9 - 蝶恋花头簪`（一格多行时后续行也算棋子）。
+                                        //    ⚠️ NPC（旺财）/ 措施 / 难度分 这类纯文字列**不能**当棋子；带「订单」二字的是订单类型。
                                         const pieces = [];
                                         const pushPiece = function (n) {
-                                            const v = String(n || '').trim();
+                                            const v = String(n == null ? '' : n).trim();
                                             if (!v || !/[\u4e00-\u9fa5]/.test(v)) return;
+                                            if (/订单/.test(v)) return;
                                             if (pieces.indexOf(v) === -1) pieces.push(v);
+                                        };
+                                        const pieceNameOf = function (text) {
+                                            const t = String(text || '').trim();
+                                            const m = t.match(/^(\d{3,})\s*[-–—]\s*(?:Lv\.?\s*\d+\s*[-–—]\s*)?(.+)$/i);
+                                            if (!m) return '';
+                                            return m[2].trim();
                                         };
                                         headerFields.forEach(function (f) {
                                             if (isTimeField(f) || ORDER_STATUS_WORDS.indexOf(f) !== -1) return;
-                                            if (f === orderType || f === '是' || f === '否' || f === '-' || f === '--') return;
-                                            if (/\bLv\.?\s*\d+/i.test(f) || /\d+\s*-\s*Lv/i.test(f)) {
-                                                const segs = f.split(/\s*-\s*/).map(function (x) { return x.trim(); }).filter(function (x) { return x; });
-                                                pushPiece(segs.length ? segs[segs.length - 1] : '');
-                                                return;
-                                            }
-                                            if (/^\d+$/.test(f)) return;                       // 订单ID / UID / 数量
-                                            if (/^\d+\s*[-–—]/.test(f)) return;                // 其它「编号 - 名字」的列（类型已单独取过）
-                                            if (/^[\d.]+$/.test(f)) return;
-                                            if (/^[\u4e00-\u9fa5A-Za-z·（）()\-\s]+$/.test(f)) pushPiece(f);
+                                            pushPiece(pieceNameOf(f));
                                         });
-                                        // ⑤ 奖励：一行一个「名字 x 数量 [来源]」，前面可能挂一个奖励组 id（「97\t铜钱 x 54」）
-                                        const rewardItems = [];
+                                        // 兜底：老的一行式写法没有棋子 id，就把表头里的纯中文短列当棋子名（新版不会走到这里，免得把 NPC 认成棋子）
+                                        if (!pieces.length && !bodyLines.length) {
+                                            headerFields.forEach(function (f) {
+                                                if (isTimeField(f) || ORDER_STATUS_WORDS.indexOf(f) !== -1) return;
+                                                if (!f || f === orderType || f === '是' || f === '否') return;
+                                                if (/\d/.test(f)) return;
+                                                if (/^[\u4e00-\u9fa5A-Za-z·（）()\-\s]+$/.test(f) && f.length <= 12) pushPiece(f);
+                                            });
+                                        }
+                                        // ⑤ 奖励：一行一个「名字 x 数量 [来源]」，前面可能挂奖励组 id（「97\t铜钱 x 54」）；
+                                        //    同名奖励合并相加（火锅积分 200 / 53 / 105 → 358）；「订单需求」的续行不当奖励。
+                                        const rewardMap = new Map();
                                         const pushReward = function (name, count) {
                                             let nm = String(name == null ? '' : name).trim();
                                             if (!nm || !/[\u4e00-\u9fa5A-Za-z]/.test(nm)) return;
+                                            if (pieceNameOf(nm)) return;                      // 「20509 - Lv.9 - 百花提篮灯」是棋子，不是奖励
                                             nm = applyRewardConversion(nm);
-                                            const one = nm + ':' + (count || 1);
-                                            if (rewardItems.indexOf(one) === -1) rewardItems.push(one);
+                                            if (!nm) return;
+                                            const n = parseInt(count, 10);
+                                            rewardMap.set(nm, (rewardMap.get(nm) || 0) + (n > 0 ? n : 1));
                                         };
-                                        rewardLines.forEach(function (line) {
+                                        const absorbRewardLine = function (line, loose) {
                                             const segs = line.split('\t').map(function (t) { return t.trim(); }).filter(function (t) {
                                                 return t.length && !/^\d+$/.test(t);
                                             });
                                             const payload = (segs.length ? segs.join(' ') : line).trim();
                                             if (!payload) return;
+                                            const pn = pieceNameOf(payload);                  // 「订单需求」那一格的续行 = 棋子
+                                            if (pn) { pushPiece(pn); return; }
                                             const m = payload.match(/^(.+?)\s*[x×✕]\s*(\d+)\s*(.*)$/);
-                                            if (m) { pushReward(m[1], parseInt(m[2], 10)); return; }
+                                            if (m) { pushReward(m[1], m[2]); return; }
                                             const m2 = payload.match(/^(.+?)[\s:：]+(\d+)\s*$/);
-                                            if (m2) { pushReward(m2[1], parseInt(m2[2], 10)); return; }
+                                            if (m2) { pushReward(m2[1], m2[2]); return; }
+                                            if (!loose) return;                               // 表头字段只认明确带「x 数量」的
                                             if (/^\d+$/.test(payload)) return;
                                             pushReward(payload.replace(/[（(].*?[)）]/g, ''), 1);
-                                        });
+                                        };
+                                        headerFields.forEach(function (f) { absorbRewardLine(f, false); });   // 一行式粘贴时奖励也挤在表头里
+                                        rewardLines.forEach(function (l) { absorbRewardLine(l, true); });
+                                        const rewardItems = [];
+                                        rewardMap.forEach(function (n, k) { rewardItems.push(k + ':' + n); });
                                         const rewardStr = rewardItems.length ? rewardItems.join('，') : '奖励';
                                         const chessStr = pieces.length ? pieces.join('、') : '棋子';
                                         const when = (finalTime || startTime || '').replace(/-/g, '/');
@@ -9094,7 +9130,7 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                                         }
                                         if (mode === 'review') {
                                             resetDebug('🌟 好评奖励解析...');
-                                            const s = parseReviewLog(raw).map(sentence => applyAllConversions(sentence));
+                                            const s = parseReviewLog(raw).map(sentence => applyAllConversionsKeepTime(sentence));
                                             globalResultArea.value = s.join('\n\n');
                                             globalResultCount.textContent = `${s.length} 条`;
                                             resultSourceHint.textContent = '好评奖励解析';
@@ -20299,7 +20335,7 @@ function thlRun() {
                                             }
                                             if (mode === 'review') {
                                                 resetDebug('🌟 好评奖励（文件）解析...');
-                                                const s = parseReviewLog(text).map(x => applyAllConversions(x));
+                                                const s = parseReviewLog(text).map(x => applyAllConversionsKeepTime(x));
                                                 globalResultArea.value = s.join('\n\n');
                                                 globalResultCount.textContent = `${s.length} 条`;
                                                 resultSourceHint.textContent = '好评奖励（上传）';

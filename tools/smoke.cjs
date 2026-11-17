@@ -316,13 +316,40 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
   const orderOut = $('globalResultArea').value;
   check(/在2026\/11\/16 18:17:36提交/.test(orderOut) && /完成订单/.test(orderOut),
     '订单日志：用「完成时间」+「完成订单」出话术', orderOut || '(空)');
-  check(/宫玉琢/.test(orderOut) && /翡翠平安锁/.test(orderOut) && !/20906|Lv\.?\s*6/.test(orderOut),
-    '棋子认出来了（表头名字 + 「20906 - Lv.6 - 翡翠平安锁」只留名字）', orderOut);
+  check(!/宫玉琢/.test(orderOut) && /翡翠平安锁/.test(orderOut) && !/20906|Lv\.?\s*6/.test(orderOut),
+    '棋子只认「id - Lv.N - 名字」（右边那个 NPC 名字不当棋子）', orderOut);
   check(/铜钱[：:]54/.test(orderOut) && /好评点[：:]1/.test(orderOut) && /1星百戏锦囊[：:]1/.test(orderOut)
     && /火锅积分[：:]35/.test(orderOut) && /道具[：:]1/.test(orderOut) && /装饰券[：:]5/.test(orderOut),
     '6 条奖励的数量都对（「97」那个奖励组 id 不会混进名字）', orderOut);
   check(!/好评点占位|主题装扮|探险活动棋盘|装修券大放送/.test(orderOut),
     '奖励行尾巴上的来源说明不会串进名字', orderOut);
+  // 2026-11 用户截图：真实表格版（「订单需求」一格两行棋子 + NPC 在列里 + 火锅积分同表出现三次）
+  const orderTable = [
+    '27335885\t5539406769\t113 - 鹦鹉订单 - No.17\t16\t旺财\t\t20609 - Lv.9 - 蝶恋花头簪',
+    '20509 - Lv.9 - 百花提篮灯',
+    '铜钱 x 264',
+    '火锅积分 x 200 主题装扮',
+    '好评点 x 2 好评点占位',
+    '3星百戏锦囊 x 1 集卡',
+    '火锅积分 x 53 酷酷番茄buff',
+    '火锅积分 x 105 主题装扮',
+    '道具 x 3 49探险活动棋盘',
+    '瑶池觅宝竞速积分 x 143 染花大侠',
+    '2026-11-16 08:57:29\t完成\t2026-11-16 10:15:13',
+  ].join('\n');
+  $('globalResultArea').value = '';
+  $('smartPasteInput').value = orderTable;
+  $('smartParseBtn').click();
+  await sleep(30);
+  const tableOut = $('globalResultArea').value;
+  check(/提交蝶恋花头簪、百花提篮灯完成订单/.test(tableOut),
+    '「订单需求」那一格的第二行也是棋子', (tableOut.match(/提交[^完]*完成订单/) || [''])[0]);
+  check(!/旺财/.test(tableOut), 'NPC 名字（旺财）不会混进话术', tableOut);
+  check(!/20509/.test(tableOut) && !/Lv\.?9/.test(tableOut), '棋子那一行不会被当成奖励', tableOut);
+  check(/火锅积分[：:]358/.test(tableOut) && /铜钱[：:]264/.test(tableOut) && !/火锅积分[：:]200/.test(tableOut),
+    '同名奖励合并相加（火锅积分 200+53+105 = 358）', (tableOut.match(/火锅积分[^，]*/g) || []).join(' | '));
+  check(/瑶池觅宝竞速积分[：:]143/.test(tableOut) && /道具[：:]3/.test(tableOut),
+    '其它奖励照常认（瑶池觅宝竞速积分 / 道具）', tableOut);
   $('globalResultArea').value = '';
   $('smartPasteInput').value = '创建\t完成\t2026-04-20 16:04:00\t普通订单\t是\t2026-04-20 16:04:00\t10101\t竹子\t10';
   $('smartParseBtn').click();
@@ -337,7 +364,29 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     '一次贴两条订单 → 两句（按状态行切块）', $('globalResultArea').value.split('\n\n').length);
   doc.querySelector('input[name="parseMode"][value="resource"]').checked = true;
 
-  console.log('--- 3. 其他三种解析模式 ---');
+  console.log('--- 2f. 好评奖励：新版（只给棋子 id + 轮次说明） ---');
+  doc.querySelector('input[name="parseMode"][value="review"]').checked = true;
+  const reviewNew = [
+    '20504',
+    '20505',
+    '下一轮次: 超级',
+    '下一轮次开始时间: 2026-11-15 12:13:19',
+    '下一轮次结束时间: 2026-11-15 14:13:19',
+    '超级刷新状态: 是',
+    '2026-11-15 12:13:19',
+  ].join('\n');
+  $('globalResultArea').value = '';
+  $('smartPasteInput').value = reviewNew;
+  $('smartParseBtn').click();
+  await sleep(30);
+  const reviewNewOut = $('globalResultArea').value;
+  check(/获得超级好评点全部奖励/.test(reviewNewOut) && /椭圆灯笼\*1/.test(reviewNewOut) && /方形灯笼\*1/.test(reviewNewOut),
+    '好评奖励：只给棋子 id 时用物品名表换名字（20504→椭圆灯笼 / 20505→方形灯笼）', reviewNewOut || '(空)');
+  check(/在2026\/11\/15 12:13:19/.test(reviewNewOut) && !/下一轮次|超级刷新状态|轮次: /.test(reviewNewOut),
+    '好评奖励：时间取领取行，「下一轮次 / 刷新状态」这类说明行不会当奖励', reviewNewOut);
+  doc.querySelector('input[name="parseMode"][value="resource"]').checked = true;
+
+  console.log('--- 3. 其他两种解析模式 ---');
   for (const [mode, sample, label] of [
     ['review', '当前轮次: 普通\n2026-04-20 16:04:00\t竹子\n2026-04-20 16:04:00\t竹片', '好评奖励'],
     ['chess', '2026-04-20 16:04:00\tx\t10101/竹子\t1\t0\t1\t棋盘操作-常规母棋生产', '棋子流水'],
