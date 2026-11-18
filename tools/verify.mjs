@@ -1036,11 +1036,14 @@ ok(/id="sdLogInput"/.test(s) && /id="sdOutput"/.test(s) && /id="sdGenerateBtn"/.
 ok(/const SD_SCHEDULE = \[/.test(s)
   && /'34\|2026\/10\/19 8:00~2026\/10\/28 7:59',/.test(s)
   && /'37\|2026\/11\/9 8:00~2026\/11\/18 7:59',/.test(s)
+  && /'38\|2026\/11\/16 8:00~2026\/11\/25 7:59',/.test(s)
+  && /'39\|2026\/11\/23 8:00~2026\/12\/2 7:59'/.test(s)
+  && (s.match(/'\d+\|20\d\d\//g) || []).length === 37
   && /function sdScheduleOf\(id\)/.test(s) && /function sdScheduleTail\(id\)/.test(s)
   && /const scheds = \{\}, schedOrder = \[\];/.test(s)
   && /活动排期 ' \+ one \+ sdScheduleTail\(one\)/.test(s)
   && /活动排期 ' \+ sec\.key \+ sdScheduleTail\(sec\.key\)/.test(s),
-  '七日任务：内置 35 条活动排期（id → 起止时间），抬头写「活动排期 N：时间窗」；一次粘多期日志时按期分段（每段写排期 + 时间窗 + 几个任务）');
+  '七日任务：内置 37 条活动排期（id → 起止时间，2026-11 快照补了 38 / 39），抬头写「活动排期 N：时间窗」；一次粘多期日志时按期分段（每段写排期 + 时间窗 + 几个任务）');
 // 糖葫芦对决（活动类型 87）：新的一段 + 反推的行为枚举（1 匹配 / 2 结算 / 3 进度）
 ok(/data-sub="color">🎨 涂色</.test(s) && /id="sub-panel-color"/.test(s)
   && /id="coloringCard"/.test(s) && /id="coloringPalette"/.test(s) && /id="coloringPics"/.test(s)
@@ -1118,26 +1121,27 @@ ok(/function sdBuildLog\(logs, tasks\)/.test(s) && /const byId = \{\};/.test(s)
   && /const done = newS === '2' \|\| \(hasP && hasT && np >= tg\);/.test(s)
   && /segs\.push\('还差 ' \+ \(tg - np\)\)/.test(s) && /segs\.push\('已完成'\)/.test(s)
   && /segs\.push\('可领取 ' \+ rw\.join\(' \+ '\)\)/.test(s)
-  && /const d = sdDayText\(it\.t\.day\) \|\| '未标天数';/.test(s),
+  && /const d = sdDayText\(it\.row\.day\) \|\| '未标天数';/.test(s),
   '进度话术口径：按任务ID 查任务表 → 第几天分组 + 到了多少/目标 + 还差多少 / 已完成时能领什么（同任务多条日志合成一条）');
 ok(/const SD_PERIOD_MAX = [1-9]\d*;/.test(s)
   && /function sdPeriodInfo\(tasks\)/.test(s) && /function sdTaskById\(id, byId, tasks\)/.test(s)
   && /if \(byId\[key\]\) return byId\[key\];/.test(s)
   && /if \(Math\.abs\(delta\) % info\.len !== 0\) return;/.test(s)
   && /const periods = Math\.abs\(delta\) \/ info\.len;/.test(s)
-  && /t: sdTaskById\(id, byId, tasks\) \|\| \{\}/.test(s)
+  && /const t = sdTaskById\(id, byId, tasks\) \|\| \{\};/.test(s)
+  && /row: usable \? t : \{\}/.test(s)
   && !/SD_PERIOD_STEP/.test(s),
   '期次换算是算出来的：从表里量出「一期多少条」，任何 ID 只要跟某一期同位置对齐（±35 / ±70 / ±140… 全认）就照抄那一行的天数 / 描述 / 目标 / 奖励（不再写死偏移量）');
 ok(/function sdCell\(v\)/.test(s) && /return \(s === '-' \|\| s === '—' \|\| s === '无' \|\| s === '\/'\) \? '' : s;/.test(s)
   && /const num = sdCell\(t\.custProgress\) \|\| sdCell\(t\.progress\);/.test(s)
-  && /const target = sdCell\(it\.t\.target\);/.test(s),
+  && /const target = \(it\.dm && it\.dm\.num != null\) \? String\(it\.dm\.num\) : sdCell\(it\.row\.target\);/.test(s),
   '表格里的「-」当空值：新一期表客户端进度 / 客户端状态那两列是「-」，既不会算成进度也不会算成目标');
 ok(/function sdClock\(v\)/.test(s) && /function sdProgressVerb\(desc\)/.test(s)
   && /const SD_VERBS = \['收集', '获取', '获得', '使用', '合成', '登录', '服务', '进行', '完成'\];/.test(s)
   && /const verb = sdProgressVerb\(name\) \|\| '进行';/.test(s)
   && /const segs = \['已' \+ verb \+ ' ' \+ \(prog \|\| '—'\) \+ \(hasT \? '\/' \+ target : ''\)\];/.test(s)
-  && /const prog = sdCell\(it\.newP\) \|\| sdCell\(it\.t\.progress\);/.test(s)
-  && /else if \(!it\.t\.desc\) segs\.push\('可领取活动奖励'\);/.test(s)
+  && /const prog = sdCell\(it\.newP\) \|\| sdCell\(it\.row\.progress\);/.test(s)
+  && /else if \(!it\.row\.desc\) segs\.push\('可领取活动奖励'\);/.test(s)
   && /lines\.push\(\(i \+ 1\) \+ '\. ' \+ \(clock \? clock \+ ' ' : ''\) \+ name \+ '：' \+ segs\.join\('，'\)\);/.test(s)
   && !/label = name === \('任务' \+ it\.id\)/.test(s),
   '话术文字：时间点 + 任务描述（不带任务ID）+「已收集 11417/16000，还差 4583」/「…，已完成，可领取 …」；任务表里认不出的ID 也统一成「已进行 N」+「可领取活动奖励」句式');
@@ -1145,6 +1149,17 @@ ok(/function sdItemLabel\(id, num\)/.test(s) && /const map = \(typeof itemNameMa
   && /map\[String\(id\)\]/.test(s) && /function sdRewardText\(reward\)/.test(s)
   && /\\d\+\)\\s\*\[\+\*x×\/\]/.test(s) && /function sdStatusText\(v\)/.test(s),
   '七日任务：奖励写成「道具名×数量」（102+15 / 50101*1 都认）、状态按 1 未完成 / 2 可领取');
+// 2026-11 后台在进度日志里加了「任务需求」列（任务ID 和 老进度 之间）→ 9 列；老日志还是 8 列，两种都认
+ok(/function sdLogOrderFor\(cells\)/.test(s)
+  && /const SD_LOG_ORDER_LEGACY = \['time', 'schedule', 'event', 'id', 'oldP', 'newP', 'oldS', 'newS'\];/.test(s)
+  && /'任务需求': 'demand'/.test(s)
+  && /const SD_LOG_ORDER = \['time', 'schedule', 'event', 'id', 'demand', 'oldP', 'newP', 'oldS', 'newS'\];/.test(s)
+  && /const ord = typeof order === 'function' \? order\(cells\) : order;/.test(s)
+  && /log: sdParseRows\(l \? l\.value : '', SD_LOG_ALIASES, sdLogOrderFor\)/.test(s)
+  && /function sdParseDemand\(v\)/.test(s) && /const dm = sdParseDemand\(last\.demand\);/.test(s)
+  && /const usable = !dm \|\| exactOf\(id\) \|\| String\(sdCell\(t\.target\)\) === String\(dm\.num\);/.test(s)
+  && /const name = \(it\.dm && it\.dm\.text\) \|\| it\.row\.desc \|\| \('任务' \+ it\.id\);/.test(s),
+  '七日任务：进度日志 2026-11 多了「任务需求」列（9 列）→ 任务名与目标以日志文本为准（8 列老日志自动按老列序）；「± 一期」估出来的那一行跟日志需求对不上时不借它的天数 / 奖励');
 ok(/const SD_STATE_KEY = 'sevendayTaskState';/.test(s)
   && /localStorage\.setItem\(SD_STATE_KEY/.test(s) && /localStorage\.getItem\(SD_STATE_KEY/.test(s)
   && /已清空日志与结果'/.test(s) && !/saveData\('sevenday/.test(s),

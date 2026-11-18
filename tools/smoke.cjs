@@ -325,6 +325,35 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     '6 条奖励的数量都对（「97」那个奖励组 id 不会混进名字）', orderOut);
   check(!/好评点占位|主题装扮|探险活动棋盘|装修券大放送/.test(orderOut),
     '奖励行尾巴上的来源说明不会串进名字', orderOut);
+  // 2026-11 用户这次贴的原文（好感度订单：难度分 22 混在奖励行前 + 「订单需求」两行棋子）
+  $('globalResultArea').value = '';
+  $('smartPasteInput').value = [
+    '224724418\t5548810621\t107 - 好感度订单\t12\t稚子\t\t20106 - Lv.6 - 芙蓉糕',
+    '20503 - Lv.3 - 圆灯笼',
+    '22\t玲珑糕点 x 3',
+    '日铸雪芽茶 x 1 灶神显灵',
+    '火锅积分 x 14 主题装扮',
+    '2026-11-18 08:21:51\t完成\t2026-11-18 08:22:52',
+  ].join('\n');
+  $('smartParseBtn').click();
+  await sleep(30);
+  const loveOut = $('globalResultArea').value;
+  check(/在2026\/11\/18 08:22:52提交芙蓉糕、圆灯笼完成订单/.test(loveOut) && !/稚子/.test(loveOut),
+    '2026-11 新格式：两条棋子（第二行续行）+ NPC 名字不混进话术', loveOut);
+  check(/玲珑糕点[：:]3/.test(loveOut) && /日铸雪芽茶[：:]1/.test(loveOut) && /火锅积分[：:]14/.test(loveOut)
+    && !/主题装扮|灶神显灵/.test(loveOut),
+    '难度分 22 当细胞忽略；三条奖励数量都对，尾巴上的来源说明（灶神显灵 / 主题装扮）不进话术', loveOut);
+  // 一格/一行挤了两条「名字 x 数量」→ 两条都要认（原来只收前一条，后一条被当来源丢掉）
+  $('globalResultArea').value = '';
+  $('smartPasteInput').value = [
+    '224724418\t5548810621\t107 - 好感度订单\t12\t稚子\t\t20106 - Lv.6 - 芙蓉糕',
+    '铜钱 x 54 好评点 x 1',
+    '2026-11-18 08:21:51\t完成\t2026-11-18 08:22:52',
+  ].join('\n');
+  $('smartParseBtn').click();
+  await sleep(30);
+  check(/铜钱[：:]54，好评点[：:]1$/.test($('globalResultArea').value.trim()),
+    '同一行两条奖励（铜钱 x 54 好评点 x 1）都会认出来', $('globalResultArea').value);
   // 2026-11 用户截图：真实表格版（「订单需求」一格两行棋子 + NPC 在列里 + 火锅积分同表出现三次）
   const orderTable = [
     '27335885\t5539406769\t113 - 鹦鹉订单 - No.17\t16\t旺财\t\t20609 - Lv.9 - 蝶恋花头簪',
@@ -2361,8 +2390,8 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     $('sdGenerateBtn').click();
     await sleep(40);
     const outNew = $('sdOutput').value;
-    check(/^七日任务进度（活动排期 38） · 共 4 个任务/.test(outNew),
-      '新一期（2766–2800）的日志：抬头只写排期 38（38 不在内置排期表里，不编时间窗）', outNew.split('\n')[0]);
+    check(/^七日任务进度（活动排期 38：2026\/11\/16 8:00~2026\/11\/25 7:59） · 共 4 个任务/.test(outNew),
+      '新一期（2766–2800）的日志：抬头写排期 38 + 时间窗（2026-11 快照把 38 / 39 补进了排期表）', outNew.split('\n')[0]);
     check(/登录1天：已登录 1\/1，已完成，可领取 积分 10 \+ 铜钱×15/.test(outNew),
       '2766 = 第1天 登录1天（新一期的表读到了，不是按 2521 那期估的）', outNew);
     check(/获得18张4星百戏牌：已获得 16\/18，还差 2/.test(outNew),
@@ -2541,6 +2570,34 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
       '一次粘两期进度日志 → 抬头不再写单期，改成按期分段（每段写排期时间窗 + 几个任务）', sdMulti);
     check(sdMulti.indexOf('活动排期 34') < sdMulti.indexOf('活动排期 36'),
       '多期按日志里的排期顺序排（34 在 36 前面）');
+
+    // 2026-11 后台进度日志多了「任务需求」列（9 列）→ 需求数量以日志文本为准
+    $('sdLogInput').value = '2026-11-18 08:21:56\t38\t87ba82b2f91286ddf9172c047aadf7a9\t3114\t收集27000个铜钱\t9233\t9551\t1\t1';
+    fire($('sdLogInput'), 'input');
+    $('sdGenerateBtn').click();
+    await sleep(40);
+    const sdDemand = $('sdOutput').value;
+    check(/收集27000个铜钱：已收集 9551\/27000，还差 17449/.test(sdDemand),
+      '日志带「任务需求」列（9 列）：目标按日志的 27000 算，不是任务表里按「± 一期」估出来的 24000', sdDemand);
+    check(/^未标天数$/m.test(sdDemand) && !/第7天/.test(sdDemand),
+      '3114 表里没有、估出来的那一行需求又对不上 → 不借它的天数（不瞎写第7天），但进度 / 目标 / 还差照算', sdDemand);
+    // 带表头的 9 列：按「任务需求」列名对齐，命中内置表的那条仍然按表里的天数 / 奖励出
+    $('sdLogInput').value = [
+      '创建时间\t活动排期ID\t事件UUID\t任务ID\t任务需求\t老进度\t新进度\t老状态\t新状态',
+      '2026-11-18 08:21:56\t38\t87ba82b2f91286ddf9172c047aadf7a9\t2800\t服务200个顾客\t100\t155\t1\t1',
+    ].join('\n');
+    fire($('sdLogInput'), 'input');
+    $('sdGenerateBtn').click();
+    await sleep(40);
+    check(/^第7天$/m.test($('sdOutput').value) && /服务200个顾客：已服务 155\/200，还差 45/.test($('sdOutput').value),
+      '带表头的 9 列日志也认（2800 精确命中内置表 → 天数 / 还差照算）', $('sdOutput').value);
+    // 老版 8 列照旧
+    $('sdLogInput').value = '2026-10-22 09:55:55\t34\tbbb\t2504\t91\t100\t1\t2';
+    fire($('sdLogInput'), 'input');
+    $('sdGenerateBtn').click();
+    await sleep(40);
+    check(/使用100个道具：已使用 100\/100，已完成，可领取 积分 50/.test($('sdOutput').value),
+      '老版 8 列日志（没有任务需求列）仍按老列序认', $('sdOutput').value);
   }
 
   console.log('--- 8q-2. 糖葫芦对决（活动类型 87 = 糖葫芦2v2，反推：1 匹配 / 2 结算 / 3 进度） ---');

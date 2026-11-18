@@ -4233,13 +4233,14 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                     <details class="stat-fold">
                         <summary>粘法 / 列名说明</summary>
                         <div>
-                            七日任务进度日志整表复制：<b>创建时间 · 活动排期ID · 事件UUID · 任务ID · 老进度 · 新进度 · 老状态 · 新状态</b>。<br>
+                            七日任务进度日志整表复制：<b>创建时间 · 活动排期ID · 事件UUID · 任务ID · 任务需求 · 老进度 · 新进度 · 老状态 · 新状态</b>（2026-11 后台加了「任务需求」这一列，老日志没有也能粘）。<br>
+                            <b>任务需求以日志文本为准</b>：日志里写「收集27000个铜钱」，目标就按 27000 算，不照抄内置任务表。<br>
                             表头写对这些词就按名字对齐（顺序随便）；不带表头就按上面这个列序认。<br>
                             状态是后台的数字口径：<b>1 = 未完成、2 = 可领取</b>。新状态 2 或新进度够目标 = 这个任务达成了，会把这单能领的积分 / 奖励一起写出来。<br>
                             同一个任务粘了好几行也没关系：老进度取最早那条、新进度与状态取最新那条，合成一句。
                         </div>
                     </details>
-                    <textarea id="sdLogInput" rows="9" placeholder="创建时间&#9;活动排期ID&#9;事件UUID&#9;任务ID&#9;老进度&#9;新进度&#9;老状态&#9;新状态&#10;2026-10-22 09:55:55&#9;34&#9;a520c425ce76a1c7c728149f8e25cff9&#9;2504&#9;91&#9;100&#9;1&#9;2"></textarea>
+                    <textarea id="sdLogInput" rows="9" placeholder="创建时间&#9;活动排期ID&#9;事件UUID&#9;任务ID&#9;任务需求&#9;老进度&#9;新进度&#9;老状态&#9;新状态&#10;2026-11-18 08:21:56&#9;38&#9;87ba82b2f91286ddf9172c047aadf7a9&#9;3114&#9;收集27000个铜钱&#9;9233&#9;9551&#9;1&#9;1"></textarea>
                 </div>
 
                 <div class="card">
@@ -9041,8 +9042,17 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                                             if (!payload) return;
                                             const pn = pieceNameOf(payload);                  // 「订单需求」那一格的续行 = 棋子
                                             if (pn) { pushPiece(pn); return; }
-                                            const m = payload.match(/^(.+?)\s*[x×✕]\s*(\d+)\s*(.*)$/);
-                                            if (m) { pushReward(m[1], m[2]); return; }
+                                            // 2026-11 新格式：一行/一格可能挤好几条（`铜钱 x 54 好评点 x 1`）→ 从前往后一条条收。
+                                            // 收完剩下的尾巴是来源说明（`灶神显灵` / `主题装扮` / `49探险活动棋盘`），既不进名字也不算奖励。
+                                            let rest = payload, got = false;
+                                            while (rest) {
+                                                const m = rest.match(/^(.+?)\s*[x×✕]\s*(\d+)(?:\s+|$)(.*)$/);
+                                                if (!m) break;
+                                                pushReward(m[1], m[2]);
+                                                got = true;
+                                                rest = String(m[3] || '').trim();
+                                            }
+                                            if (got) return;
                                             const m2 = payload.match(/^(.+?)[\s:：]+(\d+)\s*$/);
                                             if (m2) { pushReward(m2[1], m2[2]); return; }
                                             if (!loose) return;                               // 表头字段只认明确带「x 数量」的
@@ -17146,13 +17156,23 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                                         '活动排期id': 'schedule', '排期id': 'schedule', '活动排期': 'schedule', '排期': 'schedule',
                                         '事件uuid': 'event', '事件': 'event', 'uuid': 'event',
                                         '任务id': 'id', 'id': 'id',
+                                        // 2026-11 后台在「任务ID」和「老进度」之间插了一列「任务需求」（例：收集27000个铜钱）
+                                        '任务需求': 'demand', '任务需求数量': 'demand', '需求': 'demand', '需求数量': 'demand',
                                         '老进度': 'oldP', '原进度': 'oldP', '旧进度': 'oldP',
                                         '新进度': 'newP', '当前进度': 'newP',
                                         '老状态': 'oldS', '原状态': 'oldS', '旧状态': 'oldS',
                                         '新状态': 'newS', '当前状态': 'newS'
                                     };
                                     const SD_TASK_ORDER = ['id', 'day', 'desc', 'target', 'progress', 'custProgress', 'custStatus', 'status', 'score', 'reward'];
-                                    const SD_LOG_ORDER = ['time', 'schedule', 'event', 'id', 'oldP', 'newP', 'oldS', 'newS'];
+                                    const SD_LOG_ORDER = ['time', 'schedule', 'event', 'id', 'demand', 'oldP', 'newP', 'oldS', 'newS'];
+                                    const SD_LOG_ORDER_LEGACY = ['time', 'schedule', 'event', 'id', 'oldP', 'newP', 'oldS', 'newS'];
+                                    // 2026-11 后台加了「任务需求」列 → 9 列；老日志还是 8 列。
+                                    // 不带表头时按第 5 格判：数字 /「-」= 老版（这一格是进度），带中文 = 新版（这一格是需求）。
+                                    function sdLogOrderFor(cells) {
+                                        const c = String((cells || [])[4] == null ? '' : cells[4]).trim();
+                                        const numeric = !c || c === '-' || c === '—' || /^-?\d+(\.\d+)?$/.test(c);
+                                        return numeric ? SD_LOG_ORDER_LEGACY : SD_LOG_ORDER;
+                                    }
 
                                     // 七日任务「活动排期」表（2026-11 从 GM 玩家页「七日任务进度日志」的排期下拉抄下来的：id|起~止）
                                     // 用处：话术抬头写清这一期的时间窗（客服最常被追问「这期到几号」），多期日志也能分段。
@@ -17192,6 +17212,9 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                                         '35|2026/10/26 8:00~2026/11/4 7:59',
                                         '36|2026/11/2 8:00~2026/11/11 7:59',
                                         '37|2026/11/9 8:00~2026/11/18 7:59',
+                                        // 2026-11 快照：GM「七日任务进度日志」的排期下拉新加了 38 / 39
+                                        '38|2026/11/16 8:00~2026/11/25 7:59',
+                                        '39|2026/11/23 8:00~2026/12/2 7:59',
                                     ];
                                     let sdScheduleMap = null;
                                     function sdScheduleOf(id) {
@@ -17410,13 +17433,17 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                                             if (key && byName[key] === undefined) { byName[key] = i; hit++; }
                                         });
                                         const useHeader = hit >= 3;
-                                        const colOf = {};
-                                        if (useHeader) Object.keys(byName).forEach(k => { colOf[k] = byName[k]; });
-                                        else order.forEach((k, i) => { colOf[k] = i; });
+                                        const headerCols = {};
+                                        Object.keys(byName).forEach(k => { headerCols[k] = byName[k]; });
                                         const items = [];
                                         for (const line of lines.slice(useHeader ? 1 : 0)) {
                                             const cells = sdSplitRow(line);
                                             if (!cells.length) continue;
+                                            // 列序可以给数组，也可以给函数（七日任务日志新旧两版列数不一样，按内容挑）
+                                            const ord = typeof order === 'function' ? order(cells) : order;
+                                            const colOf = {};
+                                            if (useHeader) Object.keys(headerCols).forEach(k => { colOf[k] = headerCols[k]; });
+                                            else ord.forEach((k, i) => { colOf[k] = i; });
                                             const row = {};
                                             Object.keys(colOf).forEach(k => {
                                                 const v = cells[colOf[k]];
@@ -17459,7 +17486,7 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                                         const l = document.getElementById('sdLogInput');
                                         return {
                                             task: sdParseRows(SD_TASK_DEFAULT, SD_TASK_ALIASES, SD_TASK_ORDER),
-                                            log: sdParseRows(l ? l.value : '', SD_LOG_ALIASES, SD_LOG_ORDER)
+                                            log: sdParseRows(l ? l.value : '', SD_LOG_ALIASES, sdLogOrderFor)
                                         };
                                     }
                                     function sdRenderHead() {
@@ -17529,6 +17556,18 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                                         if (!m) return s;
                                         const p2 = n => (String(n).length < 2 ? '0' + n : String(n));
                                         return p2(m[2]) + '-' + p2(m[3]) + ' ' + p2(m[4]) + ':' + m[5];
+                                    }
+                                    // 日志里「任务需求」那一格（如「收集27000个铜钱」）→ 名称 + 数量
+                                    // 2026-11 用户：「七日任务的任务需求数量以复制的日志文本为准」——表里没有的 ID 也能说清差多少
+                                    function sdParseDemand(v) {
+                                        const text = sdCell(v);
+                                        if (!text || !/[\u4e00-\u9fa5A-Za-z]/.test(text)) return null;
+                                        const m = /(\d[\d,]*(?:\.\d+)?)\s*(万|w|W)?/.exec(text);
+                                        if (!m) return { text: text, num: null };
+                                        let n = parseFloat(String(m[1]).replace(/,/g, ''));
+                                        if (!isFinite(n)) return { text: text, num: null };
+                                        if (m[2]) n = n * 10000;
+                                        return { text: text, num: Math.round(n) };
                                     }
                                     // 任务描述开头的动词（收集 / 使用 / 获取…）→ 「已收集 11417」这种说法；认不出就用「进度」
                                     const SD_VERBS = ['收集', '获取', '获得', '使用', '合成', '登录', '服务', '进行', '完成'];
@@ -17617,17 +17656,27 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                                             if (!seq[id]) { seq[id] = []; order.push(id); }
                                             seq[id].push(l);
                                         });
+                                        const exactOf = k => Object.prototype.hasOwnProperty.call(byId, String(k));
                                         const items = order.map(id => {
                                             const rows = seq[id].slice().sort((a, b) => String(a.time || '').localeCompare(String(b.time || '')));
                                             const first = rows[0], last = rows[rows.length - 1];
+                                            const t = sdTaskById(id, byId, tasks) || {};
+                                            // 2026-11 用户：「任务需求数量以复制的日志文本为准」→ 日志带了需求就用日志的，
+                                            // 不照抄内置表的目标（新一期 ID 表里没有、靠「± 一期」估出来的那一行目标经常是错的）。
+                                            const dm = sdParseDemand(last.demand);
+                                            // 估出来的那一行（不是精确命中）跟日志里的需求对不上 → 天数 / 进度 / 奖励也不借它的，
+                                            // 否则会把「还差多少」算到别的任务头上（例：3114 估成 2799「收集24000个铜钱」）
+                                            const usable = !dm || exactOf(id) || String(sdCell(t.target)) === String(dm.num);
                                             return {
                                                 id: id,
+                                                dm: dm,
                                                 oldP: String(first.oldP == null ? '' : first.oldP).trim(),
                                                 newP: String(last.newP == null ? '' : last.newP).trim(),
                                                 newS: String(last.newS == null ? '' : last.newS).trim(),
                                                 time: String(last.time == null ? '' : last.time).trim(),
                                                 schedule: String(last.schedule == null ? '' : last.schedule).trim(),
-                                                t: sdTaskById(id, byId, tasks) || {}
+                                                t: t,
+                                                row: usable ? t : {}
                                             };
                                         });
                                         // 按「活动排期」分组（2026-11 优化：一次粘多期日志也对，不再把几期混在一起按天排）
@@ -17645,7 +17694,7 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                                         const sections = schedOrder.map(key => {
                                             const days = {}, dayOrder = [];
                                             scheds[key].forEach(it => {
-                                                const d = sdDayText(it.t.day) || '未标天数';
+                                                const d = sdDayText(it.row.day) || '未标天数';
                                                 if (!days[d]) { days[d] = []; dayOrder.push(d); }
                                                 days[d].push(it);
                                             });
@@ -17663,11 +17712,12 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                                             lines.push(d);
                                             days[d].forEach((it, i) => {
                                                 // 话术里不写任务ID：用「时间点 + 任务描述 + 进度」说清楚
-                                                const name = it.t.desc || ('任务' + it.id);
+                                                const name = (it.dm && it.dm.text) || it.row.desc || ('任务' + it.id);
                                                 const clock = sdClock(it.time);
-                                                const target = sdCell(it.t.target);
+                                                // 需求数量以日志里那格为准（没带才回落到任务表的目标）
+                                                const target = (it.dm && it.dm.num != null) ? String(it.dm.num) : sdCell(it.row.target);
                                                 // 日志里的「新进度」为准；日志没带（空 /「-」）就用任务表「进度」那一列兜底
-                                                const prog = sdCell(it.newP) || sdCell(it.t.progress);
+                                                const prog = sdCell(it.newP) || sdCell(it.row.progress);
                                                 const np = Number(prog), tg = Number(target);
                                                 const hasP = prog !== '' && isFinite(np);
                                                 const hasT = target !== '' && isFinite(tg);
@@ -17683,12 +17733,12 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                                                 // 已完成 → 能领什么（客服最常被问）
                                                 if (done) {
                                                     const rw = [];
-                                                    if (it.t.score) rw.push('积分 ' + it.t.score);
-                                                    const r = sdRewardText(it.t.reward);
+                                                    if (it.row.score) rw.push('积分 ' + it.row.score);
+                                                    const r = sdRewardText(it.row.reward);
                                                     if (r) rw.push(r);
                                                     if (rw.length) segs.push('可领取 ' + rw.join(' + '));
                                                     // 任务ID 不在内置表里 → 具体奖励不知道，但这半句也要有，句式才和别的行一致
-                                                    else if (!it.t.desc) segs.push('可领取活动奖励');
+                                                    else if (!it.row.desc) segs.push('可领取活动奖励');
                                                 }
                                                 lines.push((i + 1) + '. ' + (clock ? clock + ' ' : '') + name + '：' + segs.join('，'));
                                             });
