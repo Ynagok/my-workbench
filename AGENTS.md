@@ -48,7 +48,7 @@ npm run verify     # 改完代码、push 前的完整自检
 
 | 命令 | 内容 |
 |---|---|
-| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 734 项 + 「接口挂起时界面仍可用」+ 服务端冒烟 42 项 |
+| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 739 项 + 「接口挂起时界面仍可用」+ 服务端冒烟 42 项 |
 | `npm run verify:static` | 只要静态校验 + 语法检查（最快） |
 | `npm run report` | 打印一份真实生成的日报，肉眼确认排版（含 ⑥伙伴弹途 / ⑦异世界勇者） |
 | `npm run build:data` | 从 GM 玩家页快照提取 4 张权威映射表 + 与硬编码常量的**差异报告**（见下「游戏数据管线」） |
@@ -60,7 +60,7 @@ npm run verify     # 改完代码、push 前的完整自检
 | `npm run smoke:pmc` | **生管物料订单工作台**（`public/pmc.html`）自检，123 项（含加工周期工作日推算 + 在途锁定/调整建议 + 真实 8.5MB xlsx 端到端导入）；**不在 verify 里**，见下「生管物料订单工作台」一节 |
 | `npm test` | = `npm run verify` |
 
-`npm run verify` 失败就不要提交。它一共 5 段：静态结构 → 语法 → jsdom 集成冒烟 **734 项** → 接口挂起时界面仍可用 → 服务端冒烟 **42 项**。
+`npm run verify` 失败就不要提交。它一共 5 段：静态结构 → 语法 → jsdom 集成冒烟 **739 项** → 接口挂起时界面仍可用 → 服务端冒烟 **42 项**。
 
 - jsdom 未安装时前端冒烟会自动回落到本机 DSH 自带的那份。
 - `tools/smoke-server.cjs` 用 `PORT` + `DATA_FILE` 环境变量把服务端指到随机端口和 `tools/out/` 里的临时文件，**不会碰真实 `data.json`**；子进程 stdio 必须用 `ignore`/`inherit`（沙箱禁管道，`pipe` 会 EPERM）。
@@ -1022,4 +1022,9 @@ package.json               scripts: start / verify / verify:static / smoke:serve
   2. **活动日历整块删掉**（用户：「活动日历去掉」）：侧边栏标签 / `#tab-calendar` / `CAL_KINDS` / `CAL_TABLE` / `cal*` 函数 / 绑定 / `.cal-*` CSS 全没了，`SD_SCHEDULE` 保留（七日任务还在用）。
   3. **糖葫芦对决整块删掉**（用户：「糖葫芦去掉」）：`#genTanghuluPane` + `THL_*` / `thl*` + 绑定全没了；活动查询从三段变**两段**（01 七日任务 / 02 吉运节节高），默认段改成 `sevenday`。⚠️ 映射表里的 `87 糖葫芦2v2` / `263 糖葫芦比拼活动奖励` / `805·806·500714` 照旧保留。
   4. **新增「常用网址」标签页**（用户：「增加新的标签页功能，常用网址」）：见上「🔗 常用网址」一节；数据走 `/api/data/quickLinks`。
-  5. **测试**：`smoke.cjs` 删掉 8q-2（糖葫芦 21 条）/ 8z-4（活动日历 13 条），新增 **8x-9 常用网址 16 条** 与 **8x-10 侧边栏顺序恢复 3 条**（造一份「跨组乱排」的 `tabsOrder`，另起一个 jsdom 断言每组按钮回到自己组、四个组标题都在、拖拽那套还在），活动查询改两段（+2 条），冒烟 748 → **734**；`verify.mjs` 同步删/改那几条断言（活动日历与糖葫芦都换成反向断言、活动查询两段、常用网址一整套、侧边栏「分组 + 组内拖拽」那套写法），静态断言数量不变口径。
+  5. **测试**：`smoke.cjs` 删掉 8q-2（糖葫芦 21 条）/ 8z-4（活动日历 13 条），新增 **8x-9 常用网址 16 条** 与 **8x-10 侧边栏顺序恢复 3 条**（造一份「跨组乱排」的 `tabsOrder`，另起一个 jsdom 断言每组按钮回到自己组、四个组标题都在、拖拽那套还在），活动查询改两段（+2 条），冒烟 748 → **739**；`verify.mjs` 同步删/改那几条断言（活动日历与糖葫芦都换成反向断言、活动查询两段、常用网址一整套、侧边栏「分组 + 组内拖拽」那套写法），静态断言数量不变口径。
+  6. **⚠️ 踩过的坑：删标签页面板时漏一个 `</div>` → 整页「打不开功能」**（用户截图：侧边栏在、右边一片空白）。
+     - 删「糖葫芦对决」那段 HTML 时，范围吃到的是「面板自己 + `#tab-activity` 的收尾 `</div>`」，于是 `#tab-activity` 再也没闭合，**后面所有 `.tab-content` 都被套进了它里面**；`#tab-activity` 不是 `.active` → 子面板一起被藏掉 → 点哪个标签都是白板（`.tab-content` 各自都已 `display:none`，只看 `.active` 那个）。
+     - 症状识别：`statsSetSeg('tab-gen', 'reply')` 明明跑了，`#tab-gen` 的两张分段卡却「`data-seg-card` 对、`seg-on` 没了」——因为 `#tab-activity` 那次 `statsSetSeg` 把它们当自己的卡一起关掉了（`#tab-activity`.querySelectorAll 能捞到子面板的卡）。
+     - 修法：在 `#tab-activity` 里最后一个面板 `#genTeaInfoPane` 的 `</div>` 之后补回 `        </div>`（`public/index.html` 里「吉运节节高 → 话术」那段后面一行）。
+     - **回归测试**：`smoke.cjs` 第 **8x-11** 节 **5 条** —— 12 个 `.tab-content` 都在、**所有面板是同一个父级 `.container`**、没有「面板套面板」（`.tab-content .tab-content`）、`#tab-gen` 两张卡加载后都带 `seg-on`、`#tab-card` 默认停在 `speech`。以后删/搬面板先看这几条。

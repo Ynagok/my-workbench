@@ -3718,6 +3718,28 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
   }
 
 
+  console.log('--- 8x-11. 标签页面板结构（不能互相嵌套，否则整页打不开）---');
+  {
+    const panes = [...doc.querySelectorAll('.tab-content')];
+    check(panes.length === 12, '12 个标签页面板都在', panes.length);
+    const parents = [...new Set(panes.map(p => p.parentElement))];
+    check(parents.length === 1 && parents[0] && /(^|\s)container(\s|$)/.test(parents[0].className || ''),
+      '所有 .tab-content 是同一个父级（.container）——删面板时漏一个 </div> 会把后面的面板套进去，点开就是白板',
+      parents.map(p => (p && (p.id || p.className)) || '?').join(','));
+    check(!doc.querySelector('.tab-content .tab-content'),
+      '没有「面板套面板」（套进去的那个会被隐藏的祖先一起藏掉，等于打不开）',
+      (doc.querySelector('.tab-content .tab-content') || {}).id || '');
+    // 话术生成页（只有一段）在加载后必须是可见的
+    check(doc.getElementById('tab-gen').querySelectorAll('[data-seg-card]').length === 2
+      && doc.getElementById('tab-gen').querySelectorAll('.seg-on').length === 2,
+      '「话术生成」两张分段卡加载后都带 seg-on（不是白板）',
+      doc.getElementById('tab-gen').querySelectorAll('.seg-on').length);
+    check(doc.getElementById('tab-card').querySelector('.seg-on') !== null
+      && doc.getElementById('tab-card').querySelector('.seg-on').getAttribute('data-seg-card') === 'speech',
+      '「集卡分析」默认停在第一段（集卡话术）');
+  }
+
+
   console.log('--- 8z-2. 涂色游戏（Anycolor 玩法：内置图库 + 位图填充）---');
   {
     const posts9 = posts.length;
