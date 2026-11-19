@@ -8838,31 +8838,69 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                                                 else if (anyTime) timeStr = anyTime.replace(/-/g, '/');
                                                 else return ['❌ 未找到有效时间（请检查数据中是否包含领取时间）'];
 
-                                                const itemCount = new Map();
+                                                // 2026-11 用户：「识别生成的话术中的数量不对」——这块后台是**一列一列**粘出来的：
+                                                //   奖励列 `名字 x 1` 24 行、道具 ID 列 24 行、状态列（轮次 / 时间 / 是否成功）7 行，
+                                                //   三列行数不一样，状态会跟其中几行的 ID 挤在同一行上。
+                                                //   原来「取一行最后一格」+「整行含说明词就整行丢掉」→ 被状态挤住的那几行连同奖励一起消失，
+                                                //   数量就少几个。现在改成**逐格认**：奖励格优先、ID 格兜底，同一行既有名字又有 ID 只算一次。
+                                                const nameCount = new Map();   // 名字格（`方山露芽茶 x 1` / `竹子`）
+                                                const idCount = new Map();     // ID 格（`20305` → 物品名表换名字）
                                                 // [优化] 放宽中文正则：允许中文 + 数字 + 常见符号
                                                 const itemRegex = /^[\u4e00-\u9fa5][\u4e00-\u9fa5\d\w·\-（）()【】]*$/;
-                                                // 说明行（轮次 / 时间 / 状态 / 刷新 / 解锁…）不是奖励
-                                                const skipLine = /轮次|开始时间|结束时间|是否|状态|刷新|解锁/;
-                                                const addItem = function (name) {
+                                                // 说明格（轮次 / 时间 / 状态 / 刷新 / 解锁…）不是奖励
+                                                const skipCell = /轮次|开始时间|结束时间|是否|状态|刷新|解锁|成功|数量|道具ID|道具id/i;
+                                                // 光秃秃一个时间戳（`2026-11-19 12:56:35`）也不是奖励
+                                                const timeOnly = /^\d{4}[-\/]\d{1,2}[-\/]\d{1,2}(?:\s+\d{1,2}:\d{1,2}(?::\d{1,2})?)?$/;
+                                                const bump = function (map, name, n) {
                                                     const nm = String(name == null ? '' : name).trim();
                                                     if (!nm) return;
-                                                    itemCount.set(nm, (itemCount.get(nm) || 0) + 1);
+                                                    const cnt = parseInt(n, 10);
+                                                    map.set(nm, (map.get(nm) || 0) + (cnt > 0 ? cnt : 1));
+                                                };
+                                                // 一格里可能是 `铜钱 x 54`，也可能挤了好几条（`好评点 x 1 好评点占位`）
+                                                const absorbCell = function (text) {
+                                                    let rest = String(text == null ? '' : text).trim();
+                                                    let got = false;
+                                                    while (rest) {
+                                                        const m = rest.match(/^(.+?)\s*[x×✕]\s*(\d+)(?:\s+|$)(.*)$/);
+                                                        if (!m) break;
+                                                        if (/[\u4e00-\u9fa5]/.test(m[1]) && !skipCell.test(m[1])) bump(nameCount, m[1], m[2]);
+                                                        got = true;
+                                                        rest = String(m[3] || '').trim();
+                                                    }
+                                                    return got;
                                                 };
                                                 for (let i = 0; i < lines.length; i++) {
                                                     const line = lines[i];
-                                                    if (!line || skipLine.test(line)) continue;
-                                                    // 一行多列时取最后一列（「20504\t椭圆灯笼」这种）
-                                                    const segs = line.split('\t').map(function (t) { return t.trim(); }).filter(function (t) { return t; });
-                                                    const cand = (segs.length ? segs[segs.length - 1] : line).trim();
-                                                    if (!cand) continue;
-                                                    // 只给了棋子 id（20504 / 20505 这种）→ 用物品名表换成名字
-                                                    if (/^\d{3,}$/.test(cand)) {
-                                                        const nm = resolveItemName(cand);
-                                                        if (nm && nm !== cand && /[\u4e00-\u9fa5]/.test(nm)) addItem(nm);
-                                                        continue;
+                                                    if (!line) continue;
+                                                    const cells = line.split('\t').map(function (t) { return t.trim(); }).filter(function (t) { return t; });
+                                                    const ids = [];
+                                                    let named = false;
+                                                    for (let k = 0; k < cells.length; k++) {
+                                                        const cell = cells[k];
+                                                        if (!cell || skipCell.test(cell) || timeOnly.test(cell)) continue;
+                                                        if (/^\d{3,}$/.test(cell)) { ids.push(cell); continue; }
+                                                        if (absorbCell(cell)) { named = true; continue; }
+                                                        if (itemRegex.test(cell)) { bump(nameCount, cell, 1); named = true; }
                                                     }
-                                                    if (itemRegex.test(cand)) addItem(cand);
+                                                    // 这一行已经认出名字就不再拿同行的 ID 换（同一样东西别算两份）
+                                                    if (named) continue;
+                                                    const seen = {};
+                                                    for (let k = 0; k < ids.length; k++) {
+                                                        const nm = resolveItemName(ids[k]);
+                                                        if (!nm || nm === ids[k] || !/[\u4e00-\u9fa5]/.test(nm)) continue;
+                                                        if (seen[nm]) continue;
+                                                        seen[nm] = 1;
+                                                        bump(idCount, nm, 1);
+                                                    }
                                                 }
+                                                // 两份统计只取更全的那份（奖励格 + ID 格都在时不会翻倍）
+                                                const totalOf = function (map) {
+                                                    let n = 0;
+                                                    map.forEach(function (v) { n += v; });
+                                                    return n;
+                                                };
+                                                const itemCount = totalOf(nameCount) >= totalOf(idCount) ? nameCount : idCount;
                                                 if (itemCount.size === 0) return ['未解析到有效奖励数据'];
 
                                                 const statsList = [];

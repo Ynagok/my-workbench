@@ -248,6 +248,53 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
   const reviewOut = $('globalResultArea').value;
   check(/获得好评奖励/.test(reviewOut), '好评奖励生成话术', reviewOut.slice(0, 90));
   check(/竹子\*2/.test(reviewOut) && /竹片\*1/.test(reviewOut), '好评奖励数量统计正确', reviewOut.slice(0, 90));
+
+  console.log('--- 2c-2. 好评奖励：GM 后台「一列一列」粘出来时数量也要对（2026-11 用户：数量不对） ---');
+  // 真实数据：奖励列 24 行、道具 ID 列 24 行、状态列（轮次/时间/是否成功）7 行，三列行数不一样，
+  // 所以状态会跟其中几行的 ID 挤在同一行上。原来「取一行最后一格」+「整行含说明词就整行丢掉」
+  // 会把被挤住的奖励一起吞掉（花草灯 3 → 2），用户看到的就是「数量不对」。
+  const gmRewards = [
+    '方山露芽茶 x 1', '雕花耳坠 x 1', '糖绒饼 x 1', '雕花耳坠 x 1', '双井白芽茶 x 1',
+    '方山露芽茶 x 1', '椭圆灯笼 x 1', '糖绒饼 x 1', '荷包 x 1', '椭圆灯笼 x 1',
+    '雕花耳坠 x 1', '花草灯 x 1', '椭圆灯笼 x 1', '日铸雪芽茶 x 1', '宝石戒指 x 1',
+    '半块西瓜 x 1', '圆灯笼 x 1', '花草灯 x 1', '椭圆灯笼 x 1', '椭圆灯笼 x 1',
+    '半块西瓜 x 1', '圆灯笼 x 1', '椭圆灯笼 x 1', '花草灯 x 1',
+  ];
+  const gmIds = [
+    '20305', '20605', '20104', '20605', '20306', '20305', '20504', '20104', '20703', '20504',
+    '20605', '20506', '20504', '20304', '20603', '20203', '20503', '20506', '20504', '20504',
+    '20203', '20503', '20504', '20506',
+  ];
+  const gmStatus = [
+    '当前轮次: 超级', '开始时间: 2026-11-19 10:42:01', '结束时间: 2026-11-19 12:42:01',
+    '是否成功: 否', '超级解锁状态: 是', '2026-11-19 12:56:35',
+  ];
+  const runReview = async (payload) => {
+    doc.querySelector('input[name="parseMode"][value="review"]').checked = true;
+    $('smartPasteInput').value = payload;
+    $('globalResultArea').value = '';
+    $('smartParseBtn').click();
+    await sleep(40);
+    return $('globalResultArea').value;
+  };
+  // ① 状态列挂在最后一个 ID 行上（截图里那种）
+  const gmOutA = await runReview(gmRewards.join('\n') + '\n' + gmIds.join('\n') + '\t' + gmStatus.join('\n'));
+  check(/花草灯\*3/.test(gmOutA), '好评奖励：状态跟 ID 挤在同一行也照样数（花草灯 3，不是 2）', gmOutA);
+  check(/椭圆灯笼\*6/.test(gmOutA) && /方山露芽茶\*2/.test(gmOutA) && /雕花耳坠\*3/.test(gmOutA),
+    '好评奖励：重复道具按出现次数累加', gmOutA);
+  check((gmOutA.match(/\*\d+/g) || []).length === 11
+    && (gmOutA.match(/\*\d+/g) || []).reduce((s, t) => s + parseInt(t.slice(1), 10), 0) === 24,
+    '好评奖励：11 种道具 24 件，不丢也不翻倍', gmOutA);
+  // ② 只有奖励名字（没有 ID 列）
+  const gmOutB = await runReview(gmRewards.join('\n') + '\n' + gmStatus.join('\n'));
+  check(/花草灯\*3/.test(gmOutB) && /圆灯笼\*2/.test(gmOutB), '好评奖励：只有名字列时同样数得对', gmOutB);
+  // ③ 只有 ID 列（名字列没粘上）→ 用物品名表换名字
+  const gmOutC = await runReview(gmIds.join('\n') + '\n' + gmStatus.join('\n'));
+  check(/方山露芽茶\*2/.test(gmOutC) && /椭圆灯笼\*6/.test(gmOutC), '好评奖励：只粘了 ID 列也能换出名字', gmOutC);
+  // ④ 名字列 + ID 列都在 → 不能算两份（24 件，不是 48 件）
+  const gmOutD = await runReview(gmRewards.join('\n') + '\n' + gmIds.join('\n') + '\n2026-11-19 12:56:35');
+  check((gmOutD.match(/\*\d+/g) || []).reduce((s, t) => s + parseInt(t.slice(1), 10), 0) === 24,
+    '好评奖励：名字列和 ID 列同时粘 → 不会翻倍', gmOutD);
   doc.querySelector('input[name="parseMode"][value="resource"]').checked = true;
 
   console.log('--- 2d. 资源类型「选什么就出什么」（已定语义，锁定防漂移） ---');

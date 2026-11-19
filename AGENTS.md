@@ -48,7 +48,7 @@ npm run verify     # 改完代码、push 前的完整自检
 
 | 命令 | 内容 |
 |---|---|
-| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 739 项 + 「接口挂起时界面仍可用」+ 服务端冒烟 42 项 |
+| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 745 项 + 「接口挂起时界面仍可用」+ 服务端冒烟 42 项 |
 | `npm run verify:static` | 只要静态校验 + 语法检查（最快） |
 | `npm run report` | 打印一份真实生成的日报，肉眼确认排版（含 ⑥伙伴弹途 / ⑦异世界勇者） |
 | `npm run build:data` | 从 GM 玩家页快照提取 4 张权威映射表 + 与硬编码常量的**差异报告**（见下「游戏数据管线」） |
@@ -60,7 +60,7 @@ npm run verify     # 改完代码、push 前的完整自检
 | `npm run smoke:pmc` | **生管物料订单工作台**（`public/pmc.html`）自检，123 项（含加工周期工作日推算 + 在途锁定/调整建议 + 真实 8.5MB xlsx 端到端导入）；**不在 verify 里**，见下「生管物料订单工作台」一节 |
 | `npm test` | = `npm run verify` |
 
-`npm run verify` 失败就不要提交。它一共 5 段：静态结构 → 语法 → jsdom 集成冒烟 **739 项** → 接口挂起时界面仍可用 → 服务端冒烟 **42 项**。
+`npm run verify` 失败就不要提交。它一共 5 段：静态结构 → 语法 → jsdom 集成冒烟 **745 项** → 接口挂起时界面仍可用 → 服务端冒烟 **42 项**。
 
 - jsdom 未安装时前端冒烟会自动回落到本机 DSH 自带的那份。
 - `tools/smoke-server.cjs` 用 `PORT` + `DATA_FILE` 环境变量把服务端指到随机端口和 `tools/out/` 里的临时文件，**不会碰真实 `data.json`**；子进程 stdio 必须用 `ignore`/`inherit`（沙箱禁管道，`pipe` 会 EPERM）。
@@ -1028,3 +1028,14 @@ package.json               scripts: start / verify / verify:static / smoke:serve
      - 症状识别：`statsSetSeg('tab-gen', 'reply')` 明明跑了，`#tab-gen` 的两张分段卡却「`data-seg-card` 对、`seg-on` 没了」——因为 `#tab-activity` 那次 `statsSetSeg` 把它们当自己的卡一起关掉了（`#tab-activity`.querySelectorAll 能捞到子面板的卡）。
      - 修法：在 `#tab-activity` 里最后一个面板 `#genTeaInfoPane` 的 `</div>` 之后补回 `        </div>`（`public/index.html` 里「吉运节节高 → 话术」那段后面一行）。
      - **回归测试**：`smoke.cjs` 第 **8x-11** 节 **5 条** —— 12 个 `.tab-content` 都在、**所有面板是同一个父级 `.container`**、没有「面板套面板」（`.tab-content .tab-content`）、`#tab-gen` 两张卡加载后都带 `seg-on`、`#tab-card` 默认停在 `speech`。以后删/搬面板先看这几条。
+
+- 本轮（2026-11）：**修「智能解析 → 好评奖励」数量少算**（用户截图：「识别生成的话术中的数量不对」）。
+  1. **原因**：GM 后台那块奖励是**一列一列**粘出来的 —— 奖励列 `名字 x 1` 24 行、道具 ID 列 24 行、状态列（`当前轮次 / 开始时间 / 结束时间 / 是否成功 / 超级解锁状态`）7 行，**三列行数不一样**，状态会跟其中几行的 ID 挤在同一行上（`20506\t当前轮次: 超级`）。旧 `parseReviewLog` 是 ①「整行含说明词就 `continue` 整行丢掉」+ ②「只取一行最后一格」→ 被状态挤住的那一行连同它的奖励 / ID 一起消失（实测 `花草灯` 3 → 2）。
+  2. **改法**：`parseReviewLog` 改成**逐格认** ——
+     - `skipCell`（轮次 / 开始时间 / 结束时间 / 是否 / 状态 / 刷新 / 解锁 / 成功 / 数量 / 道具ID）与 `timeOnly`（光秃秃的时间戳）**只跳过那一格**，不再丢整行；
+     - 每格按顺序试：`名字 x 数量`（`absorbCell` 循环收，一格挤好几条也认，数量照收）→ 纯数字 ≥3 位进 `ids` → `itemRegex` 中文名算 1；
+     - **同一行既有名字又有 ID 时只算名字那份**（`named` 标记），不会翻倍；
+     - 名字只出现在 ID 列时才用物品名表换（`resolveItemName`，同一行内去重）；
+     - 两份统计 `nameCount` / `idCount` 各自累加，最后**只取件数更多的那份** —— 奖励列和 ID 列都粘了也不会算成 48 件。
+  3. **回归测试**：`smoke.cjs` 新增第 **2c-2** 节 **6 条**，喂的是这次的真数据（24 行奖励 + 24 个 ID + 6 行状态）四种粘法（状态挂最后一条 ID 上 / 只有名字 / 只有 ID / 名字和 ID 都粘），断言 `花草灯*3`、`椭圆灯笼*6`、`11 种道具 24 件不丢也不翻倍`；冒烟 739 → **745**。
+     - ⚠️ 以后改这块别再回到「取一行最后一格」或「整行含说明词就丢」—— 一列一列的粘法在真实后台里是常态。
