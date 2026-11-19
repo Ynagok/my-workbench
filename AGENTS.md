@@ -48,7 +48,7 @@ npm run verify     # 改完代码、push 前的完整自检
 
 | 命令 | 内容 |
 |---|---|
-| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 731 项 + 「接口挂起时界面仍可用」+ 服务端冒烟 42 项 |
+| `npm run verify` | 静态结构校验 + `node --check` 语法 + jsdom 集成冒烟 734 项 + 「接口挂起时界面仍可用」+ 服务端冒烟 42 项 |
 | `npm run verify:static` | 只要静态校验 + 语法检查（最快） |
 | `npm run report` | 打印一份真实生成的日报，肉眼确认排版（含 ⑥伙伴弹途 / ⑦异世界勇者） |
 | `npm run build:data` | 从 GM 玩家页快照提取 4 张权威映射表 + 与硬编码常量的**差异报告**（见下「游戏数据管线」） |
@@ -60,7 +60,7 @@ npm run verify     # 改完代码、push 前的完整自检
 | `npm run smoke:pmc` | **生管物料订单工作台**（`public/pmc.html`）自检，123 项（含加工周期工作日推算 + 在途锁定/调整建议 + 真实 8.5MB xlsx 端到端导入）；**不在 verify 里**，见下「生管物料订单工作台」一节 |
 | `npm test` | = `npm run verify` |
 
-`npm run verify` 失败就不要提交。它一共 5 段：静态结构 → 语法 → jsdom 集成冒烟 **731 项** → 接口挂起时界面仍可用 → 服务端冒烟 **42 项**。
+`npm run verify` 失败就不要提交。它一共 5 段：静态结构 → 语法 → jsdom 集成冒烟 **734 项** → 接口挂起时界面仍可用 → 服务端冒烟 **42 项**。
 
 - jsdom 未安装时前端冒烟会自动回落到本机 DSH 自带的那份。
 - `tools/smoke-server.cjs` 用 `PORT` + `DATA_FILE` 环境变量把服务端指到随机端口和 `tools/out/` 里的临时文件，**不会碰真实 `data.json`**；子进程 stdio 必须用 `ignore`/`inherit`（沙箱禁管道，`pipe` 会 EPERM）。
@@ -146,7 +146,7 @@ npm run verify     # 改完代码、push 前的完整自检
   - 面板：点齿轮开合、`#themePanelClose` / 点面板外面 / Esc 收起（`themeTogglePanel`），齿轮带 `.open` 与 `aria-expanded`。
   - **令牌计算**：`themeApplyBg` 按背景色算出整套令牌写在 `<html>` 行内（`THEME_TOKEN_KEYS`，行内优先级最高，覆盖 `:root`），卡片面/次级面/分割线都是「背景色往白或往黑混一点」；`themeLum < 0.32` 判为深色 → 换浅色文字（`THEME_DARK_INK`）并挂 `data-theme="dark"`；`themeApplyAccent` 再覆盖强调色那 6 个令牌（**背景与强调色都是默认时会把 accent 令牌也清掉，交回 `:root`**）。
   - ⚠️ **`data-theme="dark"` 的那段 CSS「暗色收口」必须留着**：浅色收口层里有十几处写死的浅色（按钮浅底、白底输入框、淡黑 hover/斑马、白遮罩、`.theme-effect` 白底…），深色底时全靠这一段按更高特异性盖回去。加浅色样式时别往这一段里写，也别删。
-  - ⚠️ 抬头从原来的 `.tabs::before`（伪元素写的 'work-bad'）换成了真元素 `.tabs-head`，`.tabs::after` 那道黄条没动。⚠️ **2026-11 起侧边栏是固定四组、不再拖拽排序**：`restoreTabOrder()` / `initSortable()` / `TAB_ORDER_KEY`（`tabsOrder`）/ Sortable 的 CDN 依赖整段删掉了，所以 `#themePanel` 就老老实实待在 DOM 里那个位置（别再写回「append 一次」那套，也不会有断言要求 `contains('tabs-head')`）。
+  - ⚠️ 抬头从原来的 `.tabs::before`（伪元素写的 'work-bad'）换成了真元素 `.tabs-head`，`.tabs::after` 那道黄条没动。⚠️ **2026-11 起侧边栏是「固定四组 + 组内可拖拽」**（用户：「侧边栏拖拽挺好用的，有什么方法可以保留吗」）：`initSortable()` 只在**同一组内**放行（`onMove` 拿 `tabGroupOf(evt.dragged)` 跟 `tabGroupOf(evt.related)` 比，组标题 / `.tabs-head` / `.theme-panel` 一律挡掉），顺序存本机 `localStorage['tabsOrder']`；恢复时 `restoreTabOrder()` **以组标题为锚点**把按钮 `insertAdjacentElement('afterend', …)` 归位 —— 所以顺序再乱也不会把按钮挪到别的组，也不会把 `#themePanel` 挤到中间（不用再写「append 一次」那套）。`verify` 有断言锁这几个写法。
   - 只存本机 `localStorage['themeSettings']`（`{bg, accent, effect}`，全默认就删键），**不进 `/api/data`**；启动时 `themeInit()` 立刻应用（避免闪一下默认色），并**兼容迁移旧键 `themeBgColor`**（读到就并进 themeSettings 再删旧键）。
   - **测试**：`tools/smoke.cjs` 第 **8i** 节 **22 条**（抬头齿轮 + 面板默认收起 / 点齿轮展开（`.open` + aria）/ 8+8+6 个选项 / 默认不动令牌也没本机记录 / 选暖米 → `--bg-0` + 浅色令牌 / 卡片面由底色推导 / **派生令牌逐条校验是合法颜色（`isColor`，防 `#aNaNaN`）** / 选蓝 → `--accent` 变蓝（合法值、≠默认黄）/ 六个 accent 令牌一起换 / **换绿再换回蓝都不是「取消」** / 渐变挂 `data-bg-effect` / 选炭黑 → 自动暗色且强调色提亮 / 两个取色器 / 点外面收起 / 恢复默认清令牌+属性+记录 / 不往服务端存）；`tools/verify.mjs` 另有 10 条静态断言（抬头+面板注入、旧调色条已移除、8+8+6 选项、三个 apply 函数、**`themeMix` 必须逐通道混**、区间钳制、令牌派生与属性、6 种渐变的 CSS、只存本机+迁移旧键、齿轮开合与排序守护）。
 - **客服生涯 · 报表版式**：`.career-report-head`（英文 kicker `WORKLOAD REPORT / 工作量统计报表` + 标题 + `#careerReportSub` 数据范围/口径 + 右上 `#careerReportMeta` 5 格元数据：身份/记录天数/累计/日均/出具日期，由 `renderCareer()` 填；**「反馈模板」标签页也复用了这套抬头**）；卡片自动编号 `01…`（`#tab-career` 上 `counter-reset: career-card`，编号画在 `.card > label::before` / `.flex-row > label::before` / `.career-collapse-btn::before`）；KPI 卡改成等宽大数字 + 右上角刻度线（`.career-kpi::after`）；报表页**关掉了卡片的斜纹底**（`#tab-career .card::after { display:none }`）。
@@ -1018,8 +1018,8 @@ package.json               scripts: start / verify / verify:static / smoke:serve
   4. **测试**：`smoke.cjs` 2e 加 2 条（新格式两条棋子 / 一行两条奖励），8q 加 4 条（9 列需求 / 不瞎借估出来那行 / 带表头 9 列 / 老 8 列照旧），排期 38 的抬头断言改成带时间窗；`verify.mjs` 3l 补 1 条（demand 列 + `sdLogOrderFor` + `sdParseDemand`），`sdBuildLog` 那几条断言跟着 `it.t → it.row` 改，`SD_SCHEDULE` 断言加 38/39；冒烟 741 → **748**。
 - 本轮（2026-11）：**侧边栏分组 + 去掉活动日历 / 糖葫芦 + 新增「常用网址」**。
   1. **侧边栏改成固定四组**（用户：「优化一下标签页的排放，同事反馈：有时候我找反馈模版老是去集卡看卡包去了」）：`tab-group-title` 现在有 4 个 —— **梦幻消除站**（话术生成 / 集卡分析（卡包 / 抽卡）/ 活动查询 / 棋盘镜像）、**工单 · 日报**（工单回复 / 反馈模板 / 每日日报）、**统计 · 排班**（客服生涯 / 海外业务统计 / 下午茶）、**常用工具**（常用网址 / 小游戏）；按钮统一 `tab-btn tab-btn-sub`（小一号 + 圆点）。**反馈模板和工单回复同组、集卡分析留在第一组**，找反馈模板不会再点进卡包；集卡分析标签名补了「（卡包 / 抽卡）」一眼能分清。
-     - ⚠️ **不再拖拽排序**（分组后拖会把按钮拖出分组）：`restoreTabOrder` / `initSortable` / `TAB_ORDER_KEY`（`tabsOrder`）/ Sortable CDN 依赖**整段删除**，`verify` 的反向断言锁着（`!/sortablejs/`、`!/TAB_ORDER_KEY/`）。
+     - ⚠️ **拖拽排序保留了，但只允许组内**（用户随后追问「侧边栏拖拽挺好用的，有什么方法可以保留吗」）：`initSortable()` 的 `onMove` 用 `tabGroupOf()` 比 `evt.dragged` / `evt.related`，跨组直接 `return false`，组标题 / `.tabs-head` / `.theme-panel` 也挡掉；顺序存本机 `tabsOrder`，`restoreTabOrder()` **以组标题为锚点**把按钮 `insertAdjacentElement('afterend', …)` 归位（所以本机存的旧顺序再乱也不会把按钮挪出组）。Sortable 依赖加回来了（`sortablejs@1.15.6` + defer）。
   2. **活动日历整块删掉**（用户：「活动日历去掉」）：侧边栏标签 / `#tab-calendar` / `CAL_KINDS` / `CAL_TABLE` / `cal*` 函数 / 绑定 / `.cal-*` CSS 全没了，`SD_SCHEDULE` 保留（七日任务还在用）。
   3. **糖葫芦对决整块删掉**（用户：「糖葫芦去掉」）：`#genTanghuluPane` + `THL_*` / `thl*` + 绑定全没了；活动查询从三段变**两段**（01 七日任务 / 02 吉运节节高），默认段改成 `sevenday`。⚠️ 映射表里的 `87 糖葫芦2v2` / `263 糖葫芦比拼活动奖励` / `805·806·500714` 照旧保留。
   4. **新增「常用网址」标签页**（用户：「增加新的标签页功能，常用网址」）：见上「🔗 常用网址」一节；数据走 `/api/data/quickLinks`。
-  5. **测试**：`smoke.cjs` 删掉 8q-2（糖葫芦 21 条）/ 8z-4（活动日历 13 条），新增 **8x-9 常用网址 16 条**、活动查询改两段（+2 条），冒烟 748 → **731**；`verify.mjs` 同步删/改那几条断言（活动日历与糖葫芦都换成反向断言、Sortable 换成「不再拖拽」、活动查询两段、常用网址一整套），静态断言数量不变口径。
+  5. **测试**：`smoke.cjs` 删掉 8q-2（糖葫芦 21 条）/ 8z-4（活动日历 13 条），新增 **8x-9 常用网址 16 条** 与 **8x-10 侧边栏顺序恢复 3 条**（造一份「跨组乱排」的 `tabsOrder`，另起一个 jsdom 断言每组按钮回到自己组、四个组标题都在、拖拽那套还在），活动查询改两段（+2 条），冒烟 748 → **734**；`verify.mjs` 同步删/改那几条断言（活动日历与糖葫芦都换成反向断言、活动查询两段、常用网址一整套、侧边栏「分组 + 组内拖拽」那套写法），静态断言数量不变口径。

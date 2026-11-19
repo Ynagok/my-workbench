@@ -3668,6 +3668,56 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
   }
 
 
+  console.log('--- 8x-10. 侧边栏四组固定 + 组内拖拽顺序恢复 ---');
+  {
+    // 本机顺序故意「跨组乱排」（script 排最前、gen 排最末）→ 恢复后每个按钮必须回到自己的组里
+    const seeded = ['script', 'links', 'tea', 'overseas', 'career', 'daily', 'feedback', 'reply',
+      'gamedata', 'activity', 'card', 'gen'];
+    const vc3 = new VirtualConsole();
+    vc3.on('jsdomError', () => { });
+    const dom3 = new JSDOM(html, {
+      url: 'http://127.0.0.1:3080/index.html',
+      runScripts: 'dangerously',
+      pretendToBeVisual: false,
+      virtualConsole: vc3,
+      beforeParse(window3) {
+        window3.alert = () => { };
+        window3.confirm = () => true;
+        window3.prompt = () => null;
+        window3.requestAnimationFrame = () => 0;
+        window3.cancelAnimationFrame = () => { };
+        window3.HTMLCanvasElement.prototype.getContext = function () { return makeCtx(this); };
+        window3.HTMLCanvasElement.prototype.toDataURL = () => 'data:image/png;base64,';
+        window3.URL.createObjectURL = () => 'blob:stub';
+        window3.URL.revokeObjectURL = () => { };
+        window3.fetch = async () => ({ ok: true, status: 200, json: async () => ({}) });
+        window3.console.warn = () => { };
+        window3.console.error = () => { };
+        try { window3.localStorage.setItem('tabsOrder', JSON.stringify(seeded)); } catch (_) { }
+      },
+    });
+    await new Promise(r => setTimeout(r, 320));
+    const d3 = dom3.window.document;
+    const seq = [];
+    [...d3.querySelectorAll('#tabsContainer > *')].forEach(el => {
+      if (el.classList.contains('tab-group-title')) seq.push('[' + el.textContent.trim() + ']');
+      else if (el.classList.contains('tab-btn')) seq.push(el.dataset.tab);
+    });
+    check(seq.join(',') === ['[梦幻消除站]', 'gamedata', 'activity', 'card', 'gen',
+      '[工单 · 日报]', 'daily', 'feedback', 'reply',
+      '[统计 · 排班]', 'tea', 'overseas', 'career',
+      '[常用工具]', 'script', 'links'].join(','),
+      '本机存了「跨组乱排」的顺序 → 恢复时按组归位（组内顺序照存的那份，按钮不会跑到别的组里）',
+      seq.join(','));
+    check(d3.querySelectorAll('#tabsContainer .tab-group-title').length === 4,
+      '四组标题都还在（没被 appendChild 那套挤到一堆）',
+      d3.querySelectorAll('#tabsContainer .tab-group-title').length);
+    check(/sortablejs/.test(html) && /TAB_GROUP_OF/.test(html) && /onMove/.test(html),
+      '拖拽那套还在（Sortable + 组内 onMove 限制）');
+    dom3.window.close();
+  }
+
+
   console.log('--- 8z-2. 涂色游戏（Anycolor 玩法：内置图库 + 位图填充）---');
   {
     const posts9 = posts.length;

@@ -35,8 +35,16 @@ ok(/plateFoods\.length >= 30/.test(s), '落盘数量上限');
 ok(/debouncedSaveDaily\(\);/.test(s) && !/custom-value[\s\S]{0,200}?saveData\('dailyData'/.test(s), '自定义项已改防抖');
 ok(/searchInput\.onkeydown/.test(s), 'keypress -> keydown');
 ok((s.match(/role="dialog"/g) || []).length === 8, '模态框 aria 数量 = 8');
-ok(!/sortablejs/.test(s) && !/window\.Sortable/.test(s) && !/TAB_ORDER_KEY/.test(s) && !/restoreTabOrder/.test(s),
-  '侧边栏改成固定分组后不再拖拽排序：Sortable 依赖 / TAB_ORDER_KEY / restoreTabOrder 都删掉了');
+ok((s.match(/defer src="https:\/\/cdn\.jsdelivr\.net\/npm\/sortablejs@1\.15\.6/g) || []).length === 1, 'Sortable 锁版本 + defer');
+// 2026-11 用户：「侧边栏拖拽挺好用的，有什么方法可以保留吗」→ 分组保留 + 只允许**组内**拖拽
+ok(/const TAB_GROUP_OF = \{/.test(s) && /const TAB_GROUP_TITLES = \{/.test(s)
+  && /function tabGroupOf\(el\)/.test(s) && /function readTabOrder\(\)/.test(s)
+  && /function restoreTabOrder\(\)/.test(s) && /function initSortable\(\)/.test(s)
+  && /anchor\.insertAdjacentElement\('afterend', b\)/.test(s)
+  && /onMove: \(evt\) => \{/.test(s) && /return !!from && from === tabGroupOf\(target\);/.test(s)
+  && /filter: '\.tab-group-title, \.tabs-head, \.theme-panel'/.test(s)
+  && /localStorage\.setItem\(TAB_ORDER_KEY/.test(s),
+  '侧边栏：分组 + 组内拖拽（onMove 拦住跨组与组标题/抬头/设置面板，恢复顺序以组标题为锚点重排，顺序存本机 tabsOrder）');
 ok(!/@import url\('https:\/\/fonts\.googleapis/.test(s), '@import 字体已移除');
 ok((s.match(/#sub-panel-fry #fryLemonBtn,\r?\n\s*#sub-panel-fry #fryLettuceBtn \{/g) || []).length === 1, 'fry 按钮 CSS 重复块已去重');
 ok(!/function cleanText|resolveActivityType/.test(s), '死代码已删除');
