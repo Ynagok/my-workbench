@@ -11,7 +11,6 @@
     <link rel="stylesheet" media="print" onload="this.media='all'" href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap">
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap"></noscript>
     <!-- [优化] 锁版本 + defer：CDN 不可用时不再阻塞解析与首屏 -->
-    <script defer src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
     <style>
         /* ============================================================
         暗色工作台主题 · 明日方舟 / 明日方舟：终末地 视觉语言
@@ -4095,26 +4094,19 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
         .issue-paste > textarea { margin-top: 6px; }
         #ovbizIssueCard > .flex-row > label { font-size: 13.5px; }
 
-        /* ===== 活动日历 ===== */
-        .cal-week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin: 10px 0 4px; }
-        .cal-week span { text-align: center; font-size: 11.5px; color: var(--ink-3); letter-spacing: .06em; }
-        .cal-week span.is-weekend { color: var(--danger); }
-        .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
-        .cal-cell { min-height: 78px; padding: 5px 6px; border: 1px solid var(--line-0); border-radius: var(--r-sm);
-            background: var(--surface); overflow: hidden; }
-        .cal-cell.is-weekend { background: var(--surface-2); }
-        .cal-cell.is-today { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent-line); }
-        .cal-cell.is-picked { border-color: var(--accent); background: var(--accent-dim); }
-        .cal-cell.is-blank { background: transparent; border-color: transparent; }
-        .cal-cell > b { font-size: 12px; color: var(--ink-2); display: block; }
-        .cal-cell.is-today > b { color: var(--accent-ink); }
-        .cal-ev { display: block; margin-top: 3px; font-size: 10.5px; line-height: 1.35; padding: 1px 4px;
-            border-radius: 4px; color: #0a0c0e; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .cal-more { font-size: 10px; color: var(--ink-3); }
-        .cal-row { display: flex; align-items: baseline; gap: 8px; padding: 5px 0;
-            border-bottom: 1px dashed var(--line-0); font-size: 12.5px; }
-        .cal-row i { width: 8px; height: 8px; border-radius: 999px; flex: none; align-self: center; }
-        .cal-row em { font-style: normal; color: var(--ink-3); font-size: 11.5px; }
+        /* ===== 常用网址 ===== */
+        .links-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 8px; margin-top: 10px; }
+        .link-row { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; padding: 8px 10px; margin-top: 8px;
+            border: 1px solid var(--line-0); border-radius: var(--r-sm); background: var(--surface); }
+        .link-row .lk-name { font-weight: 600; color: var(--ink-0); text-decoration: none; font-size: 13px; }
+        .link-row .lk-name:hover { color: var(--accent-ink); text-decoration: underline; }
+        .link-row .lk-url { color: var(--ink-3); font-size: 11.5px; word-break: break-all; flex: 1 1 200px; }
+        .link-row .lk-note { color: var(--ink-2); font-size: 12px; }
+        .link-row .lk-acts { margin-left: auto; display: flex; gap: 6px; flex: none; }
+        .link-row .lk-acts button { padding: 2px 8px !important; font-size: 12px; }
+        .link-badge { font-size: 11px; padding: 1px 7px; border-radius: var(--r-pill); border: 1px solid var(--accent-line);
+            background: var(--accent-dim); color: var(--accent-ink); white-space: nowrap; }
+        .link-group-chip { cursor: pointer; }
 
 </style>
 </head>
@@ -4163,60 +4155,74 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                 </div>
             </div>
 
+            <!-- 2026-11 用户：「优化一下标签页的排放，同事反馈：有时候我找反馈模版老是去集卡看卡包去了」
+                 侧边栏改成**固定四组**（梦幻消除站 / 工单·日报 / 统计·排班 / 常用工具），每组一个小标题 + 子项圆点；
+                 不再拖拽排序（分组后拖会把按钮拖出分组，顺序键 tabsOrder 也不再读）。 -->
             <div class="tab-group-title">梦幻消除站</div>
             <button class="tab-btn tab-btn-sub active" data-tab="gen"> 话术生成</button>
-            <button class="tab-btn tab-btn-sub" data-tab="card"> 集卡分析</button>
+            <button class="tab-btn tab-btn-sub" data-tab="card"> 集卡分析（卡包 / 抽卡）</button>
             <button class="tab-btn tab-btn-sub" data-tab="activity"> 活动查询</button>
-            <button class="tab-btn tab-btn-sub" data-tab="calendar"> 活动日历</button>
             <button class="tab-btn tab-btn-sub" data-tab="gamedata"> 棋盘镜像</button>
 
-            <button class="tab-btn" data-tab="reply"> 工单回复</button>
-            <button class="tab-btn" data-tab="feedback"> 反馈模板</button>
-            <button class="tab-btn" data-tab="daily"> 每日日报</button>
-            <button class="tab-btn" data-tab="career"> 客服生涯</button>
-            <button class="tab-btn" data-tab="overseas"> 海外业务统计</button>
-            <button class="tab-btn" data-tab="tea"> 下午茶</button>
-            <button class="tab-btn" data-tab="script">小游戏</button>
+            <div class="tab-group-title">工单 · 日报</div>
+            <button class="tab-btn tab-btn-sub" data-tab="reply"> 工单回复</button>
+            <button class="tab-btn tab-btn-sub" data-tab="feedback"> 反馈模板</button>
+            <button class="tab-btn tab-btn-sub" data-tab="daily"> 每日日报</button>
+
+            <div class="tab-group-title">统计 · 排班</div>
+            <button class="tab-btn tab-btn-sub" data-tab="career"> 客服生涯</button>
+            <button class="tab-btn tab-btn-sub" data-tab="overseas"> 海外业务统计</button>
+            <button class="tab-btn tab-btn-sub" data-tab="tea"> 下午茶</button>
+
+            <div class="tab-group-title">常用工具</div>
+            <button class="tab-btn tab-btn-sub" data-tab="links"> 常用网址</button>
+            <button class="tab-btn tab-btn-sub" data-tab="script"> 小游戏</button>
         </div>
 
 
-        <!-- ==================== 活动日历（把各活动的排期摊成月历，2026-11 用户要求） ==================== -->
-        <div id="tab-calendar" class="tab-content">
+        <!-- ==================== 常用网址 links（同事共用的一份链接清单，存服务端 /api/data/quickLinks） ==================== -->
+        <div id="tab-links" class="tab-content">
             <div class="career-report-head">
                 <div>
-                    <div class="crh-kicker">ACTIVITY CALENDAR / 活动日历</div>
-                    <div class="crh-title">活动日历</div>
-                    <div class="crh-sub" id="calSub">—</div>
+                    <div class="crh-kicker">QUICK LINKS / 常用网址</div>
+                    <div class="crh-title">常用网址</div>
+                    <div class="crh-sub" id="linksSub">—</div>
                 </div>
-                <div class="crh-meta" id="calMeta"></div>
+                <div class="crh-meta" id="linksMeta"></div>
             </div>
+
             <div class="card">
-                <div class="rest-cal-bar">
-                    <button type="button" class="rest-cal-nav" id="calPrev" title="上个月" aria-label="上个月">‹</button>
-                    <span class="rest-cal-title" id="calTitle">—</span>
-                    <button type="button" class="rest-cal-nav" id="calNext" title="下个月" aria-label="下个月">›</button>
-                    <input type="month" class="rest-cal-month" id="calMonth" title="跳到某个月">
-                    <button type="button" id="calTodayBtn" class="secondary">回到今天</button>
-                    <span class="hint-text" id="calHint"></span>
+                <label>➕ 添加 / 修改 <span class="card-sub">名称 + 网址就行（不带 http:// 也认）；分组随便写，上面那排芯片能按分组筛</span></label>
+                <div class="links-form">
+                    <input id="linkNameInput" placeholder="名称（例：GM 玩家查询）">
+                    <input id="linkUrlInput" placeholder="网址">
+                    <input id="linkGroupInput" placeholder="分组（可空）">
+                    <input id="linkNoteInput" placeholder="备注（可空）">
                 </div>
-                <div class="stat-chips" id="calKindChips" style="margin:10px 0 0;"></div>
-                <div id="calWeek" class="cal-week"></div>
-                <div id="calGrid" class="cal-grid"></div>
-                <div class="stat-chips" id="calDayBar" style="margin-top:10px;"></div>
-                <div id="calDayList" style="margin-top:4px;"></div>
+                <div class="flex-row" style="margin-top:10px;">
+                    <button id="linkAddBtn">➕ 添加</button>
+                    <button id="linkEditCancelBtn" class="secondary">✖ 取消修改</button>
+                    <button id="linkResetBtn" class="reset-btn">恢复默认</button>
+                    <span class="hint-text" id="linksHint">存服务端：同事打开看到的也是这一份</span>
+                </div>
             </div>
+
             <div class="card">
-                <label>📌 接下来 30 天 <span class="card-sub">进行中的先列，再按开始时间——「这期到几号」「下一期什么时候」一眼看到</span></label>
-                <div id="calUpcoming" style="margin-top:10px;"></div>
+                <label>📌 网址清单 <span class="card-sub">点名称直接在新标签打开；📋 复制网址 / ✎ 改 / 🗑 删</span></label>
+                <div class="stats-toolbar" style="margin-top:10px;">
+                    <input id="linkSearchInput" placeholder="搜名称 / 网址 / 备注">
+                    <span class="stat-chips" id="linkGroupChips"></span>
+                </div>
+                <div id="linkList" style="margin-top:8px;"></div>
             </div>
         </div>
 
-        <!-- ==================== 活动查询 activity（七日任务 / 糖葫芦对决 / 吉运节节高） ==================== -->
+
+        <!-- ==================== 活动查询 activity（七日任务 / 吉运节节高） ==================== -->
         <div id="tab-activity" class="tab-content">
             <div class="seg-bar" data-for="tab-activity">
-                <button type="button" class="seg-btn active" data-seg="tanghulu" data-n="01">糖葫芦对决</button>
-                <button type="button" class="seg-btn" data-seg="sevenday" data-n="02">七日任务进度</button>
-                <button type="button" class="seg-btn" data-seg="teainfo" data-n="03">吉运节节高（下午茶）</button>
+                <button type="button" class="seg-btn active" data-seg="sevenday" data-n="01">七日任务进度</button>
+                <button type="button" class="seg-btn" data-seg="teainfo" data-n="02">吉运节节高（下午茶）</button>
             </div>
             <div id="genSevendayPane" data-seg-card="sevenday">
                 <div class="career-report-head">
@@ -4278,39 +4284,6 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                     <textarea id="teaInfoOut" rows="10" readonly placeholder="解析完这里出现可以直接发玩家的话术"></textarea>
                 </div>
             </div>
-
-            <!-- 糖葫芦对决（活动类型 87 = 糖葫芦2v2）：把 GM「活动查询 / type/87」的结果整段粘进来，按行为汇总 -->
-            <div id="genTanghuluPane" data-seg-card="tanghulu">
-                <div class="card" id="tanghuluCard">
-                    <label>🍡 糖葫芦对决 → 查询
-                        <span class="card-sub">活动类型 87 = 糖葫芦2v2（行为：1 匹配 / 2 结算 / 3 进度），奖励来源 263 = 糖葫芦比拼活动奖励</span>
-                    </label>
-                    <details class="stat-fold">
-                        <summary>粘法 / 列名说明</summary>
-                        <div>
-                            把 GM 里糖葫芦2v2 的【结算】表和【进度】表<b>连表头一起</b>粘进来（两张可以一次一起粘，各带表头就行）。<br>
-                            结算表认：创建时间 / 排期ID / 事件UUID / 分组 / 轮次 / 玩家分数 / 队友分数 / 对手1分数 / 对手2分数 / 胜利 / MVP / 本轮积分 / 总积分 / 是否结束；<br>
-                            进度表认：… 轮次(before) / 玩家分数(before) … 轮次(after) / 玩家分数(after) …。两张都没有「行为」列也没关系，按表头就能分清哪张是结算、哪张是进度。<br>
-                            输出是<b>一句能直接回玩家的话</b>；逐条核对明细折在下面的「核对明细」里，不会跟着复制出去。
-                        </div>
-                    </details>
-                    <textarea id="thlInput" rows="9" style="margin-top:10px;" placeholder="创建时间&#9;排期ID&#9;事件UUID&#9;分组&#9;轮次&#9;玩家分数&#9;队友分数&#9;对手1分数&#9;对手2分数&#9;胜利&#9;MVP&#9;本轮积分&#9;总积分&#9;是否结束"></textarea>
-                    <div class="flex-row" style="margin-top:10px;">
-                        <button id="thlParseBtn">🔍 解析并出话术</button>
-                        <button id="thlCopyBtn" class="secondary">📋 复制话术</button>
-                        <button id="thlClearBtn" class="reset-btn">🧹 清空</button>
-                        <span class="hint-text" id="thlHint"></span>
-                    </div>
-                    <div class="stat-chips" id="thlChips"></div>
-                    <label style="margin-top:14px;">回复玩家的话术</label>
-                    <textarea id="thlOutput" rows="4" readonly placeholder="解析完这里出现一句可以直接回玩家的话（复制走就行）"></textarea>
-                    <details class="stat-fold" id="thlDetailFold" style="display:none;margin-top:10px;">
-                        <summary>核对明细（不发给玩家）</summary>
-                        <pre id="thlDetailBody" class="thl-detail"></pre>
-                    </details>
-                </div>
-            </div>
-        </div>
 
         <!-- ==================== 话术生成 gen ==================== -->
         <div id="tab-gen" class="tab-content active">
@@ -18241,244 +18214,6 @@ pre.thl-detail { margin: 6px 0 0; padding: 8px 10px; background: var(--surface-2
                                         const totalVotes = list.reduce((a, v) => a + v.shopIds.length, 0);
                                         return { devices: list.length, totalVotes: totalVotes, rows: rows };
                                     }
-// ==================== 📅 活动日历（把各活动的排期摊成月历，2026-11 用户：「能否将这些排期弄成活动日历的标签页」）====================
-                                    // 数据都是「已经能确定」的排期：七日任务取自 SD_SCHEDULE，其余从 GM 玩家页各活动的排期下拉里抄下来。
-                                    // ⚠️ 纯展示，只在本机算，不进 /api/data、不写 localStorage。
-                                    const CAL_KINDS = [
-                                        { key: "seven", name: "七日任务", color: "#c89500" },
-                                        { key: "card", name: "集卡", color: "#5b8ff9" },
-                                        { key: "rank", name: "限时排行榜", color: "#f6bd16" },
-                                        { key: "king", name: "厨王争霸", color: "#9270ca" },
-                                        { key: "lottery", name: "联动抽签", color: "#5ad8a6" },
-                                        { key: "free", name: "限时0元购", color: "#e8684a" },
-                                        { key: "share", name: "限时分享", color: "#6dc8ec" },
-                                        { key: "medal", name: "茶楼经营簿", color: "#ff9d4d" },
-                                    ];
-                                    const CAL_TABLE = {
-                                        // 排期ID|开始|结束
-                                        card: [
-                                            "90002|2025-05-21 11:00:00|2025-07-05 10:00:59",
-                                            "90003|2025-07-05 14:00:00|2025-08-14 10:00:59",
-                                            "90004|2025-08-14 11:00:00|2025-09-23 10:59:59",
-                                            "90005|2025-09-23 11:00:00|2025-11-02 10:59:59",
-                                            "90006|2025-11-02 11:00:00|2025-12-12 10:59:59",
-                                            "90007|2025-12-12 11:00:00|2026-01-21 10:59:59",
-                                            "90008|2026-01-21 11:00:00|2026-03-02 10:59:59",
-                                            "90009|2026-03-02 11:00:00|2026-04-11 10:59:59",
-                                            "90010|2026-04-11 11:00:00|2026-05-21 10:59:59",
-                                            "90011|2026-05-21 11:00:00|2026-06-30 10:59:59",
-                                            "90012|2026-06-30 11:00:00|2026-08-09 10:59:59",
-                                            "90013|2026-08-09 11:00:00|2026-09-20 10:59:59",
-                                            "90014|2026-09-20 11:00:00|2026-10-30 10:59:59",
-                                            "90015|2026-10-30 11:00:00|2026-12-09 10:59:59",
-                                        ],
-                                        rank: [
-                                            "35|2026/10/18 10:00|2026/10/22 10:00",
-                                            "36|2026/10/25 10:00|2026/10/29 10:00",
-                                            "37|2026/11/15 10:00|2026/11/19 10:00",
-                                            "38|2026/11/22 10:00|2026/11/26 10:00",
-                                        ],
-                                        lottery: [
-                                            "1|2025/12/19 11:00|2026/1/15 14:25",
-                                            "2|2026/2/4 10:59|2026/3/2 10:59",
-                                            "3|2026/6/1 10:59|2026/6/30 10:59",
-                                            "4|2026/10/1 11:00|2026/10/30 10:59",
-                                        ],
-                                        free: [
-                                            "1|2025/9/4 10:00|2025/9/30 10:00",
-                                            "2|2025/10/20 10:00|2025/10/24 10:00",
-                                        ],
-                                        share: ["1|2026/6/27 10:00|2026/8/9 10:00"],
-                                        medal: ["2|2026/11/4 11:00|2026/12/10 20:00"],
-                                    };
-                                    function calDateOf(v) {
-                                    const t = String(v == null ? "" : v).trim().replace(/\//g, "-");
-                                    const m = /^(\d{4})-(\d{1,2})-(\d{1,2})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?)?$/.exec(t);
-                                    if (!m) return null;
-                                    return new Date(+m[1], +m[2] - 1, +m[3], +(m[4] || 0), +(m[5] || 0), +(m[6] || 0));
-                                    }
-                                    let calEventsCache = null;
-                                    function calEvents() {
-                                    if (calEventsCache) return calEventsCache;
-                                    const out = [];
-                                    const add = function (kind, id, start, end) {
-                                    const a = calDateOf(start), b = calDateOf(end);
-                                    if (!a || !b || b < a) return;
-                                    out.push({ kind: kind, id: String(id), start: a, end: b });
-                                    };
-                                    SD_SCHEDULE.forEach(function (line) {
-                                    const m = /^(\d+)\|([^~]+)~(.+)$/.exec(line);
-                                    if (m) add("seven", m[1], m[2].trim(), m[3].trim());
-                                    });
-                                    ["card", "rank", "lottery", "free", "share", "medal"].forEach(function (kind) {
-                                    (CAL_TABLE[kind] || []).forEach(function (row) {
-                                    const p = String(row).split("|");
-                                    add(kind, p[0], p[1], p[2]);
-                                    });
-                                    });
-                                    // 厨王争霸 147–210：每周一期，周五 10:00 开、下周四 20:00 收
-                                    (function () {
-                                    const first = new Date(2026, 9, 9, 10, 0, 0);
-                                    for (let i = 0; i < 64; i++) {
-                                    const start = new Date(first.getTime() + i * 7 * 86400000);
-                                    const end = new Date(start.getTime() + 6 * 86400000);
-                                    end.setHours(20, 0, 0, 0);
-                                    out.push({ kind: "king", id: String(147 + i), start: start, end: end });
-                                    }
-                                    })();
-                                    out.sort(function (a, b) { return a.start - b.start || a.kind.localeCompare(b.kind); });
-                                    calEventsCache = out;
-                                    return out;
-                                    }
-                                    function calKindOf(k) {
-                                    return CAL_KINDS.filter(function (x) { return x.key === k; })[0] || { key: k, name: k, color: "#8b959f" };
-                                    }
-                                    function calDayStart(d) { return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime(); }
-                                    function calDayEnd(d) { return calDayStart(d) + 86400000 - 1; }
-                                    function calEventsOnDay(d) {
-                                    const a = calDayStart(d), b = calDayEnd(d);
-                                    return calEvents().filter(function (e) {
-                                    if (calState.kind !== "all" && e.kind !== calState.kind) return false;
-                                    return e.start.getTime() <= b && e.end.getTime() >= a;
-                                    });
-                                    }
-                                    function calFmt(d) {
-                                    const p = function (n) { return (n < 10 ? "0" : "") + n; };
-                                    return (d.getMonth() + 1) + "-" + d.getDate() + " " + p(d.getHours()) + ":" + p(d.getMinutes());
-                                    }
-                                    function calRange(e) { return calFmt(e.start) + " ~ " + calFmt(e.end); }
-                                    let calState = { y: 0, m: 0, kind: "all", day: "" };
-                                    function calSetMonth(y, m) {
-                                    calState.y = y; calState.m = m;
-                                    const el = document.getElementById("calMonth");
-                                    if (el) el.value = y + "-" + ((m < 10 ? "0" : "") + m);
-                                    calRender();
-                                    }
-                                    function calStepMonth(n) {
-                                    const d = new Date(calState.y, calState.m - 1 + n, 1);
-                                    calSetMonth(d.getFullYear(), d.getMonth() + 1);
-                                    }
-                                    function calRender() {
-                                    const title = document.getElementById("calTitle");
-                                    const week = document.getElementById("calWeek");
-                                    const grid = document.getElementById("calGrid");
-                                    const sub = document.getElementById("calSub");
-                                    const meta = document.getElementById("calMeta");
-                                    const dayBar = document.getElementById("calDayBar");
-                                    const dayList = document.getElementById("calDayList");
-                                    const upcoming = document.getElementById("calUpcoming");
-                                    const kindChips = document.getElementById("calKindChips");
-                                    const y = calState.y, m = calState.m;
-                                    if (title) title.textContent = y + " 年 " + m + " 月";
-                                    if (kindChips) {
-                                    const chips = [statChip({ html: "<b>全部</b>" }, calState.kind === "all" ? "k-accent" : "k-plain", null)];
-                                    CAL_KINDS.forEach(function (k) {
-                                    chips.push(statChip({ html: "<b>" + escapeHtml(k.name) + "</b>" }, calState.kind === k.key ? "k-accent" : "k-plain", null));
-                                    });
-                                    kindChips.innerHTML = chips.join("");
-                                    Array.prototype.forEach.call(kindChips.querySelectorAll(".stat-chip"), function (el, i) {
-                                    el.style.cursor = "pointer";
-                                    el.setAttribute("data-kind", i === 0 ? "all" : CAL_KINDS[i - 1].key);
-                                    });
-                                    }
-                                    const labels = ["日", "一", "二", "三", "四", "五", "六"];
-                                    if (week) {
-                                    week.innerHTML = labels.map(function (t, i) {
-                                    return '<span class="' + (i === 0 || i === 6 ? "is-weekend" : "") + '">' + t + "</span>";
-                                    }).join("");
-                                    }
-                                    if (grid) {
-                                    const first = new Date(y, m - 1, 1);
-                                    const firstDow = first.getDay();
-                                    const daysInMonth = new Date(y, m, 0).getDate();
-                                    const todayKey = (function () { const d = new Date(); return d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate(); })();
-                                    let html = "";
-                                    for (let i = 0; i < firstDow; i++) html += '<div class="cal-cell is-blank"></div>';
-                                    for (let d = 1; d <= daysInMonth; d++) {
-                                    const cur = new Date(y, m - 1, d);
-                                    const key = y + "-" + m + "-" + d;
-                                    const list = calEventsOnDay(cur);
-                                    const cls = ["cal-cell"];
-                                    if (cur.getDay() === 0 || cur.getDay() === 6) cls.push("is-weekend");
-                                    if (key === todayKey) cls.push("is-today");
-                                    if (calState.day === key) cls.push("is-picked");
-                                    html += '<div class="' + cls.join(" ") + '" data-day="' + key + '"><b>' + d + "</b>";
-                                    list.slice(0, 3).forEach(function (e) {
-                                    const k = calKindOf(e.kind);
-                                    html += '<span class="cal-ev" style="background:' + k.color + '" title="' + escapeHtml(k.name + " " + e.id + " · " + calRange(e)) + '">'
-                                    + escapeHtml(k.name + " " + e.id) + "</span>";
-                                    });
-                                    if (list.length > 3) html += '<span class="cal-more">+' + (list.length - 3) + "</span>";
-                                    html += "</div>";
-                                    }
-                                    grid.innerHTML = html;
-                                    }
-                                    // 当月统计
-                                    const monthFrom = new Date(y, m - 1, 1).getTime();
-                                    const monthTo = new Date(y, m, 1).getTime() - 1;
-                                    const monthEvents = calEvents().filter(function (e) {
-                                    if (calState.kind !== "all" && e.kind !== calState.kind) return false;
-                                    return e.start.getTime() <= monthTo && e.end.getTime() >= monthFrom;
-                                    });
-                                    const now = Date.now();
-                                    const running = monthEvents.filter(function (e) { return e.start.getTime() <= now && e.end.getTime() >= now; });
-                                    if (sub) sub.textContent = y + " 年 " + m + " 月 · 活动 " + monthEvents.length + " 个" + (running.length ? "（进行中 " + running.length + "）" : "");
-                                    if (meta) {
-                                    meta.innerHTML = statChips([
-                                    ["本月活动", monthEvents.length + " 个"],
-                                    ["进行中", running.length + " 个"],
-                                    ["筛选", calState.kind === "all" ? "全部" : calKindOf(calState.kind).name],
-                                    ]);
-                                    }
-                                    // 点选的某天
-                                    if (calState.day) {
-                                    const p = calState.day.split("-").map(Number);
-                                    const day = new Date(p[0], p[1] - 1, p[2]);
-                                    const list = calEventsOnDay(day);
-                                    if (dayBar) dayBar.innerHTML = statChips([["这天", calState.day.replace(/-/g, "/")], ["活动", list.length + " 个"]]);
-                                    if (dayList) {
-                                    dayList.innerHTML = list.length ? list.map(function (e) {
-                                    const k = calKindOf(e.kind);
-                                    return '<div class="cal-row"><i style="background:' + k.color + '"></i><b>' + escapeHtml(k.name)
-                                    + (e.id && e.id !== "0" ? " " + escapeHtml(e.id) + " 期" : "") + '</b><em>' + escapeHtml(calRange(e)) + "</em></div>";
-                                    }).join("") : '<div class="hint-text">这天没有活动</div>';
-                                    }
-                                    } else {
-                                    if (dayBar) dayBar.innerHTML = statChips([["点日历上任意一天", "看这天有哪些活动"]]);
-                                    if (dayList) dayList.innerHTML = "";
-                                    }
-                                    // 接下来 30 天
-                                    if (upcoming) {
-                                    const todayStart = calDayStart(new Date());
-                                    const in30 = todayStart + 30 * 86400000;
-                                    const list = calEvents().filter(function (e) {
-                                    if (calState.kind !== "all" && e.kind !== calState.kind) return false;
-                                    return e.end.getTime() >= todayStart && e.start.getTime() <= in30;
-                                    }).sort(function (a, b) {
-                                    const ar = a.start.getTime() <= now && a.end.getTime() >= now ? 0 : 1;
-                                    const br = b.start.getTime() <= now && b.end.getTime() >= now ? 0 : 1;
-                                    return ar - br || a.start - b.start;
-                                    });
-                                    upcoming.innerHTML = list.length ? list.map(function (e) {
-                                    const k = calKindOf(e.kind);
-                                    const isRun = e.start.getTime() <= now && e.end.getTime() >= now;
-                                    const left = Math.ceil((e.end.getTime() - now) / 86400000);
-                                    return '<div class="cal-row"><i style="background:' + k.color + '"></i><b>' + escapeHtml(k.name)
-                                    + (e.id && e.id !== "0" ? " " + escapeHtml(e.id) + " 期" : "") + '</b><em>' + escapeHtml(calRange(e)) + "</em>"
-                                    + (isRun ? '<em style="color:var(--accent-ink);">进行中 · 还剩 ' + Math.max(0, left) + " 天</em>" : "") + "</div>";
-                                    }).join("") : '<div class="hint-text">接下来 30 天没有已知排期</div>';
-                                    }
-                                    }
-                                    function calInit() {
-                                    const d = new Date();
-                                    calState.y = d.getFullYear();
-                                    calState.m = d.getMonth() + 1;
-                                    calState.day = "";
-                                    const el = document.getElementById("calMonth");
-                                    if (el) el.value = calState.y + "-" + (calState.m < 10 ? "0" : "") + calState.m;
-                                    calRender();
-                                    }
-
                                     // ==================== 🧩 棋盘镜像（GM 镜像 JSON → 主棋盘 / 背包 / 仓库 + 位置话术）====================
                                     // 用户：「增加一个棋盘镜像功能，可以粘贴棋盘镜像数据生成类似展示主棋盘，背包，仓库的页面，
                                     //   还可以输入道具名称或者id，来生成有几个xx在棋盘上，几个xx在临时背包，几个xx在仓库这样的话术」
@@ -19582,339 +19317,181 @@ function coloringInit() {
     }
 }
 
-                                    // ==================== 🍡 糖葫芦对决（活动类型 87 = 糖葫芦2v2）====================
-                                    // 2026-11 用户给了 GM 里真实的两张表，列跟当初按「行为 1/2/3」反推的不完全一样：
-                                    //   【结算】创建时间 / 排期ID / 事件UUID / 分组 / 轮次 / 玩家分数 / 队友分数 / 对手1分数 / 对手2分数 / 胜利 / MVP / 本轮积分 / 总积分 / 是否结束
-                                    //   【进度】创建时间 / 排期ID / 事件UUID / 轮次(before) / 玩家分数(before) / 队友分数(before) / 对手1分数(before) / 对手2分数(before) /
-                                    //           轮次(after) / 玩家分数(after) / 队友分数(after) / 对手1分数(after) / 对手2分数(after)
-                                    // 两张表都没有「行为」列 → 行为按表头推断：带 (before)/(after) 的是进度，带 胜利 / 本轮积分 / 总积分 的是结算。
-                                    // 两张表可以一次一起粘（各自带表头），解析时碰到表头行就换一套列映射，不会串列。
-                                    const THL_BEHAVIOR_TEXT = { '1': '匹配', '2': '结算', '3': '进度' };
-                                    const THL_ALIASES = {
-                                        '排期': 'schedule', '排期id': 'schedule', '活动排期': 'schedule', '活动排期id': 'schedule',
-                                        '行为': 'behavior', '类型': 'behavior', '事件类型': 'behavior',
-                                        '事件': 'event', '事件uuid': 'event', '事件id': 'event', 'uuid': 'event',
-                                        '时间': 'time', '创建时间': 'time', '发生时间': 'time',
-                                        '道具': 'item', '道具名': 'item', '奖励': 'item',
-                                        '数量': 'count', '个数': 'count',
-                                        '分组': 'group', '轮次': 'round',
-                                        '玩家分数': 'my', '队友分数': 'mate', '对手1分数': 'opp1', '对手2分数': 'opp2',
-                                        '胜利': 'win', 'mvp': 'mvp', '本轮积分': 'roundPoint', '总积分': 'totalPoint', '是否结束': 'ended',
-                                        '轮次(before)': 'roundB', '轮次(after)': 'roundA',
-                                        '玩家分数(before)': 'myB', '玩家分数(after)': 'myA',
-                                        '队友分数(before)': 'mateB', '队友分数(after)': 'mateA',
-                                        '对手1分数(before)': 'opp1B', '对手1分数(after)': 'opp1A',
-                                        '对手2分数(before)': 'opp2B', '对手2分数(after)': 'opp2A'
-                                    };
-                                    const THL_NUM_KEYS = ['group', 'round', 'my', 'mate', 'opp1', 'opp2', 'win', 'mvp',
-                                        'roundPoint', 'totalPoint', 'ended',
-                                        'roundB', 'roundA', 'myB', 'myA', 'mateB', 'mateA', 'opp1B', 'opp1A', 'opp2B', 'opp2A'];
-                                    function thlCells(line) {
-                                        if (line.indexOf('\t') !== -1) return line.split('\t').map(s => s.trim());
-                                        if (line.indexOf(',') !== -1) return line.split(',').map(s => s.trim().replace(/^"|"$/g, ''));
-                                        return line.split(/\s{2,}/).map(s => s.trim()).filter(Boolean);
-                                    }
-                                    function thlHeadKey(c) {
-                                        return String(c == null ? '' : c).trim().toLowerCase()
-                                            .replace(/（/g, '(').replace(/）/g, ')').replace(/\s+/g, '');
-                                    }
-                                    // 一行表头 → { map: { 字段: 列号 }, hits: 命中几个列名 }
-                                    function thlHeadMap(cells) {
-                                        const map = {};
-                                        let hits = 0;
-                                        cells.forEach((c, i) => {
-                                            const key = THL_ALIASES[thlHeadKey(c)];
-                                            if (key && map[key] === undefined) { map[key] = i; hits++; }
-                                        });
-                                        return { map: map, hits: hits };
-                                    }
-                                    // 没有「行为」列时按表头推：认得分前后两列 → 进度；认得出胜负 / 积分 → 结算
-                                    function thlBehaviorOfMap(map) {
-                                        if (!map) return '';
-                                        const has = k => map[k] !== undefined;
-                                        if (has('roundB') || has('roundA') || has('myB') || has('myA')) return '进度';
-                                        if (has('win') || has('mvp') || has('roundPoint') || has('totalPoint') || has('ended') || has('group')) return '结算';
-                                        return '';
-                                    }
-                                    function thlBehavior(v) {
-                                        const s = String(v == null ? '' : v).trim();
+                                    // ==================== 🔗 常用网址（同事共用的一份链接清单）====================
+                                    // 2026-11 用户：「增加新的标签页功能，常用网址」。存服务端（/api/data/quickLinks）→ 同事之间共用一份；
+                                    // 切到这个标签才拉一次（不占首屏那 9 个请求），跟「下午茶」一个路数。
+                                    const QUICK_LINKS_KEY = 'quickLinks';
+                                    const QUICK_LINKS_DEFAULT = [
+                                        { name: 'GM 玩家查询', url: 'https://staff-tio-cn.fantanggame.com/index.php/player', group: 'GM 后台', note: '玩家信息 / 棋盘镜像 / 订单记录都在这一页' },
+                                        { name: 'GM 订单查询', url: 'https://staff-tio-cn.fantanggame.com/index.php/payment/payOrder', group: 'GM 后台', note: '充值订单' },
+                                        { name: '工作台（线上）', url: 'https://work-bad.onrender.com/', group: '工作台', note: '手机上也能开' },
+                                        { name: '工作台（本机）', url: 'http://localhost:3000/', group: '工作台', note: 'npm start 之后' }
+                                    ];
+                                    let quickLinks = null;      // null = 还没从服务端拉过
+                                    let linkQuery = '';
+                                    let linkGroup = 'all';
+                                    let linkEditIndex = -1;     // -1 = 新增；>= 0 = 正在改第几条
+                                    function linkStr(v) { return String(v == null ? '' : v).trim(); }
+                                    function linkNormUrl(u) {
+                                        let s = linkStr(u);
                                         if (!s) return '';
-                                        if (THL_BEHAVIOR_TEXT[s]) return THL_BEHAVIOR_TEXT[s];
-                                        if (s.indexOf('匹配') !== -1) return '匹配';
-                                        if (s.indexOf('结算') !== -1) return '结算';
-                                        if (s.indexOf('进度') !== -1) return '进度';
-                                        return '';
+                                        if (!/^https?:\/\//i.test(s)) s = 'https://' + s.replace(/^\/+/, '');
+                                        return s;
                                     }
-                                    function thlClock(v) {
-                                        const s = String(v == null ? '' : v).trim();
-                                        const m = /(\d{4})[-/](\d{1,2})[-/](\d{1,2})[ T](\d{1,2}):(\d{2})/.exec(s);
-                                        if (!m) return s;
-                                        const p2 = n => (String(n).length < 2 ? '0' + n : String(n));
-                                        return p2(m[2]) + '-' + p2(m[3]) + ' ' + p2(m[4]) + ':' + m[5];
+                                    function linkSetHint(t) {
+                                        const el = document.getElementById('linksHint');
+                                        if (el) el.textContent = linkStr(t);
                                     }
-                                    // 一行 → { schedule, behavior, event, time, item, count, 以及结算/进度那些分数列 }
-                                    function thlRow(cells, map, forced) {
-                                        const row = { schedule: '', behavior: '', event: '', time: '', item: '', count: '' };
-                                        THL_NUM_KEYS.forEach(k => { row[k] = ''; });
-                                        if (map) {
-                                            Object.keys(map).forEach(key => {
-                                                const idx = map[key];
-                                                if (idx < 0 || idx >= cells.length) return;
-                                                row[key] = cells[idx];
-                                            });
-                                            row.behavior = thlBehavior(row.behavior) || forced || '';
-                                            return row;
-                                        }
-                                        // 没表头：按内容猜（1–3 那个数当行为，日期当时间，32 位十六进制当事件，短数字当排期）
-                                        cells.forEach(c => {
-                                            const s = String(c).trim();
-                                            if (!s) return;
-                                            const b = thlBehavior(s);
-                                            if (b && !row.behavior) { row.behavior = b; return; }
-                                            if (!row.time && /\d{4}[-/]\d{1,2}[-/]\d{1,2}/.test(s)) { row.time = s; return; }
-                                            if (!row.event && /^[0-9a-f]{16,}$/i.test(s)) { row.event = s; return; }
-                                            if (!row.schedule && /^\d{1,4}$/.test(s)) { row.schedule = s; return; }
-                                            if (!row.item && /[\u4e00-\u9fa5]/.test(s) && s.length <= 24) { row.item = s; return; }
+                                    function linkAll() {
+                                        if (!Array.isArray(quickLinks)) quickLinks = QUICK_LINKS_DEFAULT.map(x => ({ name: x.name, url: x.url, group: x.group, note: x.note }));
+                                        return quickLinks;
+                                    }
+                                    function linkSaveAll() { saveData(QUICK_LINKS_KEY, linkAll()); }
+                                    function linkGroupsOf() {
+                                        const out = [];
+                                        linkAll().forEach(it => {
+                                            const g = linkStr(it.group);
+                                            if (g && out.indexOf(g) === -1) out.push(g);
                                         });
-                                        // 一整行全是数字（结算表那种 10 列以上）→ 当结算，别硬猜成别的行为
-                                        if (!row.behavior) {
-                                            const nums = cells.filter(c => /^\d+$/.test(String(c).trim())).length;
-                                            if (nums >= 10) row.behavior = '结算';
+                                        return out;
+                                    }
+                                    function linkHit(it) {
+                                        const g = String(linkGroup || 'all');
+                                        if (g !== 'all' && linkStr(it.group) !== g) return false;
+                                        const q = linkQuery.trim().toLowerCase();
+                                        if (!q) return true;
+                                        return (linkStr(it.name) + ' ' + linkStr(it.url) + ' ' + linkStr(it.note) + ' ' + linkStr(it.group)).toLowerCase().indexOf(q) !== -1;
+                                    }
+                                    function linkRender() {
+                                        const listEl = document.getElementById('linkList');
+                                        const chipEl = document.getElementById('linkGroupChips');
+                                        const subEl = document.getElementById('linksSub');
+                                        const metaEl = document.getElementById('linksMeta');
+                                        const all = linkAll();
+                                        const groups = linkGroupsOf();
+                                        if (subEl) subEl.textContent = '共 ' + all.length + ' 条 · ' + groups.length + ' 个分组 · 存服务端，同事共用一份';
+                                        if (metaEl) {
+                                            const cells = [['网址', all.length + ' 条'], ['分组', groups.length + ' 个'],
+                                                ['显示', (linkQuery || linkGroup !== 'all') ? '筛选中' : '全部']];
+                                            metaEl.innerHTML = cells.map(c => '<div><span class="m-k">' + escapeHtml(c[0]) + '</span><span class="m-v">' + escapeHtml(c[1]) + '</span></div>').join('');
                                         }
-                                        return row;
-                                    }
-                                    function thlParse(raw) {
-                                        const lines = String(raw || '').split(/\r?\n/).filter(l => l.trim());
-                                        if (!lines.length) return { rows: [], hasHeader: false, headers: 0 };
-                                        let map = null, forced = '', headers = 0;
-                                        const rows = [];
-                                        for (let i = 0; i < lines.length; i++) {
-                                            const cells = thlCells(lines[i]);
-                                            const g = thlHeadMap(cells);
-                                            if (g.hits >= 2) { map = g.map; forced = thlBehaviorOfMap(map); headers++; continue; }
-                                            const row = thlRow(cells, map, forced);
-                                            if (!row.behavior && !row.schedule && !row.time && !row.event) continue;
-                                            rows.push(row);
+                                        if (chipEl) {
+                                            const chips = [{ key: 'all', label: '全部', n: all.length }]
+                                                .concat(groups.map(g => ({ key: g, label: g, n: all.filter(it => linkStr(it.group) === g).length })));
+                                            chipEl.innerHTML = chips.map(c => '<span class="stat-chip link-group-chip' + (String(linkGroup) === c.key ? ' k-accent' : '')
+                                                + '" data-link-group="' + escapeHtml(c.key) + '">' + escapeHtml(c.label) + ' <b>' + c.n + '</b></span>').join('');
                                         }
-                                        return { rows: rows, hasHeader: headers > 0, headers: headers };
-                                    }
-                                    function thlPair(a, b) {
-                                        if (a === '' && b === '') return '';
-                                        return (a === '' ? '?' : a) + '+' + (b === '' ? '?' : b);
-                                    }
-                                    function thlArrow(a, b) { return a === b ? a : (a + ' → ' + b); }
-                                    // 结算一条：时间 · 结算 · 第几轮 · 我方 a+b vs 对手 c+d · 胜负 · MVP · 本轮积分 · 总积分 · 是否结束
-                                    function thlSettleLine(r) {
-                                        const bits = [thlClock(r.time || '') || '—', '结算'];
-                                        if (r.round !== '') bits.push('第' + r.round + '轮');
-                                        const mine = thlPair(r.my, r.mate);
-                                        const rival = thlPair(r.opp1, r.opp2);
-                                        if (mine || rival) bits.push('我方 ' + (mine || '?') + ' vs 对手 ' + (rival || '?'));
-                                        if (r.win === '1') bits.push('胜利');
-                                        else if (r.win === '0') bits.push('失败');
-                                        else if (r.win !== '') bits.push('胜利值 ' + r.win);
-                                        if (r.mvp === '1') bits.push('MVP');
-                                        if (r.roundPoint !== '') bits.push('本轮积分 +' + r.roundPoint);
-                                        if (r.totalPoint !== '') bits.push('总积分 ' + r.totalPoint);
-                                        if (r.ended === '1') bits.push('已结束');
-                                        else if (r.ended === '0') bits.push('未结束');
-                                        // 老格式（只有行为 + 事件，没有分数列）兜底：带上事件UUID 后 8 位
-                                        if (!mine && !rival && r.event) bits.push(String(r.event).slice(-8));
-                                        return '- ' + bits.join(' · ');
-                                    }
-                                    // 进度一条：时间 · 进度 · 第几轮 · 我方 169+118 → 169+119 · 对手 89+108 → 89+117
-                                    function thlProgressLine(r) {
-                                        const bits = [thlClock(r.time || '') || '—', '进度'];
-                                        const rb = String(r.roundB || ''), ra = String(r.roundA || '');
-                                        if (rb || ra) bits.push('第' + thlArrow(rb || '?', ra || '?') + '轮');
-                                        const mine = thlPair(r.myB, r.mateB) && thlPair(r.myA, r.mateA)
-                                            ? thlPair(r.myB, r.mateB) + ' → ' + thlPair(r.myA, r.mateA) : '';
-                                        const rival = thlPair(r.opp1B, r.opp2B) && thlPair(r.opp1A, r.opp2A)
-                                            ? thlPair(r.opp1B, r.opp2B) + ' → ' + thlPair(r.opp1A, r.opp2A) : '';
-                                        if (mine) bits.push('我方 ' + mine);
-                                        if (rival) bits.push('对手 ' + rival);
-                                        if (!mine && !rival && r.event) bits.push(String(r.event).slice(-8));
-                                        return '- ' + bits.filter(Boolean).join(' · ');
-                                    }
-                                                                        // 一句话术：客服直接复制就能回玩家（只讲最新那一期）
-                                    function thlSpeechLine(key, list) {
-                                        const sorted = list.slice().sort((a, b) => String(a.time || '').localeCompare(String(b.time || '')));
-                                        const settles = sorted.filter(r => r.behavior === '结算');
-                                        const progs = sorted.filter(r => r.behavior === '进度');
-                                        const lastProg = progs.length ? progs[progs.length - 1] : null;
-                                        const lastSettle = settles.length ? settles[settles.length - 1] : null;
-                                        const win = settles.filter(r => r.win === '1').length;
-                                        const lose = settles.filter(r => r.win === '0').length;
-                                        const mvp = settles.filter(r => r.mvp === '1').length;
-                                        const rounds = list.map(r => Number(r.round || r.roundA || r.roundB)).filter(n => n > 0);
-                                        const maxRound = rounds.length ? Math.max.apply(null, rounds) : 0;
-                                        const totals = settles.map(r => r.totalPoint).filter(v => v !== '' && isFinite(Number(v))).map(Number);
-                                        const best = totals.length ? Math.max.apply(null, totals) : null;
-                                        const mine = (lastProg && lastProg.myA !== '') ? thlPair(lastProg.myA, lastProg.mateA)
-                                            : (lastSettle ? thlPair(lastSettle.my, lastSettle.mate) : '');
-                                        const rival = (lastProg && lastProg.opp1A !== '') ? thlPair(lastProg.opp1A, lastProg.opp2A)
-                                            : (lastSettle ? thlPair(lastSettle.opp1, lastSettle.opp2) : '');
-                                        const bits = [];
-                                        if (maxRound) bits.push('您这边已经打到第 ' + maxRound + ' 轮');
-                                        if (mine) bits.push('我方得分 ' + mine);
-                                        if (rival) bits.push('对手得分 ' + rival);
-                                        if (settles.length) {
-                                            bits.push('结算 ' + settles.length + ' 场（胜 ' + win + ' 场、负 ' + lose + ' 场'
-                                                + (mvp ? '、拿到 ' + mvp + ' 次 MVP' : '') + '）');
-                                        } else if (progs.length) {
-                                            bits.push('目前还没有结算记录');
+                                        if (!listEl) return;
+                                        const rows = all.map((it, i) => ({ it: it, i: i })).filter(x => linkHit(x.it));
+                                        if (!rows.length) {
+                                            listEl.innerHTML = '<div class="hint-text">没有匹配的网址（换个词，或点「全部」）</div>';
+                                            return;
                                         }
-                                        if (best !== null) bits.push('当前总积分 ' + best);
-                                        // 2026-11 用户：「活动排期不用说给玩家」→ 话术里不提排期号 / 时间窗（明细里照旧写，那是内部核对）
-                                        const head = '您好，糖葫芦2v2 这一期：';
-                                        if (!bits.length) return head + '记录我们已经看到了，具体以游戏内显示为准，如有疑问随时联系我们～';
-                                        return head + bits.join('，') + '，如有疑问随时联系我们～';
+                                        listEl.innerHTML = rows.map(x => {
+                                            const it = x.it;
+                                            const url = linkNormUrl(it.url);
+                                            return '<div class="link-row">'
+                                                + '<a class="lk-name" href="' + escapeHtml(url) + '" target="_blank" rel="noopener noreferrer">' + escapeHtml(linkStr(it.name) || url) + '</a>'
+                                                + (linkStr(it.group) ? '<span class="link-badge">' + escapeHtml(linkStr(it.group)) + '</span>' : '')
+                                                + '<span class="lk-url">' + escapeHtml(url) + '</span>'
+                                                + (linkStr(it.note) ? '<span class="lk-note">' + escapeHtml(linkStr(it.note)) + '</span>' : '')
+                                                + '<span class="lk-acts">'
+                                                + '<button class="secondary" type="button" data-link-act="copy" data-i="' + x.i + '" title="复制网址">📋</button>'
+                                                + '<button class="secondary" type="button" data-link-act="edit" data-i="' + x.i + '" title="改这条">✎</button>'
+                                                + '<button class="reset-btn" type="button" data-link-act="del" data-i="' + x.i + '" title="删这条">🗑</button>'
+                                                + '</span></div>';
+                                        }).join('');
                                     }
-function thlBuild(raw) {
-                                        const p = thlParse(raw);
-                                        const rows = p.rows;
-                                        if (!rows.length) return { text: '', chips: null, groups: [], rows: rows, hasHeader: p.hasHeader };
-                                        const bySch = {}, order = [];
-                                        rows.forEach(r => {
-                                            const key = String(r.schedule || '').trim() || '(无排期)';
-                                            if (!bySch[key]) { bySch[key] = []; order.push(key); }
-                                            bySch[key].push(r);
-                                        });
-                                        const count = (list, name) => list.filter(r => r.behavior === name).length;
-                                        const lines = ['糖葫芦2v2 · 共 ' + rows.length + ' 条'];
-                                        const groups = [];
-                                        const CAP = 20;
-                                        order.forEach(key => {
-                                            const list = bySch[key];
-                                            const times = list.map(r => String(r.time || '')).filter(Boolean).sort();
-                                            const span = times.length ? (thlClock(times[0]) + ' ~ ' + thlClock(times[times.length - 1])) : '';
-                                            const sorted = list.slice().sort((a, b) => String(a.time || '').localeCompare(String(b.time || '')));
-                                            const settles = sorted.filter(r => r.behavior === '结算');
-                                            const progs = sorted.filter(r => r.behavior === '进度');
-                                            const win = settles.filter(r => r.win === '1').length;
-                                            const lose = settles.filter(r => r.win === '0').length;
-                                            const mvp = settles.filter(r => r.mvp === '1').length;
-                                            const totals = settles.map(r => r.totalPoint).filter(v => v !== '' && isFinite(Number(v))).map(Number);
-                                            const best = totals.length ? Math.max.apply(null, totals) : null;
-                                            const rounds = list.map(r => Number(r.round || r.roundA || r.roundB)).filter(n => n > 0);
-                                            const maxRound = rounds.length ? Math.max.apply(null, rounds) : 0;
-                                            const g = {
-                                                schedule: key,
-                                                total: list.length,
-                                                match: count(list, '匹配'),
-                                                settle: settles.length,
-                                                progress: progs.length,
-                                                span: span,
-                                                win: win,
-                                                lose: lose,
-                                                mvp: mvp,
-                                                best: best,
-                                                maxRound: maxRound,
-                                                others: list.filter(r => !r.behavior).length
-                                            };
-                                            groups.push(g);
-                                            lines.push('');
-                                            lines.push('活动排期 ' + key + sdScheduleTail(key) + ' · ' + list.length + ' 条');
-                                            lines.push('匹配 ' + g.match + ' 场 · 结算 ' + g.settle + ' 场 · 进度 ' + g.progress + ' 条'
-                                                + (g.others ? ' · 其他 ' + g.others + ' 条' : ''));
-                                            if (settles.length) {
-                                                lines.push('结算战绩：胜 ' + win + ' · 负 ' + lose + ' · MVP ' + mvp + ' 次'
-                                                    + (best !== null ? ' · 最高总积分 ' + best : '')
-                                                    + (maxRound ? ' · 打到第 ' + maxRound + ' 轮' : ''));
-                                            }
-                                            if (span) lines.push('时间跨度：' + span);
-                                            if (settles.length) {
-                                                lines.push('【结算】' + (settles.length > CAP ? '前 ' + CAP + ' 条 / 共 ' + settles.length + ' 条' : ''));
-                                                settles.slice(0, CAP).forEach(r => lines.push(thlSettleLine(r)));
-                                                if (settles.length > CAP) lines.push('…还有 ' + (settles.length - CAP) + ' 条结算没列出来');
-                                            }
-                                            if (progs.length) {
-                                                lines.push('【进度】' + (progs.length > CAP ? '前 ' + CAP + ' 条 / 共 ' + progs.length + ' 条' : ''));
-                                                progs.slice(0, CAP).forEach(r => lines.push(thlProgressLine(r)));
-                                                if (progs.length > CAP) lines.push('…还有 ' + (progs.length - CAP) + ' 条进度没列出来');
-                                            }
-                                        });
-                                        // 话术只拿最新那一期（排期号最大的），其余期只在明细里看
-                                        const ordered = order.slice().sort(function (a, b) {
-                                            const na = Number(a), nb = Number(b);
-                                            if (isFinite(na) && isFinite(nb)) return na - nb;
-                                            return String(a).localeCompare(String(b));
-                                        });
-                                        const latestKey = ordered.length ? ordered[ordered.length - 1] : '';
-                                        const speech = latestKey ? thlSpeechLine(latestKey, bySch[latestKey] || []) : '';
-                                        const detail = lines.join('\n');
-                                        const chips = {
-                                                                                    total: rows.length,
-                                            match: count(rows, '匹配'),
-                                            settle: count(rows, '结算'),
-                                            progress: count(rows, '进度'),
-                                            scheds: order.join(' / '),
-                                            groups: groups
-                                        };
-                                        return { text: speech || detail, detail: detail, speechKey: latestKey, chips: chips, rows: rows, groups: groups, hasHeader: p.hasHeader };
-                                    }
-
-
-function thlRun() {
-                                        const input = document.getElementById('thlInput');
-                                        const outEl = document.getElementById('thlOutput');
-                                        const chipsEl = document.getElementById('thlChips');
-                                        const raw = (input && input.value) || '';
-                                        if (!raw.trim()) {
-                                            if (outEl) outEl.value = '';
-                                            if (chipsEl) chipsEl.innerHTML = '';
-                                            teaSetHint('thlHint', '先把 GM「糖葫芦2v2（活动类型 87）」那段查询结果粘进来');
-                                            return null;
-                                        }
-                                        const res = thlBuild(raw);
-                                        if (outEl) outEl.value = res.text;
-                                        const foldEl = document.getElementById('thlDetailFold');
-                                        const bodyEl = document.getElementById('thlDetailBody');
-                                        if (bodyEl) bodyEl.textContent = res.detail || '';
-                                        if (foldEl) foldEl.style.display = res.detail ? '' : 'none';
-                                        if (chipsEl) {
-                                            chipsEl.innerHTML = res.chips
-                                                ? [
-                                                    statChip({ html: '共 <b>' + res.chips.total + '</b> 条' }, 'k-plain', null),
-                                                    statChip({ html: '匹配 <b>' + res.chips.match + '</b> 场' }, 'k-accent', '行为 1 = 匹配'),
-                                                    statChip({ html: '结算 <b>' + res.chips.settle + '</b> 场' }, 'k-op', '行为 2 = 结算'),
-                                                    statChip({ html: '进度 <b>' + res.chips.progress + '</b> 条' }, 'k-plain', '行为 3 = 进度'),
-                                                    statChip({ html: '排期 <b>' + escapeHtml(String(res.chips.scheds || '—')) + '</b>' }, 'k-plain', '活动排期ID（时间窗来自七日任务排期表，认不出只写 id）'),
-                                                    (function () {
-                                                        const gs = res.chips.groups || [];
-                                                        const win = gs.reduce((s, g) => s + (g.win || 0), 0);
-                                                        const lose = gs.reduce((s, g) => s + (g.lose || 0), 0);
-                                                        const mvp = gs.reduce((s, g) => s + (g.mvp || 0), 0);
-                                                        if (!win && !lose) return '';
-                                                        return statChip({ html: '胜 <b>' + win + '</b> · 负 <b>' + lose + '</b> · MVP <b>' + mvp + '</b>' }, 'k-accent', '结算表里的「胜利 / MVP」两列');
-                                                    })()
-                                                ].join('')
-                                                : '';
-                                        }
-                                        if (!res.rows.length) teaSetHint('thlHint', '没认出记录：把 GM 的【结算】表或【进度】表连表头一起粘进来（两张可以一起粘，各自带表头）');
-                                        else teaSetHint('thlHint', '认出 ' + res.rows.length + ' 条' + (res.hasHeader ? '（按表头对齐）' : '（没表头，按内容猜的）') + (res.speechKey ? ' → 按活动排期 ' + res.speechKey + ' 出了一句话术' : ''));
-                                        return res;
-                                    }
-                                    function thlCopy() {
-                                        const outEl = document.getElementById('thlOutput');
-                                        const t = (outEl && outEl.value) || '';
-                                        if (!t.trim()) { teaSetHint('thlHint', '还没有话术：先粘记录点「解析并出话术」'); return; }
-                                        safeCopy(t);
-                                        teaSetHint('thlHint', '话术已复制，可以直接回玩家');
-                                    }
-                                    function thlClear() {
-                                        ['thlInput', 'thlOutput'].forEach(id => {
+                                    function linkClearForm() {
+                                        ['linkNameInput', 'linkUrlInput', 'linkGroupInput', 'linkNoteInput'].forEach(id => {
                                             const el = document.getElementById(id);
                                             if (el) el.value = '';
                                         });
-                                        const chipsEl = document.getElementById('thlChips');
-                                        if (chipsEl) chipsEl.innerHTML = '';
-                                        const bodyEl2 = document.getElementById('thlDetailBody');
-                                        if (bodyEl2) bodyEl2.textContent = '';
-                                        const foldEl2 = document.getElementById('thlDetailFold');
-                                        if (foldEl2) foldEl2.style.display = 'none';
-                                        teaSetHint('thlHint', '已清空');
+                                        const btn = document.getElementById('linkAddBtn');
+                                        if (btn) btn.textContent = '➕ 添加';
                                     }
+                                    function linkSubmit() {
+                                        const nameEl = document.getElementById('linkNameInput');
+                                        const urlEl = document.getElementById('linkUrlInput');
+                                        const groupEl = document.getElementById('linkGroupInput');
+                                        const noteEl = document.getElementById('linkNoteInput');
+                                        const name = nameEl ? linkStr(nameEl.value) : '';
+                                        const url = linkNormUrl(urlEl ? urlEl.value : '');
+                                        const group = groupEl ? linkStr(groupEl.value) : '';
+                                        const note = noteEl ? linkStr(noteEl.value) : '';
+                                        if (!name) { linkSetHint('先写个名称'); if (nameEl) nameEl.focus(); return; }
+                                        if (!url || !/^https?:\/\/[^\s]+$/i.test(url)) { linkSetHint('网址不对：要 http(s):// 开头'); if (urlEl) urlEl.focus(); return; }
+                                        const list = linkAll();
+                                        if (linkEditIndex >= 0 && linkEditIndex < list.length) {
+                                            list[linkEditIndex] = { name: name, url: url, group: group, note: note };
+                                            linkSetHint('已保存修改：' + name);
+                                        } else {
+                                            list.push({ name: name, url: url, group: group, note: note });
+                                            linkSetHint('已添加：' + name + '（同事刷新后也能看到）');
+                                        }
+                                        linkEditIndex = -1;
+                                        linkClearForm();
+                                        linkSaveAll();
+                                        linkRender();
+                                    }
+                                    function linkEditStart(i) {
+                                        const list = linkAll();
+                                        const it = list[i];
+                                        if (!it) return;
+                                        const map = { linkNameInput: it.name, linkUrlInput: it.url, linkGroupInput: it.group, linkNoteInput: it.note };
+                                        Object.keys(map).forEach(id => {
+                                            const el = document.getElementById(id);
+                                            if (el) el.value = linkStr(map[id]);
+                                        });
+                                        linkEditIndex = i;
+                                        const btn = document.getElementById('linkAddBtn');
+                                        if (btn) btn.textContent = '💾 保存修改';
+                                        linkSetHint('正在改「' + (linkStr(it.name) || '这条') + '」，改完点「保存修改」');
+                                        const nameEl = document.getElementById('linkNameInput');
+                                        if (nameEl) nameEl.focus();
+                                    }
+                                    function linkEditCancel() {
+                                        linkEditIndex = -1;
+                                        linkClearForm();
+                                        linkSetHint('已取消修改');
+                                    }
+                                    function linkDel(i) {
+                                        const list = linkAll();
+                                        const it = list[i];
+                                        if (!it) return;
+                                        if (!confirm('删除「' + (linkStr(it.name) || '这条网址') + '」？')) return;
+                                        list.splice(i, 1);
+                                        if (linkEditIndex === i) { linkEditIndex = -1; linkClearForm(); }
+                                        linkSaveAll();
+                                        linkRender();
+                                        linkSetHint('已删除：' + (linkStr(it.name) || ''));
+                                    }
+                                    function linkCopyUrl(i) {
+                                        const it = linkAll()[i];
+                                        if (!it) return;
+                                        safeCopy(linkNormUrl(it.url));
+                                        linkSetHint('已复制网址：' + linkNormUrl(it.url));
+                                    }
+                                    function linkReset() {
+                                        if (!confirm('恢复成内置那几条默认网址？现在这份会被覆盖')) return;
+                                        quickLinks = QUICK_LINKS_DEFAULT.map(x => ({ name: x.name, url: x.url, group: x.group, note: x.note }));
+                                        linkEditIndex = -1;
+                                        linkClearForm();
+                                        linkGroup = 'all';
+                                        linkSaveAll();
+                                        linkRender();
+                                        linkSetHint('已恢复默认网址');
+                                    }
+                                    function linkLoad() {
+                                        linkRender();      // 先用本机缓存 / 默认清单把界面铺出来
+                                        if (quickLinks !== null) return;
+                                        loadData(QUICK_LINKS_KEY, null).then(function (v) {
+                                            if (Array.isArray(v)) quickLinks = v;
+                                            else if (quickLinks === null) quickLinks = QUICK_LINKS_DEFAULT.map(x => ({ name: x.name, url: x.url, group: x.group, note: x.note }));
+                                            linkRender();
+                                        }).catch(function () { });
+                                    }
+
 
                                     function teaResultText() {
                                         const r = teaResult();
@@ -20619,6 +20196,7 @@ function thlRun() {
                                             if (this.dataset.tab === 'overseas') { ovbizRender(); renderOvbizDetail(); }   // 切进来重画一遍（数据只在本机）
                                             if (this.dataset.tab === 'tea') teaInit();                                  // 下午茶：切进来拉一次服务端
                                             if (this.dataset.tab === 'feedback') fbRenderChips();
+                                            if (this.dataset.tab === 'links') linkLoad();                                 // 常用网址：切进来拉一次服务端
                                         });
                                         // 统计页分段导航：点哪段看哪段（进标签页时回到第一段）
                                         (function bindSegBar() {
@@ -20632,7 +20210,7 @@ function thlRun() {
                                             statsSetSeg('tab-career', 'overview');
                                             statsSetSeg('tab-overseas', 'overview');
                                             statsSetSeg('tab-gen', 'reply');   // 话术生成页（只剩一段）
-    statsSetSeg('tab-activity', 'tanghulu');   // 活动查询默认停在「糖葫芦对决」（2026-11 用户：不用默认停在七日任务）
+                                            statsSetSeg('tab-activity', 'sevenday');   // 活动查询第一段就是七日任务（2026-11 去掉糖葫芦后）
                                             statsSetSeg('tab-card', 'speech');  // 集卡分析分三段：集卡话术 / 抽卡详情 / 卡组收藏
                                         })();
 
@@ -21009,43 +20587,35 @@ function thlRun() {
                                             setClick('coloringClearBtn', coloringClearStep);
                                             setClick('coloringDownloadBtn', coloringDownloadStep);
                                         })();
-                                        // 糖葫芦对决（活动类型 87 = 糖葫芦2v2）：粘查询结果 → 按排期 / 行为汇总
-                                        setClick('thlParseBtn', thlRun);
-                                        setClick('thlCopyBtn', thlCopy);
-                                        setClick('thlClearBtn', thlClear);
                                         // 🧩 棋盘镜像（粘镜像 JSON → 主棋盘 / 背包 / 仓库 + 「在哪几个」话术）
-                                        // 📅 活动日历
-                                        setClick('calPrev', function () { calStepMonth(-1); });
-                                        setClick('calNext', function () { calStepMonth(1); });
-                                        setClick('calTodayBtn', function () { calInit(); calState.day = ''; calRender(); });
-                                        (function () {
-                                        const el = document.getElementById('calMonth');
-                                        if (el) el.addEventListener('change', function () {
-                                        const m = /^(\d{4})-(\d{2})$/.exec(el.value || '');
-                                        if (!m) return;
-                                        calState.day = '';
-                                        calSetMonth(+m[1], +m[2]);
-                                        });
-                                        const grid = document.getElementById('calGrid');
-                                        if (grid) grid.addEventListener('click', function (ev) {
-                                        const cell = ev.target.closest('.cal-cell');
-                                        if (!cell || cell.classList.contains('is-blank')) return;
-                                        calState.day = cell.getAttribute('data-day') || '';
-                                        calRender();
-                                        });
-                                        const chips = document.getElementById('calKindChips');
-                                        if (chips) chips.addEventListener('click', function (ev) {
-                                        const chip = ev.target.closest('.stat-chip');
-                                        if (!chip) return;
-                                        calState.kind = chip.getAttribute('data-kind') || 'all';
-                                        calRender();
-                                        });
-                                        calInit();
-                                        })();
                                         setClick('boardParseBtn', boardRun);
                                         setClick('boardClearBtn', boardClear);
                                         setClick('boardAskBtn', boardAskRun);
                                         setClick('boardAskCopyBtn', boardAskCopy);
+                                        // 🔗 常用网址：加 / 改 / 删 / 复制 / 搜 / 按分组筛 / 恢复默认
+                                        setClick('linkAddBtn', linkSubmit);
+                                        setClick('linkEditCancelBtn', linkEditCancel);
+                                        setClick('linkResetBtn', linkReset);
+                                        addEvent('linkSearchInput', 'input', function () {
+                                            const el = document.getElementById('linkSearchInput');
+                                            linkQuery = el ? el.value : '';
+                                            linkRender();
+                                        });
+                                        addEvent('linkList', 'click', function (e) {
+                                            const btn = e.target && e.target.closest ? e.target.closest('button[data-link-act]') : null;
+                                            if (!btn) return;
+                                            const i = parseInt(btn.getAttribute('data-i'), 10);
+                                            const act = btn.getAttribute('data-link-act');
+                                            if (act === 'edit') linkEditStart(i);
+                                            else if (act === 'del') linkDel(i);
+                                            else if (act === 'copy') linkCopyUrl(i);
+                                        });
+                                        addEvent('linkGroupChips', 'click', function (e) {
+                                            const chip = e.target && e.target.closest ? e.target.closest('.link-group-chip') : null;
+                                            if (!chip) return;
+                                            linkGroup = chip.getAttribute('data-link-group') || 'all';
+                                            linkRender();
+                                        });
                                         addEvent('boardAskInput', 'keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); boardAskRun(); } });
                                         // 粘完 400ms 自动解析（镜像 JSON 不用点按钮）
                                         let boardAutoTimer = 0;
@@ -21387,42 +20957,6 @@ function thlRun() {
                                         } catch (e) { console.warn('只投票模式初始化失败', e); }
                                     }
 
-                                    // 侧边栏可拖拽排序（顺序持久化；Sortable 改为 defer 加载，可能在 DOMContentLoaded 后才就绪）
-                                    const tabsEl = document.getElementById('tabsContainer');
-                                    const TAB_ORDER_KEY = 'tabsOrder';
-                                    function restoreTabOrder() {
-                                        if (!tabsEl) return;
-                                        try {
-                                            const order = JSON.parse(localStorage.getItem(TAB_ORDER_KEY) || 'null');
-                                            if (!Array.isArray(order) || !order.length) return;
-                                            order.forEach(tab => {
-                                                const btn = tabsEl.querySelector('.tab-btn[data-tab="' + tab + '"]');
-                                                if (btn) tabsEl.appendChild(btn);
-                                            });
-                                            // 设置面板要留在最后（上面 appendChild 会把按钮挪到它后面）
-                                            const themed = document.getElementById('themePanel');
-                                            if (themed) tabsEl.appendChild(themed);
-                                        } catch (_) { }
-                                    }
-                                    function initSortable() {
-                                        if (!tabsEl || !window.Sortable || tabsEl.__sortableReady) return;
-                                        tabsEl.__sortableReady = true;
-                                        new Sortable(tabsEl, {
-                                            animation: 150,
-                                            draggable: '.tab-btn',
-                                            filter: '.tab-group-title',
-                                            onMove: (evt) => !evt.related.classList.contains('tab-group-title') && !evt.related.classList.contains('tabs-head') && !evt.related.classList.contains('theme-panel'),
-                                            onEnd: () => {
-                                                try {
-                                                    const order = [...tabsEl.querySelectorAll('.tab-btn')].map(b => b.dataset.tab);
-                                                    localStorage.setItem(TAB_ORDER_KEY, JSON.stringify(order));
-                                                } catch (_) { }
-                                            }
-                                        });
-                                    }
-                                    restoreTabOrder();
-                                    initSortable();
-                                    document.addEventListener('DOMContentLoaded', initSortable);
 
                                     // [优化] 模态框支持 Esc / 点击遮罩关闭（原来只能点右上角 ✕）
                                     document.addEventListener('keydown', (e) => {

@@ -35,7 +35,8 @@ ok(/plateFoods\.length >= 30/.test(s), '落盘数量上限');
 ok(/debouncedSaveDaily\(\);/.test(s) && !/custom-value[\s\S]{0,200}?saveData\('dailyData'/.test(s), '自定义项已改防抖');
 ok(/searchInput\.onkeydown/.test(s), 'keypress -> keydown');
 ok((s.match(/role="dialog"/g) || []).length === 8, '模态框 aria 数量 = 8');
-ok((s.match(/defer src="https:\/\/cdn\.jsdelivr\.net\/npm\/sortablejs@1\.15\.6/g) || []).length === 1, 'Sortable 锁版本 + defer');
+ok(!/sortablejs/.test(s) && !/window\.Sortable/.test(s) && !/TAB_ORDER_KEY/.test(s) && !/restoreTabOrder/.test(s),
+  '侧边栏改成固定分组后不再拖拽排序：Sortable 依赖 / TAB_ORDER_KEY / restoreTabOrder 都删掉了');
 ok(!/@import url\('https:\/\/fonts\.googleapis/.test(s), '@import 字体已移除');
 ok((s.match(/#sub-panel-fry #fryLemonBtn,\r?\n\s*#sub-panel-fry #fryLettuceBtn \{/g) || []).length === 1, 'fry 按钮 CSS 重复块已去重');
 ok(!/function cleanText|resolveActivityType/.test(s), '死代码已删除');
@@ -654,10 +655,8 @@ ok(/localStorage\.getItem\(THEME_KEY\)/.test(s) && /localStorage\.setItem\(THEME
   && !/loadData\('themeSettings'/.test(s) && !/saveData\('themeSettings'/.test(s),
   '界面设置：只存本机 themeSettings（并兼容迁移旧键 themeBgColor，不走 /api/data）');
 ok(/themeInit\(\);/.test(s) && /setClick\('themeGear'/.test(s) && /setClick\('themePanelClose'/.test(s)
-  && /setClick\('themeReset', themeReset\)/.test(s) && /themeTogglePanel\(false\)/.test(s)
-  && /getElementById\('themePanel'\);\s*\n\s*if \(themed\) tabsEl\.appendChild\(themed\);/.test(s)
-  && /contains\('tabs-head'\)/.test(s),
-  '界面设置：启动即应用、齿轮开合（含点外面 / Esc 收起）、拖拽排序不会把它挤到中间');
+  && /setClick\('themeReset', themeReset\)/.test(s) && /themeTogglePanel\(false\)/.test(s),
+  '界面设置：启动即应用、齿轮开合（含点外面 / Esc 收起）');
 // 工单侧分组：CP后台 与 ①~⑦群维系 都并进「工单/后台」（2026-11 又多一类 ⑦梦幻抖店 dshop_*）
 ok(/function careerTicketKind\(key\) \{[\s\S]{0,400}?if \(key === 'sso' \|\| \/_cp\$\/\.test\(key\) \|\| \/\^g\\d\/\.test\(key\)(?: \|\| \/\^dshop_\/\.test\(key\))?\) return '工单\/后台';/.test(s)
   && !/return 'CP后台'/.test(s) && !/return '群维系'/.test(s.slice(s.indexOf('function careerTicketKind'), s.indexOf('function careerTicketKind') + 400)),
@@ -852,18 +851,14 @@ ok(/function boardExtraHtml\(model\)/.test(s) && /function boardObjectBlock\(tit
   && /if \(k === "opFrom"\) return resolveSource\(sv\)/.test(s)
   && /最近一次操作（lastInstruction）/.test(s) && /在跑的订单（orderData）/.test(s)
   && /看原始 JSON/.test(s), '镜像：⑤ 最近一次操作 / 在跑订单（opFrom 换成来源名、时间戳换成时间、原始 JSON 可展开）');
-// 2026-11 用户：「能否将这些排期弄成活动日历的标签页」
-ok(/data-tab="calendar"/.test(s) && /id="tab-calendar"/.test(s) && /ACTIVITY CALENDAR/.test(s)
-  && /id="calGrid"/.test(s) && /id="calWeek"/.test(s) && /id="calPrev"/.test(s) && /id="calNext"/.test(s)
-  && /id="calMonth"/.test(s) && /id="calTodayBtn"/.test(s) && /id="calKindChips"/.test(s)
-  && /id="calDayList"/.test(s) && /id="calUpcoming"/.test(s)
-  && /const CAL_KINDS = \[/.test(s) && /const CAL_TABLE = \{/.test(s)
-  && /function calEvents\(\)/.test(s) && /SD_SCHEDULE\.forEach/.test(s)
-  && /function calRender\(\)/.test(s) && /function calStepMonth\(n\)/.test(s) && /function calSetMonth\(y, m\)/.test(s)
-  && /function calEventsOnDay\(d\)/.test(s) && /function calDateOf\(v\)/.test(s)
-  && /厨王争霸 147–210：每周一期/.test(s)
-  && /setClick\('calPrev'/.test(s) && /setClick\('calNext'/.test(s) && /calInit\(\);/.test(s),
-  '活动日历：侧边栏标签 + 月历（前面补空格子/周末底色/今天高亮）+ 分类筛选 + 点某天看全 + 接下来 30 天（七日任务复用 SD_SCHEDULE，厨王争霸按周生成）');
+// 2026-11 用户：「活动日历去掉」→ 标签页 / 月历 / 排期表 / 绑定整块删掉（排期数据仍留在 SD_SCHEDULE，七日任务还在用）
+ok(!/data-tab="calendar"/.test(s) && !/id="tab-calendar"/.test(s) && !/ACTIVITY CALENDAR/.test(s)
+  && !/id="calGrid"/.test(s) && !/id="calKindChips"/.test(s) && !/id="calUpcoming"/.test(s)
+  && !/const CAL_KINDS = \[/.test(s) && !/const CAL_TABLE = \{/.test(s)
+  && !/function calEvents\(\)/.test(s) && !/function calRender\(\)/.test(s) && !/function calDateOf\(v\)/.test(s)
+  && !/setClick\('calPrev'/.test(s) && !/calInit\(\);/.test(s)
+  && !/\.cal-cell/.test(s) && !/\.cal-row /.test(s),
+  '活动日历整块删掉了（2026-11 用户：活动日历去掉）：侧边栏标签 / 月历 DOM / CAL_KINDS / CAL_TABLE / cal* 函数 / 绑定 / .cal-* CSS 都不该再出现');
 ok(/棋盘上有 ' \+ onBoard \+ ' 个，临时背包有 ' \+ inBag \+ ' 个，仓库有 ' \+ inWare \+ ' 个。/.test(s)
   && /镜像里没找到「'/.test(s) && /【棋盘镜像 · '/.test(s),
   '确认话术就是三段式：棋盘上有 X 个，临时背包有 Y 个，仓库有 Z 个；查不到时直说没找到');
@@ -1019,16 +1014,46 @@ ok(/\.card:has\(details\.card-more\[open\]\)[\s\S]{0,120}?overflow: visible;/.te
   && /\.card > \.flex-row:has\(details\.card-more\[open\]\) \{ z-index: 40; \}/.test(s),
   '「⋯ 更多」浮层真能盖在卡片外面：展开时用 :has() 放开 .card 的 overflow:hidden 并把那一行提到 z-index 40（否则会被卡片裁掉 / 被后面的行压住）');
 
-// ---- 3l. 七日任务（并进「话术生成」页的一段：进度日志 → 按内置任务表判定的进度话术，只在本机处理）----
+// ---- 3l. 七日任务（并进「活动查询」页的一段：进度日志 → 按内置任务表判定的进度话术，只在本机处理）----
 ok(/data-tab="activity"> 活动查询</.test(s) && /id="tab-activity"/.test(s)
   && /class="seg-bar" data-for="tab-activity"/.test(s)
-  && /data-seg="tanghulu" data-n="01" class|data-seg="tanghulu" data-n="01"/.test(s) && /id="genTanghuluPane"/.test(s)
-  && /data-seg="sevenday" data-n="02">七日任务进度</.test(s) && /id="genSevendayPane"/.test(s)
-  && /data-seg="teainfo" data-n="03">吉运节节高（下午茶）</.test(s) && /id="genTeaInfoPane"/.test(s)
-  && /statsSetSeg\('tab-activity', 'tanghulu'\)/.test(s)
+  && /data-seg="sevenday" data-n="01">七日任务进度</.test(s) && /id="genSevendayPane"/.test(s)
+  && /data-seg="teainfo" data-n="02">吉运节节高（下午茶）</.test(s) && /id="genTeaInfoPane"/.test(s)
+  && /statsSetSeg\('tab-activity', 'sevenday'\)/.test(s)
   && /#tab-activity > \.seg-bar \{ position: static; \}/.test(s)
   && !/data-tab="sevenday"/.test(s) && !/id="tab-sevenday"/.test(s),
-  '2026-11 用户要求把「糖葫芦对决 / 七日任务 / 吉运节节高」整合进侧边栏新标签「活动查询」：分段 01 糖葫芦 / 02 七日任务 / 03 吉运，**默认停在糖葫芦对决**（用户：不用默认停在七日任务），那一页的分段条不吸顶');
+  '「活动查询」标签页只剩两段：01 七日任务进度 / 02 吉运节节高（2026-11 用户：糖葫芦去掉），默认停在七日任务，那一页的分段条不吸顶');
+ok(!/data-seg="tanghulu"/.test(s) && !/id="genTanghuluPane"/.test(s) && !/id="thlInput"/.test(s)
+  && !/id="thlOutput"/.test(s) && !/id="thlParseBtn"/.test(s)
+  && !/const THL_ALIASES = \{/.test(s) && !/const THL_BEHAVIOR_TEXT/.test(s)
+  && !/function thlParse\(raw\)/.test(s) && !/function thlRun\(\)/.test(s) && !/function thlSpeechLine/.test(s)
+  && !/setClick\('thlParseBtn'/.test(s) && !/糖葫芦对决 → 查询/.test(s),
+  '糖葫芦对决整块删掉了（2026-11 用户：糖葫芦去掉）：分段 / 面板 / THL_* / thl* 函数 / 绑定都不该再出现（活动类型 87 的映射保留，别一起删）');
+// 2026-11 用户：「优化一下标签页的排放，同事反馈：有时候我找反馈模版老是去集卡看卡包去了」
+ok((s.match(/<div class="tab-group-title">/g) || []).length === 4
+  && /<div class="tab-group-title">梦幻消除站<\/div>/.test(s)
+  && /<div class="tab-group-title">工单 · 日报<\/div>/.test(s)
+  && /<div class="tab-group-title">统计 · 排班<\/div>/.test(s)
+  && /<div class="tab-group-title">常用工具<\/div>/.test(s)
+  // 反馈模板 挨着 工单回复（都在「工单 · 日报」组里），集卡分析 留在「梦幻消除站」——找反馈模板不会再点到卡包去
+  && /工单 · 日报<\/div>\s*\n\s*<button class="tab-btn tab-btn-sub" data-tab="reply"> 工单回复<\/button>\s*\n\s*<button class="tab-btn tab-btn-sub" data-tab="feedback"> 反馈模板<\/button>/.test(s)
+  && /data-tab="card"> 集卡分析（卡包 \/ 抽卡）<\/button>/.test(s)
+  && /data-tab="daily"> 每日日报<\/button>/.test(s) && /data-tab="links"> 常用网址<\/button>/.test(s)
+  && /data-tab="script"> 小游戏<\/button>/.test(s),
+  '侧边栏改成固定四组（梦幻消除站 / 工单 · 日报 / 统计 · 排班 / 常用工具）：反馈模板和工单回复同一组、离集卡分析远远的（用户反馈「找反馈模版老是去集卡看卡包」），集卡分析改名「集卡分析（卡包 / 抽卡）」');
+// 「常用网址」标签页（2026-11 用户：「增加新的标签页功能，常用网址」）
+ok(/id="tab-links"/.test(s) && /QUICK LINKS \/ 常用网址/.test(s)
+  && /id="linkNameInput"/.test(s) && /id="linkUrlInput"/.test(s) && /id="linkGroupInput"/.test(s) && /id="linkNoteInput"/.test(s)
+  && /id="linkAddBtn"/.test(s) && /id="linkEditCancelBtn"/.test(s) && /id="linkResetBtn"/.test(s) && /id="linksHint"/.test(s)
+  && /id="linkSearchInput"/.test(s) && /id="linkGroupChips"/.test(s) && /id="linkList"/.test(s)
+  && /const QUICK_LINKS_KEY = 'quickLinks';/.test(s) && /const QUICK_LINKS_DEFAULT = \[/.test(s)
+  && /function linkNormUrl\(u\)/.test(s) && /function linkRender\(\)/.test(s) && /function linkSubmit\(\)/.test(s)
+  && /function linkEditStart\(i\)/.test(s) && /function linkDel\(i\)/.test(s) && /function linkCopyUrl\(i\)/.test(s)
+  && /function linkReset\(\)/.test(s) && /function linkLoad\(\)/.test(s)
+  && /saveData\(QUICK_LINKS_KEY/.test(s) && /loadData\(QUICK_LINKS_KEY, null\)/.test(s)
+  && /if \(this\.dataset\.tab === 'links'\) linkLoad\(\);/.test(s)
+  && /target="_blank" rel="noopener noreferrer"/.test(s),
+  '常用网址：清单（名称 / 网址 / 分组 / 备注）+ 添加 / 改 / 删 / 复制网址 / 搜 / 按分组筛 / 恢复默认；存服务端 /api/data/quickLinks（同事共用一份），切到这个标签才拉一次');
 ok(/id="sdLogInput"/.test(s) && /id="sdOutput"/.test(s) && /id="sdGenerateBtn"/.test(s)
   && /id="sdCopyBtn"/.test(s) && /id="sdClearBtn"/.test(s) && /id="sdReportSub"/.test(s),
   '七日任务那一段：粘进度日志 + 生成 / 复制 / 清空 + 结果框');
@@ -1044,7 +1069,6 @@ ok(/const SD_SCHEDULE = \[/.test(s)
   && /活动排期 ' \+ one \+ sdScheduleTail\(one\)/.test(s)
   && /活动排期 ' \+ sec\.key \+ sdScheduleTail\(sec\.key\)/.test(s),
   '七日任务：内置 37 条活动排期（id → 起止时间，2026-11 快照补了 38 / 39），抬头写「活动排期 N：时间窗」；一次粘多期日志时按期分段（每段写排期 + 时间窗 + 几个任务）');
-// 糖葫芦对决（活动类型 87）：新的一段 + 反推的行为枚举（1 匹配 / 2 结算 / 3 进度）
 ok(/data-sub="color">🎨 涂色</.test(s) && /id="sub-panel-color"/.test(s)
   && /id="coloringCard"/.test(s) && /id="coloringPalette"/.test(s) && /id="coloringPics"/.test(s)
   && /id="coloringCustomColor"/.test(s) && /id="coloringCanvas"/.test(s)
@@ -1073,26 +1097,6 @@ ok(/data-sub="color">🎨 涂色</.test(s) && /id="sub-panel-color"/.test(s)
   + '图都来自三本涂色书（public/coloring/ 的 36 张页 + manifest.json，点一张铺到 canvas 走位图填充），'
   + '原来手画的几何线稿（COLORING_MORE / COLORING_HEAVY / 三杯分档）已整段删除；'
   + '点开的图铺到 3000×3000 画布上走扫描线 flood fill（黑线当边界）；14 色调色板 + 橡皮 / 撤销 / 重做 / 清空 / 下载，状态只在本机（**「📥 导入图片」入口按用户要求删掉了**）');
-ok(/data-seg="tanghulu" data-n="01">糖葫芦对决</.test(s) && /id="genTanghuluPane"/.test(s)
-  && /id="thlInput"/.test(s) && /id="thlParseBtn"/.test(s) && /id="thlOutput"/.test(s) && /id="thlChips"/.test(s)
-  && /const THL_BEHAVIOR_TEXT = \{ '1': '匹配', '2': '结算', '3': '进度' \};/.test(s)
-  // 2026-11 用户给了 GM 里真实的两张表 → 按表头认列，行为按表头推（结算 / 进度），两张可以一起粘
-  && /'创建时间': 'time'/.test(s) && /'胜利': 'win'/.test(s) && /'mvp': 'mvp'/.test(s)
-  && /'本轮积分': 'roundPoint'/.test(s) && /'总积分': 'totalPoint'/.test(s) && /'是否结束': 'ended'/.test(s)
-  && /'轮次\(before\)': 'roundB'/.test(s) && /'玩家分数\(after\)': 'myA'/.test(s)
-  && /function thlHeadKey\(c\)/.test(s) && /function thlBehaviorOfMap\(map\)/.test(s)
-  && /function thlSettleLine\(r\)/.test(s) && /function thlProgressLine\(r\)/.test(s)
-  && /结算战绩：胜 '/.test(s)
-  // 2026-11 用户：「糖葫芦的话术 弄成一句可以回复玩家的话」→ 结果框只放一句话术，明细折进「核对明细」
-  && /function thlSpeechLine\(key, list\)/.test(s) && /您好，糖葫芦2v2 这一期：/.test(s)
-  && /如有疑问随时联系我们～/.test(s)
-  && /id="thlDetailFold"/.test(s) && /id="thlDetailBody"/.test(s) && /pre\.thl-detail/.test(s)
-  && /function thlParse\(raw\)/.test(s) && /function thlRun\(\)/.test(s)
-  && /setClick\('thlParseBtn', thlRun\)/.test(s) && /setClick\('thlClearBtn', thlClear\)/.test(s)
-  && /活动排期 ' \+ key \+ sdScheduleTail\(key\)/.test(s),
-  '糖葫芦对决（活动类型 87 = 糖葫芦2v2）：活动查询页第一段，粘 GM 的【结算】/【进度】表（连表头，两张可一起粘）'
-  + ' → 按表头认列、按排期分组；结果框只出「一句能回玩家的话」（这一期 · 轮次 · 双方分数 · 胜负/MVP · 总积分，不提活动排期），'
-  + '逐条核对明细折进「核对明细（不发给玩家）」（结算写第几轮 / 双方分数 / 胜负 / MVP / 本轮积分 / 总积分，进度写分数变化）');
 ok(!/id="sdTaskFold"/.test(s) && !/id="sdTaskInput"/.test(s) && !/id="sdTaskSub"/.test(s)
   && !/sdInitTaskTable/.test(s) && !/sdTaskResetBtn/.test(s) && !/sdClearTask/.test(s),
   '任务表完全不上界面：页面上没有折叠区 / 只读框 / 条数副标（也没有「清掉任务表」按钮）');

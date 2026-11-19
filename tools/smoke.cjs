@@ -2354,19 +2354,17 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
 
     doc.querySelector('.tab-btn[data-tab="activity"]').click();
     await sleep(60);
-    check(!!$('tab-activity') && $('tab-activity').dataset.seg === 'tanghulu'
-      && $('genTanghuluPane').classList.contains('seg-on'),
-      '2026-11 用户要求整合：侧边栏多了「活动查询」标签，默认停在「糖葫芦对决」（用户：不用默认停在七日任务）',
+    check(!!$('tab-activity') && $('tab-activity').dataset.seg === 'sevenday'
+      && $('genSevendayPane').classList.contains('seg-on') && !$('genTanghuluPane'),
+      '2026-11 去掉糖葫芦后：「活动查询」默认停在第一段「七日任务进度」，糖葫芦那块整个不在了',
       $('tab-activity') && $('tab-activity').dataset.seg);
-    doc.querySelector('#tab-activity .seg-btn[data-seg="sevenday"]').click();
-    await sleep(40);
-    check($('tab-activity').dataset.seg === 'sevenday' && $('genSevendayPane').classList.contains('seg-on')
-      && !$('genTanghuluPane').classList.contains('seg-on'),
-      '活动查询里切到「七日任务进度」这一段（糖葫芦那块同时收起）');
+    check(doc.querySelectorAll('#tab-activity > .seg-bar .seg-btn').length === 2,
+      '活动查询只剩两段（七日任务 / 吉运节节高）',
+      doc.querySelectorAll('#tab-activity > .seg-bar .seg-btn').length);
     doc.querySelector('#tab-activity .seg-btn[data-seg="teainfo"]').click();
     await sleep(40);
-    check($('genTeaInfoPane').classList.contains('seg-on') && !$('genTanghuluPane').classList.contains('seg-on'),
-      '活动查询里切到「吉运节节高（下午茶）」这一段');
+    check($('genTeaInfoPane').classList.contains('seg-on') && !$('genSevendayPane').classList.contains('seg-on'),
+      '活动查询里切到「吉运节节高（下午茶）」这一段（七日任务同时收起）');
     doc.querySelector('#tab-activity .seg-btn[data-seg="sevenday"]').click();
     await sleep(40);
     check($('genSevendayPane').classList.contains('seg-on') && !!$('genSevendayPane'),
@@ -2598,98 +2596,6 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     await sleep(40);
     check(/使用100个道具：已使用 100\/100，已完成，可领取 积分 50/.test($('sdOutput').value),
       '老版 8 列日志（没有任务需求列）仍按老列序认', $('sdOutput').value);
-  }
-
-  console.log('--- 8q-2. 糖葫芦对决（活动类型 87 = 糖葫芦2v2，反推：1 匹配 / 2 结算 / 3 进度） ---');
-  {
-    const postsThl = posts.length;
-    doc.querySelector('#tab-activity .seg-btn[data-seg="tanghulu"]').click();
-    await sleep(60);
-    check($('tab-activity').dataset.seg === 'tanghulu' && $('genTanghuluPane').classList.contains('seg-on'),
-      '「活动查询」页的第一段就是「糖葫芦对决」，切过去只显示这一段');
-    check(!!$('thlInput') && !!$('thlParseBtn') && !!$('thlOutput') && !!$('thlChips') && !!$('thlDetailFold'),
-      '糖葫芦那一段有输入框 / 解析按钮 / 芯片区 / 话术框 / 核对明细');
-
-    // 输出是「一句能直接回玩家的话」（逐条明细折进「核对明细」，不跟着复制）
-    $('thlInput').value = [
-      '排期ID\t行为\t事件UUID\t时间',
-      '37\t匹配\t8f2c1d3e4b5a69788796a5b4c3d2e1f0\t2026-11-10 20:15:03',
-      '37\t匹配\t9f2c1d3e4b5a69788796a5b4c3d2e1f0\t2026-11-10 20:40:11',
-      '37\t结算\t7f2c1d3e4b5a69788796a5b4c3d2e1f0\t2026-11-11 09:05:00',
-      '37\t进度\t6f2c1d3e4b5a69788796a5b4c3d2e1f0\t2026-11-11 09:06:00',
-    ].join('\n');
-    $('thlParseBtn').click();
-    await sleep(80);
-    const thlSpeech1 = $('thlOutput').value;
-    check(thlSpeech1 === '您好，糖葫芦2v2 这一期：结算 1 场（胜 0 场、负 0 场），如有疑问随时联系我们～',
-      '话术就一句：这一期 + 结算场次 + 收尾，能直接复制回玩家（不提活动排期）', thlSpeech1);
-    check(thlSpeech1.indexOf('\n') === -1, '话术没有换行（一整句）', thlSpeech1);
-    check(thlSpeech1.indexOf('活动排期') === -1 && thlSpeech1.indexOf('2026/11/9') === -1,
-      '话术里不出现活动排期号 / 时间窗（用户：活动排期不用说给玩家）', thlSpeech1);
-    const thlDetail1 = $('thlDetailBody').textContent;
-    check($('thlDetailFold').style.display !== 'none'
-      && /^糖葫芦2v2 · 共 4 条/.test(thlDetail1)
-      && /^活动排期 37：2026\/11\/9 8:00~2026\/11\/18 7:59 · 4 条$/m.test(thlDetail1)
-      && /匹配 2 场 · 结算 1 场 · 进度 1 条/.test(thlDetail1)
-      && /时间跨度：11-10 20:15 ~ 11-11 09:06/.test(thlDetail1)
-      && /^- 11-11 09:05 · 结算 · c3d2e1f0$/m.test(thlDetail1),
-      '逐条明细折在「核对明细（不发给玩家）」里：条数 / 排期时间窗 / 行为计数 / 时间跨度 / 结算逐条', thlDetail1.split('\n')[0]);
-    check(/共 <b>4<\/b> 条/.test($('thlChips').innerHTML) && /匹配 <b>2<\/b> 场/.test($('thlChips').innerHTML)
-      && /排期 <b>37<\/b>/.test($('thlChips').innerHTML),
-      '芯片：总条数 / 匹配 / 结算 / 进度 / 排期', $('thlChips').textContent);
-    check(/认出 4 条（按表头对齐） → 按活动排期 37 出了一句话术/.test($('thlHint').textContent),
-      '提示里写清认出几条、按哪一期出的话术', $('thlHint').textContent);
-
-    // 2026-11 用户给的真实两张表（结算 + 进度，都没有「行为」列）
-    $('thlInput').value = [
-      '创建时间\t排期ID\t事件UUID\t分组\t轮次\t玩家分数\t队友分数\t对手1分数\t对手2分数\t胜利\tMVP\t本轮积分\t总积分\t是否结束',
-      '2026-11-06 12:08:19\t1\tb332e6278c1a522c39786241b58129c5\t2\t1\t188\t112\t94\t118\t1\t1\t2\t2\t',
-      '',
-      '创建时间\t排期ID\t事件UUID\t轮次(before)\t玩家分数(before)\t队友分数(before)\t对手1分数(before)\t对手2分数(before)\t轮次(after)\t玩家分数(after)\t队友分数(after)\t对手1分数(after)\t对手2分数(after)',
-      '2026-11-06 12:26:30\t1\t201c3616579480b9c00b9ef9a07f29d0\t3\t169\t118\t89\t108\t3\t169\t119\t89\t117',
-      '2026-11-06 12:12:31\t1\t61be3fabed51ff160a382bf908951e08\t3\t85\t34\t37\t0\t3\t110\t34\t37\t0',
-    ].join('\n');
-    $('thlParseBtn').click();
-    await sleep(80);
-    const thlSpeech2 = $('thlOutput').value;
-    check(thlSpeech2 === '您好，糖葫芦2v2 这一期：您这边已经打到第 3 轮，我方得分 169+119，对手得分 89+117，结算 1 场（胜 1 场、负 0 场、拿到 1 次 MVP），当前总积分 2，如有疑问随时联系我们～',
-      '真实两张表一起粘 → 一句话把轮次 / 双方分数 / 胜负 / MVP / 总积分都说清（不提排期）', thlSpeech2);
-    const thlDetail2 = $('thlDetailBody').textContent;
-    check(/匹配 0 场 · 结算 1 场 · 进度 2 条/.test(thlDetail2),
-      '没有「行为」列也能按表头认出结算 / 进度（带 before/after 算进度，带胜负积分算结算）', thlDetail2);
-    check(/结算战绩：胜 1 · 负 0 · MVP 1 次 · 最高总积分 2 · 打到第 3 轮/.test(thlDetail2),
-      '明细里有结算战绩：胜 / 负 / MVP / 最高总积分 / 打到第几轮', thlDetail2);
-    check(/^- 11-06 12:08 · 结算 · 第1轮 · 我方 188\+112 vs 对手 94\+118 · 胜利 · MVP · 本轮积分 \+2 · 总积分 2$/m.test(thlDetail2),
-      '明细里的结算逐条：第几轮 / 双方分数 / 胜负 / MVP / 本轮积分 / 总积分', thlDetail2);
-    check(/^- 11-06 12:26 · 进度 · 第3轮 · 我方 169\+118 → 169\+119 · 对手 89\+108 → 89\+117$/m.test(thlDetail2),
-      '明细里的进度逐条：轮次 + 我方 / 对手分数变化', thlDetail2);
-    check(/胜 <b>1<\/b> · 负 <b>0<\/b> · MVP <b>1<\/b>/.test($('thlChips').innerHTML),
-      '芯片多一片「胜 / 负 / MVP」', $('thlChips').textContent);
-
-    // 没表头：按内容猜（1/2/3 当行为）
-    $('thlInput').value = '37\t2\t8f2c1d3e4b5a69788796a5b4c3d2e1f0\t2026-11-12 10:00:00';
-    $('thlParseBtn').click();
-    await sleep(60);
-    check(/^您好，糖葫芦2v2 这一期：/.test($('thlOutput').value) && /结算 1 场/.test($('thlOutput').value),
-      '没有表头也能按内容猜出行为（2 = 结算）并出话术', $('thlOutput').value);
-    check(/没表头，按内容猜的/.test($('thlHint').textContent), '提示里写「没表头，按内容猜的」', $('thlHint').textContent);
-
-    $('thlInput').value = '这里没有糖葫芦的记录';
-    $('thlParseBtn').click();
-    await sleep(40);
-    check($('thlOutput').value === '' && /没认出记录/.test($('thlHint').textContent),
-      '认不出记录时结果清空 + 提示怎么粘', $('thlHint').textContent);
-    check($('thlDetailBody').textContent === '' && $('thlDetailFold').style.display === 'none',
-      '认不出记录时明细折叠块也收起', $('thlDetailFold').style.display);
-    $('thlCopyBtn').click();
-    await sleep(20);
-    check(/还没有话术/.test($('thlHint').textContent), '没结果时点复制只提示', $('thlHint').textContent);
-    $('thlClearBtn').click();
-    await sleep(30);
-    check($('thlInput').value === '' && $('thlOutput').value === '' && $('thlChips').innerHTML === ''
-      && $('thlDetailBody').textContent === '',
-      '🧹 清空把输入 / 话术 / 芯片 / 明细都清掉');
-    check(posts.length === postsThl, '糖葫芦查询全程只在本机（0 请求）');
   }
 
   console.log('--- 8r. 反馈模板 · 巨多（卡片墙：一张卡 = 一条消息） ---');
@@ -3386,7 +3292,7 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
     await sleep(60);
     const segTea = doc.querySelector('#tab-activity .seg-btn[data-seg="teainfo"]');
     check(!!segTea && /吉运节节高/.test(segTea.textContent),
-      '「活动查询」页的第三段就是「吉运节节高（下午茶）」（跟七日任务 / 糖葫芦并排）',
+      '「活动查询」页的第二段就是「吉运节节高（下午茶）」（跟七日任务并排）',
       segTea && segTea.textContent);
     segTea.click();
     await sleep(60);
@@ -3687,62 +3593,81 @@ const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: tr
       '镜像解析全程只在本机（0 请求）', posts.slice(posts8z).map(p => p.url).join(' | '));
   }
 
-  console.log('--- 8z-4. 活动日历（把各活动排期摊成月历）---');
+  console.log('--- 8x-9. 常用网址（清单 / 加改删 / 复制 / 搜 / 按分组筛 / 存服务端）---');
   {
-    const postsCal = posts.length;
-    doc.querySelector('.tab-btn[data-tab="calendar"]').click();
-    await sleep(80);
-    check(doc.querySelector('.tab-btn[data-tab="calendar"]').textContent.trim() === '活动日历'
-      && !!doc.getElementById('calGrid') && !!doc.getElementById('calUpcoming'),
-      '侧边栏有「活动日历」，页里有月历和「接下来 30 天」');
-    const monthEl = doc.getElementById('calMonth');
-    monthEl.value = '2026-11';
-    fire(monthEl, 'change');
-    await sleep(80);
-    check(/2026 年 11 月/.test(doc.getElementById('calTitle').textContent),
-      '跳到 2026-11：抬头跟着变', doc.getElementById('calTitle').textContent);
-    const cells = [...doc.getElementById('calGrid').querySelectorAll('.cal-cell')];
-    const dayCells = cells.filter(c => !c.classList.contains('is-blank'));
-    check(dayCells.length === 30, '11 月画了 30 天（前面按星期补空）', dayCells.length);
-    const evShown = [...doc.getElementById('calGrid').querySelectorAll('.cal-ev')];
-    check(evShown.length >= 10, '有排期的日子都挂了活动条', evShown.length);
-    const cell4 = cells.filter(c => c.getAttribute('data-day') === '2026-11-4')[0];
-    check(!!cell4 && cell4.querySelectorAll('.cal-ev').length === 3 && /\+\d+/.test(cell4.textContent),
-      '一天多期时最多挂 3 条，多出来的写「+N」', cell4 && cell4.textContent.replace(/\s+/g, ' '));
-    cell4.click();
+    const postsLink = posts.length;
+    doc.querySelector('.tab-btn[data-tab="links"]').click();
+    await sleep(120);
+    check(!!$('tab-links') && $('tab-links').classList.contains('active')
+      && !!$('linkList') && !!$('linkNameInput') && !!$('linkUrlInput') && !!$('linkAddBtn'),
+      '侧边栏「常用工具 → 常用网址」能打开，清单 / 表单 / 按钮都在');
+    check(doc.querySelectorAll('#linkList .link-row').length === 4,
+      '默认四条网址（GM 玩家查询 / GM 订单查询 / 工作台线上 / 工作台本机）',
+      doc.querySelectorAll('#linkList .link-row').length);
+    check(/共 4 条 · 2 个分组/.test($('linksSub').textContent),
+      '抬头副标写清条数与分组数', $('linksSub').textContent);
+    // 加一条（网址不带协议也认）
+    $('linkNameInput').value = '工单后台';
+    $('linkUrlInput').value = 'example.com/ticket';
+    $('linkGroupInput').value = '工单';
+    $('linkNoteInput').value = '测试用';
+    $('linkAddBtn').click();
+    await sleep(120);
+    check(doc.querySelectorAll('#linkList .link-row').length === 5
+      && /已添加：工单后台/.test($('linksHint').textContent),
+      '添加一条 → 清单变 5 条并提示', $('linksHint').textContent);
+    check(/https:\/\/example\.com\/ticket/.test($('linkList').textContent),
+      '网址不带协议会补成 https://', ($('linkList').textContent.match(/https:\/\/[^\s'"]*/) || [''])[0]);
+    check(posts.some(p => /api\/data\/quickLinks/.test(p.url) && p.method === 'POST'),
+      '清单存服务端（POST /api/data/quickLinks，同事共用一份）');
+    // 搜
+    $('linkSearchInput').value = '工单';
+    fire($('linkSearchInput'), 'input');
     await sleep(60);
-    check(/茶楼经营簿/.test(doc.getElementById('calDayList').textContent),
-      '点 11/4 → 下面能看全（茶楼经营簿 11/4~12/10 那期）', doc.getElementById('calDayList').textContent.slice(0, 90));
-    // ⚠️ 每次重画都会换一批格子节点，得重新查（旧引用点不动）
-    const cell15 = [...doc.getElementById('calGrid').querySelectorAll('.cal-cell')]
-      .filter(c => c.getAttribute('data-day') === '2026-11-15')[0];
-    cell15.click();
+    check(doc.querySelectorAll('#linkList .link-row').length === 1,
+      '搜索按名称 / 网址 / 备注 / 分组过滤', doc.querySelectorAll('#linkList .link-row').length);
+    $('linkSearchInput').value = '';
+    fire($('linkSearchInput'), 'input');
     await sleep(60);
-    check(/限时排行榜/.test(doc.getElementById('calDayList').textContent)
-      && /37 期/.test(doc.getElementById('calDayList').textContent),
-      '点某天 → 下面列出这天在跑的活动（含期号）', doc.getElementById('calDayList').textContent.slice(0, 90));
-    const chipCard = doc.querySelector('#calKindChips .stat-chip[data-kind="card"]');
-    chipCard.click();
+    // 按分组筛（芯片）
+    const chip = [...doc.querySelectorAll('#linkGroupChips .link-group-chip')].filter(c => c.getAttribute('data-link-group') === 'GM 后台')[0];
+    check(!!chip, '分组芯片里有「GM 后台」');
+    chip.click();
     await sleep(60);
-    const evCard = [...doc.getElementById('calGrid').querySelectorAll('.cal-ev')].map(e => e.textContent);
-    check(evCard.length > 0 && evCard.every(t => /集卡/.test(t)),
-      '筛选「集卡」→ 只剩集卡那几期', evCard.join(' | '));
-    doc.querySelector('#calKindChips .stat-chip[data-kind="all"]').click();
-    await sleep(40);
-    doc.getElementById('calPrev').click();
+    check(doc.querySelectorAll('#linkList .link-row').length === 2,
+      '点分组芯片按分组筛（GM 后台 2 条）', doc.querySelectorAll('#linkList .link-row').length);
+    doc.querySelector('#linkGroupChips .link-group-chip[data-link-group="all"]').click();
     await sleep(60);
-    check(/2026 年 10 月/.test(doc.getElementById('calTitle').textContent),
-      '‹ 退到 2026 年 10 月', doc.getElementById('calTitle').textContent);
-    doc.getElementById('calTodayBtn').click();
+    check(doc.querySelectorAll('#linkList .link-row').length === 5, '点「全部」恢复 5 条');
+    // 改
+    const editBtn = doc.querySelector('#linkList button[data-link-act="edit"]');
+    editBtn.click();
     await sleep(60);
-    const now = new Date();
-    check(new RegExp(now.getFullYear() + ' 年 ' + (now.getMonth() + 1) + ' 月').test(doc.getElementById('calTitle').textContent),
-      '「回到今天」跳回当月', doc.getElementById('calTitle').textContent);
-    check(!!doc.getElementById('calUpcoming').textContent.trim(),
-      '「接下来 30 天」有内容（没有排期也会写一句提示）');
-    check(posts.length === postsCal,
-      '活动日历全程只在本机（0 请求）', posts.slice(postsCal).map(p => p.url).join(' | '));
+    check($('linkNameInput').value.length > 0 && /保存修改/.test($('linkAddBtn').textContent),
+      '点 ✎ → 表单回填、按钮变「保存修改」', $('linkAddBtn').textContent);
+    $('linkNoteInput').value = '改过的备注';
+    $('linkAddBtn').click();
+    await sleep(60);
+    check(/改过的备注/.test($('linkList').textContent) && /➕ 添加/.test($('linkAddBtn').textContent),
+      '保存修改写回清单，按钮复原', $('linkAddBtn').textContent);
+    // 删（confirm 在 smoke 里恒为 true）
+    const before = doc.querySelectorAll('#linkList .link-row').length;
+    doc.querySelectorAll('#linkList button[data-link-act="del"]')[0].click();
+    await sleep(60);
+    check(doc.querySelectorAll('#linkList .link-row').length === before - 1,
+      '🗑 删掉一条', before + ' → ' + doc.querySelectorAll('#linkList .link-row').length);
+    // 恢复默认
+    $('linkResetBtn').click();
+    await sleep(60);
+    check(doc.querySelectorAll('#linkList .link-row').length === 4
+      && /已恢复默认网址/.test($('linksHint').textContent),
+      '恢复默认 → 回到 4 条并提示', $('linksHint').textContent);
+    check(!doc.querySelector('#tab-links a.lk-name[href="javascript:"]'),
+      '外链都是 http(s) 的真实链接（新标签打开，带 rel=noopener）');
+    check(posts.length > postsLink, '这一节确实往服务端写过（saveData → quickLinks）');
   }
+
+
   console.log('--- 8z-2. 涂色游戏（Anycolor 玩法：内置图库 + 位图填充）---');
   {
     const posts9 = posts.length;
